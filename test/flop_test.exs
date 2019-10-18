@@ -4,8 +4,10 @@ defmodule FlopTest do
 
   import Ecto.Query, only: [from: 2]
 
+  alias Ecto.Query.BooleanExpr
   alias Ecto.Query.QueryExpr
   alias Flop
+  alias Flop.Filter
   alias Pet
 
   @base_query from p in Pet, where: p.age > 8, select: p.name
@@ -94,8 +96,41 @@ defmodule FlopTest do
       assert %QueryExpr{params: [{4, :integer}]} = Flop.query(Pet, flop).limit
     end
 
+    test "adds where clauses for filters" do
+      flop = %Flop{filters: [%Filter{field: :age, op: ">=", value: 4}]}
+
+      assert [
+               %BooleanExpr{
+                 expr: {:>=, _, _},
+                 op: :and,
+                 params: [{:age, _}, {4, _}]
+               }
+             ] = Flop.query(Pet, flop).wheres
+
+      flop = %Flop{
+        filters: [
+          %Filter{field: :age, op: ">=", value: 4},
+          %Filter{field: :name, op: "==", value: "Bo"}
+        ]
+      }
+
+      assert [
+               %BooleanExpr{
+                 expr: {:>=, _, _},
+                 op: :and,
+                 params: [{:age, _}, {4, _}]
+               },
+               %BooleanExpr{
+                 expr: {:==, _, _},
+                 op: :and,
+                 params: [{:name, _}, {"Bo", _}]
+               }
+             ] = Flop.query(Pet, flop).wheres
+    end
+
     test "leaves query unchanged if everything is nil" do
       flop = %Flop{
+        filters: nil,
         limit: nil,
         offset: nil,
         order_by: nil,

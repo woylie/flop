@@ -18,11 +18,15 @@ defmodule Flop do
   ]
 
   defmodule Filter do
+    @moduledoc """
+    Defines a filter.
+    """
     defstruct [:field, :op, :value]
   end
 
   def query(q, flop) do
     q
+    |> filter(flop)
     |> order_by(flop)
     |> paginate(flop)
   end
@@ -75,4 +79,36 @@ defmodule Flop do
 
   defp offset(q, nil), do: q
   defp offset(q, offset), do: Query.offset(q, ^offset)
+
+  ## Filter
+
+  def filter(q, %Flop{filters: nil}), do: q
+  def filter(q, %Flop{filters: []}), do: q
+
+  def filter(q, %Flop{filters: filters}) when is_list(filters) do
+    Enum.reduce(filters, q, &filter(&2, &1))
+  end
+
+  def filter(_, %Filter{field: field, op: _, value: value})
+      when is_nil(field) or is_nil(value) do
+    raise ArgumentError
+  end
+
+  def filter(q, %Filter{field: field, op: "==", value: value}),
+    do: Query.where(q, ^field == ^value)
+
+  def filter(q, %Filter{field: field, op: "!=", value: value}),
+    do: Query.where(q, ^field != ^value)
+
+  def filter(q, %Filter{field: field, op: ">=", value: value}),
+    do: Query.where(q, ^field >= ^value)
+
+  def filter(q, %Filter{field: field, op: "<=", value: value}),
+    do: Query.where(q, ^field <= ^value)
+
+  def filter(q, %Filter{field: field, op: ">", value: value}),
+    do: Query.where(q, ^field > ^value)
+
+  def filter(q, %Filter{field: field, op: "<", value: value}),
+    do: Query.where(q, ^field < ^value)
 end
