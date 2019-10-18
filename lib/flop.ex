@@ -7,9 +7,11 @@ defmodule Flop do
   require Ecto.Query
 
   import Ecto.Changeset
+  import Flop.Schema
 
   alias __MODULE__.Filter
   alias Ecto.Query
+  alias Flop.CustomTypes.ExistingAtom
   alias Flop.CustomTypes.OrderDirection
 
   @type t :: %__MODULE__{
@@ -25,7 +27,7 @@ defmodule Flop do
   embedded_schema do
     field :limit, :integer
     field :offset, :integer
-    field :order_by, {:array, :string}
+    field :order_by, {:array, ExistingAtom}
     field :order_directions, {:array, OrderDirection}
     field :page, :integer
     field :page_size, :integer
@@ -152,20 +154,22 @@ defmodule Flop do
 
   ## Validation
 
-  def validate(%Flop{} = flop) do
+  def validate(flop, opts \\ [])
+
+  def validate(%Flop{} = flop, opts) do
     flop
     |> Map.from_struct()
-    |> changeset()
+    |> changeset(opts)
     |> apply_action(:insert)
   end
 
-  def validate(%{} = params) do
+  def validate(%{} = params, opts) do
     params
-    |> changeset()
+    |> changeset(opts)
     |> apply_action(:replace)
   end
 
-  def changeset(%{} = params \\ %{}) do
+  def changeset(%{} = params, opts \\ []) do
     %Flop{}
     |> cast(params, [
       :limit,
@@ -183,6 +187,7 @@ defmodule Flop do
     |> validate_exclusive([[:limit, :offset], [:page, :page_size]],
       message: "cannot combine multiple pagination types"
     )
+    |> validate_sortable(opts[:for])
   end
 
   defp validate_exclusive(changeset, field_groups, opts) do
@@ -206,5 +211,16 @@ defmodule Flop do
     else
       changeset
     end
+  end
+
+  defp validate_sortable(changeset, nil), do: changeset
+
+  defp validate_sortable(changeset, module) do
+    sortable_fields =
+      module
+      |> struct()
+      |> sortable()
+
+    validate_subset(changeset, :order_by, sortable_fields)
   end
 end

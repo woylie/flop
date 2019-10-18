@@ -163,7 +163,35 @@ defmodule FlopTest do
              ]
     end
 
-    test "only allows to order by fields marked as sortable"
+    test "only allows to order by fields marked as sortable" do
+      # field exists, but is not sortable
+
+      params = %{order_by: [:social_security_number]}
+      assert {:error, changeset} = Flop.validate(params, for: Pet)
+      assert errors_on(changeset)[:order_by] == ["has an invalid entry"]
+
+      params = %{order_by: ["social_security_number"]}
+      assert {:error, changeset} = Flop.validate(params, for: Pet)
+      assert errors_on(changeset)[:order_by] == ["has an invalid entry"]
+
+      # field does not exist
+
+      params = %{order_by: [:halloween_costume]}
+      assert {:error, changeset} = Flop.validate(params, for: Pet)
+      assert errors_on(changeset)[:order_by] == ["has an invalid entry"]
+
+      params = %{order_by: ["honorific"]}
+      assert {:error, changeset} = Flop.validate(params, for: Pet)
+      assert errors_on(changeset)[:order_by] == ["is invalid"]
+
+      # field exists and is sortable
+
+      params = %{order_by: [:name]}
+      assert {:ok, %Flop{order_by: [:name]}} = Flop.validate(params, for: Pet)
+
+      params = %{order_by: ["name"]}
+      assert {:ok, %Flop{order_by: [:name]}} = Flop.validate(params, for: Pet)
+    end
 
     test "validates order directions" do
       params = %{order_directions: [:up, :down]}

@@ -7,7 +7,7 @@ defmodule Flop.Pet do
   @derive {Flop.Schema,
            filterable: [:name, :species], sortable: [:name, :age, :species]}
 
-  schema "pets" do
+  embedded_schema do
     field :name, :string
     field :age, :integer
     field :species, :string
