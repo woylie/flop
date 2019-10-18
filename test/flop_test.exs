@@ -4,6 +4,7 @@ defmodule FlopTest do
 
   import Ecto.Query, only: [from: 2]
 
+  alias Ecto.Query.QueryExpr
   alias Flop
   alias Pet
 
@@ -14,7 +15,7 @@ defmodule FlopTest do
       flop = %Flop{order_by: [:species, :name], order_directions: [:asc, :desc]}
 
       assert [
-               %Ecto.Query.QueryExpr{
+               %QueryExpr{
                  expr: [
                    asc: {{_, _, [_, :species]}, _, _},
                    desc: {{_, _, [_, :name]}, _, _}
@@ -23,7 +24,7 @@ defmodule FlopTest do
              ] = Flop.query(Pet, flop).order_bys
 
       assert [
-               %Ecto.Query.QueryExpr{
+               %QueryExpr{
                  expr: [
                    asc: {{_, _, [_, :species]}, _, _},
                    desc: {{_, _, [_, :name]}, _, _}
@@ -36,7 +37,7 @@ defmodule FlopTest do
       flop = %Flop{order_by: [:species, :name], order_directions: nil}
 
       assert [
-               %Ecto.Query.QueryExpr{
+               %QueryExpr{
                  expr: [
                    asc: {{_, _, [_, :species]}, _, _},
                    asc: {{_, _, [_, :name]}, _, _}
@@ -47,7 +48,7 @@ defmodule FlopTest do
       flop = %Flop{order_by: [:species, :name], order_directions: [:desc]}
 
       assert [
-               %Ecto.Query.QueryExpr{
+               %QueryExpr{
                  expr: [
                    desc: {{_, _, [_, :species]}, _, _},
                    asc: {{_, _, [_, :name]}, _, _}
@@ -58,7 +59,7 @@ defmodule FlopTest do
       flop = %Flop{order_by: [:species], order_directions: [:desc]}
 
       assert [
-               %Ecto.Query.QueryExpr{
+               %QueryExpr{
                  expr: [desc: {{_, _, [_, :species]}, _, _}]
                }
              ] = Flop.query(Pet, flop).order_bys
@@ -66,7 +67,7 @@ defmodule FlopTest do
       flop = %Flop{order_by: [:species], order_directions: [:desc, :desc]}
 
       assert [
-               %Ecto.Query.QueryExpr{
+               %QueryExpr{
                  expr: [desc: {{_, _, [_, :species]}, _, _}]
                }
              ] = Flop.query(Pet, flop).order_bys

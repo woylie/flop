@@ -1,4 +1,7 @@
 defmodule Pet do
+  @moduledoc """
+  Defines an Ecto schema for testing.
+  """
   use Ecto.Schema
 
   schema "pets" do
