@@ -272,5 +272,15 @@ defmodule FlopTest do
       params = %{filters: [%{field: "a", op: "==", value: "b"}]}
       assert {:ok, %Flop{filters: [%{op: :==}]}} = Flop.validate(params)
     end
+
+    test "requires both page size and page" do
+      params = %{page: 5}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
+      assert errors_on(changeset)[:page_size] == ["can't be blank"]
+
+      params = %{page_size: 10}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
+      assert errors_on(changeset)[:page] == ["can't be blank"]
+    end
   end
 end

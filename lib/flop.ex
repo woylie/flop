@@ -54,13 +54,15 @@ defmodule Flop do
 
     embedded_schema do
       field :field, :string
-      field :op, Operator
+      field :op, Operator, default: :==
       field :value, :string
     end
 
+    @doc false
     def changeset(filter, %{} = params \\ %{}) do
       filter
       |> cast(params, [:field, :op, :value])
+      |> validate_required([:field, :op, :value])
     end
   end
 
@@ -169,7 +171,7 @@ defmodule Flop do
     |> apply_action(:replace)
   end
 
-  def changeset(%{} = params, opts \\ []) do
+  defp changeset(%{} = params, opts) do
     %Flop{}
     |> cast(params, [
       :limit,
@@ -188,6 +190,7 @@ defmodule Flop do
       message: "cannot combine multiple pagination types"
     )
     |> validate_sortable(opts[:for])
+    |> validate_page_and_page_size()
   end
 
   defp validate_exclusive(changeset, field_groups, opts) do
@@ -222,5 +225,16 @@ defmodule Flop do
       |> sortable()
 
     validate_subset(changeset, :order_by, sortable_fields)
+  end
+
+  defp validate_page_and_page_size(changeset) do
+    page = get_field(changeset, :page)
+    page_size = get_field(changeset, :page_size)
+
+    if !is_nil(page) || !is_nil(page_size) do
+      validate_required(changeset, [:page, :page_size])
+    else
+      changeset
+    end
   end
 end
