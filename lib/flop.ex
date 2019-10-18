@@ -192,10 +192,9 @@ defmodule Flop do
       end)
 
     if length(changed_field_groups) > 1 do
-      [first_group | _] = changed_field_groups
-
       key =
-        first_group
+        changed_field_groups
+        |> List.first()
         |> Enum.reject(&is_nil(get_field(changeset, &1)))
         |> List.first()
 
