@@ -8,6 +8,7 @@ defmodule Flop do
   alias Ecto.Query
 
   defstruct [
+    :filters,
     :limit,
     :offset,
     :order_by,
@@ -15,6 +16,10 @@ defmodule Flop do
     :page,
     :page_size
   ]
+
+  defmodule Filter do
+    defstruct [:field, :op, :value]
+  end
 
   def query(q, flop) do
     q
