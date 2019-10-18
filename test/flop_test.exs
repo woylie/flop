@@ -97,20 +97,10 @@ defmodule FlopTest do
     end
 
     test "adds where clauses for filters" do
-      flop = %Flop{filters: [%Filter{field: :age, op: ">=", value: 4}]}
-
-      assert [
-               %BooleanExpr{
-                 expr: {:>=, _, _},
-                 op: :and,
-                 params: [{:age, _}, {4, _}]
-               }
-             ] = Flop.query(Pet, flop).wheres
-
       flop = %Flop{
         filters: [
-          %Filter{field: :age, op: ">=", value: 4},
-          %Filter{field: :name, op: "==", value: "Bo"}
+          %Filter{field: :age, op: :>=, value: 4},
+          %Filter{field: :name, op: :==, value: "Bo"}
         ]
       }
 

@@ -94,21 +94,21 @@ defmodule Flop do
     raise ArgumentError
   end
 
-  def filter(q, %Filter{field: field, op: "==", value: value}),
+  def filter(q, %Filter{field: field, op: :==, value: value}),
     do: Query.where(q, ^field == ^value)
 
-  def filter(q, %Filter{field: field, op: "!=", value: value}),
+  def filter(q, %Filter{field: field, op: :!=, value: value}),
     do: Query.where(q, ^field != ^value)
 
-  def filter(q, %Filter{field: field, op: ">=", value: value}),
+  def filter(q, %Filter{field: field, op: :>=, value: value}),
     do: Query.where(q, ^field >= ^value)
 
-  def filter(q, %Filter{field: field, op: "<=", value: value}),
+  def filter(q, %Filter{field: field, op: :<=, value: value}),
     do: Query.where(q, ^field <= ^value)
 
-  def filter(q, %Filter{field: field, op: ">", value: value}),
+  def filter(q, %Filter{field: field, op: :>, value: value}),
     do: Query.where(q, ^field > ^value)
 
-  def filter(q, %Filter{field: field, op: "<", value: value}),
+  def filter(q, %Filter{field: field, op: :<, value: value}),
     do: Query.where(q, ^field < ^value)
 end
