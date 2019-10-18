@@ -1,6 +1,6 @@
 # Flop
 
-**TODO: Add description**
+![CI](https://github.com/woylie/flop/workflows/CI/badge.svg)
 
 ## Installation
 
