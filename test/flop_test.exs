@@ -73,8 +73,20 @@ defmodule FlopTest do
              ] = Flop.query(Pet, flop).order_bys
     end
 
-    test "leaves query unchanged if nil" do
-      flop = %Flop{order_by: nil}
+    test "adds adds limit and offset to query if set" do
+      flop = %Flop{limit: 10, offset: 14}
+
+      assert %QueryExpr{params: [{14, :integer}]} = Flop.query(Pet, flop).offset
+      assert %QueryExpr{params: [{10, :integer}]} = Flop.query(Pet, flop).limit
+    end
+
+    test "leaves query unchanged if everything is nil" do
+      flop = %Flop{
+        limit: nil,
+        offset: nil,
+        order_by: nil,
+        order_directions: nil
+      }
 
       assert Flop.query(Pet, flop) == Pet
       assert Flop.query(@base_query, flop) == @base_query

@@ -7,11 +7,21 @@ defmodule Flop do
 
   alias Ecto.Query
 
-  defstruct [:order_by, :order_directions]
+  defstruct [
+    :limit,
+    :offset,
+    :order_by,
+    :order_directions
+  ]
 
   def query(q, flop) do
-    order_by(q, flop)
+    q
+    |> order_by(flop)
+    |> limit(flop)
+    |> offset(flop)
   end
+
+  ## Ordering
 
   def order_by(q, %Flop{order_by: nil}), do: q
 
@@ -31,4 +41,12 @@ defmodule Flop do
 
     Enum.zip(directions, fields)
   end
+
+  ## Offset/limit pagination
+
+  def limit(q, %Flop{limit: nil}), do: q
+  def limit(q, %Flop{limit: limit}), do: Query.limit(q, ^limit)
+
+  def offset(q, %Flop{offset: nil}), do: q
+  def offset(q, %Flop{offset: offset}), do: Query.offset(q, ^offset)
 end
