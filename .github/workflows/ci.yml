@@ -12,19 +12,21 @@ jobs:
         elixir: [1.8.2, 1.9.2]
 
     steps:
-    - uses: actions/checkout@v1.0.0
-    - uses: actions/setup-elixir@v1.0.0
-      with:
-        otp-version: ${{matrix.otp}}
-        elixir-version: ${{matrix.elixir}}
-    - name: Install Dependencies
-      run: |
-        mix local.rebar --force
-        mix local.hex --force
-        mix deps.get
-    - name: Run Formatter
-      run: mix format --check-formatted
-    - name: Run Linter
-      run: mix credo
-    - name: Run Tests
-      run: mix test
+      - uses: actions/checkout@v1.0.0
+      - uses: actions/setup-elixir@v1.0.0
+        with:
+          otp-version: ${{matrix.otp}}
+          elixir-version: ${{matrix.elixir}}
+      - name: Install Dependencies
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - name: Run Formatter
+        run: mix format --check-formatted
+      - name: Run Linter
+        run: mix credo
+      - name: Run Hex Audit
+        run: mix hex.audit
+      - name: Run Tests
+        run: mix test
