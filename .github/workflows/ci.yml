@@ -1,4 +1,4 @@
-name: Elixir CI
+name: CI
 
 on: push
 
@@ -8,8 +8,8 @@ jobs:
     name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
     strategy:
       matrix:
-        otp: [20.x, 21.x, 22.x]
-        elixir: [1.8.x, 1.9.x]
+        otp: [21.3.8.9, 22.1.3]
+        elixir: [1.8.2, 1.9.2]
 
     steps:
     - uses: actions/checkout@v1.0.0
