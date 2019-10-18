@@ -1,4 +1,4 @@
-defmodule Pet do
+defmodule Flop.Pet do
   @moduledoc """
   Defines an Ecto schema for testing.
   """

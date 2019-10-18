@@ -2,11 +2,15 @@ defmodule Flop do
   @moduledoc """
   Documentation for Flop.
   """
+  use Ecto.Schema
 
   require Ecto.Query
 
+  import Ecto.Changeset
+
   alias __MODULE__.Filter
   alias Ecto.Query
+  alias Flop.CustomTypes.OrderDirection
 
   @type t :: %__MODULE__{
           filters: [Filter.t() | nil],
@@ -18,20 +22,25 @@ defmodule Flop do
           page_size: pos_integer | nil
         }
 
-  defstruct [
-    :filters,
-    :limit,
-    :offset,
-    :order_by,
-    :order_directions,
-    :page,
-    :page_size
-  ]
+  embedded_schema do
+    field :limit, :integer
+    field :offset, :integer
+    field :order_by, {:array, :string}
+    field :order_directions, {:array, OrderDirection}
+    field :page, :integer
+    field :page_size, :integer
+
+    embeds_many :filters, Filter
+  end
 
   defmodule Filter do
     @moduledoc """
     Defines a filter.
     """
+
+    use Ecto.Schema
+
+    alias Flop.CustomTypes.Operator
 
     @type t :: %__MODULE__{
             field: atom | String.t(),
@@ -41,7 +50,16 @@ defmodule Flop do
 
     @type op :: :== | :!= | :<= | :< | :>= | :>
 
-    defstruct [:field, :op, :value]
+    embedded_schema do
+      field :field, :string
+      field :op, Operator
+      field :value, :string
+    end
+
+    def changeset(filter, %{} = params \\ %{}) do
+      filter
+      |> cast(params, [:field, :op, :value])
+    end
   end
 
   def query(q, flop) do
@@ -131,4 +149,36 @@ defmodule Flop do
 
   def filter(q, %Filter{field: field, op: :<, value: value}),
     do: Query.where(q, ^field < ^value)
+
+  ## Validation
+
+  def validate(%Flop{} = flop) do
+    flop
+    |> Map.from_struct()
+    |> changeset()
+    |> apply_action(:insert)
+  end
+
+  def validate(%{} = params) do
+    params
+    |> changeset()
+    |> apply_action(:replace)
+  end
+
+  def changeset(%{} = params \\ %{}) do
+    %Flop{}
+    |> cast(params, [
+      :limit,
+      :offset,
+      :order_by,
+      :order_directions,
+      :page,
+      :page_size
+    ])
+    |> cast_embed(:filters)
+    |> validate_number(:limit, greater_than: 0)
+    |> validate_number(:offset, greater_than_or_equal_to: 0)
+    |> validate_number(:page, greater_than: 0)
+    |> validate_number(:page_size, greater_than: 0)
+  end
 end

@@ -3,12 +3,14 @@ defmodule FlopTest do
   doctest Flop
 
   import Ecto.Query, only: [from: 2]
+  import Flop.TestUtil
 
+  alias Ecto.Changeset
   alias Ecto.Query.BooleanExpr
   alias Ecto.Query.QueryExpr
   alias Flop
   alias Flop.Filter
-  alias Pet
+  alias Flop.Pet
 
   @base_query from p in Pet, where: p.age > 8, select: p.name
 
@@ -131,6 +133,93 @@ defmodule FlopTest do
 
       assert Flop.query(Pet, flop) == Pet
       assert Flop.query(@base_query, flop) == @base_query
+    end
+  end
+
+  describe "validate/1" do
+    test "returns Flop struct" do
+      assert Flop.validate(%Flop{}) == {:ok, %Flop{}}
+      assert Flop.validate(%{}) == {:ok, %Flop{}}
+    end
+
+    test "validates limit" do
+      params = %{limit: -1}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
+      assert errors_on(changeset)[:limit] == ["must be greater than 0"]
+
+      flop = %Flop{limit: 0}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(flop)
+      assert errors_on(changeset)[:limit] == ["must be greater than 0"]
+    end
+
+    test "validates offset" do
+      params = %{offset: -1}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
+
+      assert errors_on(changeset)[:offset] == [
+               "must be greater than or equal to 0"
+             ]
+    end
+
+    test "only allows to order by fields marked as sortable"
+
+    test "validates order directions" do
+      params = %{order_directions: [:up, :down]}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
+      assert errors_on(changeset)[:order_directions] == ["is invalid"]
+
+      params = %{order_directions: ["up", "down"]}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
+      assert errors_on(changeset)[:order_directions] == ["is invalid"]
+
+      params = %{order_directions: [:desc, :asc]}
+
+      assert Flop.validate(params) ==
+               {:ok, %Flop{order_directions: [:desc, :asc]}}
+
+      params = %{order_directions: ["desc", "asc"]}
+
+      assert Flop.validate(params) ==
+               {:ok, %Flop{order_directions: [:desc, :asc]}}
+    end
+
+    test "validates page number" do
+      params = %{page: -1}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
+      assert errors_on(changeset)[:page] == ["must be greater than 0"]
+
+      flop = %Flop{page: 0}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(flop)
+      assert errors_on(changeset)[:page] == ["must be greater than 0"]
+    end
+
+    test "validates page size" do
+      params = %{page_size: -1}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
+      assert errors_on(changeset)[:page_size] == ["must be greater than 0"]
+
+      flop = %Flop{page_size: 0}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(flop)
+      assert errors_on(changeset)[:page_size] == ["must be greater than 0"]
+    end
+
+    test "only allows one pagination method"
+    test "only allows to filter by fields marked as filterable"
+
+    test "validates filter operator" do
+      params = %{filters: [%{field: "a", op: :=, value: "b"}]}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
+      assert errors_on(changeset)[:filters] == [%{op: ["is invalid"]}]
+
+      params = %{filters: [%{field: "a", op: "=", value: "b"}]}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
+      assert errors_on(changeset)[:filters]
+
+      params = %{filters: [%{field: "a", op: :==, value: "b"}]}
+      assert {:ok, %Flop{filters: [%{op: :==}]}} = Flop.validate(params)
+
+      params = %{filters: [%{field: "a", op: "==", value: "b"}]}
+      assert {:ok, %Flop{filters: [%{op: :==}]}} = Flop.validate(params)
     end
   end
 end
