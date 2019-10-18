@@ -5,7 +5,18 @@ defmodule Flop do
 
   require Ecto.Query
 
+  alias __MODULE__.Filter
   alias Ecto.Query
+
+  @type t :: %__MODULE__{
+          filters: [Filter.t() | nil],
+          limit: pos_integer | nil,
+          offset: non_neg_integer | nil,
+          order_by: atom | String.t() | nil,
+          order_directions: [:asc | :desc] | nil,
+          page: pos_integer | nil,
+          page_size: pos_integer | nil
+        }
 
   defstruct [
     :filters,
@@ -21,6 +32,15 @@ defmodule Flop do
     @moduledoc """
     Defines a filter.
     """
+
+    @type t :: %__MODULE__{
+            field: atom | String.t(),
+            op: op,
+            value: any
+          }
+
+    @type op :: :== | :!= | :<= | :< | :>= | :>
+
     defstruct [:field, :op, :value]
   end
 

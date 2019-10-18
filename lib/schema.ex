@@ -1,12 +1,10 @@
 defprotocol Flop.Schema do
   @moduledoc false
 
-  @type opts :: Jason.Encode.opts()
-
   @fallback_to_any true
 
-  def filterable(struct)
-  def sortable(struct)
+  def filterable(data)
+  def sortable(data)
 end
 
 defimpl Flop.Schema, for: Any do
