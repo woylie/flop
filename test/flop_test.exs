@@ -1,5 +1,7 @@
 defmodule FlopTest do
   use ExUnit.Case
+  use ExUnitProperties
+
   doctest Flop
 
   import Ecto.Query, only: [from: 2]
@@ -203,7 +205,28 @@ defmodule FlopTest do
       assert errors_on(changeset)[:page_size] == ["must be greater than 0"]
     end
 
-    test "only allows one pagination method"
+    property "only allows one pagination method" do
+      check all val_1 <- positive_integer(),
+                val_2 <- one_of([positive_integer(), constant(nil)]),
+                [offset, limit] = Enum.shuffle([val_1, val_2]),
+                val_3 <- positive_integer(),
+                val_4 <- one_of([positive_integer(), constant(nil)]),
+                [page, page_size] = Enum.shuffle([val_3, val_4]) do
+        params = %{
+          offset: offset,
+          limit: limit,
+          page: page,
+          page_size: page_size
+        }
+
+        assert {:error, %Changeset{} = changeset} = Flop.validate(params)
+
+        messages = changeset |> errors_on() |> Map.values()
+
+        assert ["cannot combine multiple pagination types"] in messages
+      end
+    end
+
     test "only allows to filter by fields marked as filterable"
 
     test "validates filter operator" do

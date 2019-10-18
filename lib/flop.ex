@@ -180,5 +180,32 @@ defmodule Flop do
     |> validate_number(:offset, greater_than_or_equal_to: 0)
     |> validate_number(:page, greater_than: 0)
     |> validate_number(:page_size, greater_than: 0)
+    |> validate_exclusive([[:limit, :offset], [:page, :page_size]],
+      message: "cannot combine multiple pagination types"
+    )
+  end
+
+  defp validate_exclusive(changeset, field_groups, opts) do
+    changed_field_groups =
+      Enum.filter(field_groups, fn fields ->
+        Enum.any?(fields, fn field -> !is_nil(get_field(changeset, field)) end)
+      end)
+
+    if length(changed_field_groups) > 1 do
+      [first_group | _] = changed_field_groups
+
+      key =
+        first_group
+        |> Enum.reject(&is_nil(get_field(changeset, &1)))
+        |> List.first()
+
+      add_error(
+        changeset,
+        key,
+        opts[:message] || "invalid combination of field groups"
+      )
+    else
+      changeset
+    end
   end
 end
