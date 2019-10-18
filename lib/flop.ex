@@ -53,16 +53,28 @@ defmodule Flop do
     @type op :: :== | :!= | :<= | :< | :>= | :>
 
     embedded_schema do
-      field :field, :string
+      field :field, ExistingAtom
       field :op, Operator, default: :==
       field :value, :string
     end
 
     @doc false
-    def changeset(filter, %{} = params \\ %{}) do
+    def changeset(filter, %{} = params, opts \\ []) do
       filter
       |> cast(params, [:field, :op, :value])
       |> validate_required([:field, :op, :value])
+      |> validate_filterable(opts[:for])
+    end
+
+    defp validate_filterable(changeset, nil), do: changeset
+
+    defp validate_filterable(changeset, module) do
+      filterable_fields =
+        module
+        |> struct()
+        |> sortable()
+
+      validate_inclusion(changeset, :field, filterable_fields)
     end
   end
 
@@ -181,7 +193,7 @@ defmodule Flop do
       :page,
       :page_size
     ])
-    |> cast_embed(:filters)
+    |> cast_embed(:filters, with: {Filter, :changeset, [opts]})
     |> validate_number(:limit, greater_than: 0)
     |> validate_number(:offset, greater_than_or_equal_to: 0)
     |> validate_number(:page, greater_than: 0)

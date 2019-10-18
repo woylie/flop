@@ -255,7 +255,39 @@ defmodule FlopTest do
       end
     end
 
-    test "only allows to filter by fields marked as filterable"
+    test "only allows to filter by fields marked as filterable" do
+      # field exists, but is not filterable
+
+      params = %{filters: [%{field: :social_security_number}]}
+      assert {:error, changeset} = Flop.validate(params, for: Pet)
+      assert [%{field: ["is invalid"]}] = errors_on(changeset)[:filters]
+
+      params = %{filters: [%{field: "social_security_number"}]}
+      assert {:error, changeset} = Flop.validate(params, for: Pet)
+      assert [%{field: ["is invalid"]}] = errors_on(changeset)[:filters]
+
+      # field does not exist
+
+      params = %{filters: [%{field: :halloween_costume}]}
+      assert {:error, changeset} = Flop.validate(params, for: Pet)
+      assert [%{field: ["is invalid"]}] = errors_on(changeset)[:filters]
+
+      params = %{filters: [%{field: "honorific"}]}
+      assert {:error, changeset} = Flop.validate(params, for: Pet)
+      assert [%{field: ["is invalid"]}] = errors_on(changeset)[:filters]
+
+      # field exists and is filterable
+
+      params = %{filters: [%{field: :species, value: "dog"}]}
+
+      assert {:ok, %Flop{filters: [%{field: :species}]}} =
+               Flop.validate(params, for: Pet)
+
+      params = %{filters: [%{field: "species", value: "dog"}]}
+
+      assert {:ok, %Flop{filters: [%{field: :species}]}} =
+               Flop.validate(params, for: Pet)
+    end
 
     test "validates filter operator" do
       params = %{filters: [%{field: "a", op: :=, value: "b"}]}
