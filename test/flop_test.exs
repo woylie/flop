@@ -80,12 +80,28 @@ defmodule FlopTest do
       assert %QueryExpr{params: [{10, :integer}]} = Flop.query(Pet, flop).limit
     end
 
+    test "adds adds limit and offset to query if page and page size are set" do
+      flop = %Flop{page: 1, page_size: 10}
+      assert %QueryExpr{params: [{0, :integer}]} = Flop.query(Pet, flop).offset
+      assert %QueryExpr{params: [{10, :integer}]} = Flop.query(Pet, flop).limit
+
+      flop = %Flop{page: 2, page_size: 10}
+      assert %QueryExpr{params: [{10, :integer}]} = Flop.query(Pet, flop).offset
+      assert %QueryExpr{params: [{10, :integer}]} = Flop.query(Pet, flop).limit
+
+      flop = %Flop{page: 3, page_size: 4}
+      assert %QueryExpr{params: [{8, :integer}]} = Flop.query(Pet, flop).offset
+      assert %QueryExpr{params: [{4, :integer}]} = Flop.query(Pet, flop).limit
+    end
+
     test "leaves query unchanged if everything is nil" do
       flop = %Flop{
         limit: nil,
         offset: nil,
         order_by: nil,
-        order_directions: nil
+        order_directions: nil,
+        page: nil,
+        page_size: nil
       }
 
       assert Flop.query(Pet, flop) == Pet

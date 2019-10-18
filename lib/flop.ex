@@ -11,14 +11,15 @@ defmodule Flop do
     :limit,
     :offset,
     :order_by,
-    :order_directions
+    :order_directions,
+    :page,
+    :page_size
   ]
 
   def query(q, flop) do
     q
     |> order_by(flop)
-    |> limit(flop)
-    |> offset(flop)
+    |> paginate(flop)
   end
 
   ## Ordering
@@ -42,11 +43,31 @@ defmodule Flop do
     Enum.zip(directions, fields)
   end
 
+  ## Pagination
+
+  def paginate(q, %Flop{limit: limit, offset: offset})
+      when (is_integer(limit) and limit >= 1) or
+             (is_integer(offset) and offset >= 0) do
+    q
+    |> limit(limit)
+    |> offset(offset)
+  end
+
+  def paginate(q, %Flop{page: page, page_size: page_size})
+      when is_integer(page) and is_integer(page_size) and
+             page >= 1 and page_size >= 1 do
+    q
+    |> limit(page_size)
+    |> offset((page - 1) * page_size)
+  end
+
+  def paginate(q, _), do: q
+
   ## Offset/limit pagination
 
-  def limit(q, %Flop{limit: nil}), do: q
-  def limit(q, %Flop{limit: limit}), do: Query.limit(q, ^limit)
+  defp limit(q, nil), do: q
+  defp limit(q, limit), do: Query.limit(q, ^limit)
 
-  def offset(q, %Flop{offset: nil}), do: q
-  def offset(q, %Flop{offset: offset}), do: Query.offset(q, ^offset)
+  defp offset(q, nil), do: q
+  defp offset(q, offset), do: Query.offset(q, ^offset)
 end
