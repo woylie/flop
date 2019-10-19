@@ -1,6 +1,11 @@
 defmodule Flop.TestUtil do
   @moduledoc false
 
+  use ExUnitProperties
+
+  alias Flop.Filter
+  alias Flop.CustomTypes.Operator
+
   @doc """
   A helper that transforms changeset errors into a map of messages.
 
@@ -16,5 +21,16 @@ defmodule Flop.TestUtil do
         opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
       end)
     end)
+  end
+
+  @doc """
+  Generates a filter struct.
+  """
+  def filter do
+    gen all field <- member_of([:age, :name]),
+            op <- member_of(Operator.__operators__()),
+            value = one_of([integer(), float(), string(:alphanumeric)]) do
+      %Filter{field: field, op: op, value: value}
+    end
   end
 end

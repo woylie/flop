@@ -24,4 +24,7 @@ defmodule Flop.CustomTypes.Operator do
   def dump(operator) when is_atom(operator), do: {:ok, to_string(operator)}
   def dump(operator) when is_binary(operator), do: {:ok, operator}
   def dump(_), do: :error
+
+  @doc false
+  def __operators__, do: @allowed_operators
 end

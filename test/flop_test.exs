@@ -78,11 +78,18 @@ defmodule FlopTest do
              ] = Flop.query(Pet, flop).order_bys
     end
 
-    test "adds adds limit and offset to query if set" do
-      flop = %Flop{limit: 10, offset: 14}
+    test "adds adds limit to query if set" do
+      flop = %Flop{limit: 10}
+      query = Flop.query(Pet, flop)
 
-      assert %QueryExpr{params: [{14, :integer}]} = Flop.query(Pet, flop).offset
-      assert %QueryExpr{params: [{10, :integer}]} = Flop.query(Pet, flop).limit
+      assert %QueryExpr{params: [{10, :integer}]} = query.limit
+    end
+
+    test "adds adds offset to query if set" do
+      flop = %Flop{offset: 14}
+      query = Flop.query(Pet, flop)
+
+      assert %QueryExpr{params: [{14, :integer}]} = query.offset
     end
 
     test "adds adds limit and offset to query if page and page size are set" do
@@ -97,6 +104,21 @@ defmodule FlopTest do
       flop = %Flop{page: 3, page_size: 4}
       assert %QueryExpr{params: [{8, :integer}]} = Flop.query(Pet, flop).offset
       assert %QueryExpr{params: [{4, :integer}]} = Flop.query(Pet, flop).limit
+    end
+
+    property "adds where clauses for filters" do
+      check all filter <- filter() do
+        flop = %Flop{filters: [filter]}
+        %Filter{field: field, op: op, value: value} = filter
+
+        assert [
+                 %BooleanExpr{
+                   expr: {^op, _, _},
+                   op: :and,
+                   params: [{^field, _}, {^value, _}]
+                 }
+               ] = Flop.query(Pet, flop).wheres
+      end
     end
 
     test "adds where clauses for filters" do
@@ -119,6 +141,14 @@ defmodule FlopTest do
                  params: [{:name, _}, {"Bo", _}]
                }
              ] = Flop.query(Pet, flop).wheres
+    end
+
+    test "raises error if field or value are nil" do
+      flop = %Flop{filters: [%Filter{op: :>=, value: 4}]}
+      assert_raise ArgumentError, fn -> Flop.query(Pet, flop) end
+
+      flop = %Flop{filters: [%Filter{field: :name, op: :>=}]}
+      assert_raise ArgumentError, fn -> Flop.query(Pet, flop) end
     end
 
     test "leaves query unchanged if everything is nil" do
