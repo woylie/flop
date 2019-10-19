@@ -14,6 +14,10 @@ Ecto a bit easier.
 - parameter validation
 - configurable filterable and sortable fields
 
+## To Do
+
+See https://github.com/woylie/flop/projects/1
+
 ## Installation
 
 Add `flop` to your list of dependencies in `mix.exs`:
