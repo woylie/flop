@@ -107,7 +107,7 @@ defmodule MyAppWeb.PetController do
   end
 end
 
-defmodule MyAppWeb.PetController do
+defmodule MyApp.Pets.Pet do
   import Ecto.Query, warn: false
 
   alias Flop
