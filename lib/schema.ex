@@ -3,7 +3,10 @@ defprotocol Flop.Schema do
 
   @fallback_to_any true
 
+  @spec filterable(any) :: [atom]
   def filterable(data)
+
+  @spec sortable(any) :: [atom]
   def sortable(data)
 end
 

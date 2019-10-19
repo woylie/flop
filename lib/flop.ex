@@ -9,7 +9,9 @@ defmodule Flop do
   import Ecto.Changeset
   import Flop.Schema
 
+  alias Ecto.Changeset
   alias Ecto.Query
+  alias Ecto.Queryable
   alias Flop.CustomTypes.ExistingAtom
   alias Flop.CustomTypes.OrderDirection
   alias Flop.Filter
@@ -69,6 +71,7 @@ defmodule Flop do
     end
 
     @doc false
+    @spec changeset(__MODULE__.t(), map, keyword) :: Changeset.t()
     def changeset(filter, %{} = params, opts \\ []) do
       filter
       |> cast(params, [:field, :op, :value])
@@ -76,6 +79,7 @@ defmodule Flop do
       |> validate_filterable(opts[:for])
     end
 
+    @spec validate_filterable(Changeset.t(), module | nil) :: Changeset.t()
     defp validate_filterable(changeset, nil), do: changeset
 
     defp validate_filterable(changeset, module) do
@@ -88,6 +92,7 @@ defmodule Flop do
     end
   end
 
+  @spec query(Queryable.t(), Flop.t()) :: Queryable.t()
   def query(q, flop) do
     q
     |> filter(flop)
@@ -97,12 +102,16 @@ defmodule Flop do
 
   ## Ordering
 
+  @spec order_by(Queryable.t(), Flop.t()) :: Queryable.t()
   def order_by(q, %Flop{order_by: nil}), do: q
 
   def order_by(q, %Flop{order_by: fields, order_directions: directions}) do
     Query.order_by(q, ^prepare_order(fields, directions))
   end
 
+  @spec prepare_order([atom], [order_direction()]) :: [
+          {order_direction(), atom}
+        ]
   defp prepare_order(fields, directions) do
     directions = directions || []
     field_count = length(fields)
@@ -118,6 +127,7 @@ defmodule Flop do
 
   ## Pagination
 
+  @spec paginate(Queryable.t(), Flop.t()) :: Queryable.t()
   def paginate(q, %Flop{limit: limit, offset: offset})
       when (is_integer(limit) and limit >= 1) or
              (is_integer(offset) and offset >= 0) do
@@ -138,14 +148,17 @@ defmodule Flop do
 
   ## Offset/limit pagination
 
+  @spec limit(Queryable.t(), pos_integer | nil) :: Queryable.t()
   defp limit(q, nil), do: q
   defp limit(q, limit), do: Query.limit(q, ^limit)
 
+  @spec offset(Queryable.t(), non_neg_integer | nil) :: Queryable.t()
   defp offset(q, nil), do: q
   defp offset(q, offset), do: Query.offset(q, ^offset)
 
   ## Filter
 
+  @spec filter(Queryable.t(), Flop.t()) :: Queryable.t()
   def filter(q, %Flop{filters: nil}), do: q
   def filter(q, %Flop{filters: []}), do: q
 
@@ -178,6 +191,8 @@ defmodule Flop do
 
   ## Validation
 
+  @spec validate(Flop.t() | map, keyword) ::
+          {:ok, Flop.t()} | {:error, Changeset.t()}
   def validate(flop, opts \\ [])
 
   def validate(%Flop{} = flop, opts) do
@@ -193,6 +208,7 @@ defmodule Flop do
     |> apply_action(:replace)
   end
 
+  @spec changeset(map, keyword) :: Changeset.t()
   defp changeset(%{} = params, opts) do
     %Flop{}
     |> cast(params, [
@@ -215,6 +231,7 @@ defmodule Flop do
     |> validate_page_and_page_size()
   end
 
+  @spec validate_exclusive(Changeset.t(), [[atom]], keyword) :: Changeset.t()
   defp validate_exclusive(changeset, field_groups, opts) do
     changed_field_groups =
       Enum.filter(field_groups, fn fields ->
@@ -238,6 +255,7 @@ defmodule Flop do
     end
   end
 
+  @spec validate_sortable(Changeset.t(), module | nil) :: Changeset.t()
   defp validate_sortable(changeset, nil), do: changeset
 
   defp validate_sortable(changeset, module) do
@@ -249,6 +267,7 @@ defmodule Flop do
     validate_subset(changeset, :order_by, sortable_fields)
   end
 
+  @spec validate_page_and_page_size(Changeset.t()) :: Changeset.t()
   defp validate_page_and_page_size(changeset) do
     page = get_field(changeset, :page)
     page_size = get_field(changeset, :page_size)
