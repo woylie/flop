@@ -59,7 +59,6 @@ defmodule Flop.MixProject do
 
   defp package do
     [
-      name: "Flop",
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/woylie/flop"},
       files: ~w(lib .formatter.exs mix.exs README* LICENSE*)
