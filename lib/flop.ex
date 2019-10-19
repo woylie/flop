@@ -9,10 +9,10 @@ defmodule Flop do
   import Ecto.Changeset
   import Flop.Schema
 
-  alias __MODULE__.Filter
   alias Ecto.Query
   alias Flop.CustomTypes.ExistingAtom
   alias Flop.CustomTypes.OrderDirection
+  alias Flop.Filter
 
   @type order_direction ::
           :asc
