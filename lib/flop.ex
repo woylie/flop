@@ -24,6 +24,7 @@ defmodule Flop do
           page_size: pos_integer | nil
         }
 
+  @primary_key false
   embedded_schema do
     field :limit, :integer
     field :offset, :integer
@@ -52,6 +53,7 @@ defmodule Flop do
 
     @type op :: :== | :!= | :<= | :< | :>= | :>
 
+    @primary_key false
     embedded_schema do
       field :field, ExistingAtom
       field :op, Operator, default: :==
