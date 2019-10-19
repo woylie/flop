@@ -18,6 +18,13 @@ defmodule Flop.MixProject do
       ],
       dialyzer: [
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
+      ],
+      name: "Flop",
+      source_url: "https://github.com/woylie/flop",
+      homepage_url: "https://github.com/woylie/flop",
+      docs: [
+        main: "readme",
+        extras: ["README.md"]
       ]
     ]
   end
