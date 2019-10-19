@@ -22,6 +22,8 @@ defmodule Flop.MixProject do
       name: "Flop",
       source_url: "https://github.com/woylie/flop",
       homepage_url: "https://github.com/woylie/flop",
+      description: description(),
+      package: package(),
       docs: [
         main: "readme",
         extras: ["README.md"]
@@ -48,6 +50,17 @@ defmodule Flop.MixProject do
       {:ex_doc, "~> 0.21", only: :dev, runtime: false},
       {:excoveralls, "~> 0.10", only: :test},
       {:stream_data, "~> 0.4.3", only: [:dev, :test]}
+    ]
+  end
+
+  defp description do
+    "Flop is a library for filtering, ordering and pagination with Ecto."
+  end
+
+  defp package do
+    [
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/woylie/flop"}
     ]
   end
 end
