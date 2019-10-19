@@ -14,12 +14,20 @@ defmodule Flop do
   alias Flop.CustomTypes.ExistingAtom
   alias Flop.CustomTypes.OrderDirection
 
+  @type order_direction ::
+          :asc
+          | :asc_nulls_first
+          | :asc_nulls_last
+          | :desc
+          | :desc_nulls_first
+          | :desc_nulls_last
+
   @type t :: %__MODULE__{
           filters: [Filter.t() | nil],
           limit: pos_integer | nil,
           offset: non_neg_integer | nil,
           order_by: atom | String.t() | nil,
-          order_directions: [:asc | :desc] | nil,
+          order_directions: [order_direction()] | nil,
           page: pos_integer | nil,
           page_size: pos_integer | nil
         }
