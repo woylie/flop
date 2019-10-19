@@ -1,6 +1,6 @@
 # Flop
 
-![CI](https://github.com/woylie/flop/workflows/CI/badge.svg)
+![CI](https://github.com/woylie/flop/workflows/CI/badge.svg) ![Hex](https://img.shields.io/hexpm/v/flop)
 
 Flop is an Elixir library for making filtering, ordering and pagination with
 Ecto a bit easier.
