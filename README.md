@@ -109,11 +109,12 @@ defmodule MyAppWeb.PetController do
   end
 end
 
-defmodule MyApp.Pets.Pet do
+defmodule MyApp.Pets do
   import Ecto.Query, warn: false
 
   alias Flop
-  alias MyApp.{Pet, Repo}
+  alias MyApp.Pets.Pet
+  alias MyApp.Repo
 
   @spec list_pets(Flop.t()) :: [Pet.t()]
   def list_pets(flop \\ %Flop{}) do
