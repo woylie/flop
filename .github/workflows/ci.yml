@@ -28,5 +28,7 @@ jobs:
         run: mix credo
       - name: Run Hex Audit
         run: mix hex.audit
+      - name: Generate docs
+        run: mix docs
       - name: Run Tests
         run: mix test
