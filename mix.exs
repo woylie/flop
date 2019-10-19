@@ -57,7 +57,7 @@ defmodule Flop.MixProject do
     "Flop is a library for filtering, ordering and pagination with Ecto."
   end
 
-  defp package() do
+  defp package do
     [
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/woylie/flop"}
