@@ -9,6 +9,7 @@ defmodule Flop.Filter do
   import Flop.Schema
 
   alias Ecto.Changeset
+  alias Flop.CustomTypes.Any
   alias Flop.CustomTypes.ExistingAtom
   alias Flop.CustomTypes.Operator
 
@@ -37,7 +38,7 @@ defmodule Flop.Filter do
   embedded_schema do
     field :field, ExistingAtom
     field :op, Operator, default: :==
-    field :value, :string
+    field :value, Any
   end
 
   @doc false
