@@ -5,7 +5,7 @@
 Flop is an Elixir library for making filtering, ordering and pagination with
 Ecto a bit easier.
 
-**This library is in early development and not released yet.**
+**This library is in early development.**
 
 ## Features
 
