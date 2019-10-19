@@ -3,8 +3,8 @@ defmodule Flop.TestUtil do
 
   use ExUnitProperties
 
-  alias Flop.Filter
   alias Flop.CustomTypes.Operator
+  alias Flop.Filter
 
   @doc """
   A helper that transforms changeset errors into a map of messages.
