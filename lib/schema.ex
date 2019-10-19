@@ -14,12 +14,13 @@ defimpl Flop.Schema, for: Any do
   @instructions """
   Flop.Schema protocol must always be explicitly implemented.
 
-  To do this, you have to derive Flop.Schema in your Ecto schema module.
+  To do this, you have to derive Flop.Schema in your Ecto schema module. You
+  have to set both the filterable and the sortable option.
 
       @derive {Flop.Schema,
                filterable: [:name, :species], sortable: [:name, :age, :species]}
 
-      schema "pets do
+      schema "pets" do
         field :name, :string
         field :age, :integer
         field :species, :string
@@ -28,8 +29,11 @@ defimpl Flop.Schema, for: Any do
 
   """
   defmacro __deriving__(module, _struct, options) do
-    filterable_fields = Keyword.get(options, :filterable, [])
-    sortable_fields = Keyword.get(options, :sortable, [])
+    filterable_fields = Keyword.get(options, :filterable)
+    sortable_fields = Keyword.get(options, :sortable)
+
+    if is_nil(filterable_fields) || is_nil(sortable_fields),
+      do: raise(ArgumentError, @instructions)
 
     quote do
       defimpl Flop.Schema, for: unquote(module) do

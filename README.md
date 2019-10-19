@@ -53,10 +53,6 @@ defmodule MyApp.Pet do
 end
 ```
 
-Note that if you don't pass the `filterable` and `sortable` options, `[]` is
-set as a default for both, which means that `Flop` will not allow any ordering
-or filtering if you pass the `for` option to `Flop.validate/2`.
-
 ### Querying
 
 The most important functions are `Flop.query/2` and `Flop.validate/2`. You can
