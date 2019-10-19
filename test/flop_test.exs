@@ -12,7 +12,6 @@ defmodule FlopTest do
   alias Ecto.Query.QueryExpr
   alias Flop
   alias Flop.Filter
-  alias Flop.Pet
 
   @base_query from p in Pet, where: p.age > 8, select: p.name
 

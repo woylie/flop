@@ -1,6 +1,43 @@
 defmodule Flop do
   @moduledoc """
-  Documentation for Flop.
+  Flop is a helper library for filtering, ordering and pagination with Ecto.
+
+  ## Usage
+
+  Derive `Flop.Schema` in your Ecto schemas.
+
+      defmodule Pet do
+        use Ecto.Schema
+
+        @derive {Flop.Schema,
+                 filterable: [:name, :species], sortable: [:name, :age]}
+
+        schema "pets" do
+          field :name, :string
+          field :age, :integer
+          field :species, :string
+          field :social_security_number, :string
+        end
+      end
+
+  Validate a parameter map to get a `t:Flop.t/0` struct with `Flop.validate/1`.
+  Add the `t:Flop.t/0` to a `t:Ecto.Queryable.t/0` with `Flop.query/2`.
+
+      iex> params = %{"order_by" => ["name", "age"], "limit" => 5}
+      iex> {:ok, flop} = Flop.validate(params, for: Pet)
+      {:ok,
+       %Flop{
+         filters: [],
+         limit: 5,
+         offset: nil,
+         order_by: [:name, :age],
+         order_directions: nil,
+         page: nil,
+         page_size: nil
+       }}
+      iex> Pet |> Flop.query(flop)
+      #Ecto.Query<from p0 in Pet, order_by: [asc: p0.name, asc: p0.age], \
+  limit: ^5>
   """
   use Ecto.Schema
 
@@ -16,6 +53,9 @@ defmodule Flop do
   alias Flop.CustomTypes.OrderDirection
   alias Flop.Filter
 
+  @typedoc """
+  Represents the supported order direction values.
+  """
   @type order_direction ::
           :asc
           | :asc_nulls_first
@@ -24,11 +64,27 @@ defmodule Flop do
           | :desc_nulls_first
           | :desc_nulls_last
 
+  @typedoc """
+  Represents the query parameters for filtering, ordering and pagination.
+
+  ### Fields
+
+  - `limit`, `offset`: Used for pagination. May not be used together with
+    `page` and `page_size`.
+  - `page`, `page_size`: Used for pagination. May not be used together with
+    `limit` and `offset`.
+  - `order_by`: List of fields to order by. Fields can be restricted by
+    deriving `Flop.Schema` in your Ecto schema.
+  - `order_directions`: List of order directions applied to the fields defined
+    in `order_by`. If empty or the list is shorter than the `order_by` list,
+    `:asc` will be used as a default for each missing order direction.
+  - `filters`: List of filters, see `t:Flop.Filter.t/0`.
+  """
   @type t :: %__MODULE__{
           filters: [Filter.t() | nil],
           limit: pos_integer | nil,
           offset: non_neg_integer | nil,
-          order_by: atom | String.t() | nil,
+          order_by: [atom | String.t()] | nil,
           order_directions: [order_direction()] | nil,
           page: pos_integer | nil,
           page_size: pos_integer | nil
@@ -46,52 +102,26 @@ defmodule Flop do
     embeds_many :filters, Filter
   end
 
-  defmodule Filter do
-    @moduledoc """
-    Defines a filter.
-    """
+  @doc """
+  Adds clauses for filtering, ordering and pagination to a
+  `t:Ecto.Queryable.t/0`.
 
-    use Ecto.Schema
+  The parameters are represented by the `t:Flop.t/0` type. Any `nil` values
+  will be ignored.
 
-    alias Flop.CustomTypes.Operator
+  ## Examples
 
-    @type t :: %__MODULE__{
-            field: atom | String.t(),
-            op: op,
-            value: any
-          }
+      iex> flop = %Flop{limit: 10, offset: 19}
+      iex> Flop.query(Pet, flop)
+      #Ecto.Query<from p0 in Pet, limit: ^10, offset: ^19>
 
-    @type op :: :== | :!= | :<= | :< | :>= | :>
+  Or enhance an already defined query:
 
-    @primary_key false
-    embedded_schema do
-      field :field, ExistingAtom
-      field :op, Operator, default: :==
-      field :value, :string
-    end
-
-    @doc false
-    @spec changeset(__MODULE__.t(), map, keyword) :: Changeset.t()
-    def changeset(filter, %{} = params, opts \\ []) do
-      filter
-      |> cast(params, [:field, :op, :value])
-      |> validate_required([:field, :op, :value])
-      |> validate_filterable(opts[:for])
-    end
-
-    @spec validate_filterable(Changeset.t(), module | nil) :: Changeset.t()
-    defp validate_filterable(changeset, nil), do: changeset
-
-    defp validate_filterable(changeset, module) do
-      filterable_fields =
-        module
-        |> struct()
-        |> sortable()
-
-      validate_inclusion(changeset, :field, filterable_fields)
-    end
-  end
-
+      iex> require Ecto.Query
+      iex> flop = %Flop{limit: 10}
+      iex> Pet |> Ecto.Query.where(species: "dog") |> Flop.query(flop)
+      #Ecto.Query<from p0 in Pet, where: p0.species == \"dog\", limit: ^10>
+  """
   @spec query(Queryable.t(), Flop.t()) :: Queryable.t()
   def query(q, flop) do
     q
@@ -102,6 +132,12 @@ defmodule Flop do
 
   ## Ordering
 
+  @doc """
+  Applies the `order_by` and `order_directions` parameters of a `t:Flop.t/0`
+  to an `t:Ecto.Queryable.t/0`.
+
+  Used by `Flop.query/2`.
+  """
   @spec order_by(Queryable.t(), Flop.t()) :: Queryable.t()
   def order_by(q, %Flop{order_by: nil}), do: q
 
@@ -127,6 +163,21 @@ defmodule Flop do
 
   ## Pagination
 
+  @doc """
+  Applies the pagination parameters of a `t:Flop.t/0` to an
+  `t:Ecto.Queryable.t/0`.
+
+  The function supports both `offset`/`limit` based pagination and
+  `page`/`page_size` based pagination.
+
+  If you validated the `t:Flop.t/0` with `Flop.validate/1` before, you can be
+  sure that the given `t:Flop.t/0` only has pagination parameters set for one
+  pagination method. If you pass an unvalidated `t:Flop.t/0` that has
+  pagination parameters set for multiple pagination methods, this function
+  will arbitrarily only apply one of the pagination methods.
+
+  Used by `Flop.query/2`.
+  """
   @spec paginate(Queryable.t(), Flop.t()) :: Queryable.t()
   def paginate(q, %Flop{limit: limit, offset: offset})
       when (is_integer(limit) and limit >= 1) or
@@ -158,6 +209,11 @@ defmodule Flop do
 
   ## Filter
 
+  @doc """
+  Applies the `filter` parameter of a `t:Flop.t/0` to an `t:Ecto.Queryable.t/0`.
+
+  Used by `Flop.query/2`.
+  """
   @spec filter(Queryable.t(), Flop.t()) :: Queryable.t()
   def filter(q, %Flop{filters: nil}), do: q
   def filter(q, %Flop{filters: []}), do: q
@@ -191,6 +247,63 @@ defmodule Flop do
 
   ## Validation
 
+  @doc """
+  Validates a `t:Flop.t/0`.
+
+  ## Examples
+
+      iex> params = %{"limit" => 10, "offset" => 0, "texture" => "fluffy"}
+      iex> Flop.validate(params)
+      {:ok,
+       %Flop{
+         filters: [],
+         limit: 10,
+         offset: 0,
+         order_by: nil,
+         order_directions: nil,
+         page: nil,
+         page_size: nil
+       }}
+
+      iex> flop = %Flop{offset: -1}
+      iex> {:error, changeset} = Flop.validate(flop)
+      iex> changeset.valid?
+      false
+      iex> changeset.errors
+      [
+        offset: {"must be greater than or equal to %{number}",
+         [validation: :number, kind: :greater_than_or_equal_to, number: 0]}
+      ]
+
+  It also makes sure that only one pagination method is used.
+
+      iex> params = %{limit: 10, offset: 0, page: 5, page_size: 10}
+      iex> {:error, changeset} = Flop.validate(params)
+      iex> changeset.valid?
+      false
+      iex> changeset.errors
+      [limit: {"cannot combine multiple pagination types", []}]
+
+  If you derived `Flop.Schema` in your Ecto schema to define the filterable
+  and sortable fields, you can pass the module name to the function to validate
+  that only allowed fields are used.
+
+      iex> params = %{"order_by" => ["social_security_number"]}
+      iex> {:error, changeset} = Flop.validate(params, for: Pet)
+      iex> changeset.valid?
+      false
+      iex> [order_by: {msg, [_, {_, enum}]}] = changeset.errors
+      iex> msg
+      "has an invalid entry"
+      iex> enum
+      [:name, :age, :species]
+
+  Note that currently, trying to use an existing field that is not allowed as
+  seen above will result in the error message `has an invalid entry`, while
+  trying to use a field name that does not exist in the schema (or more
+  precisely: a field name that doesn't exist as an atom) will result in
+  the error message `is invalid`. This might change in the future.
+  """
   @spec validate(Flop.t() | map, keyword) ::
           {:ok, Flop.t()} | {:error, Changeset.t()}
   def validate(flop, opts \\ [])
