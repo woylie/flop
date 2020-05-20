@@ -45,6 +45,16 @@ defprotocol Flop.Schema do
         order_by: {"has an invalid entry",
          [validation: :subset, enum: [:name, :age, :species]]}
       ]
+
+  ### Defining a maximum limit
+
+  To define a maximum limit, you can set the `max_limit` option when deriving
+  `Flop.Schema`. The limit will be validated accordingly by `Flop.validate/1`.
+
+      @derive {Flop.Schema,
+                 filterable: [:name, :species],
+                 sortable: [:name, :age],
+                 max_limit: 100}
   """
 
   @fallback_to_any true
@@ -57,6 +67,15 @@ defprotocol Flop.Schema do
   """
   @spec filterable(any) :: [atom]
   def filterable(data)
+
+  @doc """
+  Returns the maximum limit of a schema.
+
+      iex> Flop.Schema.max_limit(%Pet{})
+      20
+  """
+  @spec max_limit(any) :: pos_integer | nil
+  def max_limit(data)
 
   @doc """
   Returns the sortable fields of a schema.
@@ -93,10 +112,16 @@ defimpl Flop.Schema, for: Any do
     if is_nil(filterable_fields) || is_nil(sortable_fields),
       do: raise(ArgumentError, @instructions)
 
+    max_limit = Keyword.get(options, :max_limit)
+
     quote do
       defimpl Flop.Schema, for: unquote(module) do
         def filterable(_) do
           unquote(filterable_fields)
+        end
+
+        def max_limit(_) do
+          unquote(max_limit)
         end
 
         def sortable(_) do
@@ -107,6 +132,13 @@ defimpl Flop.Schema, for: Any do
   end
 
   def filterable(struct) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol,
+      value: struct,
+      description: @instructions
+  end
+
+  def max_limit(struct) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,
