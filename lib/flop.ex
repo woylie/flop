@@ -41,8 +41,6 @@ defmodule Flop do
   """
   use Ecto.Schema
 
-  require Ecto.Query
-
   import Ecto.Changeset
   import Flop.Schema
 
@@ -52,6 +50,8 @@ defmodule Flop do
   alias Flop.CustomTypes.ExistingAtom
   alias Flop.CustomTypes.OrderDirection
   alias Flop.Filter
+
+  require Ecto.Query
 
   @typedoc """
   Represents the supported order direction values.
@@ -334,6 +334,7 @@ defmodule Flop do
     ])
     |> cast_embed(:filters, with: {Filter, :changeset, [opts]})
     |> validate_number(:limit, greater_than: 0)
+    |> validate_within_max_limit(:limit, opts[:for])
     |> validate_number(:offset, greater_than_or_equal_to: 0)
     |> validate_number(:page, greater_than: 0)
     |> validate_number(:page_size, greater_than: 0)
@@ -341,7 +342,7 @@ defmodule Flop do
       message: "cannot combine multiple pagination types"
     )
     |> validate_sortable(opts[:for])
-    |> validate_page_and_page_size()
+    |> validate_page_and_page_size(opts[:for])
   end
 
   @spec validate_exclusive(Changeset.t(), [[atom]], keyword) :: Changeset.t()
@@ -380,15 +381,30 @@ defmodule Flop do
     validate_subset(changeset, :order_by, sortable_fields)
   end
 
-  @spec validate_page_and_page_size(Changeset.t()) :: Changeset.t()
-  defp validate_page_and_page_size(changeset) do
+  @spec validate_page_and_page_size(Changeset.t(), module | nil) ::
+          Changeset.t()
+  defp validate_page_and_page_size(changeset, module) do
     page = get_field(changeset, :page)
     page_size = get_field(changeset, :page_size)
 
     if !is_nil(page) || !is_nil(page_size) do
-      validate_required(changeset, [:page, :page_size])
+      changeset
+      |> validate_required([:page, :page_size])
+      |> validate_within_max_limit(:page_size, module)
     else
       changeset
     end
+  end
+
+  @spec validate_within_max_limit(Changeset.t(), atom, module | nil) ::
+          Changeset.t()
+  defp validate_within_max_limit(changeset, _field, nil), do: changeset
+
+  defp validate_within_max_limit(changeset, field, module) do
+    max_limit = module |> struct() |> max_limit()
+
+    if is_nil(max_limit),
+      do: changeset,
+      else: validate_number(changeset, field, less_than_or_equal_to: max_limit)
   end
 end

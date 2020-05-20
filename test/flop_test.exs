@@ -181,6 +181,13 @@ defmodule FlopTest do
       flop = %Flop{limit: 0}
       assert {:error, %Changeset{} = changeset} = Flop.validate(flop)
       assert errors_on(changeset)[:limit] == ["must be greater than 0"]
+
+      flop = %Flop{limit: 21}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(flop, for: Pet)
+
+      assert errors_on(changeset)[:limit] == [
+               "must be less than or equal to 20"
+             ]
     end
 
     test "validates offset" do
@@ -260,6 +267,13 @@ defmodule FlopTest do
       flop = %Flop{page_size: 0}
       assert {:error, %Changeset{} = changeset} = Flop.validate(flop)
       assert errors_on(changeset)[:page_size] == ["must be greater than 0"]
+
+      flop = %Flop{page_size: 21}
+      assert {:error, %Changeset{} = changeset} = Flop.validate(flop, for: Pet)
+
+      assert errors_on(changeset)[:page_size] == [
+               "must be less than or equal to 20"
+             ]
     end
 
     property "only allows one pagination method" do

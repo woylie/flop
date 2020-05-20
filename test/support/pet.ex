@@ -5,7 +5,9 @@ defmodule Pet do
   use Ecto.Schema
 
   @derive {Flop.Schema,
-           filterable: [:name, :species], sortable: [:name, :age, :species]}
+           filterable: [:name, :species],
+           sortable: [:name, :age, :species],
+           max_limit: 20}
 
   embedded_schema do
     field :name, :string
