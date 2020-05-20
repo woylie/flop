@@ -17,6 +17,8 @@ defmodule Flop.MixProject do
         "coveralls.html": :test
       ],
       dialyzer: [
+        ignore_warnings: ".dialyzer_ignore.exs",
+        list_unused_filters: true,
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
       ],
       name: "Flop",
