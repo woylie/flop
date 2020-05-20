@@ -41,8 +41,6 @@ defmodule Flop do
   """
   use Ecto.Schema
 
-  require Ecto.Query
-
   import Ecto.Changeset
   import Flop.Schema
 
@@ -52,6 +50,8 @@ defmodule Flop do
   alias Flop.CustomTypes.ExistingAtom
   alias Flop.CustomTypes.OrderDirection
   alias Flop.Filter
+
+  require Ecto.Query
 
   @typedoc """
   Represents the supported order direction values.
