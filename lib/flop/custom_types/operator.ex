@@ -4,7 +4,7 @@ defmodule Flop.CustomTypes.Operator do
 
   def type, do: :string
 
-  @allowed_operators [:==, :!=, :<=, :<, :>=, :>]
+  @allowed_operators [:==, :!=, :=~, :<=, :<, :>=, :>]
   @allowed_operators_str Enum.map(@allowed_operators, &to_string/1)
 
   def cast(operator) when operator in @allowed_operators_str do

@@ -29,7 +29,7 @@ defmodule Flop.TestUtil do
   def filter do
     gen all field <- member_of([:age, :name]),
             op <- member_of(Operator.__operators__()),
-            value = one_of([integer(), float(), string(:alphanumeric)]) do
+            value <- one_of([integer(), float(), string(:alphanumeric)]) do
       %Filter{field: field, op: op, value: value}
     end
   end

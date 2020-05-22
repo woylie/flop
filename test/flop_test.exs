@@ -111,13 +111,25 @@ defmodule FlopTest do
         flop = %Flop{filters: [filter]}
         %Filter{field: field, op: op, value: value} = filter
 
-        assert [
-                 %BooleanExpr{
-                   expr: {^op, _, _},
-                   op: :and,
-                   params: [{^field, _}, {^value, _}]
-                 }
-               ] = Flop.query(Pet, flop).wheres
+        if op == :=~ do
+          query_value = "%" <> to_string(value) <> "%"
+
+          assert [
+                   %BooleanExpr{
+                     expr: {:ilike, _, _},
+                     op: :and,
+                     params: [{^field, _}, {^query_value, _}]
+                   }
+                 ] = Flop.query(Pet, flop).wheres
+        else
+          assert [
+                   %BooleanExpr{
+                     expr: {^op, _, _},
+                     op: :and,
+                     params: [{^field, _}, {^value, _}]
+                   }
+                 ] = Flop.query(Pet, flop).wheres
+        end
       end
     end
 

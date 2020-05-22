@@ -233,6 +233,11 @@ defmodule Flop do
   def filter(q, %Filter{field: field, op: :!=, value: value}),
     do: Query.where(q, ^field != ^value)
 
+  def filter(q, %Filter{field: field, op: :=~, value: value}) do
+    query_value = "%#{value}%"
+    Query.where(q, ilike(^field, ^query_value))
+  end
+
   def filter(q, %Filter{field: field, op: :>=, value: value}),
     do: Query.where(q, ^field >= ^value)
 

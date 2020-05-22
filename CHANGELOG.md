@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+## Added
+
+- Added `=~` filter operator.
+
 ## [0.3.0] - 2020-05-22
 
 ### Added
