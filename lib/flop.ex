@@ -343,6 +343,7 @@ defmodule Flop do
     )
     |> validate_sortable(opts[:for])
     |> validate_page_and_page_size(opts[:for])
+    |> put_default_limit(opts[:for])
   end
 
   @spec validate_exclusive(Changeset.t(), [[atom]], keyword) :: Changeset.t()
@@ -406,5 +407,27 @@ defmodule Flop do
     if is_nil(max_limit),
       do: changeset,
       else: validate_number(changeset, field, less_than_or_equal_to: max_limit)
+  end
+
+  defp put_default_limit(changeset, nil), do: changeset
+
+  defp put_default_limit(%Changeset{valid?: false} = changeset, _),
+    do: changeset
+
+  defp put_default_limit(changeset, module) do
+    default_limit = module |> struct() |> default_limit()
+
+    if is_nil(default_limit) do
+      changeset
+    else
+      limit = get_field(changeset, :limit)
+      page_size = get_field(changeset, :page_size)
+
+      if is_nil(limit) && is_nil(page_size) do
+        put_change(changeset, :limit, default_limit)
+      else
+        changeset
+      end
+    end
   end
 end

@@ -190,6 +190,36 @@ defmodule FlopTest do
              ]
     end
 
+    test "applies default limit" do
+      # struct without configured default limit
+
+      assert {:ok, %Flop{limit: nil, page_size: nil}} =
+               Flop.validate(%{}, for: Pet)
+
+      assert {:ok, %Flop{limit: nil, page_size: nil}} =
+               Flop.validate(%{offset: 10}, for: Pet)
+
+      assert {:ok, %Flop{limit: 12}} =
+               Flop.validate(%{offset: 10, limit: 12}, for: Pet)
+
+      assert {:ok, %Flop{limit: nil, page_size: 5}} =
+               Flop.validate(%{page: 10, page_size: 5}, for: Pet)
+
+      # struct with configured default limit
+
+      assert {:ok, %Flop{limit: 50, page_size: nil}} =
+               Flop.validate(%{}, for: Fruit)
+
+      assert {:ok, %Flop{limit: 50, page_size: nil}} =
+               Flop.validate(%{offset: 10}, for: Fruit)
+
+      assert {:ok, %Flop{limit: 12, page_size: nil}} =
+               Flop.validate(%{offset: 10, limit: 12}, for: Fruit)
+
+      assert {:ok, %Flop{limit: nil, page_size: 12}} =
+               Flop.validate(%{page: 10, page_size: 12}, for: Pet)
+    end
+
     test "validates offset" do
       params = %{offset: -1}
       assert {:error, %Changeset{} = changeset} = Flop.validate(params)

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0] - 2020-05-22
+
+### Added
+
+- Added a `default_limit` option to `Flop.Schema`.
+
 ## [0.2.0] - 2020-05-20
 
 ### Added

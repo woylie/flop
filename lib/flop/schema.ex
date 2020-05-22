@@ -46,15 +46,19 @@ defprotocol Flop.Schema do
          [validation: :subset, enum: [:name, :age, :species]]}
       ]
 
-  ### Defining a maximum limit
+  ### Defining default and maximum limits
 
-  To define a maximum limit, you can set the `max_limit` option when deriving
-  `Flop.Schema`. The limit will be validated accordingly by `Flop.validate/1`.
+  To define a default or maximum limit, you can set the `default_limit` and
+  `max_limit` option when deriving `Flop.Schema`. The maximum limit will be
+  validated and the default limit applied by `Flop.validate/1`.
 
       @derive {Flop.Schema,
-                 filterable: [:name, :species],
-                 sortable: [:name, :age],
-                 max_limit: 100}
+                filterable: [:name, :species],
+                sortable: [:name, :age],
+                max_limit: 100,
+                default_limit: 50}
+
+
   """
 
   @fallback_to_any true
@@ -69,15 +73,6 @@ defprotocol Flop.Schema do
   def filterable(data)
 
   @doc """
-  Returns the maximum limit of a schema.
-
-      iex> Flop.Schema.max_limit(%Pet{})
-      20
-  """
-  @spec max_limit(any) :: pos_integer | nil
-  def max_limit(data)
-
-  @doc """
   Returns the sortable fields of a schema.
 
       iex> Flop.Schema.sortable(%Pet{})
@@ -85,6 +80,24 @@ defprotocol Flop.Schema do
   """
   @spec sortable(any) :: [atom]
   def sortable(data)
+
+  @doc """
+  Returns the default limit of a schema.
+
+      iex> Flop.Schema.default_limit(%Fruit{})
+      50
+  """
+  @spec default_limit(any) :: pos_integer | nil
+  def default_limit(data)
+
+  @doc """
+  Returns the maximum limit of a schema.
+
+      iex> Flop.Schema.max_limit(%Pet{})
+      20
+  """
+  @spec max_limit(any) :: pos_integer | nil
+  def max_limit(data)
 end
 
 defimpl Flop.Schema, for: Any do
@@ -112,6 +125,7 @@ defimpl Flop.Schema, for: Any do
     if is_nil(filterable_fields) || is_nil(sortable_fields),
       do: raise(ArgumentError, @instructions)
 
+    default_limit = Keyword.get(options, :default_limit)
     max_limit = Keyword.get(options, :max_limit)
 
     quote do
@@ -120,12 +134,16 @@ defimpl Flop.Schema, for: Any do
           unquote(filterable_fields)
         end
 
-        def max_limit(_) do
-          unquote(max_limit)
-        end
-
         def sortable(_) do
           unquote(sortable_fields)
+        end
+
+        def default_limit(_) do
+          unquote(default_limit)
+        end
+
+        def max_limit(_) do
+          unquote(max_limit)
         end
       end
     end
@@ -138,14 +156,21 @@ defimpl Flop.Schema, for: Any do
       description: @instructions
   end
 
-  def max_limit(struct) do
+  def sortable(struct) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,
       description: @instructions
   end
 
-  def sortable(struct) do
+  def default_limit(struct) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol,
+      value: struct,
+      description: @instructions
+  end
+
+  def max_limit(struct) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,
