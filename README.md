@@ -68,7 +68,7 @@ defmodule MyApp.Pets do
   alias Flop
   alias MyApp.{Pet, Repo}
 
-  @spec list_pets(Flop.t()) :: {:ok, Pet.t()} | {:error, Changeset.t()}
+  @spec list_pets(Flop.t()) :: {:ok, [Pet.t()]} | {:error, Changeset.t()}
   def list_pets(flop \\ %Flop{}) do
     with {:ok, flop} <- Flop.validate(flop, for: Pet) do
       pets =
