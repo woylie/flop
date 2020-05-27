@@ -4,25 +4,25 @@ defmodule Flop.CustomTypes.ExistingAtom do
 
   def type, do: :string
 
-  def cast(operator) when is_binary(operator) do
-    {:ok, String.to_existing_atom(operator)}
+  def cast(a) when is_binary(a) do
+    {:ok, String.to_existing_atom(a)}
   rescue
     ArgumentError -> :error
   end
 
-  def cast(operator) when is_atom(operator) do
-    {:ok, operator}
+  def cast(a) when is_atom(a) do
+    {:ok, a}
   end
 
   def cast(_), do: :error
 
-  def load(operator) when is_binary(operator) do
-    {:ok, String.to_existing_atom(operator)}
+  def load(a) when is_binary(a) do
+    {:ok, String.to_existing_atom(a)}
   rescue
     ArgumentError -> :error
   end
 
-  def dump(operator) when is_atom(operator), do: {:ok, to_string(operator)}
-  def dump(operator) when is_binary(operator), do: {:ok, operator}
+  def dump(a) when is_atom(a), do: {:ok, to_string(a)}
+  def dump(a) when is_binary(a), do: {:ok, a}
   def dump(_), do: :error
 end

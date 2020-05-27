@@ -1,5 +1,5 @@
 defmodule FlopTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   use ExUnitProperties
 
   doctest Flop

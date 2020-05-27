@@ -1,4 +1,5 @@
 {
   "treat_no_relevant_lines_as_covered": true,
-  "minimum_coverage": 80
+  "minimum_coverage": 90,
+  "skip_files": ["test"]
 }

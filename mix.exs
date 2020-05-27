@@ -31,7 +31,8 @@ defmodule Flop.MixProject do
         main: "readme",
         extras: ["README.md"]
       ],
-      aliases: aliases()
+      aliases: aliases(),
+      consolidate_protocols: Mix.env() != :test
     ]
   end
 
