@@ -23,7 +23,7 @@ defprotocol Flop.Schema do
 
   After that, you can pass the module as the `:for` option to `Flop.validate/2`.
 
-      iex> Flop.validate(%Flop{order_by: [:name]}, for: Pet)
+      iex> Flop.validate(%Flop{order_by: [:name]}, for: Flop.Pet)
       {:ok,
        %Flop{
          filters: [],
@@ -36,7 +36,7 @@ defprotocol Flop.Schema do
        }}
 
       iex> {:error, changeset} = Flop.validate(
-      ...>   %Flop{order_by: [:social_security_number]}, for: Pet
+      ...>   %Flop{order_by: [:social_security_number]}, for: Flop.Pet
       ...> )
       iex> changeset.valid?
       false
@@ -66,7 +66,7 @@ defprotocol Flop.Schema do
   @doc """
   Returns the filterable fields of a schema.
 
-      iex> Flop.Schema.filterable(%Pet{})
+      iex> Flop.Schema.filterable(%Flop.Pet{})
       [:name, :species]
   """
   @spec filterable(any) :: [atom]
@@ -75,7 +75,7 @@ defprotocol Flop.Schema do
   @doc """
   Returns the sortable fields of a schema.
 
-      iex> Flop.Schema.sortable(%Pet{})
+      iex> Flop.Schema.sortable(%Flop.Pet{})
       [:name, :age, :species]
   """
   @spec sortable(any) :: [atom]
@@ -84,7 +84,7 @@ defprotocol Flop.Schema do
   @doc """
   Returns the default limit of a schema.
 
-      iex> Flop.Schema.default_limit(%Fruit{})
+      iex> Flop.Schema.default_limit(%Flop.Fruit{})
       50
   """
   @spec default_limit(any) :: pos_integer | nil
@@ -93,7 +93,7 @@ defprotocol Flop.Schema do
   @doc """
   Returns the maximum limit of a schema.
 
-      iex> Flop.Schema.max_limit(%Pet{})
+      iex> Flop.Schema.max_limit(%Flop.Pet{})
       20
   """
   @spec max_limit(any) :: pos_integer | nil
