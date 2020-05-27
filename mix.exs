@@ -4,7 +4,7 @@ defmodule Flop.MixProject do
   def project do
     [
       app: :flop,
-      version: "0.3.0",
+      version: "0.4.0",
       elixir: "~> 1.8",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -29,7 +29,8 @@ defmodule Flop.MixProject do
       docs: [
         main: "readme",
         extras: ["README.md"]
-      ]
+      ],
+      aliases: aliases()
     ]
   end
 
@@ -49,8 +50,11 @@ defmodule Flop.MixProject do
       {:credo, "~> 1.4.0", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0.0", only: [:dev], runtime: false},
       {:ecto, "~> 3.2"},
+      {:ecto_sql, "~> 3.4", only: :test},
       {:ex_doc, "~> 0.21", only: :dev, runtime: false},
+      {:ex_machina, "~> 2.4", only: :test},
       {:excoveralls, "~> 0.10", only: :test},
+      {:postgrex, ">= 0.0.0", only: :test},
       {:stream_data, "~> 0.5", only: [:dev, :test]}
     ]
   end
@@ -65,5 +69,9 @@ defmodule Flop.MixProject do
       links: %{"GitHub" => "https://github.com/woylie/flop"},
       files: ~w(lib .formatter.exs mix.exs README* LICENSE*)
     ]
+  end
+
+  defp aliases do
+    [test: ["ecto.create --quiet", "ecto.migrate", "test"]]
   end
 end

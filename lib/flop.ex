@@ -24,7 +24,7 @@ defmodule Flop do
   Add the `t:Flop.t/0` to a `t:Ecto.Queryable.t/0` with `Flop.query/2`.
 
       iex> params = %{"order_by" => ["name", "age"], "limit" => 5}
-      iex> {:ok, flop} = Flop.validate(params, for: Pet)
+      iex> {:ok, flop} = Flop.validate(params, for: Flop.Pet)
       {:ok,
        %Flop{
          filters: [],
@@ -35,8 +35,8 @@ defmodule Flop do
          page: nil,
          page_size: nil
        }}
-      iex> Pet |> Flop.query(flop)
-      #Ecto.Query<from p0 in Pet, order_by: [asc: p0.name, asc: p0.age], \
+      iex> Flop.Pet |> Flop.query(flop)
+      #Ecto.Query<from p0 in Flop.Pet, order_by: [asc: p0.name, asc: p0.age], \
   limit: ^5>
   """
   use Ecto.Schema
@@ -112,15 +112,15 @@ defmodule Flop do
   ## Examples
 
       iex> flop = %Flop{limit: 10, offset: 19}
-      iex> Flop.query(Pet, flop)
-      #Ecto.Query<from p0 in Pet, limit: ^10, offset: ^19>
+      iex> Flop.query(Flop.Pet, flop)
+      #Ecto.Query<from p0 in Flop.Pet, limit: ^10, offset: ^19>
 
   Or enhance an already defined query:
 
       iex> require Ecto.Query
       iex> flop = %Flop{limit: 10}
-      iex> Pet |> Ecto.Query.where(species: "dog") |> Flop.query(flop)
-      #Ecto.Query<from p0 in Pet, where: p0.species == \"dog\", limit: ^10>
+      iex> Flop.Pet |> Ecto.Query.where(species: "dog") |> Flop.query(flop)
+      #Ecto.Query<from p0 in Flop.Pet, where: p0.species == \"dog\", limit: ^10>
   """
   @spec query(Queryable.t(), Flop.t()) :: Queryable.t()
   def query(q, flop) do
@@ -228,27 +228,27 @@ defmodule Flop do
   end
 
   def filter(q, %Filter{field: field, op: :==, value: value}),
-    do: Query.where(q, ^field == ^value)
+    do: Query.where(q, ^[{field, value}])
 
   def filter(q, %Filter{field: field, op: :!=, value: value}),
-    do: Query.where(q, ^field != ^value)
+    do: Query.where(q, [r], field(r, ^field) != ^value)
 
   def filter(q, %Filter{field: field, op: :=~, value: value}) do
     query_value = "%#{value}%"
-    Query.where(q, ilike(^field, ^query_value))
+    Query.where(q, [r], ilike(field(r, ^field), ^query_value))
   end
 
   def filter(q, %Filter{field: field, op: :>=, value: value}),
-    do: Query.where(q, ^field >= ^value)
+    do: Query.where(q, [r], field(r, ^field) >= ^value)
 
   def filter(q, %Filter{field: field, op: :<=, value: value}),
-    do: Query.where(q, ^field <= ^value)
+    do: Query.where(q, [r], field(r, ^field) <= ^value)
 
   def filter(q, %Filter{field: field, op: :>, value: value}),
-    do: Query.where(q, ^field > ^value)
+    do: Query.where(q, [r], field(r, ^field) > ^value)
 
   def filter(q, %Filter{field: field, op: :<, value: value}),
-    do: Query.where(q, ^field < ^value)
+    do: Query.where(q, [r], field(r, ^field) < ^value)
 
   ## Validation
 
@@ -294,7 +294,7 @@ defmodule Flop do
   that only allowed fields are used.
 
       iex> params = %{"order_by" => ["social_security_number"]}
-      iex> {:error, changeset} = Flop.validate(params, for: Pet)
+      iex> {:error, changeset} = Flop.validate(params, for: Flop.Pet)
       iex> changeset.valid?
       false
       iex> [order_by: {msg, [_, {_, enum}]}] = changeset.errors

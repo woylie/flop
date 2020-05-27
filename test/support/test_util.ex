@@ -3,7 +3,6 @@ defmodule Flop.TestUtil do
 
   use ExUnitProperties
 
-  alias Flop.CustomTypes.Operator
   alias Flop.Filter
 
   @doc """
@@ -28,9 +27,23 @@ defmodule Flop.TestUtil do
   """
   def filter do
     gen all field <- member_of([:age, :name]),
-            op <- member_of(Operator.__operators__()),
-            value <- one_of([integer(), float(), string(:alphanumeric)]) do
+            value <- value_by_field(field),
+            op <- operator_by_type(value) do
       %Filter{field: field, op: op, value: value}
     end
   end
+
+  def value_by_field(:age), do: integer()
+  def value_by_field(:name), do: string(:alphanumeric, min_length: 1)
+
+  def compare_value_by_field(:age), do: integer(1..30)
+
+  def compare_value_by_field(:name),
+    do: string(?a..?z, min_length: 1, max_length: 3)
+
+  defp operator_by_type(a) when is_binary(a),
+    do: member_of([:==, :!=, :=~, :<=, :<, :>=, :>])
+
+  defp operator_by_type(a) when is_number(a),
+    do: member_of([:==, :!=, :<=, :<, :>=, :>])
 end

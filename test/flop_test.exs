@@ -5,69 +5,69 @@ defmodule FlopTest do
   doctest Flop
 
   import Ecto.Query, only: [from: 2]
+  import Flop.Factory
   import Flop.TestUtil
 
+  alias Ecto.Adapters.SQL.Sandbox
   alias Ecto.Changeset
   alias Ecto.Query.BooleanExpr
   alias Ecto.Query.QueryExpr
-  alias Flop
   alias Flop.Filter
+  alias Flop.Fruit
+  alias Flop.Pet
+  alias Flop.Repo
 
   @base_query from p in Pet, where: p.age > 8, select: p.name
 
+  setup do
+    :ok = Sandbox.checkout(Repo)
+  end
+
   describe "query/2" do
     test "adds order_by to query if set" do
-      flop = %Flop{order_by: [:species, :name], order_directions: [:asc, :desc]}
+      pets = insert_list(20, :pet)
 
-      assert [
-               %QueryExpr{
-                 expr: [
-                   asc: {{_, _, [_, :species]}, _, _},
-                   desc: {{_, _, [_, :name]}, _, _}
-                 ]
-               }
-             ] = Flop.query(Pet, flop).order_bys
+      sorted_pets =
+        Enum.sort(
+          pets,
+          &(&1.species < &2.species ||
+              (&1.species == &2.species && &1.name >= &2.name))
+        )
 
-      assert [
-               %QueryExpr{
-                 expr: [
-                   asc: {{_, _, [_, :species]}, _, _},
-                   desc: {{_, _, [_, :name]}, _, _}
-                 ]
-               }
-             ] = Flop.query(@base_query, flop).order_bys
+      flop = %Flop{
+        order_by: [:species, :name],
+        order_directions: [:asc, :desc]
+      }
+
+      result = Pet |> Flop.query(flop) |> Repo.all()
+      assert result == sorted_pets
     end
 
     test "uses :asc as default direction" do
-      flop = %Flop{order_by: [:species, :name], order_directions: nil}
+      pets = insert_list(20, :pet)
 
-      assert [
-               %QueryExpr{
-                 expr: [
-                   asc: {{_, _, [_, :species]}, _, _},
-                   asc: {{_, _, [_, :name]}, _, _}
-                 ]
-               }
-             ] = Flop.query(Pet, flop).order_bys
+      # order by three fieds, no order directions passed
 
-      flop = %Flop{order_by: [:species, :name], order_directions: [:desc]}
+      flop = %Flop{order_by: [:species, :name, :age], order_directions: nil}
+      sorted_pets = Enum.sort_by(pets, &{&1.species, &1.name, &1.age})
+      result = Pet |> Flop.query(flop) |> Repo.all()
+      assert result == sorted_pets
 
-      assert [
-               %QueryExpr{
-                 expr: [
-                   desc: {{_, _, [_, :species]}, _, _},
-                   asc: {{_, _, [_, :name]}, _, _}
-                 ]
-               }
-             ] = Flop.query(Pet, flop).order_bys
+      # order by three fields, one order direction passed
 
-      flop = %Flop{order_by: [:species], order_directions: [:desc]}
+      flop = %Flop{order_by: [:species, :name, :age], order_directions: [:desc]}
 
-      assert [
-               %QueryExpr{
-                 expr: [desc: {{_, _, [_, :species]}, _, _}]
-               }
-             ] = Flop.query(Pet, flop).order_bys
+      sorted_pets =
+        Enum.sort(
+          pets,
+          &(&1.species > &2.species ||
+              (&1.species == &2.species &&
+                 (&1.name < &2.name ||
+                    (&1.name == &2.name && &1.age <= &2.age))))
+        )
+
+      result = Pet |> Flop.query(flop) |> Repo.all()
+      assert result == sorted_pets
 
       flop = %Flop{order_by: [:species], order_directions: [:desc, :desc]}
 
@@ -79,57 +79,179 @@ defmodule FlopTest do
     end
 
     test "adds adds limit to query if set" do
+      insert_list(11, :pet)
       flop = %Flop{limit: 10}
       query = Flop.query(Pet, flop)
-
       assert %QueryExpr{params: [{10, :integer}]} = query.limit
+      assert length(Repo.all(query)) == 10
     end
 
     test "adds adds offset to query if set" do
-      flop = %Flop{offset: 14}
-      query = Flop.query(Pet, flop)
+      pets = insert_list(10, :pet)
 
-      assert %QueryExpr{params: [{14, :integer}]} = query.offset
+      expected_pets =
+        pets
+        |> Enum.sort_by(&{&1.name, &1.species, &1.age})
+        |> Enum.slice(4..10)
+
+      flop = %Flop{offset: 4, order_by: [:name, :species, :age]}
+      query = Flop.query(Pet, flop)
+      assert %QueryExpr{params: [{4, :integer}]} = query.offset
+      assert Repo.all(query) == expected_pets
     end
 
     test "adds adds limit and offset to query if page and page size are set" do
-      flop = %Flop{page: 1, page_size: 10}
-      assert %QueryExpr{params: [{0, :integer}]} = Flop.query(Pet, flop).offset
-      assert %QueryExpr{params: [{10, :integer}]} = Flop.query(Pet, flop).limit
+      pets = insert_list(40, :pet)
+      sorted_pets = Enum.sort_by(pets, &{&1.name, &1.species, &1.age})
+      order_by = [:name, :species, :age]
 
-      flop = %Flop{page: 2, page_size: 10}
-      assert %QueryExpr{params: [{10, :integer}]} = Flop.query(Pet, flop).offset
-      assert %QueryExpr{params: [{10, :integer}]} = Flop.query(Pet, flop).limit
+      flop = %Flop{page: 1, page_size: 10, order_by: order_by}
+      query = Flop.query(Pet, flop)
+      assert %QueryExpr{params: [{0, :integer}]} = query.offset
+      assert %QueryExpr{params: [{10, :integer}]} = query.limit
+      assert Repo.all(query) == Enum.slice(sorted_pets, 0..9)
 
-      flop = %Flop{page: 3, page_size: 4}
-      assert %QueryExpr{params: [{8, :integer}]} = Flop.query(Pet, flop).offset
-      assert %QueryExpr{params: [{4, :integer}]} = Flop.query(Pet, flop).limit
+      flop = %Flop{page: 2, page_size: 10, order_by: order_by}
+      query = Flop.query(Pet, flop)
+      assert %QueryExpr{params: [{10, :integer}]} = query.offset
+      assert %QueryExpr{params: [{10, :integer}]} = query.limit
+      assert Repo.all(query) == Enum.slice(sorted_pets, 10..19)
+
+      flop = %Flop{page: 3, page_size: 4, order_by: order_by}
+      query = Flop.query(Pet, flop)
+      assert %QueryExpr{params: [{8, :integer}]} = query.offset
+      assert %QueryExpr{params: [{4, :integer}]} = query.limit
+      assert Repo.all(query) == Enum.slice(sorted_pets, 8..11)
+    end
+
+    property "applies equality filter" do
+      pets = insert_list(50, :pet)
+
+      check all field <- member_of([:age, :name]),
+                values = Enum.map(pets, &Map.get(&1, field)),
+                query_value <-
+                  one_of([member_of(values), value_by_field(field)]),
+                query_value != "" do
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [
+              %{field: field, op: :==, value: query_value}
+            ]
+          })
+
+        query = Flop.query(Pet, flop)
+        result = Repo.all(query)
+        assert Enum.all?(result, &(Map.get(&1, field) == query_value))
+
+        expected_pets = Enum.filter(pets, &(Map.get(&1, field) == query_value))
+        assert length(result) == length(expected_pets)
+      end
+    end
+
+    property "applies inequality filter" do
+      pets = insert_list(50, :pet)
+
+      check all field <- member_of([:age, :name]),
+                values = Enum.map(pets, &Map.get(&1, field)),
+                query_value <-
+                  one_of([member_of(values), value_by_field(field)]),
+                query_value != "" do
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [
+              %{field: field, op: :!=, value: query_value}
+            ]
+          })
+
+        query = Flop.query(Pet, flop)
+        result = Repo.all(query)
+        refute Enum.any?(result, &(Map.get(&1, field) == query_value))
+
+        expected_pets = Enum.filter(pets, &(Map.get(&1, field) != query_value))
+        assert length(result) == length(expected_pets)
+      end
+    end
+
+    property "applies ilike filter" do
+      pets = insert_list(50, :pet)
+      values = Enum.map(pets, & &1.name)
+
+      check all some_value <- member_of(values),
+                str_length = String.length(some_value),
+                start_at <- integer(0..(str_length - 1)),
+                end_at <- integer(start_at..(str_length - 1)),
+                query_value = String.slice(some_value, start_at..end_at),
+                query_value != " " do
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [
+              %{field: :name, op: :=~, value: query_value}
+            ]
+          })
+
+        ci_query_value = String.downcase(query_value)
+
+        expected_pets =
+          Enum.filter(pets, &(String.downcase(&1.name) =~ ci_query_value))
+
+        query = Flop.query(Pet, flop)
+        result = Repo.all(query)
+        assert Enum.all?(result, &(String.downcase(&1.name) =~ ci_query_value))
+
+        assert length(result) == length(expected_pets)
+      end
+    end
+
+    defp filter_pets(pets, field, op, value),
+      do: Enum.filter(pets, pet_matches?(op, field, value))
+
+    defp pet_matches?(:<=, k, v), do: &(Map.get(&1, k) <= v)
+    defp pet_matches?(:<, k, v), do: &(Map.get(&1, k) < v)
+    defp pet_matches?(:>, k, v), do: &(Map.get(&1, k) > v)
+    defp pet_matches?(:>=, k, v), do: &(Map.get(&1, k) >= v)
+
+    property "applies lte, lt, gt and gte filters" do
+      pets = insert_list(50, :pet_downcase)
+
+      check all field <- member_of([:age, :name]),
+                op <- one_of([:<=, :<, :>, :>=]),
+                query_value <- compare_value_by_field(field) do
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [
+              %{field: field, op: op, value: query_value}
+            ]
+          })
+
+        expected_pets =
+          pets
+          |> filter_pets(field, op, query_value)
+          |> Enum.sort_by(&{&1.name, &1.species, &1.age})
+
+        query = Flop.query(Pet, flop)
+
+        result =
+          query
+          |> Repo.all()
+          |> Enum.sort_by(&{&1.name, &1.species, &1.age})
+
+        assert result == expected_pets
+      end
     end
 
     property "adds where clauses for filters" do
       check all filter <- filter() do
         flop = %Flop{filters: [filter]}
-        %Filter{field: field, op: op, value: value} = filter
+        %Filter{op: op} = filter
+        query = Flop.query(Pet, flop)
 
         if op == :=~ do
-          query_value = "%" <> to_string(value) <> "%"
-
-          assert [
-                   %BooleanExpr{
-                     expr: {:ilike, _, _},
-                     op: :and,
-                     params: [{^field, _}, {^query_value, _}]
-                   }
-                 ] = Flop.query(Pet, flop).wheres
+          assert [%BooleanExpr{expr: {:ilike, _, _}, op: :and}] = query.wheres
         else
-          assert [
-                   %BooleanExpr{
-                     expr: {^op, _, _},
-                     op: :and,
-                     params: [{^field, _}, {^value, _}]
-                   }
-                 ] = Flop.query(Pet, flop).wheres
+          assert [%BooleanExpr{expr: {^op, _, _}, op: :and}] = query.wheres
         end
+
+        assert is_list(Repo.all(query))
       end
     end
 
@@ -142,16 +264,8 @@ defmodule FlopTest do
       }
 
       assert [
-               %BooleanExpr{
-                 expr: {:>=, _, _},
-                 op: :and,
-                 params: [{:age, _}, {4, _}]
-               },
-               %BooleanExpr{
-                 expr: {:==, _, _},
-                 op: :and,
-                 params: [{:name, _}, {"Bo", _}]
-               }
+               %BooleanExpr{expr: {:>=, _, _}, op: :and},
+               %BooleanExpr{expr: {:==, _, _}, op: :and}
              ] = Flop.query(Pet, flop).wheres
     end
 
