@@ -14,7 +14,8 @@ defmodule Flop.MixProject do
         coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.post": :test,
-        "coveralls.html": :test
+        "coveralls.html": :test,
+        "coveralls.github": :test
       ],
       dialyzer: [
         ignore_warnings: ".dialyzer_ignore.exs",
