@@ -498,11 +498,11 @@ defmodule FlopTest do
 
       # field does not exist
 
-      params = %{filters: [%{field: :halloween_costume}]}
+      params = %{filters: [%{field: :halloween_costume, value: "Pirate"}]}
       assert {:error, changeset} = Flop.validate(params, for: Pet)
       assert [%{field: ["is invalid"]}] = errors_on(changeset)[:filters]
 
-      params = %{filters: [%{field: "honorific"}]}
+      params = %{filters: [%{field: "honorific", value: "Esquire"}]}
       assert {:error, changeset} = Flop.validate(params, for: Pet)
       assert [%{field: ["is invalid"]}] = errors_on(changeset)[:filters]
 
