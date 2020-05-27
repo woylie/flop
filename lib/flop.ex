@@ -326,6 +326,21 @@ defmodule Flop do
     |> apply_action(:replace)
   end
 
+  @doc """
+  Same as `Flop.validate/2`, but raises an `Ecto.InvalidChangesetError` if the
+  parameters are invalid.
+  """
+  @spec validate!(Flop.t() | map, keyword) :: Flop.t()
+  def validate!(flop, opts \\ []) do
+    case validate(flop, opts) do
+      {:ok, flop} ->
+        flop
+
+      {:error, changeset} ->
+        raise Ecto.InvalidChangesetError, action: :replace, changeset: changeset
+    end
+  end
+
   @spec changeset(map, keyword) :: Changeset.t()
   defp changeset(%{} = params, opts) do
     %Flop{}

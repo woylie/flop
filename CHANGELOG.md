@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- `Flop.validate!/2`
+
 ## [0.4.0] - 2020-05-27
 
 ### Added

@@ -514,4 +514,17 @@ defmodule FlopTest do
       assert errors_on(changeset)[:page] == ["can't be blank"]
     end
   end
+
+  describe "validate!/1" do
+    test "returns a flop struct" do
+      assert Flop.validate!(%Flop{}) == %Flop{}
+      assert Flop.validate!(%{}) == %Flop{}
+    end
+
+    test "raises if params are invalid" do
+      assert_raise Ecto.InvalidChangesetError, fn ->
+        Flop.validate!(%{limit: -1})
+      end
+    end
+  end
 end
