@@ -57,7 +57,7 @@ defmodule Flop.Filter do
     filterable_fields =
       module
       |> struct()
-      |> sortable()
+      |> filterable()
 
     validate_inclusion(changeset, :field, filterable_fields)
   end

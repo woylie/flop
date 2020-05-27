@@ -488,11 +488,11 @@ defmodule FlopTest do
     test "only allows to filter by fields marked as filterable" do
       # field exists, but is not filterable
 
-      params = %{filters: [%{field: :social_security_number}]}
+      params = %{filters: [%{field: :age, op: :>, value: 5}]}
       assert {:error, changeset} = Flop.validate(params, for: Pet)
       assert [%{field: ["is invalid"]}] = errors_on(changeset)[:filters]
 
-      params = %{filters: [%{field: "social_security_number"}]}
+      params = %{filters: [%{field: "age", op: ">", value: "5"}]}
       assert {:error, changeset} = Flop.validate(params, for: Pet)
       assert [%{field: ["is invalid"]}] = errors_on(changeset)[:filters]
 

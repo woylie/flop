@@ -7,6 +7,10 @@
 - New function `Flop.validate!/2`.
 - New filter operator `:in`.
 
+### Fixed
+
+- Filter validation was using sortable fields instead of filterable fields.
+
 ## [0.4.0] - 2020-05-27
 
 ### Added

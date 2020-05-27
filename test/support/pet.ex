@@ -4,10 +4,10 @@ defmodule Flop.Pet do
   """
   use Ecto.Schema
 
-  @derive {Flop.Schema,
-           filterable: [:name, :species],
-           sortable: [:name, :age, :species],
-           max_limit: 20}
+  @derive {
+    Flop.Schema,
+    filterable: [:name, :species], sortable: [:name, :age], max_limit: 20
+  }
 
   schema "pets" do
     field :name, :string

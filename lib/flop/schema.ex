@@ -7,19 +7,21 @@ defprotocol Flop.Schema do
 
   Derive `Flop.Schema` in your Ecto schema.
 
-      defmodule Pet do
+      defmodule Flop.Pet do
         use Ecto.Schema
 
         @derive {Flop.Schema,
-                 filterable: [:name, :species], sortable: [:name, :age]}
+                 filterable: [:name, :species],
+                 sortable: [:name, :age],
+                 max_limit: 20}
 
         schema "pets" do
           field :name, :string
           field :age, :integer
           field :species, :string
-          field :social_security_number, :string
         end
       end
+
 
   After that, you can pass the module as the `:for` option to `Flop.validate/2`.
 
@@ -36,14 +38,14 @@ defprotocol Flop.Schema do
        }}
 
       iex> {:error, changeset} = Flop.validate(
-      ...>   %Flop{order_by: [:social_security_number]}, for: Flop.Pet
+      ...>   %Flop{order_by: [:species]}, for: Flop.Pet
       ...> )
       iex> changeset.valid?
       false
       iex> changeset.errors
       [
         order_by: {"has an invalid entry",
-         [validation: :subset, enum: [:name, :age, :species]]}
+         [validation: :subset, enum: [:name, :age]]}
       ]
 
   ### Defining default and maximum limits
@@ -76,7 +78,7 @@ defprotocol Flop.Schema do
   Returns the sortable fields of a schema.
 
       iex> Flop.Schema.sortable(%Flop.Pet{})
-      [:name, :age, :species]
+      [:name, :age]
   """
   @spec sortable(any) :: [atom]
   def sortable(data)

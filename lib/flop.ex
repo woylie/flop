@@ -296,7 +296,7 @@ defmodule Flop do
   and sortable fields, you can pass the module name to the function to validate
   that only allowed fields are used.
 
-      iex> params = %{"order_by" => ["social_security_number"]}
+      iex> params = %{"order_by" => ["species"]}
       iex> {:error, changeset} = Flop.validate(params, for: Flop.Pet)
       iex> changeset.valid?
       false
@@ -304,7 +304,7 @@ defmodule Flop do
       iex> msg
       "has an invalid entry"
       iex> enum
-      [:name, :age, :species]
+      [:name, :age]
 
   Note that currently, trying to use an existing field that is not allowed as
   seen above will result in the error message `has an invalid entry`, while
