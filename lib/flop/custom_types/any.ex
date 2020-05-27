@@ -11,15 +11,7 @@ defmodule Flop.CustomTypes.Any do
 
   def type, do: :string
 
-  def cast(value)
-      when is_binary(value) or
-             is_number(value) or
-             is_boolean(value) or
-             is_nil(value) do
-    {:ok, value}
-  end
-
-  def cast(_), do: :error
+  def cast(value), do: {:ok, value}
 
   def load(value), do: {:ok, value}
 

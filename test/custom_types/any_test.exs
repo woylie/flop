@@ -9,8 +9,6 @@ defmodule Flop.CustomTypes.AnyTest do
       assert Any.cast(nil) == {:ok, nil}
       assert Any.cast(true) == {:ok, true}
       assert Any.cast("a") == {:ok, "a"}
-
-      assert Any.cast(%{}) == :error
     end
   end
 

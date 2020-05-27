@@ -209,6 +209,7 @@ defmodule FlopTest do
     defp pet_matches?(:<, k, v), do: &(Map.get(&1, k) < v)
     defp pet_matches?(:>, k, v), do: &(Map.get(&1, k) > v)
     defp pet_matches?(:>=, k, v), do: &(Map.get(&1, k) >= v)
+    defp pet_matches?(:in, k, v), do: &(Map.get(&1, k) in v)
 
     property "applies lte, lt, gt and gte filters" do
       pets = insert_list(50, :pet_downcase)
@@ -233,6 +234,36 @@ defmodule FlopTest do
         result =
           query
           |> Repo.all()
+          |> Enum.sort_by(&{&1.name, &1.species, &1.age})
+
+        assert result == expected_pets
+      end
+    end
+
+    property "applies 'in' filter" do
+      pets = insert_list(50, :pet)
+
+      check all field <- member_of([:age, :name]),
+                values = Enum.map(pets, &Map.get(&1, field)),
+                query_value <-
+                  list_of(one_of([member_of(values), value_by_field(field)]),
+                    max_length: 5
+                  ) do
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [
+              %{field: field, op: :in, value: query_value}
+            ]
+          })
+
+        query = Flop.query(Pet, flop)
+
+        result =
+          query |> Repo.all() |> Enum.sort_by(&{&1.name, &1.species, &1.age})
+
+        expected_pets =
+          pets
+          |> filter_pets(field, :in, query_value)
           |> Enum.sort_by(&{&1.name, &1.species, &1.age})
 
         assert result == expected_pets

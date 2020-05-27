@@ -250,6 +250,9 @@ defmodule Flop do
   def filter(q, %Filter{field: field, op: :<, value: value}),
     do: Query.where(q, [r], field(r, ^field) < ^value)
 
+  def filter(q, %Filter{field: field, op: :in, value: value}),
+    do: Query.where(q, [r], field(r, ^field) in ^value)
+
   ## Validation
 
   @doc """

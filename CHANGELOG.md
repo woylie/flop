@@ -4,7 +4,8 @@
 
 ### Added
 
-- `Flop.validate!/2`
+- New function `Flop.validate!/2`.
+- New filter operator `:in`.
 
 ## [0.4.0] - 2020-05-27
 
