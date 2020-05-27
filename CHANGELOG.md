@@ -4,11 +4,11 @@
 
 ## [0.4.0] - 2020-05-27
 
-## Added
+### Added
 
 - Added `=~` filter operator.
 
-## Fixed
+### Fixed
 
 - Query function wasn't generating valid where clauses for filters.
 
