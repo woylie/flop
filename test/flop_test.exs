@@ -324,7 +324,26 @@ defmodule FlopTest do
     end
   end
 
-  describe "count/2" do
+  describe "all/3" do
+    test "returns all matching entries" do
+      matching_pets = insert_list(6, :pet, age: 5)
+      _non_matching_pets = insert_list(4, :pet, age: 6)
+
+      [_, _, %{name: name_1}, %{name: name_2}, _, _] =
+        Enum.sort_by(matching_pets, & &1.name)
+
+      flop = %Flop{
+        limit: 2,
+        offset: 2,
+        order_by: [:name],
+        filters: [%Filter{field: :age, op: :<=, value: 5}]
+      }
+
+      assert Enum.map(Flop.all(Pet, flop), & &1.name) == [name_1, name_2]
+    end
+  end
+
+  describe "count/3" do
     test "returns count of matching entries" do
       _matching_pets = insert_list(6, :pet, age: 5)
       _non_matching_pets = insert_list(4, :pet, age: 6)

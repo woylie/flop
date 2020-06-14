@@ -130,6 +130,76 @@ defmodule Flop do
     |> paginate(flop)
   end
 
+  @doc """
+  Applies the given Flop to the given queryable and returns all matchings
+  entries.
+
+      iex> Flop.all(Flop.Pet, %Flop{}, repo: Flop.Repo)
+      []
+
+  You can also configure a default repo in your config files:
+
+      config :flop, repo: MyApp.Repo
+
+  This allows you to omit the third argument:
+
+      iex> Flop.all(Flop.Pet, %Flop{})
+      []
+  """
+  @spec all(Queryable.t(), Flop.t(), keyword) :: [any]
+  def all(q, flop, opts \\ []) do
+    repo =
+      opts[:repo] || default_repo() ||
+        raise """
+        No repo specified. You can specify the repo either by passing it
+        explicitly:
+
+            Flop.all(Flop.Pet, %Flop{}, repo: MyApp.Repo)
+
+        Or you can configure a default repo in your config:
+
+            config :flop, repo: MyApp.Repo
+        """
+
+    apply(repo, :all, [query(q, flop)])
+  end
+
+  @doc """
+  Returns the total count of entries matching the filter conditions of the
+  Flop.
+
+  The pagination and ordering option are disregarded.
+
+      iex> Flop.count(Flop.Pet, %Flop{}, repo: Flop.Repo)
+      0
+
+  You can also configure a default repo in your config files:
+
+      config :flop, repo: MyApp.Repo
+
+  This allows you to omit the third argument:
+
+      iex> Flop.count(Flop.Pet, %Flop{})
+      0
+  """
+  @spec count(Queryable.t(), Flop.t(), keyword) :: non_neg_integer
+  def count(q, flop, opts \\ []) do
+    repo =
+      opts[:repo] || default_repo() ||
+        raise """
+        No repo specified. You can specify the repo either by passing it
+        explicitly:
+
+            Flop.count(Flop.Pet, %Flop{}, repo: MyApp.Repo)
+
+        Or you can configure a default repo in your config:
+
+            config :flop, repo: MyApp.Repo
+        """
+
+    apply(repo, :aggregate, [filter(q, flop), :count])
+  end
+
   ## Ordering
 
   @doc """
@@ -453,4 +523,6 @@ defmodule Flop do
       end
     end
   end
+
+  defp default_repo, do: Application.get_env(:flop, :repo)
 end
