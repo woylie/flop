@@ -11,7 +11,11 @@ defmodule Flop.Meta do
           current_page: pos_integer,
           has_next_page?: boolean,
           has_previous_page?: boolean,
-          page_size: pos_integer,
+          next_offset: non_neg_integer | nil,
+          next_page: pos_integer | nil,
+          page_size: pos_integer | nil,
+          previous_offset: non_neg_integer | nil,
+          previous_page: pos_integer | nil,
           total_count: non_neg_integer,
           total_pages: non_neg_integer
         }
@@ -21,7 +25,11 @@ defmodule Flop.Meta do
     :current_page,
     :has_next_page?,
     :has_previous_page?,
+    :next_offset,
+    :next_page,
     :page_size,
+    :previous_offset,
+    :previous_page,
     :total_count,
     :total_pages
   ]
@@ -31,7 +39,11 @@ defmodule Flop.Meta do
     :current_page,
     :has_next_page?,
     :has_previous_page?,
+    :next_offset,
+    :next_page,
     :page_size,
+    :previous_offset,
+    :previous_page,
     :total_count,
     :total_pages
   ]

@@ -14,6 +14,7 @@ defmodule FlopTest do
   alias Ecto.Query.QueryExpr
   alias Flop.Filter
   alias Flop.Fruit
+  alias Flop.Meta
   alias Flop.Pet
   alias Flop.Repo
 
@@ -356,6 +357,136 @@ defmodule FlopTest do
       }
 
       assert Flop.count(Pet, flop) == 6
+    end
+  end
+
+  describe "meta/3" do
+    test "returns the meta information for a query with limit/offset" do
+      _matching_pets = insert_list(7, :pet, age: 5)
+      _non_matching_pets = insert_list(4, :pet, age: 6)
+
+      flop = %Flop{
+        limit: 2,
+        offset: 4,
+        filters: [%Filter{field: :age, op: :<=, value: 5}]
+      }
+
+      assert Flop.meta(Pet, flop) == %Meta{
+               current_offset: 4,
+               current_page: 3,
+               has_next_page?: true,
+               has_previous_page?: true,
+               next_offset: 6,
+               next_page: 4,
+               page_size: 2,
+               previous_offset: 2,
+               previous_page: 2,
+               total_count: 7,
+               total_pages: 4
+             }
+    end
+
+    test "returns the meta information for a query with page/page_size" do
+      _matching_pets = insert_list(7, :pet, age: 5)
+      _non_matching_pets = insert_list(4, :pet, age: 6)
+
+      flop = %Flop{
+        page_size: 2,
+        page: 3,
+        filters: [%Filter{field: :age, op: :<=, value: 5}]
+      }
+
+      assert Flop.meta(Pet, flop) == %Meta{
+               current_offset: 4,
+               current_page: 3,
+               has_next_page?: true,
+               has_previous_page?: true,
+               next_offset: 6,
+               next_page: 4,
+               page_size: 2,
+               previous_offset: 2,
+               previous_page: 2,
+               total_count: 7,
+               total_pages: 4
+             }
+    end
+
+    test "returns the meta information for a query without limit" do
+      _matching_pets = insert_list(7, :pet, age: 5)
+      _non_matching_pets = insert_list(2, :pet, age: 6)
+
+      flop = %Flop{filters: [%Filter{field: :age, op: :<=, value: 5}]}
+
+      assert Flop.meta(Pet, flop) == %Meta{
+               current_offset: 0,
+               current_page: 1,
+               has_next_page?: false,
+               has_previous_page?: false,
+               next_offset: nil,
+               next_page: nil,
+               page_size: nil,
+               previous_offset: nil,
+               previous_page: nil,
+               total_count: 7,
+               total_pages: 1
+             }
+    end
+
+    test "rounds current page if offset is between pages" do
+      insert_list(6, :pet)
+
+      assert %Meta{
+               current_offset: 1,
+               current_page: 2,
+               has_next_page?: true,
+               has_previous_page?: true,
+               next_offset: 3,
+               next_page: 3,
+               previous_offset: 0,
+               previous_page: 1
+             } = Flop.meta(Pet, %Flop{limit: 2, offset: 1})
+
+      assert %Meta{
+               current_offset: 3,
+               current_page: 3,
+               has_next_page?: true,
+               has_previous_page?: true,
+               next_offset: 5,
+               next_page: 3,
+               previous_offset: 1,
+               previous_page: 2
+             } = Flop.meta(Pet, %Flop{limit: 2, offset: 3})
+
+      # current page shouldn't be greater than total page numbers
+      assert %Meta{
+               current_offset: 5,
+               current_page: 3,
+               has_next_page?: false,
+               has_previous_page?: true,
+               next_offset: nil,
+               next_page: nil,
+               previous_offset: 3,
+               previous_page: 2
+             } = Flop.meta(Pet, %Flop{limit: 2, offset: 5})
+    end
+
+    test "sets has_previous_page? and has_next_page?" do
+      _matching_pets = insert_list(5, :pet)
+
+      assert %Meta{has_next_page?: true, has_previous_page?: false} =
+               Flop.meta(Pet, %Flop{limit: 2, offset: 0})
+
+      assert %Meta{has_next_page?: true, has_previous_page?: true} =
+               Flop.meta(Pet, %Flop{limit: 2, offset: 1})
+
+      assert %Meta{has_next_page?: true, has_previous_page?: true} =
+               Flop.meta(Pet, %Flop{limit: 2, offset: 2})
+
+      assert %Meta{has_next_page?: true, has_previous_page?: true} =
+               Flop.meta(Pet, %Flop{limit: 2, offset: 3})
+
+      assert %Meta{has_next_page?: false, has_previous_page?: true} =
+               Flop.meta(Pet, %Flop{limit: 2, offset: 4})
     end
   end
 
