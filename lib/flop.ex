@@ -185,8 +185,13 @@ defmodule Flop do
       iex> {:ok, {[], %Flop.Meta{}}} =
       ...>   Flop.validate_and_run(Flop.Pet, %Flop{}, for: Flop.Pet)
 
-      iex> {:error, %Ecto.Changeset{}} =
+      iex> {:error, %Ecto.Changeset{} = changeset} =
       ...>   Flop.validate_and_run(Flop.Pet, %Flop{limit: -1})
+      iex> changeset.errors
+      [
+        limit: {"must be greater than %{number}",
+          [validation: :number, kind: :greater_than, number: 0]}
+      ]
 
   ## Options
 
