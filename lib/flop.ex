@@ -166,7 +166,11 @@ defmodule Flop do
   `Flop.validate_and_run/3` or `Flop.validate_and_run!/3` instead of this
   function.
 
-      iex> {[], %Flop.Meta{}} = Flop.run(Flop.Pet, %Flop{})
+      iex> {data, meta} = Flop.run(Flop.Pet, %Flop{})
+      iex> data == []
+      true
+      iex> match?(%Flop.Meta{}, meta)
+      true
   """
   @spec run(Queryable.t(), Flop.t(), keyword) :: {[any], Meta.t()}
   def run(q, flop, opts \\ []) do
