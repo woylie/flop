@@ -95,7 +95,7 @@ Consult the [docs](https://hexdocs.pm/flop/Flop.Meta.html) for more info on the
 `Meta` struct.
 
 If you prefer to validate the parameters in your controllers, you can use
-`Flop.validate/3` or `Flop.validate!/3` and `Flop.run/3` instead.
+`Flop.validate/2` or `Flop.validate!/2` and `Flop.run/3` instead.
 
 ```elixir
 defmodule MyAppWeb.PetController do
