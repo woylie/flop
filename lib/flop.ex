@@ -38,6 +38,10 @@ defmodule Flop do
       iex> Flop.Pet |> Flop.query(flop)
       #Ecto.Query<from p0 in Flop.Pet, order_by: [asc: p0.name, asc: p0.age], \
   limit: ^5>
+
+  Use `Flop.validate_and_run/3`, `Flop.validate_and_run!/3`, `Flop.run/3`,
+  `Flop.all/3` or `Flop.meta/3` to query the database. Also consult the
+  [readme](https://hexdocs.pm/flop/readme.html) for more details.
   """
   use Ecto.Schema
 
@@ -151,6 +155,61 @@ defmodule Flop do
   def all(q, flop, opts \\ []) do
     repo = opts[:repo] || default_repo() || raise no_repo_error("all")
     apply(repo, :all, [query(q, flop)])
+  end
+
+  @doc """
+  Applies the given Flop to the given queryable, retrieves the data and the
+  meta data.
+
+  This function does not validate the given flop parameters. You can validate
+  the parameters with `Flop.validate/2` or `Flop.validate!/2`, or you can use
+  `Flop.validate_and_run/3` or `Flop.validate_and_run!/3` instead of this
+  function.
+
+      iex> {[], %Flop.Meta{}} = Flop.run(Flop.Pet, %Flop{})
+  """
+  @spec run(Queryable.t(), Flop.t(), keyword) :: {[any], Meta.t()}
+  def run(q, flop, opts \\ []) do
+    repo = opts[:repo] || default_repo() || raise no_repo_error("run")
+    {all(q, flop, repo: repo), meta(q, flop, repo: repo)}
+  end
+
+  @doc """
+  Validates the given flop parameters and retrieves the data and meta data on
+  success.
+
+      iex> {:ok, {[], %Flop.Meta{}}} =
+      ...>   Flop.validate_and_run(Flop.Pet, %Flop{}, for: Flop.Pet)
+
+      iex> {:error, %Ecto.Changeset{}} =
+      ...>   Flop.validate_and_run(Flop.Pet, %Flop{limit: -1})
+
+  ## Options
+
+  - `for`: Passed to `Flop.validate/2`.
+  - `repo`: The `Ecto.Repo` module. Required if no default repo is configured.
+  """
+  @spec validate_and_run(Queryable.t(), map | Flop.t(), keyword) ::
+          {:ok, {[any], Meta.t()}} | {:error, Changeset.t()}
+  def validate_and_run(q, flop, opts \\ []) do
+    repo = opts[:repo] || default_repo() || raise no_repo_error("run")
+    validate_opts = Keyword.take(opts, [:for])
+
+    with {:ok, flop} <- validate(flop, validate_opts) do
+      {:ok, {all(q, flop, repo: repo), meta(q, flop, repo: repo)}}
+    end
+  end
+
+  @doc """
+  Same as `Flop.validate_and_run/3`, but raises on error.
+  """
+  @spec validate_and_run!(Queryable.t(), map | Flop.t(), keyword) ::
+          {[any], Meta.t()}
+  def validate_and_run!(q, flop, opts \\ []) do
+    repo = opts[:repo] || default_repo() || raise no_repo_error("run")
+    validate_opts = Keyword.take(opts, [:for])
+    flop = validate!(flop, validate_opts)
+    {all(q, flop, repo: repo), meta(q, flop, repo: repo)}
   end
 
   @doc """

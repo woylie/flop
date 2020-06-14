@@ -490,6 +490,41 @@ defmodule FlopTest do
     end
   end
 
+  describe "run/3" do
+    test "returns data and meta data" do
+      insert_list(3, :pet)
+      flop = %Flop{page_size: 2, page: 2}
+      assert {[%Pet{}], %Meta{}} = Flop.run(Pet, flop)
+    end
+  end
+
+  describe "validate_and_run/3" do
+    test "returns error if flop is invalid" do
+      flop = %{page_size: -1}
+      assert {:error, %Changeset{}} = Flop.validate_and_run(Pet, flop)
+    end
+
+    test "returns data and meta data" do
+      insert_list(3, :pet)
+      flop = %{page_size: 2, page: 2}
+      assert {:ok, {[%Pet{}], %Meta{}}} = Flop.validate_and_run(Pet, flop)
+    end
+  end
+
+  describe "validate_and_run!/3" do
+    test "raises if flop is invalid" do
+      assert_raise Ecto.InvalidChangesetError, fn ->
+        Flop.validate_and_run!(Pet, %{limit: -1})
+      end
+    end
+
+    test "returns data and meta data" do
+      insert_list(3, :pet)
+      flop = %{page_size: 2, page: 2}
+      assert {[%Pet{}], %Meta{}} = Flop.validate_and_run!(Pet, flop)
+    end
+  end
+
   describe "validate/1" do
     test "returns Flop struct" do
       assert Flop.validate(%Flop{}) == {:ok, %Flop{}}
