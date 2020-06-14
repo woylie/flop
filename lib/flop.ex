@@ -38,6 +38,10 @@ defmodule Flop do
       iex> Flop.Pet |> Flop.query(flop)
       #Ecto.Query<from p0 in Flop.Pet, order_by: [asc: p0.name, asc: p0.age], \
   limit: ^5>
+
+  Use `Flop.validate_and_run/3`, `Flop.validate_and_run!/3`, `Flop.run/3`,
+  `Flop.all/3` or `Flop.meta/3` to query the database. Also consult the
+  [readme](https://hexdocs.pm/flop/readme.html) for more details.
   """
   use Ecto.Schema
 
@@ -50,6 +54,7 @@ defmodule Flop do
   alias Flop.CustomTypes.ExistingAtom
   alias Flop.CustomTypes.OrderDirection
   alias Flop.Filter
+  alias Flop.Meta
 
   require Ecto.Query
 
@@ -148,20 +153,71 @@ defmodule Flop do
   """
   @spec all(Queryable.t(), Flop.t(), keyword) :: [any]
   def all(q, flop, opts \\ []) do
-    repo =
-      opts[:repo] || default_repo() ||
-        raise """
-        No repo specified. You can specify the repo either by passing it
-        explicitly:
-
-            Flop.all(Flop.Pet, %Flop{}, repo: MyApp.Repo)
-
-        Or you can configure a default repo in your config:
-
-            config :flop, repo: MyApp.Repo
-        """
-
+    repo = opts[:repo] || default_repo() || raise no_repo_error("all")
     apply(repo, :all, [query(q, flop)])
+  end
+
+  @doc """
+  Applies the given Flop to the given queryable, retrieves the data and the
+  meta data.
+
+  This function does not validate the given flop parameters. You can validate
+  the parameters with `Flop.validate/2` or `Flop.validate!/2`, or you can use
+  `Flop.validate_and_run/3` or `Flop.validate_and_run!/3` instead of this
+  function.
+
+      iex> {data, meta} = Flop.run(Flop.Pet, %Flop{})
+      iex> data == []
+      true
+      iex> match?(%Flop.Meta{}, meta)
+      true
+  """
+  @spec run(Queryable.t(), Flop.t(), keyword) :: {[any], Meta.t()}
+  def run(q, flop, opts \\ []) do
+    repo = opts[:repo] || default_repo() || raise no_repo_error("run")
+    {all(q, flop, repo: repo), meta(q, flop, repo: repo)}
+  end
+
+  @doc """
+  Validates the given flop parameters and retrieves the data and meta data on
+  success.
+
+      iex> {:ok, {[], %Flop.Meta{}}} =
+      ...>   Flop.validate_and_run(Flop.Pet, %Flop{}, for: Flop.Pet)
+      iex> {:error, %Ecto.Changeset{} = changeset} =
+      ...>   Flop.validate_and_run(Flop.Pet, %Flop{limit: -1})
+      iex> changeset.errors
+      [
+        limit: {"must be greater than %{number}",
+          [validation: :number, kind: :greater_than, number: 0]}
+      ]
+
+  ## Options
+
+  - `for`: Passed to `Flop.validate/2`.
+  - `repo`: The `Ecto.Repo` module. Required if no default repo is configured.
+  """
+  @spec validate_and_run(Queryable.t(), map | Flop.t(), keyword) ::
+          {:ok, {[any], Meta.t()}} | {:error, Changeset.t()}
+  def validate_and_run(q, flop, opts \\ []) do
+    repo = opts[:repo] || default_repo() || raise no_repo_error("run")
+    validate_opts = Keyword.take(opts, [:for])
+
+    with {:ok, flop} <- validate(flop, validate_opts) do
+      {:ok, {all(q, flop, repo: repo), meta(q, flop, repo: repo)}}
+    end
+  end
+
+  @doc """
+  Same as `Flop.validate_and_run/3`, but raises on error.
+  """
+  @spec validate_and_run!(Queryable.t(), map | Flop.t(), keyword) ::
+          {[any], Meta.t()}
+  def validate_and_run!(q, flop, opts \\ []) do
+    repo = opts[:repo] || default_repo() || raise no_repo_error("run")
+    validate_opts = Keyword.take(opts, [:for])
+    flop = validate!(flop, validate_opts)
+    {all(q, flop, repo: repo), meta(q, flop, repo: repo)}
   end
 
   @doc """
@@ -184,21 +240,111 @@ defmodule Flop do
   """
   @spec count(Queryable.t(), Flop.t(), keyword) :: non_neg_integer
   def count(q, flop, opts \\ []) do
-    repo =
-      opts[:repo] || default_repo() ||
-        raise """
-        No repo specified. You can specify the repo either by passing it
-        explicitly:
-
-            Flop.count(Flop.Pet, %Flop{}, repo: MyApp.Repo)
-
-        Or you can configure a default repo in your config:
-
-            config :flop, repo: MyApp.Repo
-        """
-
+    repo = opts[:repo] || default_repo() || raise no_repo_error("count")
     apply(repo, :aggregate, [filter(q, flop), :count])
   end
+
+  @doc """
+  Returns meta information for the given query and flop that can be used for
+  building the pagination links.
+
+      iex> Flop.meta(Flop.Pet, %Flop{limit: 10}, repo: Flop.Repo)
+      %Flop.Meta{
+        current_offset: 0,
+        current_page: 1,
+        has_next_page?: false,
+        has_previous_page?: false,
+        next_offset: nil,
+        next_page: nil,
+        page_size: 10,
+        previous_offset: nil,
+        previous_page: nil,
+        total_count: 0,
+        total_pages: 0
+      }
+
+  The function returns both the current offset and the current page, regardless
+  of the pagination type. If the offset lies in between pages, the current page
+  number is rounded up. This means that it is possible that the values for
+  `current_page` and `next_page` can be identical. This can only occur if you
+  use offset/limit based pagination with arbitrary offsets, but in that case,
+  you will use the `previous_offset`, `current_offset` and `next_offset` values
+  to render the pagination links anyway, so this shouldn't be a problem.
+  """
+  @spec meta(Queryable.t(), Flop.t(), keyword) :: Meta.t()
+  def meta(q, flop, opts \\ []) do
+    repo = opts[:repo] || default_repo() || raise no_repo_error("meta")
+
+    total_count = count(q, flop, repo: repo)
+    page_size = flop.page_size || flop.limit
+    total_pages = get_total_pages(total_count, page_size)
+    current_offset = get_current_offset(flop)
+    current_page = get_current_page(flop, total_pages)
+
+    {has_previous_page?, previous_offset, previous_page} =
+      get_previous(current_offset, current_page, page_size)
+
+    {has_next_page?, next_offset, next_page} =
+      get_next(
+        current_offset,
+        current_page,
+        page_size,
+        total_count,
+        total_pages
+      )
+
+    %Meta{
+      current_offset: current_offset,
+      current_page: current_page,
+      has_next_page?: has_next_page?,
+      has_previous_page?: has_previous_page?,
+      next_offset: next_offset,
+      next_page: next_page,
+      page_size: page_size,
+      previous_offset: previous_offset,
+      previous_page: previous_page,
+      total_count: total_count,
+      total_pages: total_pages
+    }
+  end
+
+  defp get_previous(offset, current_page, limit) do
+    has_previous? = offset > 0
+    previous_offset = if has_previous?, do: max(0, offset - limit), else: nil
+    previous_page = if current_page > 1, do: current_page - 1, else: nil
+
+    {has_previous?, previous_offset, previous_page}
+  end
+
+  defp get_next(_, _, nil = _page_size, _, _) do
+    {false, nil, nil}
+  end
+
+  defp get_next(current_offset, _, _, total_count, _)
+       when current_offset >= total_count - 1 do
+    {false, nil, nil}
+  end
+
+  defp get_next(current_offset, current_page, page_size, _, total_pages) do
+    {true, current_offset + page_size, min(total_pages, current_page + 1)}
+  end
+
+  defp get_total_pages(0, _), do: 0
+  defp get_total_pages(_, nil), do: 1
+  defp get_total_pages(total_count, limit), do: ceil(total_count / limit)
+
+  defp get_current_offset(%Flop{offset: nil, page: nil}), do: 0
+
+  defp get_current_offset(%Flop{offset: nil, page: page, page_size: page_size}),
+    do: (page - 1) * page_size
+
+  defp get_current_offset(%Flop{offset: offset}), do: offset
+
+  defp get_current_page(%Flop{offset: nil, page: nil}, _), do: 1
+  defp get_current_page(%Flop{offset: nil, page: page}, _), do: page
+
+  defp get_current_page(%Flop{limit: limit, offset: offset, page: nil}, total),
+    do: min(ceil(offset / limit) + 1, total)
 
   ## Ordering
 
@@ -525,4 +671,16 @@ defmodule Flop do
   end
 
   defp default_repo, do: Application.get_env(:flop, :repo)
+
+  defp no_repo_error(function_name),
+    do: """
+    No repo specified. You can specify the repo either by passing it
+    explicitly:
+
+        Flop.#{function_name}(Flop.Pet, %Flop{}, repo: MyApp.Repo)
+
+    Or you can configure a default repo in your config:
+
+        config :flop, repo: MyApp.Repo
+    """
 end

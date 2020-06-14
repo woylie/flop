@@ -2,10 +2,17 @@
 
 ## Unreleased
 
+## [0.6.0] - 2020-06-14
+
 ### Added
 
+- New struct `Flop.Meta`.
 - New function `Flop.all/3`.
 - New function `Flop.count/3`.
+- New function `Flop.meta/3`.
+- New function `Flop.run/3`.
+- New function `Flop.validate_and_run/3`.
+- New function `Flop.validate_and_run!/3`.
 
 ## [0.5.0] - 2020-05-28
 

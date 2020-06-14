@@ -15,10 +15,7 @@ Ecto a bit easier.
 - filtering by multiple conditions with diverse operators on multiple fields
 - parameter validation
 - configurable filterable and sortable fields
-
-## To Do
-
-See https://github.com/woylie/flop/projects/1
+- query and meta data helpers
 
 ## Installation
 
@@ -61,10 +58,11 @@ defmodule MyApp.Pet do
 end
 ```
 
-### Validation and querying
+### Query data
 
-You can validate Flop parameters with `Flop.validate/2` or `Flop.validate!/2`
-and apply the Flop options to a query with `Flop.query/2`.
+You can use `Flop.validate_and_run/3` or `Flop.validate_and_run!/3` to validate
+the Flop parameters, retrieve the data from the database and get the meta data
+for pagination in one go.
 
 ```elixir
 defmodule MyApp.Pets do
@@ -74,62 +72,30 @@ defmodule MyApp.Pets do
   alias Flop
   alias MyApp.{Pet, Repo}
 
-  @spec list_pets(Flop.t()) :: {:ok, [Pet.t()]} | {:error, Changeset.t()}
+  @spec list_pets(Flop.t()) ::
+          {:ok, {[Pet.t()], Flop.Meta.t}} | {:error, Changeset.t()}
   def list_pets(flop \\ %Flop{}) do
-    with {:ok, flop} <- Flop.validate(flop, for: Pet) do
-      pets =
-        Pet
-        |> Flop.query(flop)
-        |> Repo.all()
-
-      {:ok, pets}
-    end
+    Flop.validate_and_run(Pet, flop, for: Pet)
   end
 end
 ```
 
-If you didn't derive Flop.Schema as described above and don't care to do so,
-you can call the validate function without the second parameter:
-`Flop.validate(flop)`.
+The `for` option sets the Ecto schema for which you derived `Flop.Schema`. If
+you didn't derive Flop.Schema as described above and don't care to do so,
+you can omit this option.
 
-## Wrapper functions and counting
-
-There is also a wrapper function for `Ecto.Repo.all/2` called `Flop.all/3`.
-which allows you to write the code above as:
+On success, `Flop.validate_and_run/3` returns an `:ok` tuple, with the second
+element being a tuple with the data and the meta data.
 
 ```elixir
-@spec list_pets(Flop.t()) :: {:ok, [Pet.t()]} | {:error, Changeset.t()}
-def list_pets(flop \\ %Flop{}) do
-  with {:ok, flop} <- Flop.validate(flop, for: Pet) do
-    {:ok, Flop.all(Pet, flop)}
-  end
-end
+{:ok, {[%Pet{}], %Flop.Meta{}}}
 ```
 
-Additionally, you can use `Flop.count/3` to get the total count of matching
-entries. The pagination options of the given Flop are ignored, so you will get
-the correct total count that you need for building the pagination links.
+Consult the [docs](https://hexdocs.pm/flop/Flop.Meta.html) for more info on the
+`Meta` struct.
 
-```elixir
-@spec count_pets(Flop.t()) :: non_neg_integer
-def count_pets(flop \\ %Flop{}) do
-  flop = Flop.validate!(flop, for: Pet)
-  Flop.count(Pet, flop)
-end
-```
-
-If you didn't configure a default repo as described above or if you want to
-override the default repo, you can pass it as a parameter to both functions:
-
-```elixir
-Flop.all(Pet, flop, repo: MyApp.Repo)
-Flop.count(Pet, flop, repo: MyApp.Repo)
-```
-
-### Phoenix
-
-If you are using Phoenix, you might prefer to validate the Flop parameters in
-your controller instead.
+If you prefer to validate the parameters in your controllers, you can use
+`Flop.validate/3` or `Flop.validate!/3` and `Flop.run/3` instead.
 
 ```elixir
 defmodule MyAppWeb.PetController do
@@ -156,9 +122,23 @@ defmodule MyApp.Pets do
   alias MyApp.Pets.Pet
   alias MyApp.Repo
 
-  @spec list_pets(Flop.t()) :: [Pet.t()]
+  @spec list_pets(Flop.t()) :: {[Pet.t()], Flop.Meta.t}
   def list_pets(flop \\ %Flop{}) do
-    Flop.all(Pet, flop)
+    Flop.run(Pet, flop, for: Pet)
   end
 end
+```
+
+If you only need the data, or if you only need the meta data, you can also
+call `Flop.all/3`, `Flop.meta/3` or `Flop.count/3` directly.
+
+If you didn't configure a default repo as described above or if you want to
+override the default repo, you can pass it as a option to any function that
+uses the repo:
+
+```elixir
+Flop.run_and_validate(Pet, flop, repo: MyApp.Repo)
+Flop.all(Pet, flop, repo: MyApp.Repo)
+Flop.meta(Pet, flop, repo: MyApp.Repo)
+# etc.
 ```
