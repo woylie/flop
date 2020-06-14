@@ -151,6 +151,7 @@ defmodule Flop do
       iex> Flop.all(Flop.Pet, %Flop{})
       []
   """
+  @doc since: "0.6.0"
   @spec all(Queryable.t(), Flop.t(), keyword) :: [any]
   def all(q, flop, opts \\ []) do
     repo = opts[:repo] || default_repo() || raise no_repo_error("all")
@@ -172,6 +173,7 @@ defmodule Flop do
       iex> match?(%Flop.Meta{}, meta)
       true
   """
+  @doc since: "0.6.0"
   @spec run(Queryable.t(), Flop.t(), keyword) :: {[any], Meta.t()}
   def run(q, flop, opts \\ []) do
     repo = opts[:repo] || default_repo() || raise no_repo_error("run")
@@ -197,6 +199,7 @@ defmodule Flop do
   - `for`: Passed to `Flop.validate/2`.
   - `repo`: The `Ecto.Repo` module. Required if no default repo is configured.
   """
+  @doc since: "0.6.0"
   @spec validate_and_run(Queryable.t(), map | Flop.t(), keyword) ::
           {:ok, {[any], Meta.t()}} | {:error, Changeset.t()}
   def validate_and_run(q, flop, opts \\ []) do
@@ -211,6 +214,7 @@ defmodule Flop do
   @doc """
   Same as `Flop.validate_and_run/3`, but raises on error.
   """
+  @doc since: "0.6.0"
   @spec validate_and_run!(Queryable.t(), map | Flop.t(), keyword) ::
           {[any], Meta.t()}
   def validate_and_run!(q, flop, opts \\ []) do
@@ -238,6 +242,7 @@ defmodule Flop do
       iex> Flop.count(Flop.Pet, %Flop{})
       0
   """
+  @doc since: "0.6.0"
   @spec count(Queryable.t(), Flop.t(), keyword) :: non_neg_integer
   def count(q, flop, opts \\ []) do
     repo = opts[:repo] || default_repo() || raise no_repo_error("count")
@@ -271,6 +276,7 @@ defmodule Flop do
   you will use the `previous_offset`, `current_offset` and `next_offset` values
   to render the pagination links anyway, so this shouldn't be a problem.
   """
+  @doc since: "0.6.0"
   @spec meta(Queryable.t(), Flop.t(), keyword) :: Meta.t()
   def meta(q, flop, opts \\ []) do
     repo = opts[:repo] || default_repo() || raise no_repo_error("meta")
