@@ -15,10 +15,7 @@ Ecto a bit easier.
 - filtering by multiple conditions with diverse operators on multiple fields
 - parameter validation
 - configurable filterable and sortable fields
-
-## To Do
-
-See https://github.com/woylie/flop/projects/1
+- query and meta data helpers
 
 ## Installation
 
@@ -61,10 +58,11 @@ defmodule MyApp.Pet do
 end
 ```
 
-### Validation and querying
+### Query data
 
-You can validate Flop parameters with `Flop.validate/2` or `Flop.validate!/2`
-and apply the Flop options to a query with `Flop.query/2`.
+You can use `Flop.validate_and_run/3` or `Flop.validate_and_run!/3` to validate
+the Flop parameters, retrieve the data from the database and get the meta data
+for pagination in one go.
 
 ```elixir
 defmodule MyApp.Pets do
@@ -92,7 +90,8 @@ element being a tuple with the data and the meta data.
 {:ok, {[%Pet{}], %Flop.Meta{}}}
 ```
 
-Consult the [docs](https://hexdocs.pm/flop) for more info on the `Meta` struct.
+Consult the [docs](https://hexdocs.pm/flop/Flop.Meta.html) for more info on the
+`Meta` struct.
 
 If you prefer to validate the parameters in your controllers, you can use
 `Flop.validate/3` or `Flop.validate!/3` and `Flop.run/3` instead.
