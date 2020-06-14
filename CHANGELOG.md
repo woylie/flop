@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.6.0] - 2020-06-14
+
 ### Added
 
 - New struct `Flop.Meta`.
