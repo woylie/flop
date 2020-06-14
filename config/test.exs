@@ -1,7 +1,8 @@
-use Mix.Config
+import Config
 
 config :flop,
-  ecto_repos: [Flop.Repo]
+  ecto_repos: [Flop.Repo],
+  repo: Flop.Repo
 
 config :flop, Flop.Repo,
   username: "postgres",

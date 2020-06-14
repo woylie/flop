@@ -324,6 +324,22 @@ defmodule FlopTest do
     end
   end
 
+  describe "count/2" do
+    test "returns count of matching entries" do
+      _matching_pets = insert_list(6, :pet, age: 5)
+      _non_matching_pets = insert_list(4, :pet, age: 6)
+
+      flop = %Flop{
+        limit: 2,
+        offset: 2,
+        order_by: [:age],
+        filters: [%Filter{field: :age, op: :<=, value: 5}]
+      }
+
+      assert Flop.count(Pet, flop) == 6
+    end
+  end
+
   describe "validate/1" do
     test "returns Flop struct" do
       assert Flop.validate(%Flop{}) == {:ok, %Flop{}}

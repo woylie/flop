@@ -32,6 +32,12 @@ def deps do
 end
 ```
 
+If you want to configure a default repo, add this to your config file:
+
+```elixir
+config :flop, repo: MyApp.Repo
+```
+
 ## Usage
 
 ### Define sortable and filterable fields
