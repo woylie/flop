@@ -32,6 +32,12 @@ def deps do
 end
 ```
 
+If you want to configure a default repo, add this to your config file:
+
+```elixir
+config :flop, repo: MyApp.Repo
+```
+
 ## Usage
 
 ### Define sortable and filterable fields
@@ -55,10 +61,10 @@ defmodule MyApp.Pet do
 end
 ```
 
-### Querying
+### Validation and querying
 
-The most important functions are `Flop.query/2` and `Flop.validate/2`. You can
-use them like this:
+You can validate Flop parameters with `Flop.validate/2` or `Flop.validate!/2`
+and apply the Flop options to a query with `Flop.query/2`.
 
 ```elixir
 defmodule MyApp.Pets do
@@ -83,8 +89,42 @@ end
 ```
 
 If you didn't derive Flop.Schema as described above and don't care to do so,
-just call the validate function without the second parameter:
+you can call the validate function without the second parameter:
 `Flop.validate(flop)`.
+
+## Wrapper functions and counting
+
+There is also a wrapper function for `Ecto.Repo.all/2` called `Flop.all/3`.
+which allows you to write the code above as:
+
+```elixir
+@spec list_pets(Flop.t()) :: {:ok, [Pet.t()]} | {:error, Changeset.t()}
+def list_pets(flop \\ %Flop{}) do
+  with {:ok, flop} <- Flop.validate(flop, for: Pet) do
+    {:ok, Flop.all(Pet, flop)}
+  end
+end
+```
+
+Additionally, you can use `Flop.count/3` to get the total count of matching
+entries. The pagination options of the given Flop are ignored, so you will get
+the correct total count that you need for building the pagination links.
+
+```elixir
+@spec count_pets(Flop.t()) :: non_neg_integer
+def count_pets(flop \\ %Flop{}) do
+  flop = Flop.validate!(flop, for: Pet)
+  Flop.count(Pet, flop)
+end
+```
+
+If you didn't configure a default repo as described above or if you want to
+override the default repo, you can pass it as a parameter to both functions:
+
+```elixir
+Flop.all(Pet, flop, repo: MyApp.Repo)
+Flop.count(Pet, flop, repo: MyApp.Repo)
+```
 
 ### Phoenix
 
@@ -118,9 +158,7 @@ defmodule MyApp.Pets do
 
   @spec list_pets(Flop.t()) :: [Pet.t()]
   def list_pets(flop \\ %Flop{}) do
-    Pet
-    |> Flop.query(flop)
-    |> Repo.all()
+    Flop.all(Pet, flop)
   end
 end
 ```

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- New function `Flop.all/3`.
+- New function `Flop.count/3`.
+
 ## [0.5.0] - 2020-05-28
 
 ### Added
