@@ -133,7 +133,7 @@ If you only need the data, or if you only need the meta data, you can also
 call `Flop.all/3`, `Flop.meta/3` or `Flop.count/3` directly.
 
 If you didn't configure a default repo as described above or if you want to
-override the default repo, you can pass it as a option to any function that
+override the default repo, you can pass it as an option to any function that
 uses the repo:
 
 ```elixir
