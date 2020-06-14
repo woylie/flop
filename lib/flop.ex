@@ -265,7 +265,7 @@ defmodule Flop do
   `current_page` and `next_page` can be identical. This can only occur if you
   use offset/limit based pagination with arbitrary offsets, but in that case,
   you will use the `previous_offset`, `current_offset` and `next_offset` values
-  in to render the pagination links anyway, so this shouldn't be a problem.
+  to render the pagination links anyway, so this shouldn't be a problem.
   """
   @spec meta(Queryable.t(), Flop.t(), keyword) :: Meta.t()
   def meta(q, flop, opts \\ []) do
