@@ -72,7 +72,8 @@ defmodule MyApp.Pets do
   alias Flop
   alias MyApp.{Pet, Repo}
 
-  @spec list_pets(Flop.t()) :: {:ok, [Pet.t()]} | {:error, Changeset.t()}
+  @spec list_pets(Flop.t()) ::
+          {:ok, {[Pet.t()], Flop.Meta.t}} | {:error, Changeset.t()}
   def list_pets(flop \\ %Flop{}) do
     Flop.validate_and_run(Pet, flop, for: Pet)
   end
@@ -121,7 +122,7 @@ defmodule MyApp.Pets do
   alias MyApp.Pets.Pet
   alias MyApp.Repo
 
-  @spec list_pets(Flop.t()) :: {[Pet.t()]
+  @spec list_pets(Flop.t()) :: {[Pet.t()], Flop.Meta.t}
   def list_pets(flop \\ %Flop{}) do
     Flop.run(Pet, flop, for: Pet)
   end
