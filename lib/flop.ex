@@ -184,7 +184,6 @@ defmodule Flop do
 
       iex> {:ok, {[], %Flop.Meta{}}} =
       ...>   Flop.validate_and_run(Flop.Pet, %Flop{}, for: Flop.Pet)
-
       iex> {:error, %Ecto.Changeset{} = changeset} =
       ...>   Flop.validate_and_run(Flop.Pet, %Flop{limit: -1})
       iex> changeset.errors
