@@ -4,6 +4,7 @@
 
 ### Added
 
+- New struct `Flop.Meta`.
 - New function `Flop.all/3`.
 - New function `Flop.count/3`.
 
