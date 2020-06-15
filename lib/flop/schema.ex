@@ -89,6 +89,7 @@ defprotocol Flop.Schema do
       iex> Flop.Schema.default_limit(%Flop.Fruit{})
       50
   """
+  @doc since: "0.3.0"
   @spec default_limit(any) :: pos_integer | nil
   def default_limit(data)
 
