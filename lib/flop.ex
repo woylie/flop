@@ -555,6 +555,7 @@ defmodule Flop do
   Same as `Flop.validate/2`, but raises an `Ecto.InvalidChangesetError` if the
   parameters are invalid.
   """
+  @doc since: "0.5.0"
   @spec validate!(Flop.t() | map, keyword) :: Flop.t()
   def validate!(flop, opts \\ []) do
     case validate(flop, opts) do

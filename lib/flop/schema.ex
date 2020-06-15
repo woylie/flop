@@ -98,6 +98,7 @@ defprotocol Flop.Schema do
       iex> Flop.Schema.max_limit(%Flop.Pet{})
       20
   """
+  @doc since: "0.2.0"
   @spec max_limit(any) :: pos_integer | nil
   def max_limit(data)
 end
