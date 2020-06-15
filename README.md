@@ -142,3 +142,7 @@ Flop.all(Pet, flop, repo: MyApp.Repo)
 Flop.meta(Pet, flop, repo: MyApp.Repo)
 # etc.
 ```
+
+## Flop Phoenix
+
+[Flop Phoenix](https://hex.pm/packages/flop_phoenix) is a companion library that defines view helpers for use in Phoenix templates.
