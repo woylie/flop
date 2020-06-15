@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- Type `Flop.Filter.op` didn't include all operators.
+
 ## [0.6.0] - 2020-06-14
 
 ### Added
