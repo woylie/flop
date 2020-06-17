@@ -86,7 +86,7 @@ defmodule Flop do
   - `filters`: List of filters, see `t:Flop.Filter.t/0`.
   """
   @type t :: %__MODULE__{
-          filters: [Filter.t() | nil],
+          filters: [Filter.t()] | nil,
           limit: pos_integer | nil,
           offset: non_neg_integer | nil,
           order_by: [atom | String.t()] | nil,
