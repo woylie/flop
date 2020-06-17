@@ -9,6 +9,7 @@ defmodule Flop.Meta do
   @type t :: %__MODULE__{
           current_offset: non_neg_integer,
           current_page: pos_integer,
+          flop: Flop.t(),
           has_next_page?: boolean,
           has_previous_page?: boolean,
           next_offset: non_neg_integer | nil,
@@ -23,6 +24,7 @@ defmodule Flop.Meta do
   @enforce_keys [
     :current_offset,
     :current_page,
+    :flop,
     :has_next_page?,
     :has_previous_page?,
     :next_offset,
@@ -37,6 +39,7 @@ defmodule Flop.Meta do
   defstruct [
     :current_offset,
     :current_page,
+    :flop,
     :has_next_page?,
     :has_previous_page?,
     :next_offset,

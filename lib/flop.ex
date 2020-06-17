@@ -86,7 +86,7 @@ defmodule Flop do
   - `filters`: List of filters, see `t:Flop.Filter.t/0`.
   """
   @type t :: %__MODULE__{
-          filters: [Filter.t() | nil],
+          filters: [Filter.t()] | nil,
           limit: pos_integer | nil,
           offset: non_neg_integer | nil,
           order_by: [atom | String.t()] | nil,
@@ -257,6 +257,7 @@ defmodule Flop do
       %Flop.Meta{
         current_offset: 0,
         current_page: 1,
+        flop: %Flop{limit: 10},
         has_next_page?: false,
         has_previous_page?: false,
         next_offset: nil,
@@ -302,6 +303,7 @@ defmodule Flop do
     %Meta{
       current_offset: current_offset,
       current_page: current_page,
+      flop: flop,
       has_next_page?: has_next_page?,
       has_previous_page?: has_previous_page?,
       next_offset: next_offset,
