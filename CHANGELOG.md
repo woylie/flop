@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.6.1] - 2020-06-17
+
+## Changed
+
+- Add Flop to Meta struct.
+
 ### Fixed
 
 - Type `Flop.Filter.op` didn't include all operators.

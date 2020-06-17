@@ -374,6 +374,7 @@ defmodule FlopTest do
       assert Flop.meta(Pet, flop) == %Meta{
                current_offset: 4,
                current_page: 3,
+               flop: flop,
                has_next_page?: true,
                has_previous_page?: true,
                next_offset: 6,
@@ -399,6 +400,7 @@ defmodule FlopTest do
       assert Flop.meta(Pet, flop) == %Meta{
                current_offset: 4,
                current_page: 3,
+               flop: flop,
                has_next_page?: true,
                has_previous_page?: true,
                next_offset: 6,
@@ -420,6 +422,7 @@ defmodule FlopTest do
       assert Flop.meta(Pet, flop) == %Meta{
                current_offset: 0,
                current_page: 1,
+               flop: flop,
                has_next_page?: false,
                has_previous_page?: false,
                next_offset: nil,
