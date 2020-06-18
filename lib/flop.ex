@@ -57,6 +57,7 @@ defmodule Flop do
   alias Flop.Meta
 
   require Ecto.Query
+  require Logger
 
   @typedoc """
   Represents the supported order direction values.
@@ -543,14 +544,23 @@ defmodule Flop do
   def validate(%Flop{} = flop, opts) do
     flop
     |> Map.from_struct()
-    |> changeset(opts)
-    |> apply_action(:insert)
+    |> validate(opts)
   end
 
   def validate(%{} = params, opts) do
-    params
-    |> changeset(opts)
-    |> apply_action(:replace)
+    result =
+      params
+      |> changeset(opts)
+      |> apply_action(:replace)
+
+    case result do
+      {:ok, _} = r ->
+        r
+
+      {:error, %Changeset{} = changeset} = r ->
+        Logger.debug("Invalid Flop: #{inspect(changeset)}")
+        r
+    end
   end
 
   @doc """
