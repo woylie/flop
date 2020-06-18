@@ -696,7 +696,7 @@ defmodule Flop do
     No repo specified. You can specify the repo either by passing it
     explicitly:
 
-        Flop.#{function_name}(Flop.Pet, %Flop{}, repo: MyApp.Repo)
+        Flop.#{function_name}(MyApp.Item, %Flop{}, repo: MyApp.Repo)
 
     Or you can configure a default repo in your config:
 
