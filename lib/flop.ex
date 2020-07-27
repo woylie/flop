@@ -51,6 +51,8 @@ defmodule Flop do
   alias Ecto.Changeset
   alias Ecto.Query
   alias Ecto.Queryable
+  alias Ecto.Repo
+  alias Ecto.Schema
   alias Flop.CustomTypes.ExistingAtom
   alias Flop.CustomTypes.OrderDirection
   alias Flop.Filter
@@ -75,6 +77,8 @@ defmodule Flop do
 
   ### Fields
 
+  - `cursor`: Used for pagination. May not be used together with
+    `page` and `offset`.
   - `limit`, `offset`: Used for pagination. May not be used together with
     `page` and `page_size`.
   - `page`, `page_size`: Used for pagination. May not be used together with
@@ -87,6 +91,7 @@ defmodule Flop do
   - `filters`: List of filters, see `t:Flop.Filter.t/0`.
   """
   @type t :: %__MODULE__{
+          cursor: String.t() | nil,
           filters: [Filter.t()] | nil,
           limit: pos_integer | nil,
           offset: non_neg_integer | nil,
@@ -98,6 +103,7 @@ defmodule Flop do
 
   @primary_key false
   embedded_schema do
+    field :cursor, :string
     field :limit, :integer
     field :offset, :integer
     field :order_by, {:array, ExistingAtom}
@@ -261,9 +267,11 @@ defmodule Flop do
         flop: %Flop{limit: 10},
         has_next_page?: false,
         has_previous_page?: false,
+        next_cursor: nil,
         next_offset: nil,
         next_page: nil,
         page_size: 10,
+        previous_cursor: nil,
         previous_offset: nil,
         previous_page: nil,
         total_count: 0,
@@ -307,9 +315,11 @@ defmodule Flop do
       flop: flop,
       has_next_page?: has_next_page?,
       has_previous_page?: has_previous_page?,
+      next_cursor: nil,
       next_offset: next_offset,
       next_page: next_page,
       page_size: page_size,
+      previous_cursor: nil,
       previous_offset: previous_offset,
       previous_page: previous_page,
       total_count: total_count,
@@ -431,6 +441,169 @@ defmodule Flop do
   @spec offset(Queryable.t(), non_neg_integer | nil) :: Queryable.t()
   defp offset(q, nil), do: q
   defp offset(q, offset), do: Query.offset(q, ^offset)
+
+  ## Cursor pagination
+
+  @spec encode_cursor(map()) :: binary()
+  defp encode_cursor(key), do: Base.encode64(:erlang.term_to_binary(key))
+
+  @spec decode_cursor(binary()) :: map()
+  defp decode_cursor(encoded) do
+    {:ok, bin} = Base.decode64(encoded)
+    :erlang.binary_to_term(bin)
+  end
+
+  @spec first(Queryable.t(), Repo.t(), Flop.t()) :: {[Schema.t()], Meta.t()}
+  def first(_q, _r, %Flop{limit: limit, order_by: order_by})
+      when is_nil(limit) or is_nil(order_by) do
+    raise ArgumentError,
+      message: "Cursor-based pagination requires limit and order by parameters"
+  end
+
+  def first(q, r, %Flop{limit: limit, offset: nil, order_by: order_by} = flop) do
+    results =
+      q
+      |> query(%{flop | limit: limit + 1})
+      |> r.all()
+
+    next_cursor =
+      if length(results) == limit + 1 do
+        results |> List.last() |> Map.take(order_by) |> encode_cursor()
+      end
+
+    {List.delete_at(results, limit),
+     %Meta{
+       current_offset: nil,
+       current_page: nil,
+       flop: flop,
+       has_next_page?: nil,
+       has_previous_page?: nil,
+       next_cursor: next_cursor,
+       next_offset: nil,
+       next_page: nil,
+       page_size: nil,
+       previous_cursor: nil,
+       previous_offset: nil,
+       previous_page: nil,
+       total_count: nil,
+       total_pages: nil
+     }}
+  end
+
+  @spec apply_cursor(Queryable.t(), map(), [order_direction()]) :: Queryable.t()
+  defp apply_cursor(q, cursor, ordering) do
+    Enum.reduce(ordering, q, fn {direction, field}, q ->
+      cond do
+        Enum.member?([:asc, :asc_nulls_first, :asc_nulls_last], direction) ->
+          Query.where(q, [r], field(r, ^field) >= ^cursor[field])
+
+        Enum.member?([:desc, :desc_nulls_first, :desc_nulls_last], direction) ->
+          Query.where(q, [r], field(r, ^field) <= ^cursor[field])
+
+        true ->
+          raise ArgumentError, message: "Invalid order direction supplied"
+      end
+    end)
+  end
+
+  @spec next(Queryable.t(), Repo.t(), Meta.t()) :: {[Schema.t()], Meta.t()}
+  def next(_, _, %Meta{next_cursor: nil} = meta), do: {nil, meta}
+
+  def next(
+        q,
+        r,
+        %Meta{
+          flop:
+            %Flop{
+              limit: limit,
+              offset: nil,
+              order_by: order_by,
+              order_directions: order_directions
+            } = flop,
+          next_cursor: next_cursor
+        } = meta
+      ) do
+    cursor = decode_cursor(next_cursor)
+
+    q = apply_cursor(q, cursor, prepare_order(order_by, order_directions))
+
+    results =
+      q
+      |> query(%{flop | limit: limit + 1})
+      |> r.all()
+
+    new_next_cursor =
+      if length(results) == limit + 1 do
+        results |> List.last() |> Map.take(order_by) |> encode_cursor()
+      end
+
+    {List.delete_at(results, limit),
+     %{meta | previous_cursor: next_cursor, next_cursor: new_next_cursor}}
+  end
+
+  @spec reverse_ordering([order_direction()]) :: [order_direction()]
+  defp reverse_ordering(order_directions) do
+    Enum.map(order_directions, fn {order_direction, field} ->
+      {case order_direction do
+         :asc -> :desc
+         :asc_nulls_first -> :desc_nulls_first
+         :asc_nulls_last -> :desc_nulls_last
+         :desc -> :asc
+         :desc_nulls_first -> :asc_nulls_first
+         :desc_nulls_last -> :asc_nulls_last
+       end, field}
+    end)
+  end
+
+  @spec previous(Queryable.t(), Repo.t(), Meta.t()) :: {[Schema.t()], Meta.t()}
+  def previous(_, _, %Meta{previous_cursor: nil} = meta), do: {nil, meta}
+
+  def previous(
+        q,
+        r,
+        %Meta{
+          flop:
+            %Flop{
+              limit: limit,
+              offset: nil,
+              order_by: order_by,
+              order_directions: order_directions
+            } = flop,
+          previous_cursor: previous_cursor
+        } = meta
+      ) do
+    cursor = decode_cursor(previous_cursor)
+
+    prepared_orderings =
+      order_by
+      |> prepare_order(order_directions)
+      |> reverse_ordering()
+
+    q = apply_cursor(q, cursor, prepared_orderings)
+
+    reversed_order_directions = Enum.map(prepared_orderings, &elem(&1, 0))
+
+    results =
+      q
+      |> query(%{
+        flop
+        | limit: limit + 1,
+          order_directions: reversed_order_directions
+      })
+      |> r.all()
+
+    new_previous_cursor =
+      if length(results) == limit + 1 do
+        results |> List.last() |> Map.take(order_by) |> encode_cursor()
+      end
+
+    {results |> Enum.reverse() |> List.delete_at(limit),
+     %{
+       meta
+       | previous_cursor: new_previous_cursor,
+         next_cursor: previous_cursor
+     }}
+  end
 
   ## Filter
 
