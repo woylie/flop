@@ -507,7 +507,7 @@ defmodule Flop do
   end
 
   @spec next(Queryable.t(), Repo.t(), Meta.t()) :: {[Schema.t()], Meta.t()}
-  def next(_, _, %Meta{next_cursor: nil} = meta), do: {nil, meta}
+  def next(_, _, %Meta{next_cursor: nil} = meta), do: {[], meta}
 
   def next(
         q,
@@ -556,7 +556,7 @@ defmodule Flop do
   end
 
   @spec previous(Queryable.t(), Repo.t(), Meta.t()) :: {[Schema.t()], Meta.t()}
-  def previous(_, _, %Meta{previous_cursor: nil} = meta), do: {nil, meta}
+  def previous(_, _, %Meta{previous_cursor: nil} = meta), do: {[], meta}
 
   def previous(
         q,

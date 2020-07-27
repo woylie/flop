@@ -756,8 +756,8 @@ defmodule FlopTest do
     end
   end
 
-  describe "first/3" do
-    test "first" do
+  describe "cursor paging" do
+    test "cursor paging" do
       insert_list(6, :pet)
 
       {r1, m1} = Flop.first(Pet, Repo, %Flop{limit: 2, order_by: [:id]})
@@ -767,9 +767,9 @@ defmodule FlopTest do
       {r5, m5} = Flop.previous(Pet, Repo, m4)
       {r6, m6} = Flop.previous(Pet, Repo, m5)
 
-      assert nil == r4
       assert r5 == r2
       assert r6 == r1
+      assert [] == r4
     end
   end
 
