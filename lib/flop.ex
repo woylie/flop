@@ -519,7 +519,8 @@ defmodule Flop do
 
   If you derived `Flop.Schema` in your Ecto schema to define the filterable
   and sortable fields, you can pass the module name to the function to validate
-  that only allowed fields are used.
+  that only allowed fields are used. The function will also apply any default
+  values set for the schema.
 
       iex> params = %{"order_by" => ["species"]}
       iex> {:error, changeset} = Flop.validate(params, for: Flop.Pet)
