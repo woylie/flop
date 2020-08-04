@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-## Changed
+### Changed
 
 - Passing a limit without an offset will now set the offset to 0.
 - Passing a page size without a page will now set the page to 1.
