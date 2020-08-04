@@ -597,6 +597,7 @@ defmodule Flop do
     |> validate_page_and_page_size(opts[:for])
     |> validate_offset_and_limit(opts[:for])
     |> validate_sortable(opts[:for])
+    |> put_default_order(opts[:for])
   end
 
   @spec validate_exclusive(Changeset.t(), [[atom]], keyword) :: Changeset.t()
@@ -706,6 +707,22 @@ defmodule Flop do
   end
 
   defp put_default_offset(changeset), do: changeset
+
+  defp put_default_order(changeset, nil), do: changeset
+
+  defp put_default_order(changeset, module) do
+    order_by = get_field(changeset, :order_by)
+
+    if is_nil(order_by) do
+      default_order = module |> struct() |> default_order()
+
+      changeset
+      |> put_change(:order_by, default_order[:order_by])
+      |> put_change(:order_directions, default_order[:order_directions])
+    else
+      changeset
+    end
+  end
 
   @spec validate_within_max_limit(Changeset.t(), atom, module | nil) ::
           Changeset.t()
