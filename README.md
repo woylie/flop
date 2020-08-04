@@ -58,6 +58,8 @@ defmodule MyApp.Pet do
 end
 ```
 
+See [Flop.Schema documentation](https://hexdocs.pm/flop/Flop.Schema.html) for more options.
+
 ### Query data
 
 You can use `Flop.validate_and_run/3` or `Flop.validate_and_run!/3` to validate
