@@ -137,7 +137,7 @@ override the default repo, you can pass it as an option to any function that
 uses the repo:
 
 ```elixir
-Flop.run_and_validate(Pet, flop, repo: MyApp.Repo)
+Flop.validate_and_run(Pet, flop, repo: MyApp.Repo)
 Flop.all(Pet, flop, repo: MyApp.Repo)
 Flop.meta(Pet, flop, repo: MyApp.Repo)
 # etc.
