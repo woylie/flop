@@ -590,6 +590,15 @@ defmodule FlopTest do
              ]
     end
 
+    test "sets offset to 0 if limit is set without offset" do
+      params = %{limit: 5}
+      assert {:ok, %Flop{offset: 0, limit: 5}} = Flop.validate(params)
+    end
+
+    test "sets offset to 0 if default limit is set" do
+      assert {:ok, %Flop{limit: 50, offset: 0}} = Flop.validate(%{}, for: Fruit)
+    end
+
     test "only allows to order by fields marked as sortable" do
       # field exists, but is not sortable
 
@@ -648,6 +657,11 @@ defmodule FlopTest do
       flop = %Flop{page: 0}
       assert {:error, %Changeset{} = changeset} = Flop.validate(flop)
       assert errors_on(changeset)[:page] == ["must be greater than 0"]
+    end
+
+    test "sets page to 1 if page size is set without page" do
+      params = %{page_size: 5}
+      assert {:ok, %Flop{page: 1, page_size: 5}} = Flop.validate(params)
     end
 
     test "validates page size" do
@@ -743,10 +757,6 @@ defmodule FlopTest do
       params = %{page: 5}
       assert {:error, %Changeset{} = changeset} = Flop.validate(params)
       assert errors_on(changeset)[:page_size] == ["can't be blank"]
-
-      params = %{page_size: 10}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
-      assert errors_on(changeset)[:page] == ["can't be blank"]
     end
   end
 

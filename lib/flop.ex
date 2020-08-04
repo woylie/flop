@@ -29,7 +29,7 @@ defmodule Flop do
        %Flop{
          filters: [],
          limit: 5,
-         offset: nil,
+         offset: 0,
          order_by: [:name, :age],
          order_directions: nil,
          page: nil,
@@ -37,7 +37,7 @@ defmodule Flop do
        }}
       iex> Flop.Pet |> Flop.query(flop)
       #Ecto.Query<from p0 in Flop.Pet, order_by: [asc: p0.name, asc: p0.age], \
-  limit: ^5>
+  limit: ^5, offset: ^0>
 
   Use `Flop.validate_and_run/3`, `Flop.validate_and_run!/3`, `Flop.run/3`,
   `Flop.all/3` or `Flop.meta/3` to query the database. Also consult the
@@ -591,17 +591,12 @@ defmodule Flop do
       :page_size
     ])
     |> cast_embed(:filters, with: {Filter, :changeset, [opts]})
-    |> validate_number(:limit, greater_than: 0)
-    |> validate_within_max_limit(:limit, opts[:for])
-    |> validate_number(:offset, greater_than_or_equal_to: 0)
-    |> validate_number(:page, greater_than: 0)
-    |> validate_number(:page_size, greater_than: 0)
     |> validate_exclusive([[:limit, :offset], [:page, :page_size]],
       message: "cannot combine multiple pagination types"
     )
-    |> validate_sortable(opts[:for])
     |> validate_page_and_page_size(opts[:for])
-    |> put_default_limit(opts[:for])
+    |> validate_offset_and_limit(opts[:for])
+    |> validate_sortable(opts[:for])
   end
 
   @spec validate_exclusive(Changeset.t(), [[atom]], keyword) :: Changeset.t()
@@ -648,23 +643,35 @@ defmodule Flop do
 
     if !is_nil(page) || !is_nil(page_size) do
       changeset
-      |> validate_required([:page, :page_size])
+      |> validate_required([:page_size])
+      |> validate_number(:page, greater_than: 0)
+      |> validate_number(:page_size, greater_than: 0)
       |> validate_within_max_limit(:page_size, module)
+      |> put_default_page()
     else
       changeset
     end
   end
 
-  @spec validate_within_max_limit(Changeset.t(), atom, module | nil) ::
-          Changeset.t()
-  defp validate_within_max_limit(changeset, _field, nil), do: changeset
+  defp put_default_page(
+         %Changeset{valid?: true, changes: %{page_size: page_size}} = changeset
+       )
+       when is_integer(page_size) do
+    if is_nil(get_field(changeset, :page)),
+      do: put_change(changeset, :page, 1),
+      else: changeset
+  end
 
-  defp validate_within_max_limit(changeset, field, module) do
-    max_limit = module |> struct() |> max_limit()
+  defp put_default_page(changeset), do: changeset
 
-    if is_nil(max_limit),
-      do: changeset,
-      else: validate_number(changeset, field, less_than_or_equal_to: max_limit)
+  @spec validate_offset_and_limit(Changeset.t(), module | nil) :: Changeset.t()
+  defp validate_offset_and_limit(changeset, module) do
+    changeset
+    |> validate_number(:limit, greater_than: 0)
+    |> validate_within_max_limit(:limit, module)
+    |> validate_number(:offset, greater_than_or_equal_to: 0)
+    |> put_default_limit(module)
+    |> put_default_offset()
   end
 
   defp put_default_limit(changeset, nil), do: changeset
@@ -687,6 +694,29 @@ defmodule Flop do
         changeset
       end
     end
+  end
+
+  defp put_default_offset(
+         %Changeset{valid?: true, changes: %{limit: limit}} = changeset
+       )
+       when is_integer(limit) do
+    if is_nil(get_field(changeset, :offset)),
+      do: put_change(changeset, :offset, 0),
+      else: changeset
+  end
+
+  defp put_default_offset(changeset), do: changeset
+
+  @spec validate_within_max_limit(Changeset.t(), atom, module | nil) ::
+          Changeset.t()
+  defp validate_within_max_limit(changeset, _field, nil), do: changeset
+
+  defp validate_within_max_limit(changeset, field, module) do
+    max_limit = module |> struct() |> max_limit()
+
+    if is_nil(max_limit),
+      do: changeset,
+      else: validate_number(changeset, field, less_than_or_equal_to: max_limit)
   end
 
   defp default_repo, do: Application.get_env(:flop, :repo)
