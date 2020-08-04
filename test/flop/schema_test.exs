@@ -8,8 +8,20 @@ defmodule Flop.SchemaTest do
 
   defmodule Panini do
     @derive {Flop.Schema,
-             filterable: [], sortable: [], default_limit: 20, max_limit: 50}
-    defstruct [:name]
+             filterable: [],
+             sortable: [],
+             default_limit: 20,
+             max_limit: 50,
+             default_order_by: [:name, :age],
+             default_order_directions: [:desc, :asc]}
+    defstruct [:name, :age]
+  end
+
+  test "default_order/1 returns the default order passed as an option" do
+    assert Schema.default_order(%Panini{}) == %{
+             order_by: [:name, :age],
+             order_directions: [:desc, :asc]
+           }
   end
 
   test "default_limit/1 returns the default limit passed as option" do
@@ -50,6 +62,12 @@ defmodule Flop.SchemaTest do
   test "calling default_limit/1 without deriving raises error" do
     assert_raise Protocol.UndefinedError, fn ->
       Schema.default_limit(%{})
+    end
+  end
+
+  test "calling default_order/1 without deriving raises error" do
+    assert_raise Protocol.UndefinedError, fn ->
+      Schema.default_order(%{})
     end
   end
 

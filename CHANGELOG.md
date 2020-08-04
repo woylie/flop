@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- `Flop.Schema` now allows to set a default sort order.
+
 ### Changed
 
 - Passing a limit without an offset will now set the offset to 0.

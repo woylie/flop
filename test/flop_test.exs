@@ -581,6 +581,18 @@ defmodule FlopTest do
                Flop.validate(%{page: 10, page_size: 12}, for: Pet)
     end
 
+    test "applies default order" do
+      # struct without configured default order
+
+      assert {:ok, %Flop{order_by: nil, order_directions: nil}} =
+               Flop.validate(%{}, for: Pet)
+
+      # struct with configured default order
+
+      assert {:ok, %Flop{order_by: [:name], order_directions: [:asc]}} =
+               Flop.validate(%{}, for: Fruit)
+    end
+
     test "validates offset" do
       params = %{offset: -1}
       assert {:error, %Changeset{} = changeset} = Flop.validate(params)
