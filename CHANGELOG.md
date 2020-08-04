@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.7.0] - 2020-08-04
+
 ### Added
 
 - `Flop.Schema` now allows to set a default sort order.
