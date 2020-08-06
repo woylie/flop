@@ -587,6 +587,18 @@ defmodule FlopTest do
                Flop.validate(%{page: 10, page_size: 12}, for: Pet)
     end
 
+    test "applies default order" do
+      # struct without configured default order
+
+      assert {:ok, %Flop{order_by: nil, order_directions: nil}} =
+               Flop.validate(%{}, for: Pet)
+
+      # struct with configured default order
+
+      assert {:ok, %Flop{order_by: [:name], order_directions: [:asc]}} =
+               Flop.validate(%{}, for: Fruit)
+    end
+
     test "validates offset" do
       params = %{offset: -1}
       assert {:error, %Changeset{} = changeset} = Flop.validate(params)
@@ -594,6 +606,15 @@ defmodule FlopTest do
       assert errors_on(changeset)[:offset] == [
                "must be greater than or equal to 0"
              ]
+    end
+
+    test "sets offset to 0 if limit is set without offset" do
+      params = %{limit: 5}
+      assert {:ok, %Flop{offset: 0, limit: 5}} = Flop.validate(params)
+    end
+
+    test "sets offset to 0 if default limit is set" do
+      assert {:ok, %Flop{limit: 50, offset: 0}} = Flop.validate(%{}, for: Fruit)
     end
 
     test "only allows to order by fields marked as sortable" do
@@ -654,6 +675,11 @@ defmodule FlopTest do
       flop = %Flop{page: 0}
       assert {:error, %Changeset{} = changeset} = Flop.validate(flop)
       assert errors_on(changeset)[:page] == ["must be greater than 0"]
+    end
+
+    test "sets page to 1 if page size is set without page" do
+      params = %{page_size: 5}
+      assert {:ok, %Flop{page: 1, page_size: 5}} = Flop.validate(params)
     end
 
     test "validates page size" do
@@ -749,10 +775,6 @@ defmodule FlopTest do
       params = %{page: 5}
       assert {:error, %Changeset{} = changeset} = Flop.validate(params)
       assert errors_on(changeset)[:page_size] == ["can't be blank"]
-
-      params = %{page_size: 10}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
-      assert errors_on(changeset)[:page] == ["can't be blank"]
     end
   end
 
@@ -772,7 +794,7 @@ defmodule FlopTest do
           %Flop{first: 2, after: end_cursor, order_by: [:id]}
         )
 
-      {:ok, {r3, %Meta{start_cursor: start_cursor}}} =
+      {:ok, {_r3, %Meta{start_cursor: start_cursor}}} =
         Flop.validate_and_run(
           Pet,
           %Flop{first: 2, after: end_cursor, order_by: [:id]}
@@ -784,7 +806,7 @@ defmodule FlopTest do
           %Flop{last: 2, before: start_cursor, order_by: [:id]}
         )
 
-      {:ok, {r5, %Meta{start_cursor: start_cursor}}} =
+      {:ok, {r5, _}} =
         Flop.validate_and_run(
           Pet,
           %Flop{last: 2, before: start_cursor, order_by: [:id]}

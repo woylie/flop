@@ -2,9 +2,20 @@
 
 ## Unreleased
 
+## [0.7.0] - 2020-08-04
+
+### Added
+
+- `Flop.Schema` now allows to set a default sort order.
+
+### Changed
+
+- Passing a limit without an offset will now set the offset to 0.
+- Passing a page size without a page will now set the page to 1.
+
 ## [0.6.1] - 2020-06-17
 
-## Changed
+### Changed
 
 - Add Flop to Meta struct.
 

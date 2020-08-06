@@ -60,7 +60,16 @@ defprotocol Flop.Schema do
                 max_limit: 100,
                 default_limit: 50}
 
+  ### Defining a default sort order
 
+  To define a default sort order, you can set the `default_order_by` and
+  `default_order_directions` options when deriving `Flop.Schema`. The default
+  values are applied by `Flop.validate/1`. If no order directions are set,
+  `:asc` is assumed for all fields.
+
+      @derive {Flop.Schema,
+                default_order_by: [:name, :age],
+                default_order_directions: [:asc, :desc]}
   """
 
   @fallback_to_any true
@@ -92,6 +101,19 @@ defprotocol Flop.Schema do
   @doc since: "0.3.0"
   @spec default_limit(any) :: pos_integer | nil
   def default_limit(data)
+
+  @doc """
+  Returns the default order of a schema.
+
+      iex> Flop.Schema.default_order(%Flop.Fruit{})
+      %{order_by: [:name], order_directions: [:asc]}
+  """
+  @doc since: "0.7.0"
+  @spec default_order(any) :: %{
+          order_by: [atom],
+          order_directions: [Flop.order_direction()]
+        }
+  def default_order(data)
 
   @doc """
   Returns the maximum limit of a schema.
@@ -132,6 +154,11 @@ defimpl Flop.Schema, for: Any do
     default_limit = Keyword.get(options, :default_limit)
     max_limit = Keyword.get(options, :max_limit)
 
+    default_order = %{
+      order_by: Keyword.get(options, :default_order_by),
+      order_directions: Keyword.get(options, :default_order_directions)
+    }
+
     quote do
       defimpl Flop.Schema, for: unquote(module) do
         def filterable(_) do
@@ -148,6 +175,10 @@ defimpl Flop.Schema, for: Any do
 
         def max_limit(_) do
           unquote(max_limit)
+        end
+
+        def default_order(_) do
+          unquote(Macro.escape(default_order))
         end
       end
     end
@@ -175,6 +206,13 @@ defimpl Flop.Schema, for: Any do
   end
 
   def max_limit(struct) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol,
+      value: struct,
+      description: @instructions
+  end
+
+  def default_order(struct) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,
