@@ -374,16 +374,16 @@ defmodule FlopTest do
       assert Flop.meta(Pet, flop) == %Meta{
                current_offset: 4,
                current_page: 3,
+               end_cursor: nil,
                flop: flop,
                has_next_page?: true,
                has_previous_page?: true,
-               next_cursor: nil,
                next_offset: 6,
                next_page: 4,
                page_size: 2,
-               previous_cursor: nil,
                previous_offset: 2,
                previous_page: 2,
+               start_cursor: nil,
                total_count: 7,
                total_pages: 4
              }
@@ -402,16 +402,16 @@ defmodule FlopTest do
       assert Flop.meta(Pet, flop) == %Meta{
                current_offset: 4,
                current_page: 3,
+               end_cursor: nil,
                flop: flop,
                has_next_page?: true,
                has_previous_page?: true,
-               next_cursor: nil,
                next_offset: 6,
                next_page: 4,
                page_size: 2,
-               previous_cursor: nil,
                previous_offset: 2,
                previous_page: 2,
+               start_cursor: nil,
                total_count: 7,
                total_pages: 4
              }
@@ -426,16 +426,16 @@ defmodule FlopTest do
       assert Flop.meta(Pet, flop) == %Meta{
                current_offset: 0,
                current_page: 1,
+               end_cursor: nil,
                flop: flop,
                has_next_page?: false,
                has_previous_page?: false,
-               next_cursor: nil,
                next_offset: nil,
                next_page: nil,
                page_size: nil,
-               previous_cursor: nil,
                previous_offset: nil,
                previous_page: nil,
+               start_cursor: nil,
                total_count: 7,
                total_pages: 1
              }
@@ -760,16 +760,38 @@ defmodule FlopTest do
     test "cursor paging" do
       insert_list(6, :pet)
 
-      {r1, m1} = Flop.first(Pet, Repo, %Flop{limit: 2, order_by: [:id]})
-      {r2, m2} = Flop.next(Pet, Repo, m1)
-      {_r, m3} = Flop.next(Pet, Repo, m2)
-      {r4, m4} = Flop.next(Pet, Repo, m3)
-      {r5, m5} = Flop.previous(Pet, Repo, m4)
-      {r6, m6} = Flop.previous(Pet, Repo, m5)
+      {:ok, {r1, %Meta{end_cursor: end_cursor}}} =
+        Flop.validate_and_run(
+          Pet,
+          %Flop{first: 2, order_by: [:id]}
+        )
 
-      assert r5 == r2
-      assert r6 == r1
-      assert [] == r4
+      {:ok, {r2, %Meta{end_cursor: end_cursor}}} =
+        Flop.validate_and_run(
+          Pet,
+          %Flop{first: 2, after: end_cursor, order_by: [:id]}
+        )
+
+      {:ok, {r3, %Meta{start_cursor: start_cursor}}} =
+        Flop.validate_and_run(
+          Pet,
+          %Flop{first: 2, after: end_cursor, order_by: [:id]}
+        )
+
+      {:ok, {r4, %Meta{start_cursor: start_cursor}}} =
+        Flop.validate_and_run(
+          Pet,
+          %Flop{last: 2, before: start_cursor, order_by: [:id]}
+        )
+
+      {:ok, {r5, %Meta{start_cursor: start_cursor}}} =
+        Flop.validate_and_run(
+          Pet,
+          %Flop{last: 2, before: start_cursor, order_by: [:id]}
+        )
+
+      assert r1 == r5
+      assert r2 == r4
     end
   end
 

@@ -51,7 +51,6 @@ defmodule Flop do
   alias Ecto.Changeset
   alias Ecto.Query
   alias Ecto.Queryable
-  alias Ecto.Repo
   alias Ecto.Schema
   alias Flop.CustomTypes.ExistingAtom
   alias Flop.CustomTypes.OrderDirection
@@ -91,8 +90,11 @@ defmodule Flop do
   - `filters`: List of filters, see `t:Flop.Filter.t/0`.
   """
   @type t :: %__MODULE__{
-          cursor: String.t() | nil,
+          after: String.t() | nil,
+          before: String.t() | nil,
           filters: [Filter.t()] | nil,
+          first: non_neg_integer | nil,
+          last: non_neg_integer | nil,
           limit: pos_integer | nil,
           offset: non_neg_integer | nil,
           order_by: [atom | String.t()] | nil,
@@ -103,7 +105,10 @@ defmodule Flop do
 
   @primary_key false
   embedded_schema do
-    field :cursor, :string
+    field :after, :string
+    field :before, :string
+    field :first, :integer
+    field :last, :integer
     field :limit, :integer
     field :offset, :integer
     field :order_by, {:array, ExistingAtom}
@@ -113,6 +118,23 @@ defmodule Flop do
 
     embeds_many :filters, Filter
   end
+
+  @nil_meta %Meta{
+    current_offset: nil,
+    current_page: nil,
+    end_cursor: nil,
+    flop: nil,
+    has_next_page?: nil,
+    has_previous_page?: nil,
+    next_offset: nil,
+    next_page: nil,
+    page_size: nil,
+    previous_offset: nil,
+    previous_page: nil,
+    start_cursor: nil,
+    total_count: nil,
+    total_pages: nil
+  }
 
   @doc """
   Adds clauses for filtering, ordering and pagination to a
@@ -160,7 +182,67 @@ defmodule Flop do
   """
   @doc since: "0.6.0"
   @spec all(Queryable.t(), Flop.t(), keyword) :: [any]
-  def all(q, flop, opts \\ []) do
+  def all(q, flop, opts \\ [])
+
+  def all(
+        q,
+        %Flop{
+          first: first,
+          after: nil,
+          before: nil,
+          last: nil,
+          limit: nil
+        } = flop,
+        opts
+      )
+      when is_integer(first) do
+    repo = opts[:repo] || default_repo() || raise no_repo_error("all")
+
+    q
+    |> query(flop)
+    |> repo.all()
+  end
+
+  def all(
+        q,
+        %Flop{
+          first: first,
+          after: after_,
+          before: nil,
+          last: nil,
+          limit: nil
+        } = flop,
+        opts
+      )
+      when is_integer(first) and is_binary(after_) do
+    repo = opts[:repo] || default_repo() || raise no_repo_error("all")
+
+    q
+    |> query(flop)
+    |> repo.all()
+  end
+
+  def all(
+        q,
+        %Flop{
+          last: last,
+          before: before,
+          first: nil,
+          after: nil,
+          limit: nil
+        } = flop,
+        opts
+      )
+      when is_integer(last) and is_binary(before) do
+    repo = opts[:repo] || default_repo() || raise no_repo_error("all")
+
+    q
+    |> query(flop)
+    |> repo.all()
+    |> Enum.reverse()
+  end
+
+  def all(q, flop, opts) do
     repo = opts[:repo] || default_repo() || raise no_repo_error("all")
     apply(repo, :all, [query(q, flop)])
   end
@@ -182,9 +264,27 @@ defmodule Flop do
   """
   @doc since: "0.6.0"
   @spec run(Queryable.t(), Flop.t(), keyword) :: {[any], Meta.t()}
-  def run(q, flop, opts \\ []) do
-    repo = opts[:repo] || default_repo() || raise no_repo_error("run")
-    {all(q, flop, repo: repo), meta(q, flop, repo: repo)}
+  def run(q, flop, opts \\ [])
+
+  def run(
+        q,
+        %Flop{
+          after: after_,
+          before: before,
+          first: first,
+          last: last
+        } = flop,
+        opts
+      )
+      when is_integer(first) and is_nil(after_)
+      when is_integer(first) and is_binary(after_)
+      when is_integer(last) and is_binary(before) do
+    results = all(q, flop, opts)
+    {results, meta(results, flop, opts)}
+  end
+
+  def run(q, flop, opts) do
+    {all(q, flop, opts), meta(q, flop, opts)}
   end
 
   @doc """
@@ -210,11 +310,10 @@ defmodule Flop do
   @spec validate_and_run(Queryable.t(), map | Flop.t(), keyword) ::
           {:ok, {[any], Meta.t()}} | {:error, Changeset.t()}
   def validate_and_run(q, flop, opts \\ []) do
-    repo = opts[:repo] || default_repo() || raise no_repo_error("run")
     validate_opts = Keyword.take(opts, [:for])
 
     with {:ok, flop} <- validate(flop, validate_opts) do
-      {:ok, {all(q, flop, repo: repo), meta(q, flop, repo: repo)}}
+      {:ok, run(q, flop, opts)}
     end
   end
 
@@ -225,10 +324,9 @@ defmodule Flop do
   @spec validate_and_run!(Queryable.t(), map | Flop.t(), keyword) ::
           {[any], Meta.t()}
   def validate_and_run!(q, flop, opts \\ []) do
-    repo = opts[:repo] || default_repo() || raise no_repo_error("run")
     validate_opts = Keyword.take(opts, [:for])
     flop = validate!(flop, validate_opts)
-    {all(q, flop, repo: repo), meta(q, flop, repo: repo)}
+    run(q, flop, opts)
   end
 
   @doc """
@@ -264,16 +362,16 @@ defmodule Flop do
       %Flop.Meta{
         current_offset: 0,
         current_page: 1,
+        end_cursor: nil,
         flop: %Flop{limit: 10},
         has_next_page?: false,
         has_previous_page?: false,
-        next_cursor: nil,
         next_offset: nil,
         next_page: nil,
         page_size: 10,
-        previous_cursor: nil,
         previous_offset: nil,
         previous_page: nil,
+        start_cursor: nil,
         total_count: 0,
         total_pages: 0
       }
@@ -287,8 +385,91 @@ defmodule Flop do
   to render the pagination links anyway, so this shouldn't be a problem.
   """
   @doc since: "0.6.0"
-  @spec meta(Queryable.t(), Flop.t(), keyword) :: Meta.t()
-  def meta(q, flop, opts \\ []) do
+  @spec meta(Queryable.t() | [Schema.t()], Flop.t(), keyword) :: Meta.t()
+  def meta(query_or_results, flop, opts \\ [])
+
+  def meta(
+        results,
+        %Flop{
+          first: first,
+          order_by: order_by,
+          after: nil,
+          before: nil,
+          last: nil,
+          limit: nil
+        } = flop,
+        _opts
+      )
+      when is_list(results) and is_integer(first) do
+    {start_cursor, end_cursor} = get_cursors(results, order_by)
+
+    has_next_page? = length(results) == first + 1
+
+    %{
+      @nil_meta
+      | flop: flop,
+        start_cursor: start_cursor,
+        end_cursor: end_cursor,
+        has_next_page?: has_next_page?,
+        has_previous_page?: false
+    }
+  end
+
+  def meta(
+        results,
+        %Flop{
+          first: first,
+          after: after_,
+          order_by: order_by,
+          before: nil,
+          last: nil,
+          limit: nil
+        } = flop,
+        _opts
+      )
+      when is_list(results) and is_integer(first) and is_binary(after_) do
+    {start_cursor, end_cursor} = get_cursors(results, order_by)
+
+    has_next_page? = length(results) == first + 1
+
+    %{
+      @nil_meta
+      | flop: flop,
+        start_cursor: start_cursor,
+        end_cursor: end_cursor,
+        has_next_page?: has_next_page?,
+        has_previous_page?: true
+    }
+  end
+
+  def meta(
+        results,
+        %Flop{
+          last: last,
+          before: before,
+          order_by: order_by,
+          first: nil,
+          after: nil,
+          limit: nil
+        } = flop,
+        _opts
+      )
+      when is_list(results) and is_integer(last) and is_binary(before) do
+    {start_cursor, end_cursor} = get_cursors(results, order_by)
+
+    has_previous_page? = length(results) == last + 1
+
+    %{
+      @nil_meta
+      | flop: flop,
+        start_cursor: start_cursor,
+        end_cursor: end_cursor,
+        has_next_page?: true,
+        has_previous_page?: has_previous_page?
+    }
+  end
+
+  def meta(q, flop, opts) do
     repo = opts[:repo] || default_repo() || raise no_repo_error("meta")
 
     total_count = count(q, flop, repo: repo)
@@ -312,16 +493,16 @@ defmodule Flop do
     %Meta{
       current_offset: current_offset,
       current_page: current_page,
+      end_cursor: nil,
       flop: flop,
       has_next_page?: has_next_page?,
       has_previous_page?: has_previous_page?,
-      next_cursor: nil,
       next_offset: next_offset,
       next_page: next_page,
       page_size: page_size,
-      previous_cursor: nil,
       previous_offset: previous_offset,
       previous_page: previous_page,
+      start_cursor: nil,
       total_count: total_count,
       total_pages: total_pages
     }
@@ -376,6 +557,28 @@ defmodule Flop do
   @spec order_by(Queryable.t(), Flop.t()) :: Queryable.t()
   def order_by(q, %Flop{order_by: nil}), do: q
 
+  # For backwards cursor pagination
+  def order_by(
+        q,
+        %Flop{
+          last: last,
+          before: before,
+          order_by: fields,
+          order_directions: directions,
+          first: nil,
+          after: nil,
+          offset: nil
+        }
+      )
+      when is_integer(last) and is_binary(before) do
+    reversed_order =
+      fields
+      |> prepare_order(directions)
+      |> reverse_ordering()
+
+    Query.order_by(q, ^reversed_order)
+  end
+
   def order_by(q, %Flop{order_by: fields, order_directions: directions}) do
     Query.order_by(q, ^prepare_order(fields, directions))
   end
@@ -413,7 +616,7 @@ defmodule Flop do
 
   Used by `Flop.query/2`.
   """
-  @spec paginate(Queryable.t(), Flop.t()) :: Queryable.t()
+  @spec paginate(Queryable.t(), Flop.t()) :: Queryable.t() | Meta.t()
   def paginate(q, %Flop{limit: limit, offset: offset})
       when (is_integer(limit) and limit >= 1) or
              (is_integer(offset) and offset >= 0) do
@@ -430,6 +633,62 @@ defmodule Flop do
     |> offset((page - 1) * page_size)
   end
 
+  def paginate(q, %Flop{
+        first: first,
+        after: nil,
+        before: nil,
+        last: nil,
+        limit: nil
+      })
+      when is_integer(first),
+      do: limit(q, first)
+
+  def paginate(
+        q,
+        %Flop{
+          first: first,
+          after: after_,
+          order_by: order_by,
+          order_directions: order_directions,
+          before: nil,
+          last: nil,
+          limit: nil
+        }
+      )
+      when is_integer(first) and is_binary(after_) do
+    orderings = prepare_order(order_by, order_directions)
+    after_cursor = decode_cursor(after_)
+
+    q
+    |> apply_cursor(after_cursor, orderings)
+    |> limit(first)
+  end
+
+  def paginate(
+        q,
+        %Flop{
+          last: last,
+          before: before,
+          order_by: order_by,
+          order_directions: order_directions,
+          first: nil,
+          after: nil,
+          limit: nil
+        }
+      )
+      when is_integer(last) and is_binary(before) do
+    prepared_order_reversed =
+      order_by
+      |> prepare_order(order_directions)
+      |> reverse_ordering()
+
+    before_cursor = decode_cursor(before)
+
+    q
+    |> apply_cursor(before_cursor, prepared_order_reversed)
+    |> limit(last)
+  end
+
   def paginate(q, _), do: q
 
   ## Offset/limit pagination
@@ -442,7 +701,7 @@ defmodule Flop do
   defp offset(q, nil), do: q
   defp offset(q, offset), do: Query.offset(q, ^offset)
 
-  ## Cursor pagination
+  ## Cursor pagination helpers
 
   @spec encode_cursor(map()) :: binary()
   defp encode_cursor(key), do: Base.encode64(:erlang.term_to_binary(key))
@@ -453,92 +712,28 @@ defmodule Flop do
     :erlang.binary_to_term(bin)
   end
 
-  @spec first(Queryable.t(), Repo.t(), Flop.t()) :: {[Schema.t()], Meta.t()}
-  def first(_q, _r, %Flop{limit: limit, order_by: order_by})
-      when is_nil(limit) or is_nil(order_by) do
-    raise ArgumentError,
-      message: "Cursor-based pagination requires limit and order by parameters"
-  end
-
-  def first(q, r, %Flop{limit: limit, offset: nil, order_by: order_by} = flop) do
-    results =
-      q
-      |> query(%{flop | limit: limit + 1})
-      |> r.all()
-
-    next_cursor =
-      if length(results) == limit + 1 do
-        results |> List.last() |> Map.take(order_by) |> encode_cursor()
-      end
-
-    {List.delete_at(results, limit),
-     %Meta{
-       current_offset: nil,
-       current_page: nil,
-       flop: flop,
-       has_next_page?: nil,
-       has_previous_page?: nil,
-       next_cursor: next_cursor,
-       next_offset: nil,
-       next_page: nil,
-       page_size: nil,
-       previous_cursor: nil,
-       previous_offset: nil,
-       previous_page: nil,
-       total_count: nil,
-       total_pages: nil
-     }}
+  @spec get_cursors([Schema.t()], [atom | String.t()]) :: {binary(), binary()}
+  defp get_cursors(results, order_by) do
+    {
+      results |> List.first() |> Map.take(order_by) |> encode_cursor(),
+      results |> List.last() |> Map.take(order_by) |> encode_cursor()
+    }
   end
 
   @spec apply_cursor(Queryable.t(), map(), [order_direction()]) :: Queryable.t()
   defp apply_cursor(q, cursor, ordering) do
     Enum.reduce(ordering, q, fn {direction, field}, q ->
-      cond do
-        Enum.member?([:asc, :asc_nulls_first, :asc_nulls_last], direction) ->
-          Query.where(q, [r], field(r, ^field) >= ^cursor[field])
+      case direction do
+        :asc ->
+          Query.where(q, [r], field(r, ^field) > ^cursor[field])
 
-        Enum.member?([:desc, :desc_nulls_first, :desc_nulls_last], direction) ->
-          Query.where(q, [r], field(r, ^field) <= ^cursor[field])
+        :desc ->
+          Query.where(q, [r], field(r, ^field) < ^cursor[field])
 
         true ->
-          raise ArgumentError, message: "Invalid order direction supplied"
+          raise unsupported_cursor_order()
       end
     end)
-  end
-
-  @spec next(Queryable.t(), Repo.t(), Meta.t()) :: {[Schema.t()], Meta.t()}
-  def next(_, _, %Meta{next_cursor: nil} = meta), do: {[], meta}
-
-  def next(
-        q,
-        r,
-        %Meta{
-          flop:
-            %Flop{
-              limit: limit,
-              offset: nil,
-              order_by: order_by,
-              order_directions: order_directions
-            } = flop,
-          next_cursor: next_cursor
-        } = meta
-      ) do
-    cursor = decode_cursor(next_cursor)
-
-    q = apply_cursor(q, cursor, prepare_order(order_by, order_directions))
-
-    results =
-      q
-      |> query(%{flop | limit: limit + 1})
-      |> r.all()
-
-    new_next_cursor =
-      if length(results) == limit + 1 do
-        results |> List.last() |> Map.take(order_by) |> encode_cursor()
-      end
-
-    {List.delete_at(results, limit),
-     %{meta | previous_cursor: next_cursor, next_cursor: new_next_cursor}}
   end
 
   @spec reverse_ordering([order_direction()]) :: [order_direction()]
@@ -546,64 +741,14 @@ defmodule Flop do
     Enum.map(order_directions, fn {order_direction, field} ->
       {case order_direction do
          :asc -> :desc
-         :asc_nulls_first -> :desc_nulls_first
-         :asc_nulls_last -> :desc_nulls_last
          :desc -> :asc
-         :desc_nulls_first -> :asc_nulls_first
-         :desc_nulls_last -> :asc_nulls_last
+         _ -> raise unsupported_cursor_order()
        end, field}
     end)
   end
 
-  @spec previous(Queryable.t(), Repo.t(), Meta.t()) :: {[Schema.t()], Meta.t()}
-  def previous(_, _, %Meta{previous_cursor: nil} = meta), do: {[], meta}
-
-  def previous(
-        q,
-        r,
-        %Meta{
-          flop:
-            %Flop{
-              limit: limit,
-              offset: nil,
-              order_by: order_by,
-              order_directions: order_directions
-            } = flop,
-          previous_cursor: previous_cursor
-        } = meta
-      ) do
-    cursor = decode_cursor(previous_cursor)
-
-    prepared_orderings =
-      order_by
-      |> prepare_order(order_directions)
-      |> reverse_ordering()
-
-    q = apply_cursor(q, cursor, prepared_orderings)
-
-    reversed_order_directions = Enum.map(prepared_orderings, &elem(&1, 0))
-
-    results =
-      q
-      |> query(%{
-        flop
-        | limit: limit + 1,
-          order_directions: reversed_order_directions
-      })
-      |> r.all()
-
-    new_previous_cursor =
-      if length(results) == limit + 1 do
-        results |> List.last() |> Map.take(order_by) |> encode_cursor()
-      end
-
-    {results |> Enum.reverse() |> List.delete_at(limit),
-     %{
-       meta
-       | previous_cursor: new_previous_cursor,
-         next_cursor: previous_cursor
-     }}
-  end
+  defp unsupported_cursor_order,
+    do: "Only `:asc` and `:desc` are supported for cursor pagination."
 
   ## Filter
 
@@ -756,6 +901,10 @@ defmodule Flop do
   defp changeset(%{} = params, opts) do
     %Flop{}
     |> cast(params, [
+      :after,
+      :before,
+      :first,
+      :last,
       :limit,
       :offset,
       :order_by,
@@ -764,12 +913,20 @@ defmodule Flop do
       :page_size
     ])
     |> cast_embed(:filters, with: {Filter, :changeset, [opts]})
+    |> validate_number(:first, greater_than: 0)
+    |> validate_number(:last, greater_than: 0)
     |> validate_number(:limit, greater_than: 0)
     |> validate_within_max_limit(:limit, opts[:for])
     |> validate_number(:offset, greater_than_or_equal_to: 0)
     |> validate_number(:page, greater_than: 0)
     |> validate_number(:page_size, greater_than: 0)
-    |> validate_exclusive([[:limit, :offset], [:page, :page_size]],
+    |> validate_exclusive(
+      [
+        [:limit, :offset],
+        [:page, :page_size],
+        [:first, :after],
+        [:last, :before]
+      ],
       message: "cannot combine multiple pagination types"
     )
     |> validate_sortable(opts[:for])
