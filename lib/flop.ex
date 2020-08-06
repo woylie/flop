@@ -76,10 +76,13 @@ defmodule Flop do
 
   ### Fields
 
-  - `cursor`: Used for pagination. May not be used together with
-    `page` and `offset`.
+  - `after`: Used for cursor-based pagination. Must be used with `first`.
+  - `before`: Used for cursor-based pagination. Must be used with `last`.
   - `limit`, `offset`: Used for pagination. May not be used together with
     `page` and `page_size`.
+  - `first` Used for cursor-based pagination. Can be used alone to begin pagination
+    or with `after`
+  - `last` Used for cursor-based pagination. Must be used with `before`
   - `page`, `page_size`: Used for pagination. May not be used together with
     `limit` and `offset`.
   - `order_by`: List of fields to order by. Fields can be restricted by
