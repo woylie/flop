@@ -173,38 +173,19 @@ defmodule Flop do
         q,
         %Flop{
           first: first,
-          before: nil,
-          last: nil,
-          limit: nil
-        } = flop,
-        opts
-      )
-      when is_integer(first) do
-    repo = opts[:repo] || default_repo() || raise no_repo_error("all")
-
-    q
-    |> query(flop)
-    |> repo.all()
-  end
-
-  def all(
-        q,
-        %Flop{
-          last: last,
           before: before,
-          first: nil,
-          after: nil,
+          last: last,
           limit: nil
         } = flop,
         opts
       )
-      when is_integer(last) and is_binary(before) do
+      when is_integer(first)
+      when is_binary(before) and is_integer(last) do
     repo = opts[:repo] || default_repo() || raise no_repo_error("all")
 
     q
     |> query(flop)
     |> repo.all()
-    |> Enum.reverse()
   end
 
   def all(q, flop, opts) do
@@ -234,18 +215,37 @@ defmodule Flop do
   def run(
         q,
         %Flop{
-          after: after_,
-          before: before,
+          before: nil,
           first: first,
+          last: nil
+        } = flop,
+        opts
+      )
+      when is_integer(first) do
+    results = all(q, flop, opts)
+    page_data = List.delete_at(results, first)
+    {page_data, meta(results, flop, opts)}
+  end
+
+  def run(
+        q,
+        %Flop{
+          after: nil,
+          before: before,
+          first: nil,
           last: last
         } = flop,
         opts
       )
-      when is_integer(first) and is_nil(after_)
-      when is_integer(first) and is_binary(after_)
       when is_integer(last) and is_binary(before) do
     results = all(q, flop, opts)
-    {results, meta(results, flop, opts)}
+
+    page_data =
+      results
+      |> List.delete_at(last)
+      |> Enum.reverse()
+
+    {page_data, meta(results, flop, opts)}
   end
 
   def run(q, flop, opts) do
@@ -356,26 +356,53 @@ defmodule Flop do
   def meta(
         results,
         %Flop{
+          after: after_,
           first: first,
+          order_by: order_by,
+          before: nil,
+          last: nil
+        } = flop,
+        _opts
+      )
+      when is_list(results) and is_integer(first) do
+    {start_cursor, end_cursor} =
+      results
+      |> List.delete_at(first)
+      |> get_cursors(order_by)
+
+    %Meta{
+      flop: flop,
+      start_cursor: start_cursor,
+      end_cursor: end_cursor,
+      has_next_page?: length(results) == first + 1,
+      has_previous_page?: !is_nil(after_)
+    }
+  end
+
+  def meta(
+        results,
+        %Flop{
+          after: nil,
+          first: nil,
           order_by: order_by,
           before: before,
           last: last
         } = flop,
         _opts
       )
-      when is_list(results) and is_integer(first)
       when is_list(results) and is_integer(last) and is_binary(before) do
-    {start_cursor, end_cursor} = get_cursors(results, order_by)
-
-    has_next_page? = is_nil(first) || length(results) == first + 1
-    has_previous_page? = is_nil(last) || length(results) == last + 1
+    {start_cursor, end_cursor} =
+      results
+      |> List.delete_at(last)
+      |> Enum.reverse()
+      |> get_cursors(order_by)
 
     %Meta{
       flop: flop,
       start_cursor: start_cursor,
       end_cursor: end_cursor,
-      has_next_page?: has_next_page?,
-      has_previous_page?: has_previous_page?
+      has_next_page?: true,
+      has_previous_page?: length(results) == last + 1
     }
   end
 
@@ -403,7 +430,6 @@ defmodule Flop do
     %Meta{
       current_offset: current_offset,
       current_page: current_page,
-      end_cursor: nil,
       flop: flop,
       has_next_page?: has_next_page?,
       has_previous_page?: has_previous_page?,
@@ -412,7 +438,6 @@ defmodule Flop do
       page_size: page_size,
       previous_offset: previous_offset,
       previous_page: previous_page,
-      start_cursor: nil,
       total_count: total_count,
       total_pages: total_pages
     }
@@ -551,7 +576,7 @@ defmodule Flop do
         limit: nil
       })
       when is_integer(first),
-      do: limit(q, first)
+      do: limit(q, first + 1)
 
   def paginate(
         q,
@@ -571,7 +596,7 @@ defmodule Flop do
 
     q
     |> apply_cursor(after_cursor, orderings)
-    |> limit(first)
+    |> limit(first + 1)
   end
 
   def paginate(
@@ -596,7 +621,7 @@ defmodule Flop do
 
     q
     |> apply_cursor(before_cursor, prepared_order_reversed)
-    |> limit(last)
+    |> limit(last + 1)
   end
 
   def paginate(q, _), do: q

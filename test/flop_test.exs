@@ -779,7 +779,7 @@ defmodule FlopTest do
   end
 
   describe "cursor paging" do
-    test "cursor paging" do
+    test "pages are presented in expected order" do
       pets = insert_list(6, :pet)
 
       {:ok, {r1, %Meta{end_cursor: end_cursor}}} =
@@ -815,8 +815,66 @@ defmodule FlopTest do
       assert r1 == Enum.take(pets, 2)
       assert r2 == pets |> Enum.drop(2) |> Enum.take(2)
       assert r3 == pets |> Enum.drop(2) |> Enum.drop(2) |> Enum.take(2)
-      assert r1 == r5
       assert r2 == r4
+      assert r1 == r5
+    end
+
+    test "next and previous page flags are set properly" do
+      insert_list(6, :pet)
+
+      {:ok,
+       {_r1,
+        %Meta{
+          end_cursor: end_cursor,
+          has_next_page?: true,
+          has_previous_page?: false
+        }}} =
+        Flop.validate_and_run(
+          Pet,
+          %Flop{first: 2, order_by: [:id]}
+        )
+
+      {:ok,
+       {_r2,
+        %Meta{
+          end_cursor: end_cursor,
+          has_next_page?: true,
+          has_previous_page?: true
+        }}} =
+        Flop.validate_and_run(
+          Pet,
+          %Flop{first: 2, after: end_cursor, order_by: [:id]}
+        )
+
+      {:ok,
+       {_r3,
+        %Meta{
+          has_next_page?: false,
+          has_previous_page?: true,
+          start_cursor: start_cursor
+        }}} =
+        Flop.validate_and_run(
+          Pet,
+          %Flop{first: 2, after: end_cursor, order_by: [:id]}
+        )
+
+      {:ok,
+       {_r4,
+        %Meta{
+          start_cursor: start_cursor,
+          has_next_page?: true,
+          has_previous_page?: true
+        }}} =
+        Flop.validate_and_run(
+          Pet,
+          %Flop{last: 2, before: start_cursor, order_by: [:id]}
+        )
+
+      {:ok, {_r5, %Meta{has_next_page?: true, has_previous_page?: false}}} =
+        Flop.validate_and_run(
+          Pet,
+          %Flop{last: 2, before: start_cursor, order_by: [:id]}
+        )
     end
   end
 
