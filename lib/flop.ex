@@ -51,7 +51,6 @@ defmodule Flop do
   alias Ecto.Changeset
   alias Ecto.Query
   alias Ecto.Queryable
-  alias Ecto.Schema
   alias Flop.CustomTypes.ExistingAtom
   alias Flop.CustomTypes.OrderDirection
   alias Flop.Filter
@@ -122,23 +121,6 @@ defmodule Flop do
     embeds_many :filters, Filter
   end
 
-  @nil_meta %Meta{
-    current_offset: nil,
-    current_page: nil,
-    end_cursor: nil,
-    flop: nil,
-    has_next_page?: nil,
-    has_previous_page?: nil,
-    next_offset: nil,
-    next_page: nil,
-    page_size: nil,
-    previous_offset: nil,
-    previous_page: nil,
-    start_cursor: nil,
-    total_count: nil,
-    total_pages: nil
-  }
-
   @doc """
   Adds clauses for filtering, ordering and pagination to a
   `t:Ecto.Queryable.t/0`.
@@ -191,7 +173,6 @@ defmodule Flop do
         q,
         %Flop{
           first: first,
-          after: nil,
           before: nil,
           last: nil,
           limit: nil
@@ -199,25 +180,6 @@ defmodule Flop do
         opts
       )
       when is_integer(first) do
-    repo = opts[:repo] || default_repo() || raise no_repo_error("all")
-
-    q
-    |> query(flop)
-    |> repo.all()
-  end
-
-  def all(
-        q,
-        %Flop{
-          first: first,
-          after: after_,
-          before: nil,
-          last: nil,
-          limit: nil
-        } = flop,
-        opts
-      )
-      when is_integer(first) and is_binary(after_) do
     repo = opts[:repo] || default_repo() || raise no_repo_error("all")
 
     q
@@ -388,7 +350,7 @@ defmodule Flop do
   to render the pagination links anyway, so this shouldn't be a problem.
   """
   @doc since: "0.6.0"
-  @spec meta(Queryable.t() | [Schema.t()], Flop.t(), keyword) :: Meta.t()
+  @spec meta(Queryable.t() | [any], Flop.t(), keyword) :: Meta.t()
   def meta(query_or_results, flop, opts \\ [])
 
   def meta(
@@ -396,79 +358,24 @@ defmodule Flop do
         %Flop{
           first: first,
           order_by: order_by,
-          after: nil,
-          before: nil,
-          last: nil,
-          limit: nil
-        } = flop,
-        _opts
-      )
-      when is_list(results) and is_integer(first) do
-    {start_cursor, end_cursor} = get_cursors(results, order_by)
-
-    has_next_page? = length(results) == first + 1
-
-    %{
-      @nil_meta
-      | flop: flop,
-        start_cursor: start_cursor,
-        end_cursor: end_cursor,
-        has_next_page?: has_next_page?,
-        has_previous_page?: false
-    }
-  end
-
-  def meta(
-        results,
-        %Flop{
-          first: first,
-          after: after_,
-          order_by: order_by,
-          before: nil,
-          last: nil,
-          limit: nil
-        } = flop,
-        _opts
-      )
-      when is_list(results) and is_integer(first) and is_binary(after_) do
-    {start_cursor, end_cursor} = get_cursors(results, order_by)
-
-    has_next_page? = length(results) == first + 1
-
-    %{
-      @nil_meta
-      | flop: flop,
-        start_cursor: start_cursor,
-        end_cursor: end_cursor,
-        has_next_page?: has_next_page?,
-        has_previous_page?: true
-    }
-  end
-
-  def meta(
-        results,
-        %Flop{
-          last: last,
           before: before,
-          order_by: order_by,
-          first: nil,
-          after: nil,
-          limit: nil
+          last: last
         } = flop,
         _opts
       )
+      when is_list(results) and is_integer(first)
       when is_list(results) and is_integer(last) and is_binary(before) do
     {start_cursor, end_cursor} = get_cursors(results, order_by)
 
-    has_previous_page? = length(results) == last + 1
+    has_next_page? = is_nil(first) || length(results) == first + 1
+    has_previous_page? = is_nil(last) || length(results) == last + 1
 
-    %{
-      @nil_meta
-      | flop: flop,
-        start_cursor: start_cursor,
-        end_cursor: end_cursor,
-        has_next_page?: true,
-        has_previous_page?: has_previous_page?
+    %Meta{
+      flop: flop,
+      start_cursor: start_cursor,
+      end_cursor: end_cursor,
+      has_next_page?: has_next_page?,
+      has_previous_page?: has_previous_page?
     }
   end
 
@@ -715,7 +622,7 @@ defmodule Flop do
     :erlang.binary_to_term(bin)
   end
 
-  @spec get_cursors([Schema.t()], [atom | String.t()]) :: {binary(), binary()}
+  @spec get_cursors([any], [atom | String.t()]) :: {binary(), binary()}
   defp get_cursors(results, order_by) do
     {
       results |> List.first() |> Map.take(order_by) |> encode_cursor(),
@@ -905,30 +812,30 @@ defmodule Flop do
   defp changeset(%{} = params, opts) do
     %Flop{}
     |> cast(params, [
-          :after,
-          :before,
-          :first,
-          :last,
-          :limit,
-          :offset,
-          :order_by,
-          :order_directions,
-          :page,
-          :page_size
-        ])
-        |> cast_embed(:filters, with: {Filter, :changeset, [opts]})
-        |> validate_exclusive([
-      [:limit, :offset],
-      [:page, :page_size],
-      [:first, :after],
-      [:last, :before]
-    ],
-    message: "cannot combine multiple pagination types"
+      :after,
+      :before,
+      :first,
+      :last,
+      :limit,
+      :offset,
+      :order_by,
+      :order_directions,
+      :page,
+      :page_size
+    ])
+    |> cast_embed(:filters, with: {Filter, :changeset, [opts]})
+    |> validate_exclusive(
+      [
+        [:limit, :offset],
+        [:page, :page_size],
+        [:first, :after],
+        [:last, :before]
+      ],
+      message: "cannot combine multiple pagination types"
     )
-
-|> validate_number(:first, greater_than: 0)
-|> validate_number(:last, greater_than: 0)
-|> validate_page_and_page_size(opts[:for])
+    |> validate_number(:first, greater_than: 0)
+    |> validate_number(:last, greater_than: 0)
+    |> validate_page_and_page_size(opts[:for])
     |> validate_offset_and_limit(opts[:for])
     |> validate_sortable(opts[:for])
     |> put_default_order(opts[:for])
@@ -1081,6 +988,6 @@ defmodule Flop do
 
     Or you can configure a default repo in your config:
 
-        config :flop, repo: MyApp.Repo
+    config :flop, repo: MyApp.Repo
     """
 end

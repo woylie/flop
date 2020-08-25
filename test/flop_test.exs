@@ -780,7 +780,7 @@ defmodule FlopTest do
 
   describe "cursor paging" do
     test "cursor paging" do
-      insert_list(6, :pet)
+      pets = insert_list(6, :pet)
 
       {:ok, {r1, %Meta{end_cursor: end_cursor}}} =
         Flop.validate_and_run(
@@ -794,7 +794,7 @@ defmodule FlopTest do
           %Flop{first: 2, after: end_cursor, order_by: [:id]}
         )
 
-      {:ok, {_r3, %Meta{start_cursor: start_cursor}}} =
+      {:ok, {r3, %Meta{start_cursor: start_cursor}}} =
         Flop.validate_and_run(
           Pet,
           %Flop{first: 2, after: end_cursor, order_by: [:id]}
@@ -812,6 +812,9 @@ defmodule FlopTest do
           %Flop{last: 2, before: start_cursor, order_by: [:id]}
         )
 
+      assert r1 == Enum.take(pets, 2)
+      assert r2 == pets |> Enum.drop(2) |> Enum.take(2)
+      assert r3 == pets |> Enum.drop(2) |> Enum.drop(2) |> Enum.take(2)
       assert r1 == r5
       assert r2 == r4
     end
