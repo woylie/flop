@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.7.1] - 2020-09-04
+
+### Fixed
+
+- Calculation of `has_next_page?` was wrong.
+
 ## [0.7.0] - 2020-08-04
 
 ### Added

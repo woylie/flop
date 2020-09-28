@@ -491,11 +491,17 @@ defmodule FlopTest do
       assert %Meta{has_next_page?: true, has_previous_page?: true} =
                Flop.meta(Pet, %Flop{limit: 2, offset: 2})
 
-      assert %Meta{has_next_page?: true, has_previous_page?: true} =
+      assert %Meta{has_next_page?: false, has_previous_page?: true} =
                Flop.meta(Pet, %Flop{limit: 2, offset: 3})
 
       assert %Meta{has_next_page?: false, has_previous_page?: true} =
                Flop.meta(Pet, %Flop{limit: 2, offset: 4})
+
+      assert %Meta{has_next_page?: true, has_previous_page?: false} =
+               Flop.meta(Pet, %Flop{page_size: 3, page: 1})
+
+      assert %Meta{has_next_page?: false, has_previous_page?: true} =
+               Flop.meta(Pet, %Flop{page_size: 3, page: 2})
     end
   end
 

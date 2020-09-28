@@ -455,8 +455,8 @@ defmodule Flop do
     {false, nil, nil}
   end
 
-  defp get_next(current_offset, _, _, total_count, _)
-       when current_offset >= total_count - 1 do
+  defp get_next(current_offset, _, page_size, total_count, _)
+       when current_offset + page_size >= total_count do
     {false, nil, nil}
   end
 
