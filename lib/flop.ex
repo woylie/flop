@@ -873,6 +873,7 @@ defmodule Flop do
     |> validate_offset_and_limit(opts[:for])
     |> validate_sortable(opts[:for])
     |> put_default_order(opts[:for])
+    |> validate_order_by_for_cursor_pagination()
   end
 
   @spec validate_exclusive(Changeset.t(), [[atom]], keyword) :: Changeset.t()
@@ -894,6 +895,14 @@ defmodule Flop do
         key,
         opts[:message] || "invalid combination of field groups"
       )
+    else
+      changeset
+    end
+  end
+
+  defp validate_order_by_for_cursor_pagination(changeset) do
+    if get_field(changeset, :first) || get_field(changeset, :last) do
+      validate_required(changeset, [:order_by])
     else
       changeset
     end
