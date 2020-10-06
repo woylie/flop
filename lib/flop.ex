@@ -571,12 +571,11 @@ defmodule Flop do
           limit: nil
         }
       )
-      when is_integer(first) and is_binary(after_) do
+      when is_integer(first) do
     orderings = prepare_order(order_by, order_directions)
-    after_cursor = decode_cursor(after_)
 
     q
-    |> apply_cursor(after_cursor, orderings)
+    |> apply_cursor(after_, orderings)
     |> limit(first + 1)
   end
 
@@ -592,16 +591,14 @@ defmodule Flop do
           limit: nil
         }
       )
-      when is_integer(last) and is_binary(before) do
+      when is_integer(last) do
     prepared_order_reversed =
       order_by
       |> prepare_order(order_directions)
       |> reverse_ordering()
 
-    before_cursor = decode_cursor(before)
-
     q
-    |> apply_cursor(before_cursor, prepared_order_reversed)
+    |> apply_cursor(before, prepared_order_reversed)
     |> limit(last + 1)
   end
 
@@ -624,15 +621,16 @@ defmodule Flop do
   `:get_cursor_value_func` option and returns the encoded cursor.
   """
   @spec encode_cursor(map()) :: binary()
-  def encode_cursor(key), do: Base.encode64(:erlang.term_to_binary(key))
+  def encode_cursor(key) do
+    Base.url_encode64(:erlang.term_to_binary(key))
+  end
 
   @doc """
   Takes an encoded cursor and decodes it.
   """
   @spec decode_cursor(binary()) :: map()
   def decode_cursor(encoded) do
-    {:ok, bin} = Base.decode64(encoded)
-    :erlang.binary_to_term(bin)
+    :erlang.binary_to_term(Base.url_decode64!(encoded), [:safe])
   end
 
   @spec get_cursors([any], [atom | String.t()], keyword) :: {binary(), binary()}
@@ -667,8 +665,13 @@ defmodule Flop do
     Map.take(item, order_by)
   end
 
-  @spec apply_cursor(Queryable.t(), map(), [order_direction()]) :: Queryable.t()
+  @spec apply_cursor(Queryable.t(), map() | nil, [order_direction()]) ::
+          Queryable.t()
+  defp apply_cursor(q, nil, _), do: q
+
   defp apply_cursor(q, cursor, ordering) do
+    cursor = decode_cursor(cursor)
+
     Enum.reduce(ordering, q, fn {direction, field}, q ->
       case direction do
         :asc ->
@@ -677,7 +680,7 @@ defmodule Flop do
         :desc ->
           Query.where(q, [r], field(r, ^field) < ^cursor[field])
 
-        true ->
+        _ ->
           raise unsupported_cursor_order()
       end
     end)
@@ -1027,6 +1030,7 @@ defmodule Flop do
 
   defp default_repo, do: Application.get_env(:flop, :repo)
 
+  # coveralls-ignore-start
   defp no_repo_error(function_name),
     do: """
     No repo specified. You can specify the repo either by passing it
@@ -1038,4 +1042,6 @@ defmodule Flop do
 
     config :flop, repo: MyApp.Repo
     """
+
+  # coveralls-ignore-end
 end

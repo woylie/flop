@@ -917,6 +917,27 @@ defmodule FlopTest do
           get_cursor_value_func: get_cursor_value_func
         )
     end
+
+    test "raises error with cursor pagination and invalid order direction" do
+      assert_raise RuntimeError, fn ->
+        Flop.run(
+          Pet,
+          %Flop{last: 2, order_by: [:id], order_directions: [:asc_nulls_first]}
+        )
+      end
+
+      assert_raise RuntimeError, fn ->
+        Flop.run(
+          Pet,
+          %Flop{
+            first: 2,
+            after: "g3QAAAABZAAEbmFtZW0AAAAFQXBwbGU=",
+            order_by: [:id],
+            order_directions: [:asc_nulls_first]
+          }
+        )
+      end
+    end
   end
 
   describe "validate!/1" do
