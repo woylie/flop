@@ -12,10 +12,12 @@ Ecto a bit easier.
 - ordering by multiple fields in multiple directions
 - offset/limit based pagination
 - page number/page size based pagination
+- cursor-based pagination (aka key set pagination), compatible with Relay pagination arguments
 - filtering by multiple conditions with diverse operators on multiple fields
 - parameter validation
 - configurable filterable and sortable fields
 - query and meta data helpers
+- Relay connection formatter (edges, nodes and page info)
 
 ## Installation
 
