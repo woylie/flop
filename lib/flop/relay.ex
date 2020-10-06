@@ -53,6 +53,7 @@ defmodule Flop.Relay do
   - `:get_cursor_value_func`: 2-arity function that takes an item from the query
     result and the `order_by` fields and returns the unencoded cursor value.
   """
+  @doc since: "0.8.0"
   @spec connection_from_result({[any], Meta.t()}, keyword) :: [connection()]
   def connection_from_result({items, meta}, opts \\ []) when is_list(items) do
     %{
@@ -79,6 +80,7 @@ defmodule Flop.Relay do
         end_cursor: "b"
       }
   """
+  @doc since: "0.8.0"
   @spec page_info_from_meta(Meta.t()) :: page_info()
   def page_info_from_meta(%Meta{} = meta) do
     %{
@@ -160,6 +162,7 @@ defmodule Flop.Relay do
   - `:get_cursor_value_func`: 2-arity function that takes an item from the query
     result and the `order_by` fields and returns the unencoded cursor value.
   """
+  @doc since: "0.8.0"
   @spec edges_from_result({[{any, any}] | [any], Meta.t()}, keyword) :: [edge()]
   def edges_from_result(
         {items, %Meta{flop: %Flop{order_by: order_by}}},
