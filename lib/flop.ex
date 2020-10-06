@@ -621,15 +621,16 @@ defmodule Flop do
   `:get_cursor_value_func` option and returns the encoded cursor.
   """
   @spec encode_cursor(map()) :: binary()
-  def encode_cursor(key), do: Base.encode64(:erlang.term_to_binary(key))
+  def encode_cursor(key) do
+    Base.url_encode64(:erlang.term_to_binary(key))
+  end
 
   @doc """
   Takes an encoded cursor and decodes it.
   """
   @spec decode_cursor(binary()) :: map()
   def decode_cursor(encoded) do
-    {:ok, bin} = Base.decode64(encoded)
-    :erlang.binary_to_term(bin, [:safe])
+    :erlang.binary_to_term(Base.url_decode64!(encoded), [:safe])
   end
 
   @spec get_cursors([any], [atom | String.t()], keyword) :: {binary(), binary()}
