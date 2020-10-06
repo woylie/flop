@@ -202,8 +202,7 @@ defmodule Flop do
       )
       when is_integer(first) do
     results = all(q, flop, opts)
-    page_data = List.delete_at(results, first)
-    {page_data, meta(results, flop, opts)}
+    {Enum.take(results, first), meta(results, flop, opts)}
   end
 
   def run(
@@ -221,7 +220,7 @@ defmodule Flop do
 
     page_data =
       results
-      |> List.delete_at(last)
+      |> Enum.take(last)
       |> Enum.reverse()
 
     {page_data, meta(results, flop, opts)}
