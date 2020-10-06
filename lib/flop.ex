@@ -629,7 +629,7 @@ defmodule Flop do
   @spec decode_cursor(binary()) :: map()
   def decode_cursor(encoded) do
     {:ok, bin} = Base.decode64(encoded)
-    :erlang.binary_to_term(bin)
+    :erlang.binary_to_term(bin, [:safe])
   end
 
   @spec get_cursors([any], [atom | String.t()], keyword) :: {binary(), binary()}
