@@ -3,6 +3,7 @@ defmodule Flop.Relay do
   Helpers to turn query results into Relay formats.
   """
 
+  alias Flop.Cursor
   alias Flop.Meta
 
   @type connection :: %{
@@ -169,7 +170,7 @@ defmodule Flop.Relay do
         opts \\ []
       ) do
     get_cursor_value_func =
-      Keyword.get(opts, :get_cursor_value_func, &Flop.get_cursor_from_map/2)
+      Keyword.get(opts, :get_cursor_value_func, &Cursor.get_cursor_from_map/2)
 
     Enum.map(items, &build_edge(&1, order_by, get_cursor_value_func))
   end
@@ -188,6 +189,6 @@ defmodule Flop.Relay do
   end
 
   defp get_cursor(node, order_by, get_cursor_value_func) do
-    node |> get_cursor_value_func.(order_by) |> Flop.encode_cursor()
+    node |> get_cursor_value_func.(order_by) |> Cursor.encode_cursor()
   end
 end
