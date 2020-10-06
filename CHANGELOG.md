@@ -5,6 +5,8 @@
 ### Added
 
 - Support for cursor-based pagination. Thanks to @bunker-inspector.
+- Add functions to turn query results into Relay connection format when using
+  cursor-based pagination.
 
 ## [0.7.1] - 2020-09-04
 
