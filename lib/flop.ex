@@ -617,10 +617,10 @@ defmodule Flop do
   ## Cursor pagination helpers
 
   @spec encode_cursor(map()) :: binary()
-  defp encode_cursor(key), do: Base.encode64(:erlang.term_to_binary(key))
+  def encode_cursor(key), do: Base.encode64(:erlang.term_to_binary(key))
 
   @spec decode_cursor(binary()) :: map()
-  defp decode_cursor(encoded) do
+  def decode_cursor(encoded) do
     {:ok, bin} = Base.decode64(encoded)
     :erlang.binary_to_term(bin)
   end
