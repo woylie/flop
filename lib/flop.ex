@@ -571,12 +571,11 @@ defmodule Flop do
           limit: nil
         }
       )
-      when is_integer(first) and is_binary(after_) do
+      when is_integer(first) do
     orderings = prepare_order(order_by, order_directions)
-    after_cursor = decode_cursor(after_)
 
     q
-    |> apply_cursor(after_cursor, orderings)
+    |> apply_cursor(after_, orderings)
     |> limit(first + 1)
   end
 
@@ -592,16 +591,14 @@ defmodule Flop do
           limit: nil
         }
       )
-      when is_integer(last) and is_binary(before) do
+      when is_integer(last) do
     prepared_order_reversed =
       order_by
       |> prepare_order(order_directions)
       |> reverse_ordering()
 
-    before_cursor = decode_cursor(before)
-
     q
-    |> apply_cursor(before_cursor, prepared_order_reversed)
+    |> apply_cursor(before, prepared_order_reversed)
     |> limit(last + 1)
   end
 
@@ -667,8 +664,13 @@ defmodule Flop do
     Map.take(item, order_by)
   end
 
-  @spec apply_cursor(Queryable.t(), map(), [order_direction()]) :: Queryable.t()
+  @spec apply_cursor(Queryable.t(), map() | nil, [order_direction()]) ::
+          Queryable.t()
+  defp apply_cursor(q, nil, _), do: q
+
   defp apply_cursor(q, cursor, ordering) do
+    cursor = decode_cursor(cursor)
+
     Enum.reduce(ordering, q, fn {direction, field}, q ->
       case direction do
         :asc ->
