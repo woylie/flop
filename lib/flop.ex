@@ -345,7 +345,7 @@ defmodule Flop do
       when is_list(results) and is_integer(first) do
     {start_cursor, end_cursor} =
       results
-      |> List.delete_at(first)
+      |> Enum.take(first)
       |> get_cursors(order_by)
 
     %Meta{
@@ -371,7 +371,7 @@ defmodule Flop do
       when is_list(results) and is_integer(last) and is_binary(before) do
     {start_cursor, end_cursor} =
       results
-      |> List.delete_at(last)
+      |> Enum.take(last)
       |> Enum.reverse()
       |> get_cursors(order_by)
 
