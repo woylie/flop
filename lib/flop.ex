@@ -945,6 +945,8 @@ defmodule Flop do
     changeset
     |> validate_number(:limit, greater_than: 0)
     |> validate_within_max_limit(:limit, module)
+    |> validate_within_max_limit(:first, module)
+    |> validate_within_max_limit(:last, module)
     |> validate_number(:offset, greater_than_or_equal_to: 0)
     |> put_default_limit(module)
     |> put_default_offset()
