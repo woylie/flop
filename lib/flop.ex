@@ -380,7 +380,7 @@ defmodule Flop do
       start_cursor: start_cursor,
       end_cursor: end_cursor,
       has_next_page?: true,
-      has_previous_page?: length(results) == last + 1
+      has_previous_page?: length(results) > last
     }
   end
 
