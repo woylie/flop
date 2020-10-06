@@ -167,28 +167,7 @@ defmodule Flop do
   """
   @doc since: "0.6.0"
   @spec all(Queryable.t(), Flop.t(), keyword) :: [any]
-  def all(q, flop, opts \\ [])
-
-  def all(
-        q,
-        %Flop{
-          first: first,
-          before: before,
-          last: last,
-          limit: nil
-        } = flop,
-        opts
-      )
-      when is_integer(first)
-      when is_binary(before) and is_integer(last) do
-    repo = opts[:repo] || default_repo() || raise no_repo_error("all")
-
-    q
-    |> query(flop)
-    |> repo.all()
-  end
-
-  def all(q, flop, opts) do
+  def all(q, flop, opts \\ []) do
     repo = opts[:repo] || default_repo() || raise no_repo_error("all")
     apply(repo, :all, [query(q, flop)])
   end
