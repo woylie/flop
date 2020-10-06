@@ -248,6 +248,9 @@ defmodule Flop do
 
   - `for`: Passed to `Flop.validate/2`.
   - `repo`: The `Ecto.Repo` module. Required if no default repo is configured.
+  - `get_cursor_value_func`: An arity-2 function to be used to retrieve an
+    unencoded cursor value from a query result item and the `order_by` fields.
+    Defaults to `Flop.get_cursor_value_from_map/2`.
   """
   @doc since: "0.6.0"
   @spec validate_and_run(Queryable.t(), map | Flop.t(), keyword) ::
