@@ -680,7 +680,7 @@ defmodule Flop do
         :desc ->
           Query.where(q, [r], field(r, ^field) < ^cursor[field])
 
-        true ->
+        _ ->
           raise unsupported_cursor_order()
       end
     end)
@@ -1030,6 +1030,7 @@ defmodule Flop do
 
   defp default_repo, do: Application.get_env(:flop, :repo)
 
+  # coveralls-ignore-start
   defp no_repo_error(function_name),
     do: """
     No repo specified. You can specify the repo either by passing it
@@ -1041,4 +1042,6 @@ defmodule Flop do
 
     config :flop, repo: MyApp.Repo
     """
+
+  # coveralls-ignore-end
 end

@@ -925,6 +925,18 @@ defmodule FlopTest do
           %Flop{last: 2, order_by: [:id], order_directions: [:asc_nulls_first]}
         )
       end
+
+      assert_raise RuntimeError, fn ->
+        Flop.run(
+          Pet,
+          %Flop{
+            first: 2,
+            after: "g3QAAAABZAAEbmFtZW0AAAAFQXBwbGU=",
+            order_by: [:id],
+            order_directions: [:asc_nulls_first]
+          }
+        )
+      end
     end
   end
 
