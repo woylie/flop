@@ -340,13 +340,13 @@ defmodule Flop do
           before: nil,
           last: nil
         } = flop,
-        _opts
+        opts
       )
       when is_list(results) and is_integer(first) do
     {start_cursor, end_cursor} =
       results
       |> Enum.take(first)
-      |> get_cursors(order_by)
+      |> get_cursors(order_by, opts)
 
     %Meta{
       flop: flop,
@@ -366,14 +366,14 @@ defmodule Flop do
           before: before,
           last: last
         } = flop,
-        _opts
+        opts
       )
       when is_list(results) and is_integer(last) and is_binary(before) do
     {start_cursor, end_cursor} =
       results
       |> Enum.take(last)
       |> Enum.reverse()
-      |> get_cursors(order_by)
+      |> get_cursors(order_by, opts)
 
     %Meta{
       flop: flop,
@@ -625,12 +625,27 @@ defmodule Flop do
     :erlang.binary_to_term(bin)
   end
 
-  @spec get_cursors([any], [atom | String.t()]) :: {binary(), binary()}
-  defp get_cursors(results, order_by) do
-    {
-      results |> List.first() |> Map.take(order_by) |> encode_cursor(),
-      results |> List.last() |> Map.take(order_by) |> encode_cursor()
-    }
+  @spec get_cursors([any], [atom | String.t()], keyword) :: {binary(), binary()}
+  defp get_cursors(results, order_by, opts) do
+    get_cursor_func = Keyword.get(opts, :get_cursor_func, &get_cursor/2)
+
+    case results do
+      [] ->
+        {nil, nil}
+
+      [first | _] ->
+        {
+          first |> get_cursor_func.(order_by) |> encode_cursor(),
+          results
+          |> List.last()
+          |> get_cursor_func.(order_by)
+          |> encode_cursor()
+        }
+    end
+  end
+
+  defp get_cursor(item, order_by) do
+    Map.take(item, order_by)
   end
 
   @spec apply_cursor(Queryable.t(), map(), [order_direction()]) :: Queryable.t()

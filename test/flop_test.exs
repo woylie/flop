@@ -4,7 +4,7 @@ defmodule FlopTest do
 
   doctest Flop
 
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query
   import Flop.Factory
   import Flop.TestUtil
 
@@ -880,6 +880,38 @@ defmodule FlopTest do
         Flop.validate_and_run(
           Pet,
           %Flop{last: 2, before: start_cursor, order_by: [:id]}
+        )
+    end
+
+    test "get_cursor/1 function can be overridden" do
+      insert_list(4, :pet)
+      query = select(Pet, [p], {p, %{other: :data}})
+      get_cursor_func = fn {pet, _}, order_by -> Map.take(pet, order_by) end
+
+      {:ok,
+       {_r1,
+        %Meta{
+          end_cursor: end_cursor,
+          has_next_page?: true,
+          has_previous_page?: false
+        }}} =
+        Flop.validate_and_run(
+          query,
+          %Flop{first: 2, order_by: [:id]},
+          get_cursor_func: get_cursor_func
+        )
+
+      {:ok,
+       {_r2,
+        %Meta{
+          end_cursor: _end_cursor,
+          has_next_page?: false,
+          has_previous_page?: true
+        }}} =
+        Flop.validate_and_run(
+          query,
+          %Flop{first: 2, after: end_cursor, order_by: [:id]},
+          get_cursor_func: get_cursor_func
         )
     end
   end
