@@ -189,6 +189,6 @@ defmodule Flop.Relay do
   end
 
   defp get_cursor(node, order_by, get_cursor_value_func) do
-    node |> get_cursor_value_func.(order_by) |> Cursor.encode_cursor()
+    node |> get_cursor_value_func.(order_by) |> Cursor.encode()
   end
 end

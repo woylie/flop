@@ -7,8 +7,8 @@ defmodule Flop.Cursor do
   Encodes a cursor value.
   """
   @doc since: "0.8.0"
-  @spec encode_cursor(map()) :: binary()
-  def encode_cursor(key) do
+  @spec encode(map()) :: binary()
+  def encode(key) do
     Base.url_encode64(:erlang.term_to_binary(key))
   end
 
@@ -16,8 +16,8 @@ defmodule Flop.Cursor do
   Decodes a cursor value.
   """
   @doc since: "0.8.0"
-  @spec decode_cursor(binary()) :: map()
-  def decode_cursor(encoded) do
+  @spec decode(binary()) :: map()
+  def decode(encoded) do
     encoded
     |> Base.url_decode64!()
     |> :erlang.binary_to_term([:safe])
@@ -43,6 +43,10 @@ defmodule Flop.Cursor do
     |> Enum.reduce({}, &Tuple.append(&2, &1))
   end
 
+  defp sanitize(_) do
+    raise "invalid cursor value"
+  end
+
   @doc """
   Retrieves the start and end cursors from a query result.
   """
@@ -58,11 +62,11 @@ defmodule Flop.Cursor do
 
       [first | _] ->
         {
-          first |> get_cursor_value_func.(order_by) |> encode_cursor(),
+          first |> get_cursor_value_func.(order_by) |> encode(),
           results
           |> List.last()
           |> get_cursor_value_func.(order_by)
-          |> encode_cursor()
+          |> encode()
         }
     end
   end

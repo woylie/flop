@@ -621,7 +621,7 @@ defmodule Flop do
   defp apply_cursor(q, nil, _), do: q
 
   defp apply_cursor(q, cursor, ordering) do
-    cursor = Cursor.decode_cursor(cursor)
+    cursor = Cursor.decode(cursor)
 
     Enum.reduce(ordering, q, fn {direction, field}, q ->
       case direction do
