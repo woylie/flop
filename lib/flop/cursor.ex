@@ -18,10 +18,13 @@ defmodule Flop.Cursor do
   @doc since: "0.8.0"
   @spec decode(binary()) :: map()
   def decode(encoded) do
-    encoded
-    |> Base.url_decode64!()
-    |> :erlang.binary_to_term([:safe])
-    |> sanitize()
+    term =
+      encoded
+      |> Base.url_decode64!()
+      |> :erlang.binary_to_term([:safe])
+
+    sanitize(term)
+    term
   end
 
   defp sanitize(term)
@@ -33,14 +36,21 @@ defmodule Flop.Cursor do
   defp sanitize([h | t]), do: [sanitize(h) | sanitize(t)]
 
   defp sanitize(%{} = term) do
-    Enum.into(term, %{}, fn {k, v} -> {sanitize(k), sanitize(v)} end)
+    :maps.fold(
+      fn key, value, acc ->
+        sanitize(key)
+        sanitize(value)
+        acc
+      end,
+      term,
+      term
+    )
   end
 
   defp sanitize(term) when is_tuple(term) do
     term
     |> Tuple.to_list()
     |> sanitize()
-    |> Enum.reduce({}, &Tuple.append(&2, &1))
   end
 
   defp sanitize(_) do
