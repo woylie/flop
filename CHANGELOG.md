@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.8.1] - 2020-10-07
+
+### Changeed
+
+- Allow structs in cursor values.
+
 ## [0.8.0] - 2020-10-07
 
 ### Added
