@@ -18,7 +18,29 @@ defmodule Flop.Cursor do
   @doc since: "0.8.0"
   @spec decode_cursor(binary()) :: map()
   def decode_cursor(encoded) do
-    :erlang.binary_to_term(Base.url_decode64!(encoded), [:safe])
+    encoded
+    |> Base.url_decode64!()
+    |> :erlang.binary_to_term([:safe])
+    |> sanitize()
+  end
+
+  defp sanitize(term)
+       when is_atom(term) or is_number(term) or is_binary(term) do
+    term
+  end
+
+  defp sanitize([]), do: []
+  defp sanitize([h | t]), do: [sanitize(h) | sanitize(t)]
+
+  defp sanitize(%{} = term) do
+    Enum.into(term, %{}, fn {k, v} -> {sanitize(k), sanitize(v)} end)
+  end
+
+  defp sanitize(term) when is_tuple(term) do
+    term
+    |> Tuple.to_list()
+    |> sanitize()
+    |> Enum.reduce({}, &Tuple.append(&2, &1))
   end
 
   @doc """
