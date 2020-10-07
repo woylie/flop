@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.8.0] - 2020-10-07
+
 ### Added
 
 - Support for cursor-based pagination. Thanks to @bunker-inspector.
