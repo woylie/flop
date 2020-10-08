@@ -6,6 +6,17 @@
 
 ### Changed
 
+- Order directions are not restricted anymore for cursor-based pagination.
+
+### Fixed
+
+- Query for cursor-based pagination returned wrong results when using more than
+  one cursor field.
+- Query for cursor-based pagination returned wrong results when using
+  `last`/`before`.
+
+### Changed
+
 - Allow structs in cursor values.
 
 ## [0.8.0] - 2020-10-07

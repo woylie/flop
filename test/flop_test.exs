@@ -19,6 +19,14 @@ defmodule FlopTest do
   alias Flop.Repo
 
   @base_query from p in Pet, where: p.age > 8, select: p.name
+  @directions [
+    :asc,
+    :asc_nulls_first,
+    :asc_nulls_last,
+    :desc,
+    :desc_nulls_first,
+    :desc_nulls_last
+  ]
 
   setup do
     :ok = Sandbox.checkout(Repo)
@@ -785,6 +793,159 @@ defmodule FlopTest do
   end
 
   describe "cursor paging" do
+    property "querying cursor by cursor forward includes all items in order" do
+      check all pets <- nonempty(uniq_list_of(pet_generator())),
+                cursor_fields = Enum.shuffle([:age, :name, :species]),
+                cursor_fields <- constant(cursor_fields),
+                directions <- list_of(member_of(@directions), length: 3) do
+        # make sure we have a clean db after each generation
+        :ok = Sandbox.checkin(Repo)
+        :ok = Sandbox.checkout(Repo)
+
+        # insert pets into DB, retrieve them so we have the IDs
+        pet_count = length(pets)
+        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
+        order_by = Enum.zip(directions, cursor_fields)
+        pets = Pet |> order_by(^order_by) |> Repo.all()
+        assert length(pets) == pet_count
+
+        # retrieve first cursor, ensure returned pet matches first one in list
+        [first_pet | remaining_pets] = pets
+
+        {:ok, {[returned_pet], %Meta{end_cursor: cursor}}} =
+          Flop.validate_and_run(Pet, %Flop{
+            first: 1,
+            order_by: cursor_fields,
+            order_directions: directions
+          })
+
+        assert returned_pet == first_pet
+
+        # iterate over remaining pets, query DB cursor by cursor
+        {reversed_returned_pets, last_cursor} =
+          Enum.reduce(
+            remaining_pets,
+            {[first_pet], cursor},
+            fn _current_pet, {pet_list, cursor} ->
+              assert {:ok, {[returned_pet], %Meta{end_cursor: new_cursor}}} =
+                       Flop.validate_and_run(Pet, %Flop{
+                         first: 1,
+                         after: cursor,
+                         order_by: cursor_fields,
+                         order_directions: directions
+                       })
+
+              {[returned_pet | pet_list], new_cursor}
+            end
+          )
+
+        # ensure the accumulated list matches the manually sorted list
+        returned_pets = Enum.reverse(reversed_returned_pets)
+        assert returned_pets == pets
+
+        # ensure nothing comes after the last cursor
+        assert {:ok, {[], %Meta{end_cursor: nil}}} =
+                 Flop.validate_and_run(Pet, %Flop{
+                   first: 1,
+                   after: last_cursor,
+                   order_by: cursor_fields,
+                   order_directions: directions
+                 })
+      end
+    end
+
+    property "querying all items returns same list forward and backward" do
+      check all pets <- nonempty(uniq_list_of(pet_generator())),
+                cursor_fields = Enum.shuffle([:age, :name, :species]),
+                cursor_fields <- constant(cursor_fields),
+                directions <- list_of(member_of(@directions), length: 3) do
+        # make sure we have a clean db after each generation
+        :ok = Sandbox.checkin(Repo)
+        :ok = Sandbox.checkout(Repo)
+
+        pet_count = length(pets)
+        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
+
+        {:ok, {with_first, _meta}} =
+          Flop.validate_and_run(Pet, %Flop{
+            first: pet_count,
+            order_by: cursor_fields,
+            order_directions: directions
+          })
+
+        {:ok, {with_last, _meta}} =
+          Flop.validate_and_run(Pet, %Flop{
+            last: pet_count,
+            order_by: cursor_fields,
+            order_directions: directions
+          })
+
+        assert with_first == with_last
+      end
+    end
+
+    property "querying cursor by cursor backward includes all items in order" do
+      check all pets <- nonempty(uniq_list_of(pet_generator())),
+                cursor_fields = Enum.shuffle([:age, :name, :species]),
+                cursor_fields <- constant(cursor_fields),
+                directions <- list_of(member_of(@directions), length: 3) do
+        # make sure we have a clean db after each generation
+        :ok = Sandbox.checkin(Repo)
+        :ok = Sandbox.checkout(Repo)
+
+        # insert pets into DB, retrieve them so we have the IDs
+        pet_count = length(pets)
+        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
+        order_by = Enum.zip(directions, cursor_fields)
+        pets = Pet |> order_by(^order_by) |> Repo.all()
+        assert length(pets) == pet_count
+        pets = Enum.reverse(pets)
+
+        # retrieve last cursor, ensure returned pet matches last one in list
+        [last_pet | remaining_pets] = pets
+
+        {:ok, {[returned_pet], %Meta{end_cursor: cursor}}} =
+          Flop.validate_and_run(Pet, %Flop{
+            last: 1,
+            order_by: cursor_fields,
+            order_directions: directions
+          })
+
+        assert returned_pet == last_pet
+
+        # iterate over remaining pets, query DB cursor by cursor
+        {reversed_returned_pets, last_cursor} =
+          Enum.reduce(
+            remaining_pets,
+            {[last_pet], cursor},
+            fn _current_pet, {pet_list, cursor} ->
+              assert {:ok, {[returned_pet], %Meta{end_cursor: new_cursor}}} =
+                       Flop.validate_and_run(Pet, %Flop{
+                         last: 1,
+                         before: cursor,
+                         order_by: cursor_fields,
+                         order_directions: directions
+                       })
+
+              {[returned_pet | pet_list], new_cursor}
+            end
+          )
+
+        # ensure the accumulated list matches the manually sorted list
+        returned_pets = Enum.reverse(reversed_returned_pets)
+        assert returned_pets == pets
+
+        # ensure nothing comes after the last cursor
+        assert {:ok, {[], %Meta{end_cursor: nil}}} =
+                 Flop.validate_and_run(Pet, %Flop{
+                   last: 1,
+                   before: last_cursor,
+                   order_by: cursor_fields,
+                   order_directions: directions
+                 })
+      end
+    end
+
     test "pages are presented in expected order" do
       pets = insert_list(6, :pet)
 
@@ -916,27 +1077,6 @@ defmodule FlopTest do
           %Flop{first: 2, after: end_cursor, order_by: [:id]},
           get_cursor_value_func: get_cursor_value_func
         )
-    end
-
-    test "raises error with cursor pagination and invalid order direction" do
-      assert_raise RuntimeError, fn ->
-        Flop.run(
-          Pet,
-          %Flop{last: 2, order_by: [:id], order_directions: [:asc_nulls_first]}
-        )
-      end
-
-      assert_raise RuntimeError, fn ->
-        Flop.run(
-          Pet,
-          %Flop{
-            first: 2,
-            after: "g3QAAAABZAAEbmFtZW0AAAAFQXBwbGU=",
-            order_by: [:id],
-            order_directions: [:asc_nulls_first]
-          }
-        )
-      end
     end
   end
 
