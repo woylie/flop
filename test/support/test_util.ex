@@ -1,10 +1,6 @@
 defmodule Flop.TestUtil do
   @moduledoc false
 
-  use ExUnitProperties
-
-  alias Flop.Filter
-
   @doc """
   A helper that transforms changeset errors into a map of messages.
 
@@ -21,29 +17,4 @@ defmodule Flop.TestUtil do
       end)
     end)
   end
-
-  @doc """
-  Generates a filter struct.
-  """
-  def filter do
-    gen all field <- member_of([:age, :name]),
-            value <- value_by_field(field),
-            op <- operator_by_type(value) do
-      %Filter{field: field, op: op, value: value}
-    end
-  end
-
-  def value_by_field(:age), do: integer()
-  def value_by_field(:name), do: string(:alphanumeric, min_length: 1)
-
-  def compare_value_by_field(:age), do: integer(1..30)
-
-  def compare_value_by_field(:name),
-    do: string(?a..?z, min_length: 1, max_length: 3)
-
-  defp operator_by_type(a) when is_binary(a),
-    do: member_of([:==, :!=, :=~, :<=, :<, :>=, :>])
-
-  defp operator_by_type(a) when is_number(a),
-    do: member_of([:==, :!=, :<=, :<, :>=, :>])
 end

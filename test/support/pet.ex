@@ -13,5 +13,6 @@ defmodule Flop.Pet do
     field :name, :string
     field :age, :integer
     field :species, :string
+    field :sound, :string
   end
 end

@@ -209,13 +209,12 @@ defmodule Flop do
         q,
         %Flop{
           after: nil,
-          before: before,
           first: nil,
           last: last
         } = flop,
         opts
       )
-      when is_integer(last) and is_binary(before) do
+      when is_integer(last) do
     results = all(q, flop, opts)
 
     page_data =
@@ -366,12 +365,11 @@ defmodule Flop do
           after: nil,
           first: nil,
           order_by: order_by,
-          before: before,
           last: last
         } = flop,
         opts
       )
-      when is_list(results) and is_integer(last) and is_binary(before) do
+      when is_list(results) and is_integer(last) do
     {start_cursor, end_cursor} =
       results
       |> Enum.take(last)
@@ -486,7 +484,7 @@ defmodule Flop do
           offset: nil
         }
       )
-      when is_integer(last) and is_binary(before) do
+      when is_integer(last) do
     reversed_order =
       fields
       |> prepare_order(directions)
@@ -622,34 +620,53 @@ defmodule Flop do
 
   defp apply_cursor(q, cursor, ordering) do
     cursor = Cursor.decode(cursor)
+    where_dynamic = cursor_dynamic(ordering, cursor)
+    Query.where(q, ^where_dynamic)
+  end
 
-    Enum.reduce(ordering, q, fn {direction, field}, q ->
-      case direction do
-        :asc ->
-          Query.where(q, [r], field(r, ^field) > ^cursor[field])
+  defp cursor_dynamic([], _), do: nil
 
-        :desc ->
-          Query.where(q, [r], field(r, ^field) < ^cursor[field])
+  defp cursor_dynamic([{direction, field}], cursor) do
+    case direction do
+      dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
+        Query.dynamic([r], field(r, ^field) > ^cursor[field])
 
-        _ ->
-          raise unsupported_cursor_order()
-      end
-    end)
+      dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
+        Query.dynamic([r], field(r, ^field) < ^cursor[field])
+    end
+  end
+
+  defp cursor_dynamic([{direction, field} | [{_, _} | _] = tail], cursor) do
+    field_cursor = cursor[field]
+
+    case direction do
+      dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
+        Query.dynamic(
+          [r],
+          field(r, ^field) >= ^field_cursor and
+            (field(r, ^field) > ^field_cursor or ^cursor_dynamic(tail, cursor))
+        )
+
+      dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
+        Query.dynamic(
+          [r],
+          field(r, ^field) <= ^field_cursor and
+            (field(r, ^field) < ^field_cursor or ^cursor_dynamic(tail, cursor))
+        )
+    end
   end
 
   @spec reverse_ordering([order_direction()]) :: [order_direction()]
   defp reverse_ordering(order_directions) do
-    Enum.map(order_directions, fn {order_direction, field} ->
-      {case order_direction do
-         :asc -> :desc
-         :desc -> :asc
-         _ -> raise unsupported_cursor_order()
-       end, field}
+    Enum.map(order_directions, fn
+      {:desc, field} -> {:asc, field}
+      {:desc_nulls_last, field} -> {:asc_nulls_first, field}
+      {:desc_nulls_first, field} -> {:asc_nulls_last, field}
+      {:asc, field} -> {:desc, field}
+      {:asc_nulls_last, field} -> {:desc_nulls_first, field}
+      {:asc_nulls_first, field} -> {:desc_nulls_last, field}
     end)
   end
-
-  defp unsupported_cursor_order,
-    do: "Only `:asc` and `:desc` are supported for cursor pagination."
 
   ## Filter
 

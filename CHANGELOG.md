@@ -4,6 +4,11 @@
 
 ## [0.8.1] - 2020-10-07
 
+### Fixed
+
+- Query for cursor-based pagination returned wrong results when using
+  `last`/`before`.
+
 ### Changed
 
 - Allow structs in cursor values.
