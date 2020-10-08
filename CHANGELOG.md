@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-## [0.8.1] - 2020-10-07
+## [0.8.2] - 2020-10-08
 
 ### Changed
 
@@ -14,6 +14,8 @@
   one cursor field.
 - Query for cursor-based pagination returned wrong results when using
   `last`/`before`.
+
+## [0.8.1] - 2020-10-07
 
 ### Changed
 
