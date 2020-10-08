@@ -476,7 +476,6 @@ defmodule Flop do
         q,
         %Flop{
           last: last,
-          before: before,
           order_by: fields,
           order_directions: directions,
           first: nil,
