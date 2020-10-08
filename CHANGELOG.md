@@ -4,8 +4,14 @@
 
 ## [0.8.1] - 2020-10-07
 
+### Changed
+
+- Order directions are not restricted anymore for cursor-based pagination.
+
 ### Fixed
 
+- Query for cursor-based pagination returned wrong results when using more than
+  one cursor field.
 - Query for cursor-based pagination returned wrong results when using
   `last`/`before`.
 
