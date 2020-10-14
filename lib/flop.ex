@@ -84,7 +84,8 @@ defmodule Flop do
     functions that execute a database query.
 
   The options `:default_limit`, `:get_cursor_value_func`, `:max_limit` and
-  `:repo` can be set globally via the application environment.
+  `pagination_types`, `:repo` can be set globally via the application
+  environment.
 
       import Config
 
@@ -92,25 +93,26 @@ defmodule Flop do
         default_limit: 25,
         get_cursor_value_func: &MyApp.Repo.get_cursor_value/2,
         max_limit: 100,
+        pagination_types: [:first, :last, :page],
         repo: MyApp.Repo
 
-  The options `:for`, `:get_cursor_value_func` and `:repo` can be passed
-  directly to the functions.
+  The options `:for`, `:get_cursor_value_func`, `:pagination_types` and `:repo`
+  can be passed directly to the functions.
 
   The look up order is:
 
   1. option passed to function (except `:max_limit` and `:default_limit`)
-  2. option set for schema using `Flop.Schema` (only `:max_limit` and
-     `:default_limit`)
-  3. option set in global config
+  2. option set for schema using `Flop.Schema` (only `:max_limit`,
+     `:default_limit` and `:pagination_types`)
+  3. option set in global config (except `:for`)
   4. default value (only `:get_cursor_value_func`)
   """
-
   @type option ::
           {:for, module}
           | {:default_limit, pos_integer}
           | {:get_cursor_value_func, (any, [atom] -> map)}
           | {:max_limit, pos_integer}
+          | {:pagination_types, [pagination_type()]}
           | {:repo, module}
 
   @typedoc """
@@ -123,6 +125,16 @@ defmodule Flop do
           | :desc
           | :desc_nulls_first
           | :desc_nulls_last
+
+  @typedoc """
+  Represents the pagination type.
+
+  - `:offset` - pagination using the `offset` and `limit` parameters
+  - `:page` - pagination using the `page` and `page_size` parameters
+  - `:first` - cursor-based pagination using the `first` and `after` parameters
+  - `:last` - cursor-based pagination using the `last` and `before` parameters
+  """
+  @type pagination_type :: :offset | :page | :first | :last
 
   @typedoc """
   Represents the query parameters for filtering, ordering and pagination.
@@ -309,7 +321,7 @@ defmodule Flop do
   @spec validate_and_run(Queryable.t(), map | Flop.t(), [option()]) ::
           {:ok, {[any], Meta.t()}} | {:error, Changeset.t()}
   def validate_and_run(q, flop, opts \\ []) do
-    validate_opts = Keyword.take(opts, [:for])
+    validate_opts = Keyword.take(opts, [:for, :pagination_types])
 
     with {:ok, flop} <- validate(flop, validate_opts) do
       {:ok, run(q, flop, opts)}
@@ -323,7 +335,7 @@ defmodule Flop do
   @spec validate_and_run!(Queryable.t(), map | Flop.t(), [option()]) ::
           {[any], Meta.t()}
   def validate_and_run!(q, flop, opts \\ []) do
-    validate_opts = Keyword.take(opts, [:for])
+    validate_opts = Keyword.take(opts, [:for, :pagination_types])
     flop = validate!(flop, validate_opts)
     run(q, flop, opts)
   end

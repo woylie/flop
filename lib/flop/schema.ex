@@ -70,6 +70,19 @@ defprotocol Flop.Schema do
       @derive {Flop.Schema,
                 default_order_by: [:name, :age],
                 default_order_directions: [:asc, :desc]}
+
+  ### Restricting pagination types
+
+  By default, `page`/`page_size`, `offset`/`limit` and cursor-based pagination
+  (`first`/`after` and `last`/`before`) are enabled. If you want to restrict the
+  pagination type for a schema, you can do that by setting the
+  `pagination_types` option.
+
+      @derive {Flop.Schema,
+                pagination_types: [:first, :last]}
+
+  See also `t:Flop.option/0` and `t:Flop.pagination_type/0`. Setting the value
+  to `nil` allows all pagination types.
   """
 
   @fallback_to_any true
@@ -82,6 +95,16 @@ defprotocol Flop.Schema do
   """
   @spec filterable(any) :: [atom]
   def filterable(data)
+
+  @doc """
+  Returns the allowed pagination types of a schema.
+
+      iex> Flop.Schema.pagination_types(%Flop.Fruit{})
+      [:first, :last, :offset]
+  """
+  @doc since: "0.9.0"
+  @spec pagination_types(any) :: [Flop.pagination_type()] | nil
+  def pagination_types(data)
 
   @doc """
   Returns the sortable fields of a schema.
@@ -153,6 +176,7 @@ defimpl Flop.Schema, for: Any do
 
     default_limit = Keyword.get(options, :default_limit)
     max_limit = Keyword.get(options, :max_limit)
+    pagination_types = Keyword.get(options, :pagination_types)
 
     default_order = %{
       order_by: Keyword.get(options, :default_order_by),
@@ -179,6 +203,10 @@ defimpl Flop.Schema, for: Any do
 
         def default_order(_) do
           unquote(Macro.escape(default_order))
+        end
+
+        def pagination_types(_) do
+          unquote(pagination_types)
         end
       end
     end
@@ -213,6 +241,13 @@ defimpl Flop.Schema, for: Any do
   end
 
   def default_order(struct) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol,
+      value: struct,
+      description: @instructions
+  end
+
+  def pagination_types(struct) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,
