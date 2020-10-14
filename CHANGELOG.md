@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+
+- Allow global configuration of `get_cursor_value_func`, `max_limit` and
+  `default_limit`.
+- Add `Flop.option` type, improve documentation of available options.
+
 ## [0.8.4] - 2020-10-14
 
 ### Fixed
