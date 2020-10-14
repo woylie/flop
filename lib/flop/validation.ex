@@ -132,7 +132,9 @@ defmodule Flop.Validation do
     do: changeset
 
   defp put_default_limit(changeset, module) do
-    default_limit = module |> struct() |> default_limit()
+    default_limit =
+      module |> struct() |> default_limit() ||
+        Application.get_env(:flop, :default_limit)
 
     if is_nil(default_limit) do
       changeset
@@ -182,7 +184,9 @@ defmodule Flop.Validation do
   defp validate_within_max_limit(changeset, _field, nil), do: changeset
 
   defp validate_within_max_limit(changeset, field, module) do
-    max_limit = module |> struct() |> max_limit()
+    max_limit =
+      module |> struct() |> max_limit() ||
+        Application.get_env(:flop, :max_limit)
 
     if is_nil(max_limit),
       do: changeset,

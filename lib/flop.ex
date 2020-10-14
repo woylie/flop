@@ -60,41 +60,57 @@ defmodule Flop do
   require Logger
 
   @typedoc """
-  Options that can be passed to most of functions.
+  Options that can be passed to most of the functions or that can be set via
+  the application environment.
 
   - `:for` - The schema module to be used for validation. `Flop.Schema` must be
     derived for the given module. This option is optional and can not be set
     globally. If it is not set, schema specific validation will be omitted. Used
     by the validation functions and passed on by any function calling a
     validation function.
+  - `:default_limit` - Sets a global default limit for queries that is used if
+    no default limit is set for a schema and no limit is set in the parameters.
+    Can only be set in the application configuration.
   - `:get_cursor_value_func` - 2-arity function used to get the (unencoded)
     cursor value from a record. Only used with cursor-based pagination. The
     first argument is the record, the second argument is the list of fields used
     in the `ORDER BY` clause. Needs to return a map with the order fields as
     keys and the the record values of these fields as values. Defaults to
     `Flop.Cursor.get_cursor_from_map/2`.
+  - `:max_limit` - Sets a global maximum limit for queries that is used if no
+    maximum limit is set for a schema. Can only be set in the application
+    configuration.
   - `:repo` - The Ecto Repo module to use for the database query. Used by all
     functions that execute a database query.
 
-  The options `:get_cursor_value_func` and `:repo` can also be set globally via
-  the application environment.
+  The options `:default_limit`, `:get_cursor_value_func`, `:max_limit` and
+  `:repo` can be set globally via the application environment.
 
       import Config
 
       config :flop,
+        default_limit: 25,
         get_cursor_value_func: &MyApp.Repo.get_cursor_value/2,
+        max_limit: 100,
         repo: MyApp.Repo
+
+  The options `:for`, `:get_cursor_value_func` and `:repo` can be passed
+  directly to the functions.
 
   The look up order is:
 
-  1. option passed to function
-  2. option set in global config
-  3. default value (if applicable)
+  1. option passed to function (except `:max_limit` and `:default_limit`)
+  2. option set for schema using `Flop.Schema` (only `:max_limit` and
+     `:default_limit`)
+  3. option set in global config
+  4. default value (only `:get_cursor_value_func`)
   """
 
   @type option ::
           {:for, module}
+          | {:default_limit, pos_integer}
           | {:get_cursor_value_func, (any, [atom] -> map)}
+          | {:max_limit, pos_integer}
           | {:repo, module}
 
   @typedoc """
