@@ -3,6 +3,8 @@ defmodule Flop.CursorTest do
 
   alias Flop.Cursor
 
+  doctest Flop.Cursor
+
   describe "encoding/decoding" do
     test "encoding and decoding returns original value" do
       value = %{a: "b", c: [:d], e: {:f, "g", 5}, h: ~U[2020-09-25 11:09:41Z]}

@@ -5,6 +5,9 @@ defmodule Flop.Cursor do
 
   @doc """
   Encodes a cursor value.
+
+      iex> Flop.Cursor.encode(%{name: "Peter", email: "peter@mail"})
+      "g3QAAAACZAAFZW1haWxtAAAACnBldGVyQG1haWxkAARuYW1lbQAAAAVQZXRlcg=="
   """
   @doc since: "0.8.0"
   @spec encode(map()) :: binary()
@@ -14,6 +17,9 @@ defmodule Flop.Cursor do
 
   @doc """
   Decodes a cursor value.
+
+      iex> Flop.Cursor.decode("g3QAAAABZAACaWRiAAACDg==")
+      %{id: 526}
   """
   @doc since: "0.8.0"
   @spec decode(binary()) :: map()
@@ -59,10 +65,49 @@ defmodule Flop.Cursor do
 
   @doc """
   Retrieves the start and end cursors from a query result.
+
+      iex> results = [%{name: "Mary"}, %{name: "Paul"}, %{name: "Peter"}]
+      iex> order_by = [:name]
+      iex>
+      iex> {start_cursor, end_cursor} =
+      ...>   Flop.Cursor.get_cursors(results, order_by)
+      {"g3QAAAABZAAEbmFtZW0AAAAETWFyeQ==", "g3QAAAABZAAEbmFtZW0AAAAFUGV0ZXI="}
+      iex>
+      iex> Flop.Cursor.decode(start_cursor)
+      %{name: "Mary"}
+      iex> Flop.Cursor.decode(end_cursor)
+      %{name: "Peter"}
+
+  If the result set is empty, the cursor values will be `nil`.
+
+      iex> Flop.Cursor.get_cursors([], [:id])
+      {nil, nil}
+
+  If the records in the result set are not maps, you can pass a custom cursor
+  value function.
+
+      iex> results = [{"Mary", 1936}, {"Paul", 1937}, {"Peter", 1938}]
+      iex> cursor_func = fn {name, year}, order_fields ->
+      ...>   Enum.into(order_fields, %{}, fn
+      ...>     :name -> {:name, name}
+      ...>     :year -> {:year, year}
+      ...>   end)
+      ...> end
+      iex>
+      iex> {start_cursor, end_cursor} =
+      ...>   Flop.Cursor.get_cursors(results, [:name, :year], get_cursor_value_func: cursor_func)
+      {"g3QAAAACZAAEbmFtZW0AAAAETWFyeWQABHllYXJiAAAHkA==",
+        "g3QAAAACZAAEbmFtZW0AAAAFUGV0ZXJkAAR5ZWFyYgAAB5I="}
+      iex>
+      iex> Flop.Cursor.decode(start_cursor)
+      %{name: "Mary", year: 1936}
+      iex> Flop.Cursor.decode(end_cursor)
+      %{name: "Peter", year: 1938}
   """
   @doc since: "0.8.0"
-  @spec get_cursors([any], [atom], keyword) :: {binary(), binary()} | {nil, nil}
-  def get_cursors(results, order_by, opts) do
+  @spec get_cursors([any], [atom], [Flop.option()]) ::
+          {binary(), binary()} | {nil, nil}
+  def get_cursors(results, order_by, opts \\ []) do
     get_cursor_value_func = get_cursor_value_func(opts)
 
     case results do
@@ -86,6 +131,13 @@ defmodule Flop.Cursor do
 
   This function is used as a default if no `:get_cursor_value_func` option is
   set.
+
+      iex> record = %{id: 20, name: "George", age: 62}
+      iex>
+      iex> Flop.Cursor.get_cursor_from_map(record, [:id])
+      %{id: 20}
+      iex> Flop.Cursor.get_cursor_from_map(record, [:name, :age])
+      %{age: 62, name: "George"}
   """
   @doc since: "0.8.0"
   @spec get_cursor_from_map(map, [atom]) :: map
