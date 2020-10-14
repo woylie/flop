@@ -594,6 +594,14 @@ defmodule FlopTest do
                Flop.validate(%{page: 10, page_size: 12}, for: Pet)
     end
 
+    test "does not apply default limit for cursor pagination" do
+      assert {:ok, %Flop{first: 20, limit: nil, page_size: nil}} =
+               Flop.validate(%{first: 20}, for: Fruit)
+
+      assert {:ok, %Flop{last: 20, limit: nil, page_size: nil}} =
+               Flop.validate(%{last: 20}, for: Fruit)
+    end
+
     test "applies default order" do
       # struct without configured default order
 

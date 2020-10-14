@@ -139,8 +139,10 @@ defmodule Flop.Validation do
     else
       limit = get_field(changeset, :limit)
       page_size = get_field(changeset, :page_size)
+      first = get_field(changeset, :first)
+      last = get_field(changeset, :last)
 
-      if is_nil(limit) && is_nil(page_size) do
+      if is_nil(limit) && is_nil(page_size) && is_nil(first) && is_nil(last) do
         put_change(changeset, :limit, default_limit)
       else
         changeset

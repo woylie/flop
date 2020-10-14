@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.8.4] - 2020-10-14
+
+### Fixed
+
+- Default limit was overriding `first` / `last` parameters when building query.
+
 ## [0.8.3] - 2020-10-14
 
 ### Fixed
