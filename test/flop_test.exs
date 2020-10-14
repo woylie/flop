@@ -6,6 +6,7 @@ defmodule FlopTest do
 
   import Ecto.Query
   import Flop.Factory
+  import Flop.Generators
   import Flop.TestUtil
 
   alias Ecto.Adapters.SQL.Sandbox
@@ -19,14 +20,6 @@ defmodule FlopTest do
   alias Flop.Repo
 
   @base_query from p in Pet, where: p.age > 8, select: p.name
-  @directions [
-    :asc,
-    :asc_nulls_first,
-    :asc_nulls_last,
-    :desc,
-    :desc_nulls_first,
-    :desc_nulls_last
-  ]
 
   setup do
     :ok = Sandbox.checkout(Repo)
@@ -794,10 +787,9 @@ defmodule FlopTest do
 
   describe "cursor paging" do
     property "querying cursor by cursor forward includes all items in order" do
-      check all pets <- uniq_list_of(pet_generator(), length: 1..100),
-                cursor_fields = Enum.shuffle([:age, :name, :species]),
-                cursor_fields <- constant(cursor_fields),
-                directions <- list_of(member_of(@directions), length: 3) do
+      check all pets <- uniq_list_of(pet(), length: 1..100),
+                cursor_fields <- cursor_fields(%Pet{}),
+                directions <- order_directions(%Pet{}) do
         # make sure we have a clean db after each generation
         :ok = Sandbox.checkin(Repo)
         :ok = Sandbox.checkout(Repo)
@@ -855,10 +847,9 @@ defmodule FlopTest do
     end
 
     property "querying all items returns same list forward and backward" do
-      check all pets <- uniq_list_of(pet_generator(), length: 1..100),
-                cursor_fields = Enum.shuffle([:age, :name, :species]),
-                cursor_fields <- constant(cursor_fields),
-                directions <- list_of(member_of(@directions), length: 3) do
+      check all pets <- uniq_list_of(pet(), length: 1..100),
+                cursor_fields <- cursor_fields(%Pet{}),
+                directions <- order_directions(%Pet{}) do
         # make sure we have a clean db after each generation
         :ok = Sandbox.checkin(Repo)
         :ok = Sandbox.checkout(Repo)
@@ -885,10 +876,9 @@ defmodule FlopTest do
     end
 
     property "querying cursor by cursor backward includes all items in order" do
-      check all pets <- uniq_list_of(pet_generator(), length: 1..100),
-                cursor_fields = Enum.shuffle([:age, :name, :species]),
-                cursor_fields <- constant(cursor_fields),
-                directions <- list_of(member_of(@directions), length: 3) do
+      check all pets <- uniq_list_of(pet(), length: 1..100),
+                cursor_fields <- cursor_fields(%Pet{}),
+                directions <- order_directions(%Pet{}) do
         # make sure we have a clean db after each generation
         :ok = Sandbox.checkin(Repo)
         :ok = Sandbox.checkout(Repo)
@@ -947,10 +937,9 @@ defmodule FlopTest do
     end
 
     property "has_previous_page? is false without after and last" do
-      check all pets <- uniq_list_of(pet_generator(), length: 1..100),
-                cursor_fields = Enum.shuffle([:age, :name, :species]),
-                cursor_fields <- constant(cursor_fields),
-                directions <- list_of(member_of(@directions), length: 3),
+      check all pets <- uniq_list_of(pet(), length: 1..100),
+                cursor_fields <- cursor_fields(%Pet{}),
+                directions <- order_directions(%Pet{}),
                 first <- integer(1..(length(pets) + 1)) do
         # make sure we have a clean db after each generation
         :ok = Sandbox.checkin(Repo)
@@ -969,10 +958,9 @@ defmodule FlopTest do
     end
 
     property "has_previous_page? is false with after" do
-      check all pets <- uniq_list_of(pet_generator(), length: 1..100),
-                cursor_fields = Enum.shuffle([:age, :name, :species]),
-                cursor_fields <- constant(cursor_fields),
-                directions <- list_of(member_of(@directions), length: 3),
+      check all pets <- uniq_list_of(pet(), length: 1..100),
+                cursor_fields <- cursor_fields(%Pet{}),
+                directions <- order_directions(%Pet{}),
                 first <- integer(1..(length(pets) + 1)),
                 cursor_pet <- member_of(pets) do
         # make sure we have a clean db after each generation
@@ -998,11 +986,10 @@ defmodule FlopTest do
     end
 
     property "has_previous_page? is true with last set and items left" do
-      check all pets <- uniq_list_of(pet_generator(), length: 3..100),
+      check all pets <- uniq_list_of(pet(), length: 3..100),
                 pet_count = length(pets),
-                cursor_fields = Enum.shuffle([:age, :name, :species]),
-                cursor_fields <- constant(cursor_fields),
-                directions <- list_of(member_of(@directions), length: 3),
+                cursor_fields <- cursor_fields(%Pet{}),
+                directions <- order_directions(%Pet{}),
                 last <- integer(1..(pet_count - 2)),
                 cursor_index <- integer((last + 1)..(pet_count - 1)) do
         # make sure we have a clean db after each generation
@@ -1036,11 +1023,10 @@ defmodule FlopTest do
     end
 
     property "has_previous_page? is false with last set and no items left" do
-      check all pets <- uniq_list_of(pet_generator(), length: 3..100),
+      check all pets <- uniq_list_of(pet(), length: 3..100),
                 pet_count = length(pets),
-                cursor_fields = Enum.shuffle([:age, :name, :species]),
-                cursor_fields <- constant(cursor_fields),
-                directions <- list_of(member_of(@directions), length: 3),
+                cursor_fields <- cursor_fields(%Pet{}),
+                directions <- order_directions(%Pet{}),
                 # include test with limits greater than item count
                 last <- integer(1..(pet_count + 20)),
                 cursor_index <- integer(0..min(pet_count - 1, last)) do
@@ -1075,10 +1061,9 @@ defmodule FlopTest do
     end
 
     property "has_next_page? is false without first and before" do
-      check all pets <- uniq_list_of(pet_generator(), length: 1..100),
-                cursor_fields = Enum.shuffle([:age, :name, :species]),
-                cursor_fields <- constant(cursor_fields),
-                directions <- list_of(member_of(@directions), length: 3),
+      check all pets <- uniq_list_of(pet(), length: 1..100),
+                cursor_fields <- cursor_fields(%Pet{}),
+                directions <- order_directions(%Pet{}),
                 last <- integer(1..(length(pets) + 1)) do
         # make sure we have a clean db after each generation
         :ok = Sandbox.checkin(Repo)
@@ -1097,10 +1082,9 @@ defmodule FlopTest do
     end
 
     property "has_next_page? is false with before" do
-      check all pets <- uniq_list_of(pet_generator(), length: 1..100),
-                cursor_fields = Enum.shuffle([:age, :name, :species]),
-                cursor_fields <- constant(cursor_fields),
-                directions <- list_of(member_of(@directions), length: 3),
+      check all pets <- uniq_list_of(pet(), length: 1..100),
+                cursor_fields <- cursor_fields(%Pet{}),
+                directions <- order_directions(%Pet{}),
                 last <- integer(1..(length(pets) + 1)),
                 cursor_pet <- member_of(pets) do
         # make sure we have a clean db after each generation
@@ -1126,11 +1110,10 @@ defmodule FlopTest do
     end
 
     property "has_next_page? is true with first set and items left" do
-      check all pets <- uniq_list_of(pet_generator(), length: 3..100),
+      check all pets <- uniq_list_of(pet(), length: 3..100),
                 pet_count = length(pets),
-                cursor_fields = Enum.shuffle([:age, :name, :species]),
-                cursor_fields <- constant(cursor_fields),
-                directions <- list_of(member_of(@directions), length: 3),
+                cursor_fields <- cursor_fields(%Pet{}),
+                directions <- order_directions(%Pet{}),
                 first <- integer(1..(pet_count - 2)),
                 cursor_index <- integer((first + 1)..(pet_count - 1)) do
         # make sure we have a clean db after each generation
@@ -1164,11 +1147,10 @@ defmodule FlopTest do
     end
 
     property "has_next_page? is false with first set and no items left" do
-      check all pets <- uniq_list_of(pet_generator(), length: 3..100),
+      check all pets <- uniq_list_of(pet(), length: 3..100),
                 pet_count = length(pets),
-                cursor_fields = Enum.shuffle([:age, :name, :species]),
-                cursor_fields <- constant(cursor_fields),
-                directions <- list_of(member_of(@directions), length: 3),
+                cursor_fields <- cursor_fields(%Pet{}),
+                directions <- order_directions(%Pet{}),
                 # include test with limits greater than item count
                 first <- integer(1..(pet_count + 20)),
                 cursor_index <- integer(0..min(pet_count - 1, first)) do

@@ -74,14 +74,6 @@ defmodule Flop.Factory do
     }
   end
 
-  def pet_generator do
-    gen all name <- string(:alphanumeric),
-            age <- integer(1..500),
-            species <- string(:alphanumeric) do
-      %{name: name, age: age, species: species}
-    end
-  end
-
   def pet_downcase_factory do
     Map.update!(build(:pet), :name, &String.downcase/1)
   end
@@ -97,29 +89,4 @@ defmodule Flop.Factory do
   def species_factory(_) do
     sequence(:species, @species)
   end
-
-  @doc """
-  Generates a filter struct.
-  """
-  def filter do
-    gen all field <- member_of([:age, :name]),
-            value <- value_by_field(field),
-            op <- operator_by_type(value) do
-      %Filter{field: field, op: op, value: value}
-    end
-  end
-
-  def value_by_field(:age), do: integer()
-  def value_by_field(:name), do: string(:alphanumeric, min_length: 1)
-
-  def compare_value_by_field(:age), do: integer(1..30)
-
-  def compare_value_by_field(:name),
-    do: string(?a..?z, min_length: 1, max_length: 3)
-
-  defp operator_by_type(a) when is_binary(a),
-    do: member_of([:==, :!=, :=~, :<=, :<, :>=, :>])
-
-  defp operator_by_type(a) when is_number(a),
-    do: member_of([:==, :!=, :<=, :<, :>=, :>])
 end
