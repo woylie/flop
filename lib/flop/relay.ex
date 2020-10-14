@@ -55,7 +55,8 @@ defmodule Flop.Relay do
     result and the `order_by` fields and returns the unencoded cursor value.
   """
   @doc since: "0.8.0"
-  @spec connection_from_result({[any], Meta.t()}, keyword) :: [connection()]
+  @spec connection_from_result({[any], Meta.t()}, [Flop.option()]) ::
+          connection()
   def connection_from_result({items, meta}, opts \\ []) when is_list(items) do
     %{
       edges: edges_from_result({items, meta}, opts),
