@@ -3,8 +3,6 @@ defmodule Flop.Generators do
   use ExUnitProperties
 
   alias Flop.Filter
-  alias Flop.Fruit
-  alias Flop.Pet
 
   @order_directions [
     :asc,
