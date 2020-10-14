@@ -794,7 +794,7 @@ defmodule FlopTest do
 
   describe "cursor paging" do
     property "querying cursor by cursor forward includes all items in order" do
-      check all pets <- nonempty(uniq_list_of(pet_generator())),
+      check all pets <- uniq_list_of(pet_generator(), length: 1..100),
                 cursor_fields = Enum.shuffle([:age, :name, :species]),
                 cursor_fields <- constant(cursor_fields),
                 directions <- list_of(member_of(@directions), length: 3) do
@@ -855,7 +855,7 @@ defmodule FlopTest do
     end
 
     property "querying all items returns same list forward and backward" do
-      check all pets <- nonempty(uniq_list_of(pet_generator())),
+      check all pets <- uniq_list_of(pet_generator(), length: 1..100),
                 cursor_fields = Enum.shuffle([:age, :name, :species]),
                 cursor_fields <- constant(cursor_fields),
                 directions <- list_of(member_of(@directions), length: 3) do
@@ -885,7 +885,7 @@ defmodule FlopTest do
     end
 
     property "querying cursor by cursor backward includes all items in order" do
-      check all pets <- nonempty(uniq_list_of(pet_generator())),
+      check all pets <- uniq_list_of(pet_generator(), length: 1..100),
                 cursor_fields = Enum.shuffle([:age, :name, :species]),
                 cursor_fields <- constant(cursor_fields),
                 directions <- list_of(member_of(@directions), length: 3) do
