@@ -60,15 +60,42 @@ defmodule Flop do
   require Logger
 
   @typedoc """
-  Options that can be passed to most of functions. Most of them can also be set
-  globally via the application environment, except where indicated.
+  Options that can be passed to most of functions.
 
   - `:for` - The schema module to be used for validation. `Flop.Schema` must be
     derived for the given module. This option is optional and can not be set
-    globally. If it is not set, schema specific validation will be omitted.
-  - `:repo` - The Ecto Repo module to use for the database query.
+    globally. If it is not set, schema specific validation will be omitted. Used
+    by the validation functions and passed on by any function calling a
+    validation function.
+  - `:get_cursor_value_func` - 2-arity function used to get the (unencoded)
+    cursor value from a record. Only used with cursor-based pagination. The
+    first argument is the record, the second argument is the list of fields used
+    in the `ORDER BY` clause. Needs to return a map with the order fields as
+    keys and the the record values of these fields as values. Defaults to
+    `Flop.Cursor.get_cursor_from_map/2`.
+  - `:repo` - The Ecto Repo module to use for the database query. Used by all
+    functions that execute a database query.
+
+  The options `:get_cursor_value_func` and `:repo` can also be set globally via
+  the application environment.
+
+      import Config
+
+      config :flop,
+        get_cursor_value_func: &MyApp.Repo.get_cursor_value/2,
+        repo: MyApp.Repo
+
+  The look up order is:
+
+  1. option passed to function
+  2. option set in global config
+  3. default value (if applicable)
   """
-  @type option :: {:for, module} | {:repo, module}
+
+  @type option ::
+          {:for, module}
+          | {:get_cursor_value_func, (any, [atom] -> map)}
+          | {:repo, module}
 
   @typedoc """
   Represents the supported order direction values.

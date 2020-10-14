@@ -63,8 +63,7 @@ defmodule Flop.Cursor do
   @doc since: "0.8.0"
   @spec get_cursors([any], [atom], keyword) :: {binary(), binary()} | {nil, nil}
   def get_cursors(results, order_by, opts) do
-    get_cursor_value_func =
-      Keyword.get(opts, :get_cursor_value_func, &get_cursor_from_map/2)
+    get_cursor_value_func = get_cursor_value_func(opts)
 
     case results do
       [] ->
@@ -92,5 +91,12 @@ defmodule Flop.Cursor do
   @spec get_cursor_from_map(map, [atom]) :: map
   def get_cursor_from_map(item, order_by) do
     Map.take(item, order_by)
+  end
+
+  @doc false
+  def get_cursor_value_func(opts \\ []) do
+    opts[:get_cursor_value_func] ||
+      Application.get_env(:flop, :get_cursor_value_func) ||
+      (&get_cursor_from_map/2)
   end
 end
