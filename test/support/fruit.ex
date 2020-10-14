@@ -9,7 +9,8 @@ defmodule Flop.Fruit do
            sortable: [:name],
            default_limit: 50,
            default_order_by: [:name],
-           default_order_directions: [:asc]}
+           default_order_directions: [:asc],
+           pagination_types: [:first, :last, :offset]}
 
   schema "fruits" do
     field :name, :string

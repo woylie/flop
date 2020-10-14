@@ -7,7 +7,7 @@ defmodule Flop.Validation do
   alias Ecto.Changeset
   alias Flop.Filter
 
-  @spec changeset(map, keyword) :: Changeset.t()
+  @spec changeset(map, [Flop.option()]) :: Changeset.t()
   def changeset(%{} = params, opts) do
     %Flop{}
     |> cast(params, [
@@ -36,6 +36,7 @@ defmodule Flop.Validation do
     |> validate_number(:last, greater_than: 0)
     |> validate_page_and_page_size(opts[:for])
     |> validate_offset_and_limit(opts[:for])
+    |> validate_pagination_types(opts)
     |> validate_sortable(opts[:for])
     |> put_default_order(opts[:for])
     |> validate_order_by_for_cursor_pagination()
@@ -62,6 +63,74 @@ defmodule Flop.Validation do
       )
     else
       changeset
+    end
+  end
+
+  defp validate_pagination_types(changeset, opts) do
+    pagination_types =
+      opts[:pagination_types] ||
+        pagination_types_for_schema(opts[:for]) ||
+        Application.get_env(:flop, :pagination_types)
+
+    if is_nil(pagination_types) do
+      changeset
+    else
+      case get_pagination_type(changeset) do
+        nil ->
+          changeset
+
+        pagination_type ->
+          if pagination_type in pagination_types,
+            do: changeset,
+            else: add_pagination_type_error(changeset, pagination_type)
+      end
+    end
+  end
+
+  defp pagination_types_for_schema(nil), do: nil
+
+  defp pagination_types_for_schema(module),
+    do: module |> struct() |> pagination_types()
+
+  defp get_pagination_type(changeset) do
+    cond do
+      get_field(changeset, :first) -> :first
+      get_field(changeset, :last) -> :last
+      get_field(changeset, :page) -> :page
+      get_field(changeset, :limit) -> :offset
+      true -> nil
+    end
+  end
+
+  defp add_pagination_type_error(changeset, pagination_type) do
+    case pagination_type do
+      :first ->
+        add_error(
+          changeset,
+          :first,
+          "cursor-based pagination with first/after is not allowed"
+        )
+
+      :last ->
+        add_error(
+          changeset,
+          :last,
+          "cursor-based pagination with last/before is not allowed"
+        )
+
+      :offset ->
+        add_error(
+          changeset,
+          :limit,
+          "offset/limit pagination is not allowed"
+        )
+
+      :page ->
+        add_error(
+          changeset,
+          :page,
+          "page-based pagination is not allowed"
+        )
     end
   end
 
