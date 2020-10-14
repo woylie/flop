@@ -336,7 +336,6 @@ defmodule Flop do
   def meta(
         results,
         %Flop{
-          after: after_,
           first: first,
           order_by: order_by,
           before: nil,
@@ -354,8 +353,8 @@ defmodule Flop do
       flop: flop,
       start_cursor: start_cursor,
       end_cursor: end_cursor,
-      has_next_page?: length(results) == first + 1,
-      has_previous_page?: !is_nil(after_)
+      has_next_page?: length(results) > first,
+      has_previous_page?: false
     }
   end
 
@@ -380,7 +379,7 @@ defmodule Flop do
       flop: flop,
       start_cursor: start_cursor,
       end_cursor: end_cursor,
-      has_next_page?: true,
+      has_next_page?: false,
       has_previous_page?: length(results) > last
     }
   end

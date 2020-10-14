@@ -946,102 +946,260 @@ defmodule FlopTest do
       end
     end
 
-    test "pages are presented in expected order" do
-      pets = insert_list(6, :pet)
+    property "has_previous_page? is false without after and last" do
+      check all pets <- uniq_list_of(pet_generator(), length: 1..100),
+                cursor_fields = Enum.shuffle([:age, :name, :species]),
+                cursor_fields <- constant(cursor_fields),
+                directions <- list_of(member_of(@directions), length: 3),
+                first <- integer(1..(length(pets) + 1)) do
+        # make sure we have a clean db after each generation
+        :ok = Sandbox.checkin(Repo)
+        :ok = Sandbox.checkout(Repo)
 
-      {:ok, {r1, %Meta{end_cursor: end_cursor}}} =
-        Flop.validate_and_run(
-          Pet,
-          %Flop{first: 2, order_by: [:id]}
-        )
+        pet_count = length(pets)
+        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
 
-      {:ok, {r2, %Meta{end_cursor: end_cursor}}} =
-        Flop.validate_and_run(
-          Pet,
-          %Flop{first: 2, after: end_cursor, order_by: [:id]}
-        )
-
-      {:ok, {r3, %Meta{start_cursor: start_cursor}}} =
-        Flop.validate_and_run(
-          Pet,
-          %Flop{first: 2, after: end_cursor, order_by: [:id]}
-        )
-
-      {:ok, {r4, %Meta{start_cursor: start_cursor}}} =
-        Flop.validate_and_run(
-          Pet,
-          %Flop{last: 2, before: start_cursor, order_by: [:id]}
-        )
-
-      {:ok, {r5, _}} =
-        Flop.validate_and_run(
-          Pet,
-          %Flop{last: 2, before: start_cursor, order_by: [:id]}
-        )
-
-      assert r1 == Enum.take(pets, 2)
-      assert r2 == pets |> Enum.drop(2) |> Enum.take(2)
-      assert r3 == pets |> Enum.drop(2) |> Enum.drop(2) |> Enum.take(2)
-      assert r2 == r4
-      assert r1 == r5
+        assert {_, %Meta{has_previous_page?: false}} =
+                 Flop.validate_and_run!(Pet, %Flop{
+                   first: first,
+                   order_by: cursor_fields,
+                   order_directions: directions
+                 })
+      end
     end
 
-    test "next and previous page flags are set properly" do
-      insert_list(6, :pet)
+    property "has_previous_page? is false with after" do
+      check all pets <- uniq_list_of(pet_generator(), length: 1..100),
+                cursor_fields = Enum.shuffle([:age, :name, :species]),
+                cursor_fields <- constant(cursor_fields),
+                directions <- list_of(member_of(@directions), length: 3),
+                first <- integer(1..(length(pets) + 1)),
+                cursor_pet <- member_of(pets) do
+        # make sure we have a clean db after each generation
+        :ok = Sandbox.checkin(Repo)
+        :ok = Sandbox.checkout(Repo)
 
-      {:ok,
-       {_r1,
-        %Meta{
-          end_cursor: end_cursor,
-          has_next_page?: true,
-          has_previous_page?: false
-        }}} =
-        Flop.validate_and_run(
-          Pet,
-          %Flop{first: 2, order_by: [:id]}
-        )
+        pet_count = length(pets)
+        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
 
-      {:ok,
-       {_r2,
-        %Meta{
-          end_cursor: end_cursor,
-          has_next_page?: true,
-          has_previous_page?: true
-        }}} =
-        Flop.validate_and_run(
-          Pet,
-          %Flop{first: 2, after: end_cursor, order_by: [:id]}
-        )
+        cursor =
+          cursor_fields
+          |> Enum.into(%{}, fn field -> {field, Map.get(cursor_pet, field)} end)
+          |> Flop.Cursor.encode()
 
-      {:ok,
-       {_r3,
-        %Meta{
-          has_next_page?: false,
-          has_previous_page?: true,
-          start_cursor: start_cursor
-        }}} =
-        Flop.validate_and_run(
-          Pet,
-          %Flop{first: 2, after: end_cursor, order_by: [:id]}
-        )
+        assert {_, %Meta{has_previous_page?: false}} =
+                 Flop.validate_and_run!(Pet, %Flop{
+                   first: first,
+                   after: cursor,
+                   order_by: cursor_fields,
+                   order_directions: directions
+                 })
+      end
+    end
 
-      {:ok,
-       {_r4,
-        %Meta{
-          start_cursor: start_cursor,
-          has_next_page?: true,
-          has_previous_page?: true
-        }}} =
-        Flop.validate_and_run(
-          Pet,
-          %Flop{last: 2, before: start_cursor, order_by: [:id]}
-        )
+    property "has_previous_page? is true with last set and items left" do
+      check all pets <- uniq_list_of(pet_generator(), length: 3..100),
+                pet_count = length(pets),
+                cursor_fields = Enum.shuffle([:age, :name, :species]),
+                cursor_fields <- constant(cursor_fields),
+                directions <- list_of(member_of(@directions), length: 3),
+                last <- integer(1..(pet_count - 2)),
+                cursor_index <- integer((last + 1)..(pet_count - 1)) do
+        # make sure we have a clean db after each generation
+        :ok = Sandbox.checkin(Repo)
+        :ok = Sandbox.checkout(Repo)
 
-      {:ok, {_r5, %Meta{has_next_page?: true, has_previous_page?: false}}} =
-        Flop.validate_and_run(
-          Pet,
-          %Flop{last: 2, before: start_cursor, order_by: [:id]}
-        )
+        # insert pets
+        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
+        order_by = Enum.zip(directions, cursor_fields)
+
+        # retrieve ordered pets
+        pets = Pet |> order_by(^order_by) |> Repo.all()
+        assert length(pets) == pet_count
+
+        # retrieve cursor
+        pet = Enum.at(pets, cursor_index)
+
+        cursor =
+          cursor_fields
+          |> Enum.into(%{}, fn field -> {field, Map.get(pet, field)} end)
+          |> Flop.Cursor.encode()
+
+        assert {_, %Meta{has_previous_page?: true}} =
+                 Flop.validate_and_run!(Pet, %Flop{
+                   last: last,
+                   before: cursor,
+                   order_by: cursor_fields,
+                   order_directions: directions
+                 })
+      end
+    end
+
+    property "has_previous_page? is false with last set and no items left" do
+      check all pets <- uniq_list_of(pet_generator(), length: 3..100),
+                pet_count = length(pets),
+                cursor_fields = Enum.shuffle([:age, :name, :species]),
+                cursor_fields <- constant(cursor_fields),
+                directions <- list_of(member_of(@directions), length: 3),
+                # include test with limits greater than item count
+                last <- integer(1..(pet_count + 20)),
+                cursor_index <- integer(0..min(pet_count - 1, last)) do
+        # make sure we have a clean db after each generation
+        :ok = Sandbox.checkin(Repo)
+        :ok = Sandbox.checkout(Repo)
+
+        # insert pets
+        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
+        order_by = Enum.zip(directions, cursor_fields)
+
+        # retrieve ordered pets
+        pets = Pet |> order_by(^order_by) |> Repo.all()
+        assert length(pets) == pet_count
+
+        # retrieve cursor
+        pet = Enum.at(pets, cursor_index)
+
+        cursor =
+          cursor_fields
+          |> Enum.into(%{}, fn field -> {field, Map.get(pet, field)} end)
+          |> Flop.Cursor.encode()
+
+        assert {_, %Meta{has_previous_page?: false}} =
+                 Flop.validate_and_run!(Pet, %Flop{
+                   last: last,
+                   before: cursor,
+                   order_by: cursor_fields,
+                   order_directions: directions
+                 })
+      end
+    end
+
+    property "has_next_page? is false without first and before" do
+      check all pets <- uniq_list_of(pet_generator(), length: 1..100),
+                cursor_fields = Enum.shuffle([:age, :name, :species]),
+                cursor_fields <- constant(cursor_fields),
+                directions <- list_of(member_of(@directions), length: 3),
+                last <- integer(1..(length(pets) + 1)) do
+        # make sure we have a clean db after each generation
+        :ok = Sandbox.checkin(Repo)
+        :ok = Sandbox.checkout(Repo)
+
+        pet_count = length(pets)
+        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
+
+        assert {_, %Meta{has_next_page?: false}} =
+                 Flop.validate_and_run!(Pet, %Flop{
+                   last: last,
+                   order_by: cursor_fields,
+                   order_directions: directions
+                 })
+      end
+    end
+
+    property "has_next_page? is false with before" do
+      check all pets <- uniq_list_of(pet_generator(), length: 1..100),
+                cursor_fields = Enum.shuffle([:age, :name, :species]),
+                cursor_fields <- constant(cursor_fields),
+                directions <- list_of(member_of(@directions), length: 3),
+                last <- integer(1..(length(pets) + 1)),
+                cursor_pet <- member_of(pets) do
+        # make sure we have a clean db after each generation
+        :ok = Sandbox.checkin(Repo)
+        :ok = Sandbox.checkout(Repo)
+
+        pet_count = length(pets)
+        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
+
+        cursor =
+          cursor_fields
+          |> Enum.into(%{}, fn field -> {field, Map.get(cursor_pet, field)} end)
+          |> Flop.Cursor.encode()
+
+        assert {_, %Meta{has_next_page?: false}} =
+                 Flop.validate_and_run!(Pet, %Flop{
+                   last: last,
+                   before: cursor,
+                   order_by: cursor_fields,
+                   order_directions: directions
+                 })
+      end
+    end
+
+    property "has_next_page? is true with first set and items left" do
+      check all pets <- uniq_list_of(pet_generator(), length: 3..100),
+                pet_count = length(pets),
+                cursor_fields = Enum.shuffle([:age, :name, :species]),
+                cursor_fields <- constant(cursor_fields),
+                directions <- list_of(member_of(@directions), length: 3),
+                first <- integer(1..(pet_count - 2)),
+                cursor_index <- integer((first + 1)..(pet_count - 1)) do
+        # make sure we have a clean db after each generation
+        :ok = Sandbox.checkin(Repo)
+        :ok = Sandbox.checkout(Repo)
+
+        # insert pets
+        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
+        order_by = Enum.zip(directions, cursor_fields)
+
+        # retrieve ordered pets
+        pets = Pet |> order_by(^order_by) |> Repo.all() |> Enum.reverse()
+        assert length(pets) == pet_count
+
+        # retrieve cursor
+        pet = Enum.at(pets, cursor_index)
+
+        cursor =
+          cursor_fields
+          |> Enum.into(%{}, fn field -> {field, Map.get(pet, field)} end)
+          |> Flop.Cursor.encode()
+
+        assert {_, %Meta{has_next_page?: true}} =
+                 Flop.validate_and_run!(Pet, %Flop{
+                   first: first,
+                   after: cursor,
+                   order_by: cursor_fields,
+                   order_directions: directions
+                 })
+      end
+    end
+
+    property "has_next_page? is false with first set and no items left" do
+      check all pets <- uniq_list_of(pet_generator(), length: 3..100),
+                pet_count = length(pets),
+                cursor_fields = Enum.shuffle([:age, :name, :species]),
+                cursor_fields <- constant(cursor_fields),
+                directions <- list_of(member_of(@directions), length: 3),
+                # include test with limits greater than item count
+                first <- integer(1..(pet_count + 20)),
+                cursor_index <- integer(0..min(pet_count - 1, first)) do
+        # make sure we have a clean db after each generation
+        :ok = Sandbox.checkin(Repo)
+        :ok = Sandbox.checkout(Repo)
+
+        # insert pets
+        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
+        order_by = Enum.zip(directions, cursor_fields)
+
+        # retrieve ordered pets
+        pets = Pet |> order_by(^order_by) |> Repo.all() |> Enum.reverse()
+        assert length(pets) == pet_count
+
+        # retrieve cursor
+        pet = Enum.at(pets, cursor_index)
+
+        cursor =
+          cursor_fields
+          |> Enum.into(%{}, fn field -> {field, Map.get(pet, field)} end)
+          |> Flop.Cursor.encode()
+
+        assert {_, %Meta{has_previous_page?: false}} =
+                 Flop.validate_and_run!(Pet, %Flop{
+                   first: first,
+                   after: cursor,
+                   order_by: cursor_fields,
+                   order_directions: directions
+                 })
+      end
     end
 
     test "get_cursor_value function can be overridden" do
@@ -1056,8 +1214,7 @@ defmodule FlopTest do
        {_r1,
         %Meta{
           end_cursor: end_cursor,
-          has_next_page?: true,
-          has_previous_page?: false
+          has_next_page?: true
         }}} =
         Flop.validate_and_run(
           query,
@@ -1069,8 +1226,7 @@ defmodule FlopTest do
        {_r2,
         %Meta{
           end_cursor: _end_cursor,
-          has_next_page?: false,
-          has_previous_page?: true
+          has_next_page?: false
         }}} =
         Flop.validate_and_run(
           query,
