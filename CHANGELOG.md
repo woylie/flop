@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## [0.8.3] - 2020-10-14
+
+### Fixed
+
+- Cursor-based pagination: `has_next_page?` was set when querying with `last`
+  based on `before` being set. Likewise, `has_previous_page?` was set when
+  querying with `first` based on `after` being set. Both assumptions are wrong.
+  In both cases, the values are always set to `false` now.
+
 ## [0.8.2] - 2020-10-08
 
 ### Changed
