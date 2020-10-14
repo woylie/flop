@@ -93,9 +93,10 @@ defmodule Flop.Cursor do
       ...>     :year -> {:year, year}
       ...>   end)
       ...> end
+      iex> opts = [get_cursor_value_func: cursor_func]
       iex>
       iex> {start_cursor, end_cursor} =
-      ...>   Flop.Cursor.get_cursors(results, [:name, :year], get_cursor_value_func: cursor_func)
+      ...>   Flop.Cursor.get_cursors(results, [:name, :year], opts)
       {"g3QAAAACZAAEbmFtZW0AAAAETWFyeWQABHllYXJiAAAHkA==",
         "g3QAAAACZAAEbmFtZW0AAAAFUGV0ZXJkAAR5ZWFyYgAAB5I="}
       iex>
