@@ -55,7 +55,8 @@ defmodule Flop.Relay do
     result and the `order_by` fields and returns the unencoded cursor value.
   """
   @doc since: "0.8.0"
-  @spec connection_from_result({[any], Meta.t()}, keyword) :: [connection()]
+  @spec connection_from_result({[any], Meta.t()}, [Flop.option()]) ::
+          connection()
   def connection_from_result({items, meta}, opts \\ []) when is_list(items) do
     %{
       edges: edges_from_result({items, meta}, opts),
@@ -164,14 +165,13 @@ defmodule Flop.Relay do
     result and the `order_by` fields and returns the unencoded cursor value.
   """
   @doc since: "0.8.0"
-  @spec edges_from_result({[{any, any}] | [any], Meta.t()}, keyword) :: [edge()]
+  @spec edges_from_result({[{any, any}] | [any], Meta.t()}, [Flop.option()]) ::
+          [edge()]
   def edges_from_result(
         {items, %Meta{flop: %Flop{order_by: order_by}}},
         opts \\ []
       ) do
-    get_cursor_value_func =
-      Keyword.get(opts, :get_cursor_value_func, &Cursor.get_cursor_from_map/2)
-
+    get_cursor_value_func = Cursor.get_cursor_value_func(opts)
     Enum.map(items, &build_edge(&1, order_by, get_cursor_value_func))
   end
 

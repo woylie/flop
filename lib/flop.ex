@@ -60,6 +60,60 @@ defmodule Flop do
   require Logger
 
   @typedoc """
+  Options that can be passed to most of the functions or that can be set via
+  the application environment.
+
+  - `:for` - The schema module to be used for validation. `Flop.Schema` must be
+    derived for the given module. This option is optional and can not be set
+    globally. If it is not set, schema specific validation will be omitted. Used
+    by the validation functions and passed on by any function calling a
+    validation function.
+  - `:default_limit` - Sets a global default limit for queries that is used if
+    no default limit is set for a schema and no limit is set in the parameters.
+    Can only be set in the application configuration.
+  - `:get_cursor_value_func` - 2-arity function used to get the (unencoded)
+    cursor value from a record. Only used with cursor-based pagination. The
+    first argument is the record, the second argument is the list of fields used
+    in the `ORDER BY` clause. Needs to return a map with the order fields as
+    keys and the the record values of these fields as values. Defaults to
+    `Flop.Cursor.get_cursor_from_map/2`.
+  - `:max_limit` - Sets a global maximum limit for queries that is used if no
+    maximum limit is set for a schema. Can only be set in the application
+    configuration.
+  - `:repo` - The Ecto Repo module to use for the database query. Used by all
+    functions that execute a database query.
+
+  The options `:default_limit`, `:get_cursor_value_func`, `:max_limit` and
+  `:repo` can be set globally via the application environment.
+
+      import Config
+
+      config :flop,
+        default_limit: 25,
+        get_cursor_value_func: &MyApp.Repo.get_cursor_value/2,
+        max_limit: 100,
+        repo: MyApp.Repo
+
+  The options `:for`, `:get_cursor_value_func` and `:repo` can be passed
+  directly to the functions.
+
+  The look up order is:
+
+  1. option passed to function (except `:max_limit` and `:default_limit`)
+  2. option set for schema using `Flop.Schema` (only `:max_limit` and
+     `:default_limit`)
+  3. option set in global config
+  4. default value (only `:get_cursor_value_func`)
+  """
+
+  @type option ::
+          {:for, module}
+          | {:default_limit, pos_integer}
+          | {:get_cursor_value_func, (any, [atom] -> map)}
+          | {:max_limit, pos_integer}
+          | {:repo, module}
+
+  @typedoc """
   Represents the supported order direction values.
   """
   @type order_direction ::
@@ -166,7 +220,7 @@ defmodule Flop do
       []
   """
   @doc since: "0.6.0"
-  @spec all(Queryable.t(), Flop.t(), keyword) :: [any]
+  @spec all(Queryable.t(), Flop.t(), [option()]) :: [any]
   def all(q, flop, opts \\ []) do
     repo = opts[:repo] || default_repo() || raise no_repo_error("all")
     apply(repo, :all, [query(q, flop)])
@@ -188,7 +242,7 @@ defmodule Flop do
       true
   """
   @doc since: "0.6.0"
-  @spec run(Queryable.t(), Flop.t(), keyword) :: {[any], Meta.t()}
+  @spec run(Queryable.t(), Flop.t(), [option()]) :: {[any], Meta.t()}
   def run(q, flop, opts \\ [])
 
   def run(
@@ -252,7 +306,7 @@ defmodule Flop do
     Defaults to `Flop.Cursor.get_cursor_from_map/2`.
   """
   @doc since: "0.6.0"
-  @spec validate_and_run(Queryable.t(), map | Flop.t(), keyword) ::
+  @spec validate_and_run(Queryable.t(), map | Flop.t(), [option()]) ::
           {:ok, {[any], Meta.t()}} | {:error, Changeset.t()}
   def validate_and_run(q, flop, opts \\ []) do
     validate_opts = Keyword.take(opts, [:for])
@@ -266,7 +320,7 @@ defmodule Flop do
   Same as `Flop.validate_and_run/3`, but raises on error.
   """
   @doc since: "0.6.0"
-  @spec validate_and_run!(Queryable.t(), map | Flop.t(), keyword) ::
+  @spec validate_and_run!(Queryable.t(), map | Flop.t(), [option()]) ::
           {[any], Meta.t()}
   def validate_and_run!(q, flop, opts \\ []) do
     validate_opts = Keyword.take(opts, [:for])
@@ -293,7 +347,7 @@ defmodule Flop do
       0
   """
   @doc since: "0.6.0"
-  @spec count(Queryable.t(), Flop.t(), keyword) :: non_neg_integer
+  @spec count(Queryable.t(), Flop.t(), [option()]) :: non_neg_integer
   def count(q, flop, opts \\ []) do
     repo = opts[:repo] || default_repo() || raise no_repo_error("count")
     apply(repo, :aggregate, [filter(q, flop), :count])
@@ -330,7 +384,7 @@ defmodule Flop do
   to render the pagination links anyway, so this shouldn't be a problem.
   """
   @doc since: "0.6.0"
-  @spec meta(Queryable.t() | [any], Flop.t(), keyword) :: Meta.t()
+  @spec meta(Queryable.t() | [any], Flop.t(), [option()]) :: Meta.t()
   def meta(query_or_results, flop, opts \\ [])
 
   def meta(
@@ -772,7 +826,7 @@ defmodule Flop do
   precisely: a field name that doesn't exist as an atom) will result in
   the error message `is invalid`. This might change in the future.
   """
-  @spec validate(Flop.t() | map, keyword) ::
+  @spec validate(Flop.t() | map, [option()]) ::
           {:ok, Flop.t()} | {:error, Changeset.t()}
   def validate(flop, opts \\ [])
 
@@ -803,7 +857,7 @@ defmodule Flop do
   parameters are invalid.
   """
   @doc since: "0.5.0"
-  @spec validate!(Flop.t() | map, keyword) :: Flop.t()
+  @spec validate!(Flop.t() | map, [option()]) :: Flop.t()
   def validate!(flop, opts \\ []) do
     case validate(flop, opts) do
       {:ok, flop} ->

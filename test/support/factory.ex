@@ -1,9 +1,7 @@
 defmodule Flop.Factory do
   @moduledoc false
   use ExMachina.Ecto, repo: Flop.Repo
-  use ExUnitProperties
 
-  alias Flop.Filter
   alias Flop.Fruit
   alias Flop.Pet
 
