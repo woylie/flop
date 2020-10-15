@@ -39,6 +39,12 @@ defmodule Flop.Cursor do
       iex> cursor = Flop.Cursor.encode(%{"a" => "b"})
       iex> Flop.Cursor.decode(cursor)
       :error
+
+  Trying to decode a cursor that contains non-existent atoms also results in an
+  error.
+
+      iex> Flop.Cursor.decode("g3QAAAABZAAGYmFybmV5ZAAGcnViYmVs")
+      :error
   """
   @doc since: "0.8.0"
   @spec decode(binary()) :: {:ok, map()} | :error
