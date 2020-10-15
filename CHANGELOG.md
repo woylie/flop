@@ -4,11 +4,21 @@
 
 ### Added
 
-- Allow restriction pagination types globally, for a schema or by passing an
+- Allow restricting pagination types globally, for a schema or by passing an
   option.
 - Allow global configuration of `get_cursor_value_func`, `max_limit` and
   `default_limit`.
 - Add `Flop.option` type, improve documentation of available options.
+- Add `Flop.Cursor.decode!/1`.
+
+### Changed
+
+- Refactored the parameter validation. Default limits are now applied to all
+  pagination types. Added validation for the `after` / `before` cursor values.
+- `Flop.Cursor.decode/1` returns `:ok` tuple or `:error` now instead of raising
+  an error if the cursor is invalid.
+- `Flop.Cursor.decode/1` returns an error if the decoded cursor value is not a
+  map with atom keys.
 
 ## [0.8.4] - 2020-10-14
 
