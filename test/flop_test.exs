@@ -795,7 +795,7 @@ defmodule FlopTest do
 
   describe "cursor paging" do
     property "querying cursor by cursor forward includes all items in order" do
-      check all pets <- uniq_list_of(pet(), length: 1..100),
+      check all pets <- uniq_list_of(pet(), length: 1..50),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
         # make sure we have a clean db after each generation
@@ -855,7 +855,7 @@ defmodule FlopTest do
     end
 
     property "querying all items returns same list forward and backward" do
-      check all pets <- uniq_list_of(pet(), length: 1..100),
+      check all pets <- uniq_list_of(pet(), length: 1..50),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
         # make sure we have a clean db after each generation
@@ -884,7 +884,7 @@ defmodule FlopTest do
     end
 
     property "querying cursor by cursor backward includes all items in order" do
-      check all pets <- uniq_list_of(pet(), length: 1..100),
+      check all pets <- uniq_list_of(pet(), length: 1..50),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
         # make sure we have a clean db after each generation
@@ -945,7 +945,7 @@ defmodule FlopTest do
     end
 
     property "has_previous_page? is false without after and last" do
-      check all pets <- uniq_list_of(pet(), length: 1..100),
+      check all pets <- uniq_list_of(pet(), length: 1..50),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
                 first <- integer(1..(length(pets) + 1)) do
@@ -966,7 +966,7 @@ defmodule FlopTest do
     end
 
     property "has_previous_page? is false with after" do
-      check all pets <- uniq_list_of(pet(), length: 1..100),
+      check all pets <- uniq_list_of(pet(), length: 1..50),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
                 first <- integer(1..(length(pets) + 1)),
@@ -994,7 +994,7 @@ defmodule FlopTest do
     end
 
     property "has_previous_page? is true with last set and items left" do
-      check all pets <- uniq_list_of(pet(), length: 3..100),
+      check all pets <- uniq_list_of(pet(), length: 3..50),
                 pet_count = length(pets),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
@@ -1031,7 +1031,7 @@ defmodule FlopTest do
     end
 
     property "has_previous_page? is false with last set and no items left" do
-      check all pets <- uniq_list_of(pet(), length: 3..100),
+      check all pets <- uniq_list_of(pet(), length: 3..50),
                 pet_count = length(pets),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
@@ -1069,7 +1069,7 @@ defmodule FlopTest do
     end
 
     property "has_next_page? is false without first and before" do
-      check all pets <- uniq_list_of(pet(), length: 1..100),
+      check all pets <- uniq_list_of(pet(), length: 1..50),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
                 last <- integer(1..(length(pets) + 1)) do
@@ -1090,7 +1090,7 @@ defmodule FlopTest do
     end
 
     property "has_next_page? is false with before" do
-      check all pets <- uniq_list_of(pet(), length: 1..100),
+      check all pets <- uniq_list_of(pet(), length: 1..50),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
                 last <- integer(1..(length(pets) + 1)),
@@ -1118,7 +1118,7 @@ defmodule FlopTest do
     end
 
     property "has_next_page? is true with first set and items left" do
-      check all pets <- uniq_list_of(pet(), length: 3..100),
+      check all pets <- uniq_list_of(pet(), length: 3..50),
                 pet_count = length(pets),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
@@ -1155,7 +1155,7 @@ defmodule FlopTest do
     end
 
     property "has_next_page? is false with first set and no items left" do
-      check all pets <- uniq_list_of(pet(), length: 3..100),
+      check all pets <- uniq_list_of(pet(), length: 3..50),
                 pet_count = length(pets),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
