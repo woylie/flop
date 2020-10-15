@@ -437,7 +437,7 @@ defmodule Flop.ValidationTest do
                validate(params, ordering: false)
     end
 
-    test "applies default filter when filtering is disabled" do
+    test "applies default order when ordering is disabled" do
       assert {:ok, %Flop{order_by: [:name], order_directions: [:asc]}} =
                validate(%{order_by: [:family], order_directions: [:desc]},
                  for: Fruit,

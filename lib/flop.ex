@@ -789,6 +789,64 @@ defmodule Flop do
   def filter(q, %Filter{field: field, op: :in, value: value}),
     do: Query.where(q, [r], field(r, ^field) in ^value)
 
+  def filter(q, %Filter{field: field, op: :like, value: value}) do
+    query_value = "%#{value}%"
+    Query.where(q, [r], like(field(r, ^field), ^query_value))
+  end
+
+  def filter(q, %Filter{field: field, op: :like_and, value: value}) do
+    query_values = split_search_text(value)
+
+    dynamic =
+      Enum.reduce(query_values, Query.dynamic(true), fn value, dynamic ->
+        Query.dynamic([r], ^dynamic and like(field(r, ^field), ^value))
+      end)
+
+    Query.where(q, [r], ^dynamic)
+  end
+
+  def filter(q, %Filter{field: field, op: :like_or, value: value}) do
+    query_values = split_search_text(value)
+
+    dynamic =
+      Enum.reduce(query_values, Query.dynamic(false), fn value, dynamic ->
+        Query.dynamic([r], ^dynamic or like(field(r, ^field), ^value))
+      end)
+
+    Query.where(q, [r], ^dynamic)
+  end
+
+  def filter(q, %Filter{field: field, op: :ilike, value: value}) do
+    query_value = "%#{value}%"
+    Query.where(q, [r], ilike(field(r, ^field), ^query_value))
+  end
+
+  def filter(q, %Filter{field: field, op: :ilike_and, value: value}) do
+    query_values = split_search_text(value)
+
+    dynamic =
+      Enum.reduce(query_values, Query.dynamic(true), fn value, dynamic ->
+        Query.dynamic([r], ^dynamic and ilike(field(r, ^field), ^value))
+      end)
+
+    Query.where(q, [r], ^dynamic)
+  end
+
+  def filter(q, %Filter{field: field, op: :ilike_or, value: value}) do
+    query_values = split_search_text(value)
+
+    dynamic =
+      Enum.reduce(query_values, Query.dynamic(false), fn value, dynamic ->
+        Query.dynamic([r], ^dynamic or ilike(field(r, ^field), ^value))
+      end)
+
+    Query.where(q, [r], ^dynamic)
+  end
+
+  defp split_search_text(text) do
+    text |> String.split() |> Enum.map(&"%#{&1}%")
+  end
+
   ## Validation
 
   @doc """

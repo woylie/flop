@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add `like`, `like_and`, `like_or`, `ilike`, `ilike_and` and `ilike_or` filter
+  operators.
 - Add option to disable pagination types globally, for a schema or locally.
 - Add options to disable ordering or filtering.
 - Allow global configuration of `get_cursor_value_func`, `max_limit` and

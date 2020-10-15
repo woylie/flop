@@ -60,7 +60,22 @@ defmodule Flop.Generators do
     do: string(?a..?z, min_length: 1, max_length: 3)
 
   defp operator_by_type(a) when is_binary(a),
-    do: member_of([:==, :!=, :=~, :<=, :<, :>=, :>])
+    do:
+      member_of([
+        :==,
+        :!=,
+        :=~,
+        :<=,
+        :<,
+        :>=,
+        :>,
+        :like,
+        :like_and,
+        :like_or,
+        :ilike,
+        :ilike_and,
+        :ilike_or
+      ])
 
   defp operator_by_type(a) when is_number(a),
     do: member_of([:==, :!=, :<=, :<, :>=, :>])

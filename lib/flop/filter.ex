@@ -32,7 +32,21 @@ defmodule Flop.Filter do
   @typedoc """
   Represents valid filter operators.
   """
-  @type op :: :== | :!= | :=~ | :<= | :< | :>= | :> | :in
+  @type op ::
+          :==
+          | :!=
+          | :=~
+          | :<=
+          | :<
+          | :>=
+          | :>
+          | :in
+          | :like
+          | :like_and
+          | :like_or
+          | :ilike
+          | :ilike_and
+          | :ilike_or
 
   @primary_key false
   embedded_schema do

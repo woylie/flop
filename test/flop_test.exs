@@ -18,6 +18,7 @@ defmodule FlopTest do
   alias Flop.Repo
 
   @base_query from p in Pet, where: p.age > 8, select: p.name
+  @whitespace ["\u0020", "\u2000", "\u3000"]
 
   setup do
     :ok = Sandbox.checkout(Repo)
@@ -181,11 +182,12 @@ defmodule FlopTest do
                 start_at <- integer(0..(str_length - 1)),
                 end_at <- integer(start_at..(str_length - 1)),
                 query_value = String.slice(some_value, start_at..end_at),
-                query_value != " " do
+                query_value != " ",
+                op <- member_of([:=~, :ilike]) do
         {:ok, flop} =
           Flop.validate(%{
             filters: [
-              %{field: :name, op: :=~, value: query_value}
+              %{field: :name, op: op, value: query_value}
             ]
           })
 
@@ -199,6 +201,242 @@ defmodule FlopTest do
         assert Enum.all?(result, &(String.downcase(&1.name) =~ ci_query_value))
 
         assert length(result) == length(expected_pets)
+      end
+    end
+
+    property "applies ilike_and filter" do
+      pets = insert_list(50, :pet)
+      values = Enum.map(pets, & &1.name)
+
+      check all some_value <- member_of(values),
+                str_length = String.length(some_value),
+                start_at_a <- integer(0..(str_length - 1)),
+                end_at_a <- integer(start_at_a..(str_length - 1)),
+                start_at_b <- integer(0..(str_length - 1)),
+                end_at_b <- integer(start_at_b..(str_length - 1)),
+                query_value_a <-
+                  some_value
+                  |> String.slice(start_at_a..end_at_a)
+                  |> String.trim()
+                  |> constant(),
+                query_value_a != " ",
+                query_value_b <-
+                  some_value
+                  |> String.slice(start_at_b..end_at_b)
+                  |> String.trim()
+                  |> constant(),
+                query_value_b != " ",
+                whitespace_character <- member_of(@whitespace) do
+        query_values =
+          Enum.concat([
+            String.split(query_value_a),
+            String.split(query_value_b)
+          ])
+
+        filter_value = Enum.join(query_values, whitespace_character)
+
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [
+              %{field: :name, op: :ilike_or, value: filter_value}
+            ]
+          })
+
+        expected_pets =
+          pets
+          |> Enum.filter(fn pet ->
+            Enum.any?(query_values, fn value ->
+              String.downcase(pet.name) =~ String.downcase(value)
+            end)
+          end)
+          |> Enum.sort_by(& &1.id)
+
+        query = Flop.query(Pet, flop)
+        result = Repo.all(query)
+        assert Enum.sort_by(result, & &1.id) == expected_pets
+      end
+    end
+
+    test "applies ilike_or filter" do
+      pets = insert_list(50, :pet)
+      values = Enum.map(pets, & &1.name)
+
+      check all some_value <- member_of(values),
+                str_length = String.length(some_value),
+                start_at_a <- integer(0..(str_length - 1)),
+                end_at_a <- integer(start_at_a..(str_length - 1)),
+                start_at_b <- integer(0..(str_length - 1)),
+                end_at_b <- integer(start_at_b..(str_length - 1)),
+                query_value_a <-
+                  some_value
+                  |> String.slice(start_at_a..end_at_a)
+                  |> String.trim()
+                  |> constant(),
+                query_value_a != " ",
+                query_value_b <-
+                  some_value
+                  |> String.slice(start_at_b..end_at_b)
+                  |> String.trim()
+                  |> constant(),
+                query_value_b != " ",
+                whitespace_character <- member_of(@whitespace) do
+        query_values =
+          Enum.concat([
+            String.split(query_value_a),
+            String.split(query_value_b)
+          ])
+
+        filter_value = Enum.join(query_values, whitespace_character)
+
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [
+              %{field: :name, op: :ilike_and, value: filter_value}
+            ]
+          })
+
+        expected_pets =
+          pets
+          |> Enum.filter(fn pet ->
+            Enum.all?(query_values, fn value ->
+              String.downcase(pet.name) =~ String.downcase(value)
+            end)
+          end)
+          |> Enum.sort_by(& &1.id)
+
+        query = Flop.query(Pet, flop)
+        result = Repo.all(query)
+        assert Enum.sort_by(result, & &1.id) == expected_pets
+      end
+    end
+
+    property "applies like filter" do
+      pets = insert_list(50, :pet)
+      values = Enum.map(pets, & &1.name)
+
+      check all some_value <- member_of(values),
+                str_length = String.length(some_value),
+                start_at <- integer(0..(str_length - 1)),
+                end_at <- integer(start_at..(str_length - 1)),
+                query_value = String.slice(some_value, start_at..end_at),
+                query_value != " " do
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [%{field: :name, op: :like, value: query_value}]
+          })
+
+        expected_pets = Enum.filter(pets, &(&1.name =~ query_value))
+
+        query = Flop.query(Pet, flop)
+        result = Repo.all(query)
+        assert Enum.all?(result, &(&1.name =~ query_value))
+        assert length(result) == length(expected_pets)
+      end
+    end
+
+    property "applies like_and filter" do
+      pets = insert_list(50, :pet)
+      values = Enum.map(pets, & &1.name)
+
+      check all some_value <- member_of(values),
+                str_length = String.length(some_value),
+                start_at_a <- integer(0..(str_length - 1)),
+                end_at_a <- integer(start_at_a..(str_length - 1)),
+                start_at_b <- integer(0..(str_length - 1)),
+                end_at_b <- integer(start_at_b..(str_length - 1)),
+                query_value_a <-
+                  some_value
+                  |> String.slice(start_at_a..end_at_a)
+                  |> String.trim()
+                  |> constant(),
+                query_value_a != " ",
+                query_value_b <-
+                  some_value
+                  |> String.slice(start_at_b..end_at_b)
+                  |> String.trim()
+                  |> constant(),
+                query_value_b != " ",
+                whitespace_character <- member_of(@whitespace) do
+        query_values =
+          Enum.concat([
+            String.split(query_value_a),
+            String.split(query_value_b)
+          ])
+
+        filter_value = Enum.join(query_values, whitespace_character)
+
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [
+              %{field: :name, op: :like_and, value: filter_value}
+            ]
+          })
+
+        expected_pets =
+          pets
+          |> Enum.filter(fn pet ->
+            Enum.all?(query_values, fn value ->
+              pet.name =~ value
+            end)
+          end)
+          |> Enum.sort_by(& &1.id)
+
+        query = Flop.query(Pet, flop)
+        result = Repo.all(query)
+        assert Enum.sort_by(result, & &1.id) == expected_pets
+      end
+    end
+
+    property "applies like_or filter" do
+      pets = insert_list(50, :pet)
+      values = Enum.map(pets, & &1.name)
+
+      check all some_value <- member_of(values),
+                str_length = String.length(some_value),
+                start_at_a <- integer(0..(str_length - 1)),
+                end_at_a <- integer(start_at_a..(str_length - 1)),
+                start_at_b <- integer(0..(str_length - 1)),
+                end_at_b <- integer(start_at_b..(str_length - 1)),
+                query_value_a <-
+                  some_value
+                  |> String.slice(start_at_a..end_at_a)
+                  |> String.trim()
+                  |> constant(),
+                query_value_a != " ",
+                query_value_b <-
+                  some_value
+                  |> String.slice(start_at_b..end_at_b)
+                  |> String.trim()
+                  |> constant(),
+                query_value_b != " ",
+                whitespace_character <- member_of(@whitespace) do
+        query_values =
+          Enum.concat([
+            String.split(query_value_a),
+            String.split(query_value_b)
+          ])
+
+        filter_value = Enum.join(query_values, whitespace_character)
+
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [
+              %{field: :name, op: :like_or, value: filter_value}
+            ]
+          })
+
+        expected_pets =
+          pets
+          |> Enum.filter(fn pet ->
+            Enum.any?(query_values, fn value ->
+              pet.name =~ value
+            end)
+          end)
+          |> Enum.sort_by(& &1.id)
+
+        query = Flop.query(Pet, flop)
+        result = Repo.all(query)
+        assert Enum.sort_by(result, & &1.id) == expected_pets
       end
     end
 
@@ -276,10 +514,60 @@ defmodule FlopTest do
         %Filter{op: op} = filter
         query = Flop.query(Pet, flop)
 
-        if op == :=~ do
-          assert [%BooleanExpr{expr: {:ilike, _, _}, op: :and}] = query.wheres
-        else
-          assert [%BooleanExpr{expr: {^op, _, _}, op: :and}] = query.wheres
+        case op do
+          :=~ ->
+            assert [%BooleanExpr{expr: {:ilike, _, _}, op: :and}] = query.wheres
+
+          :ilike_and ->
+            assert [
+                     %BooleanExpr{
+                       expr: {:and, _, [true, {:ilike, _, _}]},
+                       file: _,
+                       line: _,
+                       op: :and,
+                       params: _,
+                       subqueries: []
+                     }
+                   ] = query.wheres
+
+          :ilike_or ->
+            assert [
+                     %BooleanExpr{
+                       expr: {:or, _, [false, {:ilike, _, _}]},
+                       file: _,
+                       line: _,
+                       op: :and,
+                       params: _,
+                       subqueries: []
+                     }
+                   ] = query.wheres
+
+          :like_and ->
+            assert [
+                     %BooleanExpr{
+                       expr: {:and, _, [true, {:like, _, _}]},
+                       file: _,
+                       line: _,
+                       op: :and,
+                       params: _,
+                       subqueries: []
+                     }
+                   ] = query.wheres
+
+          :like_or ->
+            assert [
+                     %BooleanExpr{
+                       expr: {:or, _, [false, {:like, _, _}]},
+                       file: _,
+                       line: _,
+                       op: :and,
+                       params: _,
+                       subqueries: []
+                     }
+                   ] = query.wheres
+
+          _ ->
+            assert [%BooleanExpr{expr: {^op, _, _}, op: :and}] = query.wheres
         end
 
         assert is_list(Repo.all(query))
