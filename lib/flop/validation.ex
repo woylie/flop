@@ -17,12 +17,11 @@ defmodule Flop.Validation do
       :last,
       :limit,
       :offset,
-      :order_by,
-      :order_directions,
       :page,
       :page_size
     ])
-    |> cast_embed(:filters, with: {Filter, :changeset, [opts]})
+    |> cast_order(params, opts)
+    |> cast_filters(opts)
     |> validate_exclusive(
       [
         [:first, :after],
@@ -35,6 +34,24 @@ defmodule Flop.Validation do
     |> put_default_order(opts)
     |> validate_sortable(opts)
     |> validate_pagination(opts)
+  end
+
+  defp cast_order(changeset, params, opts) do
+    order_opt = Keyword.get(opts, :ordering, global_option(:ordering))
+    ordering = if is_nil(order_opt), do: true, else: order_opt
+
+    if ordering,
+      do: cast(changeset, params, [:order_by, :order_directions]),
+      else: changeset
+  end
+
+  defp cast_filters(changeset, opts) do
+    filter_opt = Keyword.get(opts, :filtering, global_option(:filtering))
+    filtering = if is_nil(filter_opt), do: true, else: filter_opt
+
+    if filtering,
+      do: cast_embed(changeset, :filters, with: {Filter, :changeset, [opts]}),
+      else: changeset
   end
 
   # Takes a list of field groups and validates that no fields from multiple

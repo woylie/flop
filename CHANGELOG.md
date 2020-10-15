@@ -4,8 +4,8 @@
 
 ### Added
 
-- Allow restricting pagination types globally, for a schema or by passing an
-  option.
+- Add option to disable pagination types globally, for a schema or locally.
+- Add options to disable ordering or filtering.
 - Allow global configuration of `get_cursor_value_func`, `max_limit` and
   `default_limit`.
 - Add `Flop.option` type, improve documentation of available options.

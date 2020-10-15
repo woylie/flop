@@ -429,6 +429,21 @@ defmodule Flop.ValidationTest do
       assert validate(%{order_directions: [:desc]}) ==
                {:ok, %Flop{order_by: nil, order_directions: nil}}
     end
+
+    test "does not cast order fields if ordering is disabled" do
+      params = %{order_by: [:name], order_directions: [:desc]}
+
+      assert {:ok, %Flop{order_by: nil, order_directions: nil}} =
+               validate(params, ordering: false)
+    end
+
+    test "applies default filter when filtering is disabled" do
+      assert {:ok, %Flop{order_by: [:name], order_directions: [:asc]}} =
+               validate(%{order_by: [:family], order_directions: [:desc]},
+                 for: Fruit,
+                 ordering: false
+               )
+    end
   end
 
   describe "filter parameters" do
@@ -480,6 +495,11 @@ defmodule Flop.ValidationTest do
 
       params = %{filters: [%{field: "a", op: "==", value: "b"}]}
       assert {:ok, %Flop{filters: [%{op: :==}]}} = validate(params)
+    end
+
+    test "does not cast filters if filtering is disabled" do
+      params = %{filters: [%{field: "a", op: :==, value: "b"}]}
+      assert {:ok, %Flop{filters: []}} = validate(params, filtering: false)
     end
   end
 end

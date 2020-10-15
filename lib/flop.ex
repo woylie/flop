@@ -71,6 +71,8 @@ defmodule Flop do
   - `:default_limit` - Sets a global default limit for queries that is used if
     no default limit is set for a schema and no limit is set in the parameters.
     Can only be set in the application configuration.
+  - `:filtering` (boolean) - Can be set to `false` to silently ignore filter
+    parameters.
   - `:get_cursor_value_func` - 2-arity function used to get the (unencoded)
     cursor value from a record. Only used with cursor-based pagination. The
     first argument is the record, the second argument is the list of fields used
@@ -85,24 +87,28 @@ defmodule Flop do
     default, all pagination types are allowed. See also
     `t:Flop.pagination_type/0`. Note that an offset value of `0` and a limit
     are still accepted even if offset-based pagination is disabled.
+  - `:ordering` (boolean) - Can be set to `false` to silently ignore order
+    parameters. Default orders are still applied.
   - `:repo` - The Ecto Repo module to use for the database query. Used by all
     functions that execute a database query.
 
-  The options `:default_limit`, `:get_cursor_value_func`, `:max_limit` and
-  `pagination_types`, `:repo` can be set globally via the application
-  environment.
+  All options can be passed directly to the functions. Some of the options can
+  be set on a schema level via `Flop.Schema`.
+
+  All options except `:for` can be set globally via the application environment.
 
       import Config
 
       config :flop,
         default_limit: 25,
+        filtering: false,
         get_cursor_value_func: &MyApp.Repo.get_cursor_value/2,
         max_limit: 100,
+        ordering: false,
         pagination_types: [:first, :last, :page],
         repo: MyApp.Repo
 
-  All options can also be passed directly to the functions. The look up order
-  is:
+  The look up order is:
 
   1. option passed to function
   2. option set for schema using `Flop.Schema` (only `:max_limit`,
@@ -113,8 +119,10 @@ defmodule Flop do
   @type option ::
           {:for, module}
           | {:default_limit, pos_integer}
+          | {:filtering, boolean}
           | {:get_cursor_value_func, (any, [atom] -> map)}
           | {:max_limit, pos_integer}
+          | {:ordering, boolean}
           | {:pagination_types, [pagination_type()]}
           | {:repo, module}
 
