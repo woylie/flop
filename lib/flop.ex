@@ -80,6 +80,10 @@ defmodule Flop do
   - `:max_limit` - Sets a global maximum limit for queries that is used if no
     maximum limit is set for a schema. Can only be set in the application
     configuration.
+  - `:pagination_types` - Defines which pagination types are allowed. Passing
+    parameters for other pagination types will result in a validation error. By
+    default, all pagination types are allowed. See also
+    `t:Flop.pagination_types/0`.
   - `:repo` - The Ecto Repo module to use for the database query. Used by all
     functions that execute a database query.
 
@@ -96,12 +100,10 @@ defmodule Flop do
         pagination_types: [:first, :last, :page],
         repo: MyApp.Repo
 
-  The options `:for`, `:get_cursor_value_func`, `:pagination_types` and `:repo`
-  can be passed directly to the functions.
+  All options can also be passed directly to the functions. The look up order
+  is:
 
-  The look up order is:
-
-  1. option passed to function (except `:max_limit` and `:default_limit`)
+  1. option passed to function
   2. option set for schema using `Flop.Schema` (only `:max_limit`,
      `:default_limit` and `:pagination_types`)
   3. option set in global config (except `:for`)
