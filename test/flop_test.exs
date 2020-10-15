@@ -7,14 +7,12 @@ defmodule FlopTest do
   import Ecto.Query
   import Flop.Factory
   import Flop.Generators
-  import Flop.TestUtil
 
   alias Ecto.Adapters.SQL.Sandbox
   alias Ecto.Changeset
   alias Ecto.Query.BooleanExpr
   alias Ecto.Query.QueryExpr
   alias Flop.Filter
-  alias Flop.Fruit
   alias Flop.Meta
   alias Flop.Pet
   alias Flop.Repo
@@ -541,261 +539,9 @@ defmodule FlopTest do
     end
   end
 
-  describe "validate/1" do
-    test "returns Flop struct" do
-      assert Flop.validate(%Flop{}) == {:ok, %Flop{}}
-      assert Flop.validate(%{}) == {:ok, %Flop{}}
-    end
-
-    test "validates limit" do
-      params = %{limit: -1}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
-      assert errors_on(changeset)[:limit] == ["must be greater than 0"]
-
-      flop = %Flop{limit: 0}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(flop)
-      assert errors_on(changeset)[:limit] == ["must be greater than 0"]
-
-      flop = %Flop{limit: 21}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(flop, for: Pet)
-
-      assert errors_on(changeset)[:limit] == [
-               "must be less than or equal to 20"
-             ]
-    end
-
-    test "applies default limit" do
-      # struct without configured default limit
-
-      assert {:ok, %Flop{limit: nil, page_size: nil}} =
-               Flop.validate(%{}, for: Pet)
-
-      assert {:ok, %Flop{limit: nil, page_size: nil}} =
-               Flop.validate(%{offset: 10}, for: Pet)
-
-      assert {:ok, %Flop{limit: 12}} =
-               Flop.validate(%{offset: 10, limit: 12}, for: Pet)
-
-      assert {:ok, %Flop{limit: nil, page_size: 5}} =
-               Flop.validate(%{page: 10, page_size: 5}, for: Pet)
-
-      # struct with configured default limit
-
-      assert {:ok, %Flop{limit: 50, page_size: nil}} =
-               Flop.validate(%{}, for: Fruit)
-
-      assert {:ok, %Flop{limit: 50, page_size: nil}} =
-               Flop.validate(%{offset: 10}, for: Fruit)
-
-      assert {:ok, %Flop{limit: 12, page_size: nil}} =
-               Flop.validate(%{offset: 10, limit: 12}, for: Fruit)
-
-      assert {:ok, %Flop{limit: nil, page_size: 12}} =
-               Flop.validate(%{page: 10, page_size: 12}, for: Pet)
-    end
-
-    test "does not apply default limit for cursor pagination" do
-      assert {:ok, %Flop{first: 20, limit: nil, page_size: nil}} =
-               Flop.validate(%{first: 20}, for: Fruit)
-
-      assert {:ok, %Flop{last: 20, limit: nil, page_size: nil}} =
-               Flop.validate(%{last: 20}, for: Fruit)
-    end
-
-    test "applies default order" do
-      # struct without configured default order
-
-      assert {:ok, %Flop{order_by: nil, order_directions: nil}} =
-               Flop.validate(%{}, for: Pet)
-
-      # struct with configured default order
-
-      assert {:ok, %Flop{order_by: [:name], order_directions: [:asc]}} =
-               Flop.validate(%{}, for: Fruit)
-    end
-
-    test "validates offset" do
-      params = %{offset: -1}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
-
-      assert errors_on(changeset)[:offset] == [
-               "must be greater than or equal to 0"
-             ]
-    end
-
-    test "sets offset to 0 if limit is set without offset" do
-      params = %{limit: 5}
-      assert {:ok, %Flop{offset: 0, limit: 5}} = Flop.validate(params)
-    end
-
-    test "sets offset to 0 if default limit is set" do
-      assert {:ok, %Flop{limit: 50, offset: 0}} = Flop.validate(%{}, for: Fruit)
-    end
-
-    test "only allows to order by fields marked as sortable" do
-      # field exists, but is not sortable
-
-      params = %{order_by: [:social_security_number]}
-      assert {:error, changeset} = Flop.validate(params, for: Pet)
-      assert errors_on(changeset)[:order_by] == ["has an invalid entry"]
-
-      params = %{order_by: ["social_security_number"]}
-      assert {:error, changeset} = Flop.validate(params, for: Pet)
-      assert errors_on(changeset)[:order_by] == ["has an invalid entry"]
-
-      # field does not exist
-
-      params = %{order_by: [:halloween_costume]}
-      assert {:error, changeset} = Flop.validate(params, for: Pet)
-      assert errors_on(changeset)[:order_by] == ["has an invalid entry"]
-
-      params = %{order_by: ["honorific"]}
-      assert {:error, changeset} = Flop.validate(params, for: Pet)
-      assert errors_on(changeset)[:order_by] == ["is invalid"]
-
-      # field exists and is sortable
-
-      params = %{order_by: [:name]}
-      assert {:ok, %Flop{order_by: [:name]}} = Flop.validate(params, for: Pet)
-
-      params = %{order_by: ["name"]}
-      assert {:ok, %Flop{order_by: [:name]}} = Flop.validate(params, for: Pet)
-    end
-
-    test "validates order directions" do
-      params = %{order_directions: [:up, :down]}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
-      assert errors_on(changeset)[:order_directions] == ["is invalid"]
-
-      params = %{order_directions: ["up", "down"]}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
-      assert errors_on(changeset)[:order_directions] == ["is invalid"]
-
-      params = %{order_directions: [:desc, :asc]}
-
-      assert Flop.validate(params) ==
-               {:ok, %Flop{order_directions: [:desc, :asc]}}
-
-      params = %{order_directions: ["desc", "asc"]}
-
-      assert Flop.validate(params) ==
-               {:ok, %Flop{order_directions: [:desc, :asc]}}
-    end
-
-    test "validates page number" do
-      params = %{page: -1}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
-      assert errors_on(changeset)[:page] == ["must be greater than 0"]
-
-      flop = %Flop{page: 0}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(flop)
-      assert errors_on(changeset)[:page] == ["must be greater than 0"]
-    end
-
-    test "sets page to 1 if page size is set without page" do
-      params = %{page_size: 5}
-      assert {:ok, %Flop{page: 1, page_size: 5}} = Flop.validate(params)
-    end
-
-    test "validates page size" do
-      params = %{page_size: -1}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
-      assert errors_on(changeset)[:page_size] == ["must be greater than 0"]
-
-      flop = %Flop{page_size: 0}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(flop)
-      assert errors_on(changeset)[:page_size] == ["must be greater than 0"]
-
-      flop = %Flop{page_size: 21}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(flop, for: Pet)
-
-      assert errors_on(changeset)[:page_size] == [
-               "must be less than or equal to 20"
-             ]
-    end
-
-    property "only allows one pagination method" do
-      check all val_1 <- positive_integer(),
-                val_2 <- one_of([positive_integer(), constant(nil)]),
-                [offset, limit] = Enum.shuffle([val_1, val_2]),
-                val_3 <- positive_integer(),
-                val_4 <- one_of([positive_integer(), constant(nil)]),
-                [page, page_size] = Enum.shuffle([val_3, val_4]) do
-        params = %{
-          offset: offset,
-          limit: limit,
-          page: page,
-          page_size: page_size
-        }
-
-        assert {:error, %Changeset{} = changeset} = Flop.validate(params)
-
-        messages = changeset |> errors_on() |> Map.values()
-
-        assert ["cannot combine multiple pagination types"] in messages
-      end
-    end
-
-    test "only allows to filter by fields marked as filterable" do
-      # field exists, but is not filterable
-
-      params = %{filters: [%{field: :age, op: :>, value: 5}]}
-      assert {:error, changeset} = Flop.validate(params, for: Pet)
-      assert [%{field: ["is invalid"]}] = errors_on(changeset)[:filters]
-
-      params = %{filters: [%{field: "age", op: ">", value: "5"}]}
-      assert {:error, changeset} = Flop.validate(params, for: Pet)
-      assert [%{field: ["is invalid"]}] = errors_on(changeset)[:filters]
-
-      # field does not exist
-
-      params = %{filters: [%{field: :halloween_costume, value: "Pirate"}]}
-      assert {:error, changeset} = Flop.validate(params, for: Pet)
-      assert [%{field: ["is invalid"]}] = errors_on(changeset)[:filters]
-
-      params = %{filters: [%{field: "honorific", value: "Esquire"}]}
-      assert {:error, changeset} = Flop.validate(params, for: Pet)
-      assert [%{field: ["is invalid"]}] = errors_on(changeset)[:filters]
-
-      # field exists and is filterable
-
-      params = %{filters: [%{field: :species, value: "dog"}]}
-
-      assert {:ok, %Flop{filters: [%{field: :species}]}} =
-               Flop.validate(params, for: Pet)
-
-      params = %{filters: [%{field: "species", value: "dog"}]}
-
-      assert {:ok, %Flop{filters: [%{field: :species}]}} =
-               Flop.validate(params, for: Pet)
-    end
-
-    test "validates filter operator" do
-      params = %{filters: [%{field: "a", op: :=, value: "b"}]}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
-      assert errors_on(changeset)[:filters] == [%{op: ["is invalid"]}]
-
-      params = %{filters: [%{field: "a", op: "=", value: "b"}]}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
-      assert errors_on(changeset)[:filters]
-
-      params = %{filters: [%{field: "a", op: :==, value: "b"}]}
-      assert {:ok, %Flop{filters: [%{op: :==}]}} = Flop.validate(params)
-
-      params = %{filters: [%{field: "a", op: "==", value: "b"}]}
-      assert {:ok, %Flop{filters: [%{op: :==}]}} = Flop.validate(params)
-    end
-
-    test "requires both page size and page" do
-      params = %{page: 5}
-      assert {:error, %Changeset{} = changeset} = Flop.validate(params)
-      assert errors_on(changeset)[:page_size] == ["can't be blank"]
-    end
-  end
-
   describe "cursor paging" do
     property "querying cursor by cursor forward includes all items in order" do
-      check all pets <- uniq_list_of(pet(), length: 1..100),
+      check all pets <- uniq_list_of(pet(), length: 1..50),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
         # make sure we have a clean db after each generation
@@ -855,7 +601,7 @@ defmodule FlopTest do
     end
 
     property "querying all items returns same list forward and backward" do
-      check all pets <- uniq_list_of(pet(), length: 1..100),
+      check all pets <- uniq_list_of(pet(), length: 1..50),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
         # make sure we have a clean db after each generation
@@ -884,7 +630,7 @@ defmodule FlopTest do
     end
 
     property "querying cursor by cursor backward includes all items in order" do
-      check all pets <- uniq_list_of(pet(), length: 1..100),
+      check all pets <- uniq_list_of(pet(), length: 1..50),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
         # make sure we have a clean db after each generation
@@ -945,7 +691,7 @@ defmodule FlopTest do
     end
 
     property "has_previous_page? is false without after and last" do
-      check all pets <- uniq_list_of(pet(), length: 1..100),
+      check all pets <- uniq_list_of(pet(), length: 1..50),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
                 first <- integer(1..(length(pets) + 1)) do
@@ -966,7 +712,7 @@ defmodule FlopTest do
     end
 
     property "has_previous_page? is false with after" do
-      check all pets <- uniq_list_of(pet(), length: 1..100),
+      check all pets <- uniq_list_of(pet(), length: 1..50),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
                 first <- integer(1..(length(pets) + 1)),
@@ -994,7 +740,7 @@ defmodule FlopTest do
     end
 
     property "has_previous_page? is true with last set and items left" do
-      check all pets <- uniq_list_of(pet(), length: 3..100),
+      check all pets <- uniq_list_of(pet(), length: 3..50),
                 pet_count = length(pets),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
@@ -1031,7 +777,7 @@ defmodule FlopTest do
     end
 
     property "has_previous_page? is false with last set and no items left" do
-      check all pets <- uniq_list_of(pet(), length: 3..100),
+      check all pets <- uniq_list_of(pet(), length: 3..50),
                 pet_count = length(pets),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
@@ -1069,7 +815,7 @@ defmodule FlopTest do
     end
 
     property "has_next_page? is false without first and before" do
-      check all pets <- uniq_list_of(pet(), length: 1..100),
+      check all pets <- uniq_list_of(pet(), length: 1..50),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
                 last <- integer(1..(length(pets) + 1)) do
@@ -1090,7 +836,7 @@ defmodule FlopTest do
     end
 
     property "has_next_page? is false with before" do
-      check all pets <- uniq_list_of(pet(), length: 1..100),
+      check all pets <- uniq_list_of(pet(), length: 1..50),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
                 last <- integer(1..(length(pets) + 1)),
@@ -1118,7 +864,7 @@ defmodule FlopTest do
     end
 
     property "has_next_page? is true with first set and items left" do
-      check all pets <- uniq_list_of(pet(), length: 3..100),
+      check all pets <- uniq_list_of(pet(), length: 3..50),
                 pet_count = length(pets),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
@@ -1155,7 +901,7 @@ defmodule FlopTest do
     end
 
     property "has_next_page? is false with first set and no items left" do
-      check all pets <- uniq_list_of(pet(), length: 3..100),
+      check all pets <- uniq_list_of(pet(), length: 3..50),
                 pet_count = length(pets),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
@@ -1223,6 +969,17 @@ defmodule FlopTest do
           %Flop{first: 2, after: end_cursor, order_by: [:id]},
           get_cursor_value_func: get_cursor_value_func
         )
+    end
+  end
+
+  describe "validate/1" do
+    test "returns Flop struct" do
+      assert Flop.validate(%Flop{}) == {:ok, %Flop{}}
+      assert Flop.validate(%{}) == {:ok, %Flop{}}
+    end
+
+    test "returns error if parameters are invalid" do
+      assert {:error, %Changeset{}} = Flop.validate(%{limit: -1})
     end
   end
 
