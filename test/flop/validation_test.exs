@@ -64,6 +64,23 @@ defmodule Flop.ValidationTest do
            ]
   end
 
+  test "an offset of 0 is still allowed if offset pagination is disabled" do
+    # passing only a limit
+    assert {:ok, %Flop{offset: 0, limit: 20}} =
+             validate(%{limit: 20}, for: Vegetable)
+
+    # passing an offset of 0 and a limit
+    assert {:ok, %Flop{offset: 0, limit: 20}} =
+             validate(%{offset: 0, limit: 20}, for: Vegetable)
+
+    # using the default limit, passing an offset
+    assert {:ok, %Flop{offset: 0, limit: 50}} =
+             validate(%{offset: 0}, for: Vegetable)
+
+    # using the default limit, not passing an offset
+    assert {:ok, %Flop{offset: nil, limit: 50}} = validate(%{}, for: Vegetable)
+  end
+
   describe "offset/limit parameters" do
     test "limit must be a positive integer" do
       params = %{limit: 0}

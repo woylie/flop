@@ -77,9 +77,16 @@ defmodule Flop.Validation do
   defp validate_pagination_type(changeset, pagination_type, opts) do
     allowed_types = get_option(:pagination_types, opts)
 
-    if allowed_types && pagination_type not in allowed_types,
-      do: add_pagination_type_error(changeset, pagination_type),
-      else: changeset
+    if allowed_types && pagination_type not in allowed_types do
+      if pagination_type == :offset &&
+           get_field(changeset, :offset) in [0, nil] do
+        changeset
+      else
+        add_pagination_type_error(changeset, pagination_type)
+      end
+    else
+      changeset
+    end
   end
 
   defp validate_by_pagination_type(changeset, :first, opts) do

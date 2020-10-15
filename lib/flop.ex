@@ -83,7 +83,8 @@ defmodule Flop do
   - `:pagination_types` - Defines which pagination types are allowed. Passing
     parameters for other pagination types will result in a validation error. By
     default, all pagination types are allowed. See also
-    `t:Flop.pagination_type/0`.
+    `t:Flop.pagination_type/0`. Note that an offset value of `0` and a limit
+    are still accepted even if offset-based pagination is disabled.
   - `:repo` - The Ecto Repo module to use for the database query. Used by all
     functions that execute a database query.
 
