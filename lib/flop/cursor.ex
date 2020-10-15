@@ -18,19 +18,59 @@ defmodule Flop.Cursor do
   @doc """
   Decodes a cursor value.
 
+  Returns `:error` if the cursor cannot be decoded or the decoded term is not a
+  map with atom keys.
+
       iex> Flop.Cursor.decode("g3QAAAABZAACaWRiAAACDg==")
-      %{id: 526}
+      {:ok, %{id: 526}}
+
+      iex> Flop.Cursor.decode("AAAH")
+      :error
+
+      iex> f = fn a -> a + 1 end
+      iex> cursor = Flop.Cursor.encode(%{a: f})
+      iex> Flop.Cursor.decode(cursor)
+      :error
+
+      iex> cursor = Flop.Cursor.encode(a: "b")
+      iex> Flop.Cursor.decode(cursor)
+      :error
+
+      iex> cursor = Flop.Cursor.encode(%{"a" => "b"})
+      iex> Flop.Cursor.decode(cursor)
+      :error
   """
   @doc since: "0.8.0"
-  @spec decode(binary()) :: map()
-  def decode(encoded) do
-    term =
-      encoded
-      |> Base.url_decode64!()
-      |> :erlang.binary_to_term([:safe])
+  @spec decode(binary()) :: {:ok, map()} | :error
+  def decode(cursor) do
+    with {:ok, binary} <- Base.url_decode64(cursor),
+         {:ok, term} <- safe_binary_to_term(binary) do
+      sanitize(term)
 
-    sanitize(term)
-    term
+      if is_map(term) && term |> Map.keys() |> Enum.all?(&is_atom/1),
+        do: {:ok, term},
+        else: :error
+    end
+  rescue
+    _e in RuntimeError -> :error
+  end
+
+  @doc """
+  Same as `Flop.Cursor.decode/1`, but raises an error if the cursor is invalid.
+  """
+  @doc since: "0.9.0"
+  @spec decode!(binary()) :: map()
+  def decode!(cursor) do
+    case decode(cursor) do
+      {:ok, decoded} -> decoded
+      :error -> raise "invalid cursor"
+    end
+  end
+
+  defp safe_binary_to_term(term) do
+    {:ok, :erlang.binary_to_term(term, [:safe])}
+  rescue
+    _e in ArgumentError -> :error
   end
 
   defp sanitize(term)
@@ -74,9 +114,9 @@ defmodule Flop.Cursor do
       {"g3QAAAABZAAEbmFtZW0AAAAETWFyeQ==", "g3QAAAABZAAEbmFtZW0AAAAFUGV0ZXI="}
       iex>
       iex> Flop.Cursor.decode(start_cursor)
-      %{name: "Mary"}
+      {:ok, %{name: "Mary"}}
       iex> Flop.Cursor.decode(end_cursor)
-      %{name: "Peter"}
+      {:ok, %{name: "Peter"}}
 
   If the result set is empty, the cursor values will be `nil`.
 
@@ -101,9 +141,9 @@ defmodule Flop.Cursor do
         "g3QAAAACZAAEbmFtZW0AAAAFUGV0ZXJkAAR5ZWFyYgAAB5I="}
       iex>
       iex> Flop.Cursor.decode(start_cursor)
-      %{name: "Mary", year: 1936}
+      {:ok, %{name: "Mary", year: 1936}}
       iex> Flop.Cursor.decode(end_cursor)
-      %{name: "Peter", year: 1938}
+      {:ok, %{name: "Peter", year: 1938}}
   """
   @doc since: "0.8.0"
   @spec get_cursors([any], [atom], [Flop.option()]) ::

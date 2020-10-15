@@ -2,9 +2,9 @@ defmodule Flop.Validation do
   @moduledoc false
 
   import Ecto.Changeset
-  import Flop.Schema
 
   alias Ecto.Changeset
+  alias Flop.Cursor
   alias Flop.Filter
 
   @spec changeset(map, [Flop.option()]) :: Changeset.t()
@@ -25,23 +25,20 @@ defmodule Flop.Validation do
     |> cast_embed(:filters, with: {Filter, :changeset, [opts]})
     |> validate_exclusive(
       [
-        [:limit, :offset],
-        [:page, :page_size],
         [:first, :after],
-        [:last, :before]
+        [:last, :before],
+        [:limit, :offset],
+        [:page, :page_size]
       ],
       message: "cannot combine multiple pagination types"
     )
-    |> validate_number(:first, greater_than: 0)
-    |> validate_number(:last, greater_than: 0)
-    |> validate_page_and_page_size(opts[:for])
-    |> validate_offset_and_limit(opts[:for])
-    |> validate_pagination_types(opts)
-    |> validate_sortable(opts[:for])
-    |> put_default_order(opts[:for])
-    |> validate_order_by_for_cursor_pagination()
+    |> put_default_order(opts)
+    |> validate_sortable(opts)
+    |> validate_pagination(opts)
   end
 
+  # Takes a list of field groups and validates that no fields from multiple
+  # groups are set.
   @spec validate_exclusive(Changeset.t(), [[atom]], keyword) :: Changeset.t()
   defp validate_exclusive(changeset, field_groups, opts) do
     changed_field_groups =
@@ -66,179 +63,111 @@ defmodule Flop.Validation do
     end
   end
 
-  defp validate_pagination_types(changeset, opts) do
-    pagination_types =
-      opts[:pagination_types] ||
-        pagination_types_for_schema(opts[:for]) ||
-        Application.get_env(:flop, :pagination_types)
+  defp validate_pagination(changeset, opts) do
+    pagination_type = get_pagination_type(changeset)
 
-    if is_nil(pagination_types) do
-      changeset
-    else
-      case get_pagination_type(changeset) do
-        nil ->
-          changeset
-
-        pagination_type ->
-          if pagination_type in pagination_types,
-            do: changeset,
-            else: add_pagination_type_error(changeset, pagination_type)
-      end
-    end
-  end
-
-  defp pagination_types_for_schema(nil), do: nil
-
-  defp pagination_types_for_schema(module),
-    do: module |> struct() |> pagination_types()
-
-  defp get_pagination_type(changeset) do
-    cond do
-      get_field(changeset, :first) -> :first
-      get_field(changeset, :last) -> :last
-      get_field(changeset, :page) -> :page
-      get_field(changeset, :limit) -> :offset
-      true -> nil
-    end
-  end
-
-  defp add_pagination_type_error(changeset, pagination_type) do
-    case pagination_type do
-      :first ->
-        add_error(
-          changeset,
-          :first,
-          "cursor-based pagination with first/after is not allowed"
-        )
-
-      :last ->
-        add_error(
-          changeset,
-          :last,
-          "cursor-based pagination with last/before is not allowed"
-        )
-
-      :offset ->
-        add_error(
-          changeset,
-          :limit,
-          "offset/limit pagination is not allowed"
-        )
-
-      :page ->
-        add_error(
-          changeset,
-          :page,
-          "page-based pagination is not allowed"
-        )
-    end
-  end
-
-  defp validate_order_by_for_cursor_pagination(changeset) do
-    if get_field(changeset, :first) || get_field(changeset, :last) do
-      validate_required(changeset, [:order_by])
-    else
-      changeset
-    end
-  end
-
-  @spec validate_sortable(Changeset.t(), module | nil) :: Changeset.t()
-  defp validate_sortable(changeset, nil), do: changeset
-
-  defp validate_sortable(changeset, module) do
-    sortable_fields =
-      module
-      |> struct()
-      |> sortable()
-
-    validate_subset(changeset, :order_by, sortable_fields)
-  end
-
-  @spec validate_page_and_page_size(Changeset.t(), module | nil) ::
-          Changeset.t()
-  defp validate_page_and_page_size(changeset, module) do
-    page = get_field(changeset, :page)
-    page_size = get_field(changeset, :page_size)
-
-    if !is_nil(page) || !is_nil(page_size) do
-      changeset
-      |> validate_required([:page_size])
-      |> validate_number(:page, greater_than: 0)
-      |> validate_number(:page_size, greater_than: 0)
-      |> validate_within_max_limit(:page_size, module)
-      |> put_default_page()
-    else
-      changeset
-    end
-  end
-
-  defp put_default_page(
-         %Changeset{valid?: true, changes: %{page_size: page_size}} = changeset
-       )
-       when is_integer(page_size) do
-    if is_nil(get_field(changeset, :page)),
-      do: put_change(changeset, :page, 1),
-      else: changeset
-  end
-
-  defp put_default_page(changeset), do: changeset
-
-  @spec validate_offset_and_limit(Changeset.t(), module | nil) :: Changeset.t()
-  defp validate_offset_and_limit(changeset, module) do
     changeset
-    |> validate_number(:limit, greater_than: 0)
-    |> validate_within_max_limit(:limit, module)
-    |> validate_within_max_limit(:first, module)
-    |> validate_within_max_limit(:last, module)
-    |> validate_number(:offset, greater_than_or_equal_to: 0)
-    |> put_default_limit(module)
-    |> put_default_offset()
+    |> validate_pagination_type(pagination_type, opts)
+    |> validate_by_pagination_type(pagination_type, opts)
   end
 
-  defp put_default_limit(changeset, nil), do: changeset
+  # validates that the used pagination type is allowed
+  defp validate_pagination_type(changeset, nil, _opts), do: changeset
 
-  defp put_default_limit(%Changeset{valid?: false} = changeset, _),
-    do: changeset
+  defp validate_pagination_type(changeset, pagination_type, opts) do
+    allowed_types = get_option(:pagination_types, opts)
 
-  defp put_default_limit(changeset, module) do
-    default_limit =
-      module |> struct() |> default_limit() ||
-        Application.get_env(:flop, :default_limit)
-
-    if is_nil(default_limit) do
-      changeset
-    else
-      limit = get_field(changeset, :limit)
-      page_size = get_field(changeset, :page_size)
-      first = get_field(changeset, :first)
-      last = get_field(changeset, :last)
-
-      if is_nil(limit) && is_nil(page_size) && is_nil(first) && is_nil(last) do
-        put_change(changeset, :limit, default_limit)
-      else
-        changeset
-      end
-    end
-  end
-
-  defp put_default_offset(
-         %Changeset{valid?: true, changes: %{limit: limit}} = changeset
-       )
-       when is_integer(limit) do
-    if is_nil(get_field(changeset, :offset)),
-      do: put_change(changeset, :offset, 0),
+    if allowed_types && pagination_type not in allowed_types,
+      do: add_pagination_type_error(changeset, pagination_type),
       else: changeset
   end
 
-  defp put_default_offset(changeset), do: changeset
+  defp validate_by_pagination_type(changeset, :first, opts) do
+    changeset
+    |> put_default_limit(:first, opts)
+    |> validate_required([:first, :order_by])
+    |> validate_number(:first, greater_than: 0)
+    |> validate_within_max_limit(:first, opts)
+    |> validate_length(:order_by, min: 1)
+    |> validate_cursor(:after)
+  end
 
-  defp put_default_order(changeset, nil), do: changeset
+  defp validate_by_pagination_type(changeset, :last, opts) do
+    changeset
+    |> put_default_limit(:last, opts)
+    |> validate_required([:last, :order_by])
+    |> validate_number(:last, greater_than: 0)
+    |> validate_within_max_limit(:last, opts)
+    |> validate_length(:order_by, min: 1)
+    |> validate_cursor(:before)
+  end
 
-  defp put_default_order(changeset, module) do
-    order_by = get_field(changeset, :order_by)
+  defp validate_by_pagination_type(changeset, :offset, opts) do
+    changeset
+    |> put_default_limit(:limit, opts)
+    |> put_default_value(:offset, 0)
+    |> validate_number(:limit, greater_than: 0)
+    |> validate_number(:offset, greater_than_or_equal_to: 0)
+    |> validate_within_max_limit(:limit, opts)
+  end
 
-    if is_nil(order_by) do
-      default_order = module |> struct() |> default_order()
+  defp validate_by_pagination_type(changeset, :page, opts) do
+    changeset
+    |> put_default_limit(:page_size, opts)
+    |> put_default_value(:page, 1)
+    |> validate_required([:page_size])
+    |> validate_number(:page, greater_than: 0)
+    |> validate_number(:page_size, greater_than: 0)
+    |> validate_within_max_limit(:page_size, opts)
+  end
+
+  defp validate_by_pagination_type(changeset, nil, opts) do
+    put_default_limit(changeset, :limit, opts)
+  end
+
+  defp validate_sortable(changeset, opts) do
+    sortable_fields = get_option(:sortable, opts)
+
+    if sortable_fields,
+      do: validate_subset(changeset, :order_by, sortable_fields),
+      else: changeset
+  end
+
+  defp validate_within_max_limit(changeset, field, opts) do
+    max_limit = get_option(:max_limit, opts)
+
+    if is_nil(max_limit),
+      do: changeset,
+      else: validate_number(changeset, field, less_than_or_equal_to: max_limit)
+  end
+
+  defp validate_cursor(changeset, field) do
+    encoded_cursor = get_field(changeset, field)
+    order_fields = get_field(changeset, :order_by)
+
+    if encoded_cursor && order_fields do
+      case Cursor.decode(encoded_cursor) do
+        {:ok, cursor_map} ->
+          if Enum.sort(Map.keys(cursor_map)) == Enum.sort(order_fields),
+            do: changeset,
+            else: add_error(changeset, field, "does not match order fields")
+
+        :error ->
+          add_error(changeset, field, "is invalid")
+      end
+    else
+      changeset
+    end
+  end
+
+  defp put_default_limit(changeset, field, opts) do
+    default_limit = get_option(:default_limit, opts)
+    put_default_value(changeset, field, default_limit)
+  end
+
+  defp put_default_order(changeset, opts) do
+    if is_nil(get_field(changeset, :order_by)) do
+      default_order = get_option(:default_order, opts)
 
       changeset
       |> put_change(:order_by, default_order[:order_by])
@@ -248,17 +177,69 @@ defmodule Flop.Validation do
     end
   end
 
-  @spec validate_within_max_limit(Changeset.t(), atom, module | nil) ::
-          Changeset.t()
-  defp validate_within_max_limit(changeset, _field, nil), do: changeset
+  defp put_default_value(changeset, field, default) do
+    if !is_nil(default) && is_nil(get_field(changeset, field)),
+      do: put_change(changeset, field, default),
+      else: changeset
+  end
 
-  defp validate_within_max_limit(changeset, field, module) do
-    max_limit =
-      module |> struct() |> max_limit() ||
-        Application.get_env(:flop, :max_limit)
+  defp add_pagination_type_error(changeset, :first) do
+    add_error(
+      changeset,
+      :first,
+      "cursor-based pagination with first/after is not allowed"
+    )
+  end
 
-    if is_nil(max_limit),
-      do: changeset,
-      else: validate_number(changeset, field, less_than_or_equal_to: max_limit)
+  defp add_pagination_type_error(changeset, :last) do
+    add_error(
+      changeset,
+      :last,
+      "cursor-based pagination with last/before is not allowed"
+    )
+  end
+
+  defp add_pagination_type_error(changeset, :offset) do
+    add_error(
+      changeset,
+      :limit,
+      "offset/limit pagination is not allowed"
+    )
+  end
+
+  defp add_pagination_type_error(changeset, :page) do
+    add_error(
+      changeset,
+      :page,
+      "page-based pagination is not allowed"
+    )
+  end
+
+  defp get_pagination_type(changeset) do
+    cond do
+      any_field_set?(changeset, :first, :after) -> :first
+      any_field_set?(changeset, :last, :before) -> :last
+      any_field_set?(changeset, :page, :page_size) -> :page
+      any_field_set?(changeset, :limit, :offset) -> :offset
+      true -> nil
+    end
+  end
+
+  defp any_field_set?(changeset, field_a, field_b) do
+    get_field(changeset, field_a) || get_field(changeset, field_b)
+  end
+
+  defp get_option(key, opts) do
+    opts[key] || schema_option(opts[:for], key) || global_option(key)
+  end
+
+  defp schema_option(nil, _), do: nil
+
+  defp schema_option(module, key) when is_atom(module) and is_atom(key) do
+    apply(Flop.Schema, key, [struct(module)])
+  end
+
+  defp global_option(key) when is_atom(key) do
+    Application.get_env(:flop, key)
   end
 end

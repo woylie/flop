@@ -683,7 +683,7 @@ defmodule Flop do
   defp apply_cursor(q, nil, _), do: q
 
   defp apply_cursor(q, cursor, ordering) do
-    cursor = Cursor.decode(cursor)
+    cursor = Cursor.decode!(cursor)
     where_dynamic = cursor_dynamic(ordering, cursor)
     Query.where(q, ^where_dynamic)
   end
