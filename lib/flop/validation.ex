@@ -202,8 +202,8 @@ defmodule Flop.Validation do
   defp add_pagination_type_error(changeset, :offset) do
     add_error(
       changeset,
-      :limit,
-      "offset/limit pagination is not allowed"
+      :offset,
+      "offset-based pagination is not allowed"
     )
   end
 

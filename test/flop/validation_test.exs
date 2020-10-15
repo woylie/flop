@@ -42,6 +42,26 @@ defmodule Flop.ValidationTest do
     assert {:ok, _} = validate(%{first: 1, order_by: [:name]}, for: Fruit)
     assert {:ok, _} = validate(%{last: 1, order_by: [:name]}, for: Fruit)
     assert {:ok, _} = validate(%{offset: 1}, for: Fruit)
+
+    assert {:error, changeset} =
+             validate(%{first: 1, order_by: [:name]}, for: Vegetable)
+
+    assert errors_on(changeset)[:first] == [
+             "cursor-based pagination with first/after is not allowed"
+           ]
+
+    assert {:error, changeset} =
+             validate(%{last: 1, order_by: [:name]}, for: Vegetable)
+
+    assert errors_on(changeset)[:last] == [
+             "cursor-based pagination with last/before is not allowed"
+           ]
+
+    assert {:error, changeset} = validate(%{offset: 1}, for: Vegetable)
+
+    assert errors_on(changeset)[:offset] == [
+             "offset-based pagination is not allowed"
+           ]
   end
 
   describe "offset/limit parameters" do
@@ -164,7 +184,7 @@ defmodule Flop.ValidationTest do
 
     test "does not set default limit for other pagination types" do
       assert {:ok, %Flop{limit: nil, page_size: nil, last: nil}} =
-               validate(%{first: 1, order_by: [:name]}, for: Vegetable)
+               validate(%{first: 1, order_by: [:name]}, for: Fruit)
     end
 
     test "validates max limit if set with Flop.Schema" do
@@ -255,7 +275,7 @@ defmodule Flop.ValidationTest do
 
     test "does not set default limit for other pagination types" do
       assert {:ok, %Flop{limit: nil, page_size: nil, first: nil}} =
-               validate(%{last: 1, order_by: [:name]}, for: Vegetable)
+               validate(%{last: 1, order_by: [:name]}, for: Fruit)
     end
 
     test "validates max limit if set with Flop.Schema" do

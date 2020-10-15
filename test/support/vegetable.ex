@@ -9,9 +9,10 @@ defmodule Flop.Vegetable do
            sortable: [:name],
            default_limit: 50,
            default_order_by: [:name],
-           default_order_directions: [:asc]}
+           default_order_directions: [:asc],
+           pagination_types: [:page]}
 
-  schema "fruits" do
+  schema "vegetables" do
     field :name, :string
     field :family, :string
   end

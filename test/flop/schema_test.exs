@@ -88,4 +88,10 @@ defmodule Flop.SchemaTest do
       Schema.sortable(%{})
     end
   end
+
+  test "calling pagination_types/1 without deriving raises error" do
+    assert_raise Protocol.UndefinedError, fn ->
+      Schema.pagination_types(%{})
+    end
+  end
 end
