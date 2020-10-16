@@ -344,15 +344,16 @@ defmodule Flop do
 
   ### Fields
 
-  - `after`: Used for cursor-based pagination. Must be used with `first`.
-  - `before`: Used for cursor-based pagination. Must be used with `last`.
-  - `limit`, `offset`: Used for pagination. May not be used together with
-    `page` and `page_size`.
-  - `first` Used for cursor-based pagination. Can be used alone to begin pagination
-    or with `after`
-  - `last` Used for cursor-based pagination. Must be used with `before`
-  - `page`, `page_size`: Used for pagination. May not be used together with
-    `limit` and `offset`.
+  - `after`: Used for cursor-based pagination. Must be used with `first` or a
+    default limit.
+  - `before`: Used for cursor-based pagination. Must be used with `last` or a
+    default limit.
+  - `limit`, `offset`: Used for offset-based pagination.
+  - `first` Used for cursor-based pagination. Can be used alone to begin
+    pagination or with `after`
+  - `last` Used for cursor-based pagination.
+  - `page`, `page_size`: Used for offset-based pagination as an alternative to
+    `offset` and `limit`.
   - `order_by`: List of fields to order by. Fields can be restricted by
     deriving `Flop.Schema` in your Ecto schema.
   - `order_directions`: List of order directions applied to the fields defined
@@ -409,6 +410,9 @@ defmodule Flop do
       iex> flop = %Flop{limit: 10}
       iex> Flop.Pet |> Ecto.Query.where(species: "dog") |> Flop.query(flop)
       #Ecto.Query<from p0 in Flop.Pet, where: p0.species == \"dog\", limit: ^10>
+
+  Note that when using cursor-based pagination, the applied limit will be
+  `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`.
   """
   @spec query(Queryable.t(), Flop.t()) :: Queryable.t()
   def query(q, flop) do
@@ -433,6 +437,10 @@ defmodule Flop do
 
       iex> Flop.all(Flop.Pet, %Flop{})
       []
+
+  Note that when using cursor-based pagination, the applied limit will be
+  `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`, but
+  not by this function.
   """
   @doc since: "0.6.0"
   @spec all(Queryable.t(), Flop.t(), [option()]) :: [any]
@@ -597,6 +605,9 @@ defmodule Flop do
   use offset/limit based pagination with arbitrary offsets, but in that case,
   you will use the `previous_offset`, `current_offset` and `next_offset` values
   to render the pagination links anyway, so this shouldn't be a problem.
+
+  Unless cursor-based pagination is used, this function will run a query to
+  figure get the total count of matching records.
   """
   @doc since: "0.6.0"
   @spec meta(Queryable.t() | [any], Flop.t(), [option()]) :: Meta.t()
