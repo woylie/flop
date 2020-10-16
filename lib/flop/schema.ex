@@ -1,19 +1,18 @@
 defprotocol Flop.Schema do
   @moduledoc """
-  This protocol allows you to define the sortable and filterable fields in your
-  Ecto schemas.
+  This protocol allows you to set query options in your Ecto schemas.
 
   ## Usage
 
-  Derive `Flop.Schema` in your Ecto schema.
+  Derive `Flop.Schema` in your Ecto schema and set the filterable and sortable
+  fields.
 
       defmodule Flop.Pet do
         use Ecto.Schema
 
         @derive {Flop.Schema,
                  filterable: [:name, :species],
-                 sortable: [:name, :age],
-                 max_limit: 20}
+                 sortable: [:name, :age]}
 
         schema "pets" do
           field :name, :string
@@ -68,6 +67,8 @@ defprotocol Flop.Schema do
   `:asc` is assumed for all fields.
 
       @derive {Flop.Schema,
+                filterable: [:name, :species],
+                sortable: [:name, :age],
                 default_order_by: [:name, :age],
                 default_order_directions: [:asc, :desc]}
 
@@ -79,6 +80,8 @@ defprotocol Flop.Schema do
   `pagination_types` option.
 
       @derive {Flop.Schema,
+                filterable: [:name, :species],
+                sortable: [:name, :age],
                 pagination_types: [:first, :last]}
 
   See also `t:Flop.option/0` and `t:Flop.pagination_type/0`. Setting the value
@@ -163,7 +166,6 @@ defimpl Flop.Schema, for: Any do
         field :name, :string
         field :age, :integer
         field :species, :string
-        field :social_security_number, :string
       end
 
   """
@@ -185,55 +187,34 @@ defimpl Flop.Schema, for: Any do
 
     quote do
       defimpl Flop.Schema, for: unquote(module) do
-        def filterable(_) do
-          unquote(filterable_fields)
-        end
-
-        def sortable(_) do
-          unquote(sortable_fields)
-        end
-
         def default_limit(_) do
           unquote(default_limit)
-        end
-
-        def max_limit(_) do
-          unquote(max_limit)
         end
 
         def default_order(_) do
           unquote(Macro.escape(default_order))
         end
 
+        def filterable(_) do
+          unquote(filterable_fields)
+        end
+
+        def max_limit(_) do
+          unquote(max_limit)
+        end
+
         def pagination_types(_) do
           unquote(pagination_types)
+        end
+
+        def sortable(_) do
+          unquote(sortable_fields)
         end
       end
     end
   end
 
-  def filterable(struct) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
-
-  def sortable(struct) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
-
   def default_limit(struct) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
-
-  def max_limit(struct) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,
@@ -247,7 +228,28 @@ defimpl Flop.Schema, for: Any do
       description: @instructions
   end
 
+  def filterable(struct) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol,
+      value: struct,
+      description: @instructions
+  end
+
+  def max_limit(struct) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol,
+      value: struct,
+      description: @instructions
+  end
+
   def pagination_types(struct) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol,
+      value: struct,
+      description: @instructions
+  end
+
+  def sortable(struct) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,
