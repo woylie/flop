@@ -210,22 +210,22 @@ defmodule FlopTest do
 
       check all some_value <- member_of(values),
                 str_length = String.length(some_value),
-                start_at_a <- integer(0..(str_length - 1)),
-                end_at_a <- integer(start_at_a..(str_length - 1)),
-                start_at_b <- integer(0..(str_length - 1)),
-                end_at_b <- integer(start_at_b..(str_length - 1)),
+                start_at_a <- integer(0..(str_length - 2)),
+                end_at_a <- integer((start_at_a + 1)..(str_length - 1)),
+                start_at_b <- integer(0..(str_length - 2)),
+                end_at_b <- integer((start_at_b + 1)..(str_length - 1)),
                 query_value_a <-
                   some_value
                   |> String.slice(start_at_a..end_at_a)
                   |> String.trim()
                   |> constant(),
-                query_value_a != " ",
+                query_value_a != "",
                 query_value_b <-
                   some_value
                   |> String.slice(start_at_b..end_at_b)
                   |> String.trim()
                   |> constant(),
-                query_value_b != " ",
+                query_value_b != "",
                 whitespace_character <- member_of(@whitespace) do
         query_values =
           Enum.concat([
@@ -263,22 +263,22 @@ defmodule FlopTest do
 
       check all some_value <- member_of(values),
                 str_length = String.length(some_value),
-                start_at_a <- integer(0..(str_length - 1)),
-                end_at_a <- integer(start_at_a..(str_length - 1)),
-                start_at_b <- integer(0..(str_length - 1)),
-                end_at_b <- integer(start_at_b..(str_length - 1)),
+                start_at_a <- integer(0..(str_length - 2)),
+                end_at_a <- integer((start_at_a + 1)..(str_length - 1)),
+                start_at_b <- integer(0..(str_length - 2)),
+                end_at_b <- integer((start_at_b + 1)..(str_length - 1)),
                 query_value_a <-
                   some_value
                   |> String.slice(start_at_a..end_at_a)
                   |> String.trim()
                   |> constant(),
-                query_value_a != " ",
+                query_value_a != "",
                 query_value_b <-
                   some_value
                   |> String.slice(start_at_b..end_at_b)
                   |> String.trim()
                   |> constant(),
-                query_value_b != " ",
+                query_value_b != "",
                 whitespace_character <- member_of(@whitespace) do
         query_values =
           Enum.concat([
@@ -340,22 +340,22 @@ defmodule FlopTest do
 
       check all some_value <- member_of(values),
                 str_length = String.length(some_value),
-                start_at_a <- integer(0..(str_length - 1)),
-                end_at_a <- integer(start_at_a..(str_length - 1)),
-                start_at_b <- integer(0..(str_length - 1)),
-                end_at_b <- integer(start_at_b..(str_length - 1)),
+                start_at_a <- integer(0..(str_length - 2)),
+                end_at_a <- integer((start_at_a + 1)..(str_length - 1)),
+                start_at_b <- integer(0..(str_length - 2)),
+                end_at_b <- integer((start_at_b + 1)..(str_length - 1)),
                 query_value_a <-
                   some_value
                   |> String.slice(start_at_a..end_at_a)
                   |> String.trim()
                   |> constant(),
-                query_value_a != " ",
+                query_value_a != "",
                 query_value_b <-
                   some_value
                   |> String.slice(start_at_b..end_at_b)
                   |> String.trim()
                   |> constant(),
-                query_value_b != " ",
+                query_value_b != "",
                 whitespace_character <- member_of(@whitespace) do
         query_values =
           Enum.concat([
@@ -393,22 +393,22 @@ defmodule FlopTest do
 
       check all some_value <- member_of(values),
                 str_length = String.length(some_value),
-                start_at_a <- integer(0..(str_length - 1)),
-                end_at_a <- integer(start_at_a..(str_length - 1)),
-                start_at_b <- integer(0..(str_length - 1)),
-                end_at_b <- integer(start_at_b..(str_length - 1)),
+                start_at_a <- integer(0..(str_length - 2)),
+                end_at_a <- integer((start_at_a + 2)..(str_length - 1)),
+                start_at_b <- integer(0..(str_length - 2)),
+                end_at_b <- integer((start_at_b + 2)..(str_length - 1)),
                 query_value_a <-
                   some_value
                   |> String.slice(start_at_a..end_at_a)
                   |> String.trim()
                   |> constant(),
-                query_value_a != " ",
+                query_value_a != "",
                 query_value_b <-
                   some_value
                   |> String.slice(start_at_b..end_at_b)
                   |> String.trim()
                   |> constant(),
-                query_value_b != " ",
+                query_value_b != "",
                 whitespace_character <- member_of(@whitespace) do
         query_values =
           Enum.concat([
