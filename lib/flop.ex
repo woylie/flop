@@ -4,13 +4,64 @@ defmodule Flop do
 
   ## Usage
 
-  Derive `Flop.Schema` in your Ecto schemas.
+  The simplest way of using this library is just to use
+  `Flop.validate_and_run/3` and `Flop.validate_and_run!/3`. Both functions
+  take a queryable and a parameter map, validate the parameters, run the query
+  and return the query results and the meta information.
+
+      iex> Flop.Repo.insert_all(Flop.Pet, [
+      ...>   %{name: "Harry", age: 4, species: "C. lupus"},
+      ...>   %{name: "Maggie", age: 1, species: "O. cuniculus"},
+      ...>   %{name: "Patty", age: 2, species: "C. aegagrus"}
+      ...> ])
+      iex> params = %{order_by: ["name", "age"], page: 1, page_size: 2}
+      iex> {:ok, {results, meta}} =
+      ...>   Flop.validate_and_run(
+      ...>     Flop.Pet,
+      ...>     params,
+      ...>     repo: Flop.Repo
+      ...>   )
+      iex> Enum.map(results, & &1.name)
+      ["Harry", "Maggie"]
+      iex> meta.total_count
+      3
+      iex> meta.total_pages
+      2
+      iex> meta.has_next_page?
+      true
+
+  Under the hood, these functions just call `Flop.validate/2` and `Flop.run/3`,
+  which in turn calls `Flop.all/3` and `Flop.meta/3`. If you need finer control
+  about if and when to execute each step, you can call those functions directly.
+
+  See `Flop.Meta` for descriptions of the meta fields.
+
+  ## Global configuration
+
+  You can set some global options like the default Ecto repo via the application
+  environment. All global options can be overridden by passing them directly to
+  the functions or configuring the options for a schema module via
+  `Flop.Schema`.
+
+      import Config
+
+      config :flop, repo: MyApp.Repo
+
+  See `t:Flop.option/0` for a description of all available options.
+
+  ## Schema options
+
+  You can set some options for a schema by deriving `Flop.Schema`. The options
+  are evaluated at the validation step.
 
       defmodule Pet do
         use Ecto.Schema
 
         @derive {Flop.Schema,
-                 filterable: [:name, :species], sortable: [:name, :age]}
+                 filterable: [:name, :species],
+                 sortable: [:name, :age],
+                 default_limit: 20,
+                 max_limit: 100}
 
         schema "pets" do
           field :name, :string
@@ -20,28 +71,167 @@ defmodule Flop do
         end
       end
 
-  Validate a parameter map to get a `t:Flop.t/0` struct with `Flop.validate/1`.
-  Add the `t:Flop.t/0` to a `t:Ecto.Queryable.t/0` with `Flop.query/2`.
+  You need to pass the schema to `Flop.validate/2` or any function that
+  includes the validation step with the `:for` option.
 
       iex> params = %{"order_by" => ["name", "age"], "limit" => 5}
       iex> {:ok, flop} = Flop.validate(params, for: Flop.Pet)
-      {:ok,
-       %Flop{
-         filters: [],
-         limit: 5,
-         offset: 0,
-         order_by: [:name, :age],
-         order_directions: nil,
-         page: nil,
-         page_size: nil
-       }}
-      iex> Flop.Pet |> Flop.query(flop)
-      #Ecto.Query<from p0 in Flop.Pet, order_by: [asc: p0.name, asc: p0.age], \
-  limit: ^5, offset: ^0>
 
-  Use `Flop.validate_and_run/3`, `Flop.validate_and_run!/3`, `Flop.run/3`,
-  `Flop.all/3` or `Flop.meta/3` to query the database. Also consult the
-  [readme](https://hexdocs.pm/flop/readme.html) for more details.
+      iex> params = %{"order_by" => ["name", "age"], "limit" => 200}
+      iex> {:error, changeset} = Flop.validate(params, for: Flop.Pet)
+      iex> [{:limit, {msg, _}}] = changeset.errors
+      iex> msg
+      "must be less than or equal to %{number}"
+
+      iex> params = %{"order_by" => ["name", "age"], "limit" => 200}
+      iex> {:error, changeset} =
+      ...>   Flop.validate_and_run(
+      ...>     Flop.Pet,
+      ...>     params,
+      ...>     for: Flop.Pet
+      ...>   )
+      iex> [{:limit, {msg, _}}] = changeset.errors
+      iex> msg
+      "must be less than or equal to %{number}"
+
+  ## Ordering
+
+  To add an ordering clause to a query, you need to set the `:order_by` and
+  optionally the `:order_directions` parameter. `:order_by` should be the list
+  of fields, while `:order_directions` is a list of `t:Flop.order_direction/0`.
+  `:order_by` and `:order_directions` are zipped when generating the `ORDER BY`
+  clause. If no order directions are given, `:asc` is used as default.
+
+      iex> params = %{
+      ...>   "order_by" => ["name", "age"],
+      ...>   "order_directions" => ["asc", "desc"]
+      ...> }
+      iex> {:ok, flop} = Flop.validate(params)
+      iex> flop.order_by
+      [:name, :age]
+      iex> flop.order_directions
+      [:asc, :desc]
+
+  Flop uses these two fields instead of a keyword list, so that the order
+  instructions can be easily passed in a query string.
+
+  ## Pagination
+
+  For queries using `OFFSET` and `LIMIT`, you have the choice between
+  page-based pagination parameters:
+
+      %{page: 5, page_size: 20}
+
+  and offset-based pagination parameters:
+
+      %{offset: 100, limit: 20}
+
+  For cursor-based pagination, you can either use `:first`/`:after` or
+  `:last`/`:before`. You also need to pass the `:order_by` parameter or set a
+  default order for the schema via `Flop.Schema`.
+
+      iex> Flop.Repo.insert_all(Flop.Pet, [
+      ...>   %{name: "Harry", age: 4, species: "C. lupus"},
+      ...>   %{name: "Maggie", age: 1, species: "O. cuniculus"},
+      ...>   %{name: "Patty", age: 2, species: "C. aegagrus"}
+      ...> ])
+      iex>
+      iex> # forward (first/after)
+      iex>
+      iex> params = %{first: 2, order_by: [:species, :name]}
+      iex> {:ok, {results, meta}} = Flop.validate_and_run(Flop.Pet, params)
+      iex> Enum.map(results, & &1.name)
+      ["Patty", "Harry"]
+      iex> meta.has_next_page?
+      true
+      iex> end_cursor = meta.end_cursor
+      "g3QAAAACZAAEbmFtZW0AAAAFSGFycnlkAAdzcGVjaWVzbQAAAAhDLiBsdXB1cw=="
+      iex> params = %{first: 2, after: end_cursor, order_by: [:species, :name]}
+      iex> {:ok, {results, meta}} = Flop.validate_and_run(Flop.Pet, params)
+      iex> Enum.map(results, & &1.name)
+      ["Maggie"]
+      iex> meta.has_next_page?
+      false
+      iex>
+      iex> # backward (last/before)
+      iex>
+      iex> params = %{last: 2, order_by: [:species, :name]}
+      iex> {:ok, {results, meta}} = Flop.validate_and_run(Flop.Pet, params)
+      iex> Enum.map(results, & &1.name)
+      ["Harry", "Maggie"]
+      iex> meta.has_previous_page?
+      true
+      iex> start_cursor = meta.start_cursor
+      "g3QAAAACZAAEbmFtZW0AAAAFSGFycnlkAAdzcGVjaWVzbQAAAAhDLiBsdXB1cw=="
+      iex> params = %{last: 2, before: start_cursor, order_by: [:species, :name]}
+      iex> {:ok, {results, meta}} = Flop.validate_and_run(Flop.Pet, params)
+      iex> Enum.map(results, & &1.name)
+      ["Patty"]
+      iex> meta.has_previous_page?
+      false
+
+  By default, it is assumed that the query result is a list of maps or structs.
+  If your query returns a different data structure, you can pass the
+  `:get_cursor_value_func` option to retrieve the cursor values. See
+  `t:Flop.option/0` and `Flop.Cursor` for more information.
+
+  You can restrict which pagination types are available. See `t:Flop.option/0`
+  for details.
+
+  ## Filters
+
+  Filters can be passed as a list of maps. It is recommended to define the
+  filterable fields for a schema using `Flop.Schema`.
+
+      iex> Flop.Repo.insert_all(Flop.Pet, [
+      ...>   %{name: "Harry", age: 4, species: "C. lupus"},
+      ...>   %{name: "Maggie", age: 1, species: "O. cuniculus"},
+      ...>   %{name: "Patty", age: 2, species: "C. aegagrus"}
+      ...> ])
+      iex>
+      iex> params = %{filters: [%{field: :name, op: :=~, value: "Mag"}]}
+      iex> {:ok, {results, meta}} = Flop.validate_and_run(Flop.Pet, params)
+      iex> meta.total_count
+      1
+      iex> [pet] = results
+      iex> pet.name
+      "Maggie"
+
+  See `t:Flop.Filter.op/0` for a list of all available filter operators.
+
+  ## GraphQL and Relay
+
+  The parameters used for cursor-based pagination follow the Relay
+  specification, so you can just pass the arguments you get from the client on
+  to Flop.
+
+  `Flop.Relay` can convert the query results returned by
+  `Flop.validate_and_run/3` into `Edges` and `PageInfo` formats required for
+  Relay connections.
+
+  For example, if you have a context module like this:
+
+      defmodule MyApp.Flora
+        import Ecto.query, warn: false
+
+        alias MyApp.Flora.Plant
+
+        def list_plants_by_continent(%Continent{} = continent, %{} = args) do
+          Plant
+          |> where(continent_id: ^continent.id)
+          |> Flop.validate_and_run(args, for: Plant)
+        end
+      end
+
+  Then your Absinthe resolver for the `plants` connection may look something
+  like this:
+
+      def list_plants(args, %{source: %Continent{} = continent}) do
+        with {:ok, result} <-
+               Flora.list_plants_by_continent(continent, args) do
+          {:ok, Flop.Relay.connection_from_result(result)}
+        end
+      end
   """
   use Ecto.Schema
 

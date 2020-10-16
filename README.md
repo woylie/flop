@@ -9,10 +9,9 @@ Ecto a bit easier.
 
 ## Features
 
-- ordering by multiple fields in multiple directions
-- offset/limit based pagination
-- page number/page size based pagination
+- offset-based pagination with `offset`/`limit` or `page`/`page_size`
 - cursor-based pagination (aka key set pagination), compatible with Relay pagination arguments
+- ordering by multiple fields in multiple directions
 - filtering by multiple conditions with diverse operators on multiple fields
 - parameter validation
 - configurable filterable and sortable fields
@@ -146,6 +145,8 @@ Flop.all(Pet, flop, repo: MyApp.Repo)
 Flop.meta(Pet, flop, repo: MyApp.Repo)
 # etc.
 ```
+
+See the [docs](https://hexdocs.pm/flop/readme.html) for more information.
 
 ## Flop Phoenix
 
