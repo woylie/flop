@@ -49,6 +49,9 @@ defmodule Flop.Relay do
         }
       }
 
+  See `Flop.Relay.edges_from_result/2` for an example of adding additional
+  fields to the edge.
+
   ## Options
 
   - `:get_cursor_value_func`: 2-arity function that takes an item from the query
