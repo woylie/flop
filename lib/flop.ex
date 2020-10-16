@@ -431,7 +431,8 @@ defmodule Flop do
       start_cursor: start_cursor,
       end_cursor: end_cursor,
       has_next_page?: length(results) > first,
-      has_previous_page?: false
+      has_previous_page?: false,
+      page_size: first
     }
   end
 
@@ -457,7 +458,8 @@ defmodule Flop do
       start_cursor: start_cursor,
       end_cursor: end_cursor,
       has_next_page?: false,
-      has_previous_page?: length(results) > last
+      has_previous_page?: length(results) > last,
+      page_size: last
     }
   end
 
