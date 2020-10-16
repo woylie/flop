@@ -21,6 +21,7 @@
   an error if the cursor is invalid.
 - `Flop.Cursor.decode/1` returns an error if the decoded cursor value is not a
   map with atom keys.
+- Improved documentation.
 
 ## [0.8.4] - 2020-10-14
 
