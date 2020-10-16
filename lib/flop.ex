@@ -76,6 +76,8 @@ defmodule Flop do
 
       iex> params = %{"order_by" => ["name", "age"], "limit" => 5}
       iex> {:ok, flop} = Flop.validate(params, for: Flop.Pet)
+      iex> flop.limit
+      5
 
       iex> params = %{"order_by" => ["name", "age"], "limit" => 200}
       iex> {:error, changeset} = Flop.validate(params, for: Flop.Pet)
