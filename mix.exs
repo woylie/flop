@@ -4,7 +4,7 @@ defmodule Flop.MixProject do
   def project do
     [
       app: :flop,
-      version: "0.8.4",
+      version: "0.9.0",
       elixir: "~> 1.8",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),

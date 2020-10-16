@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.9.0] - 2020-10-16
+
 ### Added
 
 - Add `like`, `like_and`, `like_or`, `ilike`, `ilike_and` and `ilike_or` filter
