@@ -136,8 +136,8 @@ defprotocol Flop.Schema do
   """
   @doc since: "0.7.0"
   @spec default_order(any) :: %{
-          order_by: [atom],
-          order_directions: [Flop.order_direction()]
+          order_by: [atom] | nil,
+          order_directions: [Flop.order_direction()] | nil
         }
   def default_order(data)
 

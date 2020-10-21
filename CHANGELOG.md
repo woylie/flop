@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.9.1] - 2020-10-21
+
+### Fixed
+
+- Fixed type spec of `Flop.Schema.default_order/1`.
+
 ## [0.9.0] - 2020-10-16
 
 ### Added
