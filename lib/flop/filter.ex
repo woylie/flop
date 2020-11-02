@@ -43,11 +43,11 @@ defmodule Flop.Filter do
   | `:>`         | `10`                | `WHERE column > 10`                 |
   | `:in`        | `["pear", "plum"]`  | `WHERE column IN ('pear', 'plum')`  |
   | `:like`      | `"cyth"`            | `WHERE column LIKE '%cyth%'`        |
-  | `:like_and`  | `["Rubi", "Rosa"]`  | `WHERE column LIKE '%Rubi%' AND column LIKE '%Rosa%'`   |
-  | `:like_or`   | `["Rubi", "Rosa"]`  | `WHERE column LIKE '%Rubi%' OR column LIKE '%Rosa%'`    |
+  | `:like_and`  | `"Rubi Rosa"`       | `WHERE column LIKE '%Rubi%' AND column LIKE '%Rosa%'`   |
+  | `:like_or`   | `"Rubi Rosa"`       | `WHERE column LIKE '%Rubi%' OR column LIKE '%Rosa%'`    |
   | `:ilike`     | `"cyth"`            | `WHERE column ILIKE '%cyth%'`       |
-  | `:ilike_and` | `["Rubi", "Rosa"]`  | `WHERE column ILIKE '%Rubi%' AND column ILIKE '%Rosa%'` |
-  | `:ilike_or`  | `["Rubi", "Rosa"]`  | `WHERE column ILIKE '%Rubi%' OR column ILIKE '%Rosa%'`  |
+  | `:ilike_and` | `"Rubi Rosa"`       | `WHERE column ILIKE '%Rubi%' AND column ILIKE '%Rosa%'` |
+  | `:ilike_or`  | `"Rubi Rosa"`       | `WHERE column ILIKE '%Rubi%' OR column ILIKE '%Rosa%'`  |
   """
   @type op ::
           :==
