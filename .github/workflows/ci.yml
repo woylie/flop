@@ -11,8 +11,8 @@ jobs:
     name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
     strategy:
       matrix:
-        otp: [21.3.8.9, 22.1.3]
-        elixir: [1.9.4, 1.10.3]
+        otp: ['21.3', '22.3']
+        elixir: ['1.9.4', '1.10.4', '1.11.3']
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -31,8 +31,8 @@ jobs:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v1.0.0
-      - uses: actions/setup-elixir@v1.0.0
+      - uses: actions/checkout@v2
+      - uses: erlef/setup-elixir@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
