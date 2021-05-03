@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.10.0] - 2021-05-03
+
 ### Added
 
 - Add function `Flop.push_order/2` for updating the `order_by` and
