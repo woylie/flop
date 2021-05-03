@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- Add function `Flop.push_order/2` for updating the `order_by` and
+  `order_directions` values of a Flop struct.
+
 ## [0.9.1] - 2020-10-21
 
 ### Fixed

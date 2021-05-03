@@ -2,7 +2,7 @@ defmodule FlopTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  doctest Flop
+  doctest Flop, import: true
 
   import Ecto.Query
   import Flop.Factory
