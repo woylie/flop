@@ -1154,6 +1154,100 @@ defmodule Flop do
     end
   end
 
+  @doc """
+  Updates the `order_by` and `order_directions` values of a `Flop` struct.
+
+  - If the field is not in the current `order_by` value, it will be prepended to
+    the list. The order direction for the field will be set to `:asc`.
+  - If the field is already at the front of the `order_by` list, the order
+    direction will be reversed.
+  - If the field is already in the list, but not at the front, it will be moved
+    to the front and the order direction will be set to `:asc`.
+
+  ## Example
+
+      iex> flop = push_order(%Flop{}, :name)
+      iex> flop.order_by
+      [:name]
+      iex> flop.order_directions
+      [:asc]
+      iex> flop = push_order(flop, :age)
+      iex> flop.order_by
+      [:age, :name]
+      iex> flop.order_directions
+      [:asc, :asc]
+      iex> flop = push_order(flop, :age)
+      iex> flop.order_by
+      [:age, :name]
+      iex> flop.order_directions
+      [:desc, :asc]
+      iex> flop = push_order(flop, :species)
+      iex> flop.order_by
+      [:species, :age, :name]
+      iex> flop.order_directions
+      [:asc, :desc, :asc]
+      iex> flop = push_order(flop, :age)
+      iex> flop.order_by
+      [:age, :species, :name]
+      iex> flop.order_directions
+      [:asc, :asc, :asc]
+  """
+  @spec push_order(Flop.t(), atom) :: Flop.t()
+  @doc since: "0.10.0"
+  def push_order(
+        %Flop{order_by: order_by, order_directions: order_directions} = flop,
+        field
+      )
+      when is_atom(field) do
+    previous_index = get_index(order_by, field)
+    previous_direction = get_order_direction(order_directions, previous_index)
+    new_direction = new_order_direction(previous_index, previous_direction)
+
+    {order_by, order_directions} =
+      get_new_order(
+        order_by,
+        order_directions,
+        field,
+        new_direction,
+        previous_index
+      )
+
+    %{flop | order_by: order_by, order_directions: order_directions}
+  end
+
+  defp get_index(nil, _field), do: nil
+  defp get_index(order_by, field), do: Enum.find_index(order_by, &(&1 == field))
+
+  defp get_order_direction(_, nil), do: nil
+  defp get_order_direction(nil, _), do: :asc
+  defp get_order_direction(directions, index), do: Enum.at(directions, index)
+
+  defp new_order_direction(0, :asc), do: :desc
+  defp new_order_direction(0, :asc_nulls_first), do: :desc_nulls_last
+  defp new_order_direction(0, :asc_nulls_last), do: :desc_nulls_first
+  defp new_order_direction(0, :desc), do: :asc
+  defp new_order_direction(0, :desc_nulls_first), do: :asc_nulls_last
+  defp new_order_direction(0, :desc_nulls_last), do: :asc_nulls_first
+  defp new_order_direction(_, _), do: :asc
+
+  defp get_new_order(
+         order_by,
+         order_directions,
+         field,
+         new_direction,
+         previous_index
+       ) do
+    {order_by, order_directions} =
+      if previous_index do
+        {List.delete_at(order_by, previous_index),
+         List.delete_at(order_directions, previous_index)}
+      else
+        {order_by, order_directions}
+      end
+
+    {[field | order_by || []], [new_direction | order_directions || []]}
+  end
+
   defp default_repo, do: Application.get_env(:flop, :repo)
 
   # coveralls-ignore-start
