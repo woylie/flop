@@ -4,6 +4,8 @@ defmodule Flop.Generators do
 
   alias Flop.Filter
 
+  @dialyzer {:nowarn_function, [filter: 0, pagination_parameters: 1, pet: 0]}
+
   @order_directions [
     :asc,
     :asc_nulls_first,
