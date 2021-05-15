@@ -3,6 +3,7 @@ defmodule Flop.Factory do
   use ExMachina.Ecto, repo: Flop.Repo
 
   alias Flop.Fruit
+  alias Flop.Owner
   alias Flop.Pet
 
   @family [
@@ -64,6 +65,14 @@ defmodule Flop.Factory do
     }
   end
 
+  def owner_factory do
+    %Owner{
+      name: build(:name),
+      age: :rand.uniform(100),
+      email: build(:species)
+    }
+  end
+
   def pet_factory do
     %Pet{
       name: build(:name),
@@ -78,6 +87,16 @@ defmodule Flop.Factory do
 
   def fruit_family_factory(_) do
     sequence(:fruit_family, @family)
+  end
+
+  def email_factory(_) do
+    prefix =
+      :name
+      |> build()
+      |> String.downcase()
+      |> String.replace(" ", "@")
+
+    prefix <> ".com"
   end
 
   def name_factory(_) do
