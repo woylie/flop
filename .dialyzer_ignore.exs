@@ -1,4 +1,5 @@
 [
+  ~r/lib\/flop\/schema\.ex.*no_return Function field_type\/2 has no local return\./,
   ~r/lib\/flop\/schema\.ex.*no_return Function filterable\/1 has no local return\./,
   ~r/lib\/flop\/schema\.ex.*no_return Function sortable\/1 has no local return\./,
   ~r/lib\/flop\/schema\.ex.*no_return Function default_limit\/1 has no local return\./,
