@@ -4,6 +4,8 @@ defmodule Flop.Owner do
   """
   use Ecto.Schema
 
+  alias Flop.Pet
+
   @derive {
     Flop.Schema,
     filterable: [:name, :species],
@@ -15,5 +17,7 @@ defmodule Flop.Owner do
     field :name, :string
     field :email, :string
     field :age, :integer
+
+    has_many :pets, Pet
   end
 end
