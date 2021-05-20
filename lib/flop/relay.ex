@@ -178,6 +178,10 @@ defmodule Flop.Relay do
     Enum.map(items, &build_edge(&1, order_by, get_cursor_value_func))
   end
 
+  defp build_edge({node, nil}, order_by, get_cursor_value_func) do
+    build_edge({node, %{}}, order_by, get_cursor_value_func)
+  end
+
   defp build_edge({node, edge_info} = item, order_by, get_cursor_value_func) do
     edge_info
     |> Map.put(:cursor, get_cursor(item, order_by, get_cursor_value_func))
