@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+- `Flop.Relay.edges_from_result/2` can now handle `nil` instead of a map as
+  edge information in a query result.
+
 ## [0.10.0] - 2021-05-03
 
 ### Added
