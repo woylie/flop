@@ -669,6 +669,9 @@ defmodule Flop do
   end
 
   def meta(q, flop, opts) do
+    repo = option_or_default(opts, :repo) || raise no_repo_error("meta")
+    opts = Keyword.put(opts, :repo, repo)
+
     total_count = count(q, flop, opts)
     page_size = flop.page_size || flop.limit
     total_pages = get_total_pages(total_count, page_size)
