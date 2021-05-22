@@ -283,6 +283,8 @@ defmodule Flop do
     parameters. Default orders are still applied.
   - `:repo` - The Ecto Repo module to use for the database query. Used by all
     functions that execute a database query.
+  - `:prefix` - Configures the query to be executed with the given query prefix.
+    See the Ecto documentation on ["Query prefix"](https://hexdocs.pm/ecto/Ecto.Query.html#module-query-prefix).
 
   All options can be passed directly to the functions. Some of the options can
   be set on a schema level via `Flop.Schema`.
@@ -298,7 +300,8 @@ defmodule Flop do
         max_limit: 100,
         ordering: false,
         pagination_types: [:first, :last, :page],
-        repo: MyApp.Repo
+        repo: MyApp.Repo,
+        prefix: "some-prefix"
 
   The look up order is:
 
@@ -317,6 +320,7 @@ defmodule Flop do
           | {:ordering, boolean}
           | {:pagination_types, [pagination_type()]}
           | {:repo, module}
+          | {:prefix, binary}
 
   @typedoc """
   Represents the supported order direction values.
@@ -445,8 +449,7 @@ defmodule Flop do
   @doc since: "0.6.0"
   @spec all(Queryable.t(), Flop.t(), [option()]) :: [any]
   def all(q, flop, opts \\ []) do
-    repo = opts[:repo] || default_repo() || raise no_repo_error("all")
-    apply(repo, :all, [query(q, flop)])
+    apply_on_repo(:all, [query(q, flop)], opts)
   end
 
   @doc """
@@ -572,8 +575,7 @@ defmodule Flop do
   @doc since: "0.6.0"
   @spec count(Queryable.t(), Flop.t(), [option()]) :: non_neg_integer
   def count(q, flop, opts \\ []) do
-    repo = opts[:repo] || default_repo() || raise no_repo_error("count")
-    apply(repo, :aggregate, [filter(q, flop), :count])
+    apply_on_repo(:aggregate, "count", [filter(q, flop), :count], opts)
   end
 
   @doc """
@@ -667,9 +669,7 @@ defmodule Flop do
   end
 
   def meta(q, flop, opts) do
-    repo = opts[:repo] || default_repo() || raise no_repo_error("meta")
-
-    total_count = count(q, flop, repo: repo)
+    total_count = count(q, flop, opts)
     page_size = flop.page_size || flop.limit
     total_pages = get_total_pages(total_count, page_size)
     current_offset = get_current_offset(flop)
@@ -1248,7 +1248,23 @@ defmodule Flop do
     {[field | order_by || []], [new_direction | order_directions || []]}
   end
 
-  defp default_repo, do: Application.get_env(:flop, :repo)
+  defp apply_on_repo(repo_fn, flop_fn \\ nil, args, opts) do
+    repo =
+      option_or_default(opts, :repo) || raise no_repo_error(flop_fn || repo_fn)
+
+    opts =
+      if prefix = option_or_default(opts, :prefix) do
+        [prefix: prefix]
+      else
+        []
+      end
+
+    apply(repo, repo_fn, args ++ [opts])
+  end
+
+  defp option_or_default(opts, key) do
+    opts[key] || Application.get_env(:flop, key)
+  end
 
   # coveralls-ignore-start
   defp no_repo_error(function_name),
