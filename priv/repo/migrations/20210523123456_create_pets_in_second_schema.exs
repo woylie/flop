@@ -8,6 +8,7 @@ defmodule Flop.Repo.Migrations.CreatePetsInSecondSchema do
       add(:name, :string)
       add(:age, :integer)
       add(:species, :string)
+      add(:owner_id, :integer)
     end
   end
 end
