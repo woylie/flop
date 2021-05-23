@@ -629,6 +629,13 @@ defmodule FlopTest do
 
       assert Enum.map(Flop.all(Pet, flop), & &1.name) == [name_1, name_2]
     end
+
+    test "can apply a query prefix" do
+      insert(:pet, %{}, prefix: "other_schema")
+
+      assert Flop.all(Pet, %Flop{}) == []
+      refute Flop.all(Pet, %Flop{}, prefix: "other_schema") == []
+    end
   end
 
   describe "count/3" do
@@ -644,6 +651,13 @@ defmodule FlopTest do
       }
 
       assert Flop.count(Pet, flop) == 6
+    end
+
+    test "can apply a query prefix" do
+      insert(:pet, %{}, prefix: "other_schema")
+
+      assert Flop.count(Pet, %Flop{}) == 0
+      assert Flop.count(Pet, %Flop{}, prefix: "other_schema") == 1
     end
   end
 
@@ -789,6 +803,13 @@ defmodule FlopTest do
 
       assert %Meta{has_next_page?: false, has_previous_page?: true} =
                Flop.meta(Pet, %Flop{page_size: 3, page: 2})
+    end
+
+    test "can apply a query prefix" do
+      insert(:pet, %{}, prefix: "other_schema")
+
+      assert Flop.meta(Pet, %Flop{}).total_count == 0
+      assert Flop.meta(Pet, %Flop{}, prefix: "other_schema").total_count == 1
     end
   end
 

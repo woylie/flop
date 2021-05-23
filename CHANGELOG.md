@@ -6,6 +6,7 @@
 
 - New functions `Flop.Cursor.get_cursor_from_node/2` and
   `Flop.Cursor.get_cursor_from_edge/2`.
+- Support Ecto prefixes.
 
 ### Changed
 
