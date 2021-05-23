@@ -319,8 +319,8 @@ defmodule Flop do
           | {:max_limit, pos_integer}
           | {:ordering, boolean}
           | {:pagination_types, [pagination_type()]}
-          | {:repo, module}
           | {:prefix, binary}
+          | {:repo, module}
 
   @typedoc """
   Represents the supported order direction values.
@@ -449,7 +449,7 @@ defmodule Flop do
   @doc since: "0.6.0"
   @spec all(Queryable.t(), Flop.t(), [option()]) :: [any]
   def all(q, flop, opts \\ []) do
-    apply_on_repo(:all, [query(q, flop)], opts)
+    apply_on_repo(:all, "all", [query(q, flop)], opts)
   end
 
   @doc """
@@ -1251,9 +1251,8 @@ defmodule Flop do
     {[field | order_by || []], [new_direction | order_directions || []]}
   end
 
-  defp apply_on_repo(repo_fn, flop_fn \\ nil, args, opts) do
-    repo =
-      option_or_default(opts, :repo) || raise no_repo_error(flop_fn || repo_fn)
+  defp apply_on_repo(repo_fn, flop_fn, args, opts) do
+    repo = option_or_default(opts, :repo) || raise no_repo_error(flop_fn)
 
     opts =
       if prefix = option_or_default(opts, :prefix) do
