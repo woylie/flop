@@ -2,8 +2,17 @@
 
 ## Unreleased
 
+### Added
+
+- New functions `Flop.Cursor.get_cursor_from_node/2` and
+  `Flop.Cursor.get_cursor_from_edge/2`.
+
 ### Changed
 
+- Use `Flop.Cursor.get_cursor_from_node/2` as default for the
+  `:get_cursor_value_func` option.
+- Deprecate `Flop.Cursor.get_cursor_from_map/2`. Use
+  `Flop.Cursor.get_cursor_from_node/2` instead.
 - `Flop.Relay.edges_from_result/2` can now handle `nil` instead of a map as
   edge information in a query result.
 

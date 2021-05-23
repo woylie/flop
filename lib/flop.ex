@@ -270,7 +270,7 @@ defmodule Flop do
     first argument is the record, the second argument is the list of fields used
     in the `ORDER BY` clause. Needs to return a map with the order fields as
     keys and the the record values of these fields as values. Defaults to
-    `Flop.Cursor.get_cursor_from_map/2`.
+    `Flop.Cursor.get_cursor_from_node/2`.
   - `:max_limit` - Sets a global maximum limit for queries that is used if no
     maximum limit is set for a schema. Can only be set in the application
     configuration.
@@ -526,7 +526,7 @@ defmodule Flop do
   - `repo`: The `Ecto.Repo` module. Required if no default repo is configured.
   - `get_cursor_value_func`: An arity-2 function to be used to retrieve an
     unencoded cursor value from a query result item and the `order_by` fields.
-    Defaults to `Flop.Cursor.get_cursor_from_map/2`.
+    Defaults to `Flop.Cursor.get_cursor_from_node/2`.
   """
   @doc since: "0.6.0"
   @spec validate_and_run(Queryable.t(), map | Flop.t(), [option()]) ::
