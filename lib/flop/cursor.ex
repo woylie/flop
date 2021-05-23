@@ -135,8 +135,13 @@ defmodule Flop.Cursor do
       iex> Flop.Cursor.get_cursors([], [:id])
       {nil, nil}
 
-  If the records in the result set are not maps, you can pass a custom cursor
-  value function.
+  The default function to retrieve the cursor value from the query result is
+  `Flop.Cursor.get_cursor_from_node/2`, which expects the query result to be a
+  map or a 2-tuple. You can set the `get_cursor_value_func` option to use
+  another function. Flop also comes with `Flop.Cursor.get_cursor_from_edge/2`.
+
+  If the records in the result set are not maps, you can define a custom cursor
+  value function like this:
 
       iex> results = [{"Mary", 1936}, {"Paul", 1937}, {"Peter", 1938}]
       iex> cursor_func = fn {name, year}, order_fields ->
@@ -182,8 +187,8 @@ defmodule Flop.Cursor do
   Takes a map or a struct and the `order_by` field list and returns the cursor
   value.
 
-  This function is used as a default if no `:get_cursor_value_func` option is
-  set.
+  See also `Flop.Cursor.get_cursor_from_edge/2` and
+  `Flop.Cursor.get_cursor_from_node/2`.
 
       iex> record = %{id: 20, name: "George", age: 62}
       iex>
@@ -193,8 +198,69 @@ defmodule Flop.Cursor do
       %{age: 62, name: "George"}
   """
   @doc since: "0.8.0"
+  @deprecated "Use Flop.Cursor.get_cursor_from_node/2 instead"
   @spec get_cursor_from_map(map, [atom]) :: map
   def get_cursor_from_map(item, order_by) do
+    Map.take(item, order_by)
+  end
+
+  @doc """
+  Takes a tuple with the node and the edge and the `order_by` field list and
+  returns the cursor value derived from the edge map.
+
+  If a map is passed instead of a tuple, it retrieves the cursor value from that
+  map.
+
+  This function can be used for the `:get_cursor_value_func` option. See also
+  `Flop.Cursor.get_cursor_from_node/2`.
+
+      iex> record = %{id: 20, name: "George", age: 62}
+      iex> edge = %{id: 25, relation: "sibling"}
+      iex>
+      iex> Flop.Cursor.get_cursor_from_edge({record, edge}, [:id])
+      %{id: 25}
+      iex> Flop.Cursor.get_cursor_from_edge({record, edge}, [:id, :relation])
+      %{id: 25, relation: "sibling"}
+      iex> Flop.Cursor.get_cursor_from_edge(record, [:id])
+      %{id: 20}
+  """
+  @doc since: "0.11.0"
+  @spec get_cursor_from_edge({map, map} | map, [atom]) :: map
+  def get_cursor_from_edge({_, %{} = edge}, order_by) do
+    Map.take(edge, order_by)
+  end
+
+  def get_cursor_from_edge(%{} = item, order_by) do
+    Map.take(item, order_by)
+  end
+
+  @doc """
+  Takes a tuple with the node and the edge and the `order_by` field list and
+  returns the cursor value derived from the node map.
+
+  If a map is passed instead of a tuple, it retrieves the cursor value from that
+  map.
+
+  This function is used as a default if no `:get_cursor_value_func` option is
+  set. See also `Flop.Cursor.get_cursor_from_edge/2`.
+
+      iex> record = %{id: 20, name: "George", age: 62}
+      iex> edge = %{id: 25, relation: "sibling"}
+      iex>
+      iex> Flop.Cursor.get_cursor_from_node({record, edge}, [:id])
+      %{id: 20}
+      iex> Flop.Cursor.get_cursor_from_node({record, edge}, [:id, :name])
+      %{id: 20, name: "George"}
+      iex> Flop.Cursor.get_cursor_from_node(record, [:id])
+      %{id: 20}
+  """
+  @doc since: "0.11.0"
+  @spec get_cursor_from_node({map, map} | map, [atom]) :: map
+  def get_cursor_from_node({%{} = node_map, _}, order_by) do
+    Map.take(node_map, order_by)
+  end
+
+  def get_cursor_from_node(%{} = item, order_by) do
     Map.take(item, order_by)
   end
 
@@ -202,6 +268,6 @@ defmodule Flop.Cursor do
   def get_cursor_value_func(opts \\ []) do
     opts[:get_cursor_value_func] ||
       Application.get_env(:flop, :get_cursor_value_func) ||
-      (&get_cursor_from_map/2)
+      (&get_cursor_from_node/2)
   end
 end
