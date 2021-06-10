@@ -1268,6 +1268,49 @@ defmodule Flop do
     opts[key] || Application.get_env(:flop, key)
   end
 
+  @doc """
+  Returns the option with the given key.
+
+  The look-up order is:
+
+  1. the keyword list passed as the second argument
+  2. the schema module that derives `Flop.Schema`, if the passed list includes
+     the `:for` option
+  3. the application environment
+  """
+  @spec get_option(atom, [option()]) :: any
+  def get_option(key, opts) do
+    case opts[key] do
+      nil ->
+        case schema_option(opts[:for], key) do
+          nil -> global_option(key)
+          v -> v
+        end
+
+      v ->
+        v
+    end
+  end
+
+  defp schema_option(module, key)
+       when is_atom(module) and module != nil and
+              key in [
+                :default_limit,
+                :default_order,
+                :filterable_fields,
+                :max_limit,
+                :pagination_types,
+                :sortable
+              ] do
+    apply(Flop.Schema, key, [struct(module)])
+  end
+
+  defp schema_option(_, _), do: nil
+
+  defp global_option(key) when is_atom(key) do
+    Application.get_env(:flop, key)
+  end
+
   # coveralls-ignore-start
   defp no_repo_error(function_name),
     do: """
