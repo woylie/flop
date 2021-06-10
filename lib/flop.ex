@@ -1278,6 +1278,7 @@ defmodule Flop do
      the `:for` option
   3. the application environment
   """
+  @doc since: "0.11.0"
   @spec get_option(atom, [option()]) :: any
   def get_option(key, opts) do
     case opts[key] do
