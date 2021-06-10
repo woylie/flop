@@ -281,10 +281,10 @@ defmodule Flop do
     are still accepted even if offset-based pagination is disabled.
   - `:ordering` (boolean) - Can be set to `false` to silently ignore order
     parameters. Default orders are still applied.
-  - `:repo` - The Ecto Repo module to use for the database query. Used by all
-    functions that execute a database query.
   - `:prefix` - Configures the query to be executed with the given query prefix.
     See the Ecto documentation on ["Query prefix"](https://hexdocs.pm/ecto/Ecto.Query.html#module-query-prefix).
+  - `:repo` - The Ecto Repo module to use for the database query. Used by all
+    functions that execute a database query.
 
   All options can be passed directly to the functions. Some of the options can
   be set on a schema level via `Flop.Schema`.
