@@ -21,6 +21,21 @@ defmodule Flop.Generators do
     end
   end
 
+  def uniq_list_of_pets(opts) do
+    length_range = Keyword.fetch!(opts, :length)
+
+    gen all length <- integer(length_range),
+            names <- uniq_list_of(string(:alphanumeric), length: length),
+            ages <- uniq_list_of(integer(1..500), length: length),
+            species <- uniq_list_of(string(:alphanumeric), length: length) do
+      [names, ages, species]
+      |> Enum.zip()
+      |> Enum.map(fn {name, age, species} ->
+        %{name: name, age: age, species: species}
+      end)
+    end
+  end
+
   def pagination_parameters(type) when type in [:offset, :page] do
     gen all val_1 <- positive_integer(),
             val_2 <- one_of([positive_integer(), constant(nil)]) do
