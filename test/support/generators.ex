@@ -14,10 +14,25 @@ defmodule Flop.Generators do
   ]
 
   def pet do
-    gen all name <- string(:alphanumeric),
+    gen all name <- string(:printable),
             age <- integer(1..500),
-            species <- string(:alphanumeric) do
+            species <- string(:printable) do
       %{name: name, age: age, species: species}
+    end
+  end
+
+  def uniq_list_of_pets(opts) do
+    length_range = Keyword.fetch!(opts, :length)
+
+    gen all length <- integer(length_range),
+            names <- uniq_list_of(string(:printable), length: length),
+            ages <- uniq_list_of(integer(1..500), length: length),
+            species <- uniq_list_of(string(:printable), length: length) do
+      [names, ages, species]
+      |> Enum.zip()
+      |> Enum.map(fn {name, age, species} ->
+        %{name: name, age: age, species: species}
+      end)
     end
   end
 

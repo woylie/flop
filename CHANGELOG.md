@@ -2,10 +2,13 @@
 
 ## Unreleased
 
+## [0.11.0] - 2021-06-13
+
 ### Added
 
 - New functions `Flop.Cursor.get_cursor_from_node/2` and
   `Flop.Cursor.get_cursor_from_edge/2`.
+- New function `Flop.get_option/2`.
 - Support Ecto prefixes.
 
 ### Changed
