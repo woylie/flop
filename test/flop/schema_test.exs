@@ -13,8 +13,10 @@ defmodule Flop.SchemaTest do
              default_limit: 20,
              max_limit: 50,
              default_order_by: [:name, :age],
-             default_order_directions: [:desc, :asc]}
-    defstruct [:name, :age]
+             default_order_directions: [:desc, :asc],
+             compound_fields: [name_or_email: [:name, :email]],
+             join_fields: [topping_name: {:toppings, :name}]}
+    defstruct [:name, :email, :age]
   end
 
   test "default_order/1 returns the default order passed as an option" do
@@ -26,6 +28,21 @@ defmodule Flop.SchemaTest do
 
   test "default_limit/1 returns the default limit passed as option" do
     assert Schema.default_limit(%Panini{}) == 20
+  end
+
+  test "field_type/2 returns :normal for normal fields" do
+    assert Schema.field_type(%Panini{}, :name) == :normal
+    assert Schema.field_type(%Panini{}, :age) == :normal
+  end
+
+  test "field_type/2 returns config for compound fields" do
+    assert Schema.field_type(%Panini{}, :name_or_email) ==
+             {:compound, [:name, :email]}
+  end
+
+  test "field_type/2 returns config for join fields" do
+    assert Schema.field_type(%Panini{}, :topping_name) ==
+             {:join, {:toppings, :name}}
   end
 
   test "max_limit/1 returns the max limit passed as option" do
@@ -68,6 +85,12 @@ defmodule Flop.SchemaTest do
   test "calling default_order/1 without deriving raises error" do
     assert_raise Protocol.UndefinedError, fn ->
       Schema.default_order(%{})
+    end
+  end
+
+  test "calling field_type/2 without deriving raises error" do
+    assert_raise Protocol.UndefinedError, fn ->
+      Schema.field_type(%{}, :field)
     end
   end
 
