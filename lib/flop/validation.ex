@@ -37,7 +37,7 @@ defmodule Flop.Validation do
   end
 
   defp cast_order(changeset, params, opts) do
-    order_opt = Keyword.get(opts, :ordering, global_option(:ordering))
+    order_opt = Flop.get_option(:ordering, opts)
     ordering = if is_nil(order_opt), do: true, else: order_opt
 
     if ordering,
@@ -46,7 +46,7 @@ defmodule Flop.Validation do
   end
 
   defp cast_filters(changeset, opts) do
-    filter_opt = Keyword.get(opts, :filtering, global_option(:filtering))
+    filter_opt = Flop.get_option(:filtering, opts)
     filtering = if is_nil(filter_opt), do: true, else: filter_opt
 
     if filtering,
@@ -92,7 +92,7 @@ defmodule Flop.Validation do
   defp validate_pagination_type(changeset, nil, _opts), do: changeset
 
   defp validate_pagination_type(changeset, pagination_type, opts) do
-    allowed_types = get_option(:pagination_types, opts)
+    allowed_types = Flop.get_option(:pagination_types, opts)
 
     if allowed_types && pagination_type not in allowed_types do
       if pagination_type == :offset &&
@@ -150,7 +150,7 @@ defmodule Flop.Validation do
   end
 
   defp validate_sortable(changeset, opts) do
-    sortable_fields = get_option(:sortable, opts)
+    sortable_fields = Flop.get_option(:sortable, opts)
 
     if sortable_fields,
       do: validate_subset(changeset, :order_by, sortable_fields),
@@ -158,7 +158,7 @@ defmodule Flop.Validation do
   end
 
   defp validate_within_max_limit(changeset, field, opts) do
-    max_limit = get_option(:max_limit, opts)
+    max_limit = Flop.get_option(:max_limit, opts)
 
     if is_nil(max_limit),
       do: changeset,
@@ -185,13 +185,13 @@ defmodule Flop.Validation do
   end
 
   defp put_default_limit(changeset, field, opts) do
-    default_limit = get_option(:default_limit, opts)
+    default_limit = Flop.get_option(:default_limit, opts)
     put_default_value(changeset, field, default_limit)
   end
 
   defp put_default_order(changeset, opts) do
     if is_nil(get_field(changeset, :order_by)) do
-      default_order = get_option(:default_order, opts)
+      default_order = Flop.get_option(:default_order, opts)
 
       changeset
       |> put_change(:order_by, default_order[:order_by])
@@ -251,19 +251,5 @@ defmodule Flop.Validation do
 
   defp any_field_set?(changeset, field_a, field_b) do
     get_field(changeset, field_a) || get_field(changeset, field_b)
-  end
-
-  defp get_option(key, opts) do
-    opts[key] || schema_option(opts[:for], key) || global_option(key)
-  end
-
-  defp schema_option(nil, _), do: nil
-
-  defp schema_option(module, key) when is_atom(module) and is_atom(key) do
-    apply(Flop.Schema, key, [struct(module)])
-  end
-
-  defp global_option(key) when is_atom(key) do
-    Application.get_env(:flop, key)
   end
 end
