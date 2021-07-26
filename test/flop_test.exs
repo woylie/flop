@@ -440,6 +440,23 @@ defmodule FlopTest do
       end
     end
 
+    test "applies empty and not_empty filter" do
+      %{id: pet_1_id} = insert(:pet, species: "fox")
+      %{id: pet_2_id} = insert(:pet, species: nil)
+
+      assert {:ok, flop} =
+               Flop.validate(%{filters: [%{field: :species, op: :empty}]})
+
+      query = Flop.query(Pet, flop)
+      assert [%{id: ^pet_2_id}] = Repo.all(query)
+
+      assert {:ok, flop} =
+               Flop.validate(%{filters: [%{field: :species, op: :not_empty}]})
+
+      query = Flop.query(Pet, flop)
+      assert [%{id: ^pet_1_id}] = Repo.all(query)
+    end
+
     defp filter_pets(pets, field, op, value),
       do: Enum.filter(pets, pet_matches?(op, field, value))
 
