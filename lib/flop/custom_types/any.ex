@@ -13,7 +13,11 @@ defmodule Flop.CustomTypes.Any do
 
   def cast(value), do: {:ok, value}
 
+  # coveralls-ignore-start
+  # This type is only used for casting values. The load function will never be
+  # called.
   def load(value), do: {:ok, value}
+  # coveralls-ignore-end
 
   def dump(value) when is_number(value), do: {:ok, to_string(value)}
   def dump(value) when is_binary(value), do: {:ok, value}
