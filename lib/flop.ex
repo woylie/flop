@@ -966,9 +966,7 @@ defmodule Flop do
     Enum.reduce(filters, q, &filter(&2, &1))
   end
 
-  def filter(_, %Filter{field: field}) when is_nil(field) do
-    raise ArgumentError
-  end
+  def filter(q, %Filter{field: nil}), do: q
 
   def filter(q, %Filter{field: field, op: :empty}) do
     Query.where(q, [r], is_nil(field(r, ^field)))
@@ -978,9 +976,7 @@ defmodule Flop do
     Query.where(q, [r], not is_nil(field(r, ^field)))
   end
 
-  def filter(_, %Filter{value: value}) when is_nil(value) do
-    raise ArgumentError
-  end
+  def filter(q, %Filter{value: nil}), do: q
 
   def filter(q, %Filter{field: field, op: :==, value: value}),
     do: Query.where(q, [r], field(r, ^field) == ^value)

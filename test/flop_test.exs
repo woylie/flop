@@ -605,12 +605,12 @@ defmodule FlopTest do
              ] = Flop.query(Pet, flop).wheres
     end
 
-    test "raises error if field or value are nil" do
+    test "silently ignores nil values for field and value" do
       flop = %Flop{filters: [%Filter{op: :>=, value: 4}]}
-      assert_raise ArgumentError, fn -> Flop.query(Pet, flop) end
+      assert Flop.query(Pet, flop) == Pet
 
       flop = %Flop{filters: [%Filter{field: :name, op: :>=}]}
-      assert_raise ArgumentError, fn -> Flop.query(Pet, flop) end
+      assert Flop.query(Pet, flop) == Pet
     end
 
     test "leaves query unchanged if everything is nil" do
