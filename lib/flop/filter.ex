@@ -37,6 +37,8 @@ defmodule Flop.Filter do
   | `:==`        | `"Salicaceae"`      | `WHERE column = 'Salicaceae'`       |
   | `:!=`        | `"Salicaceae"`      | `WHERE column != 'Salicaceae'`      |
   | `:=~`        | `"cyth"`            | `WHERE column ILIKE '%cyth%'`       |
+  | `:empty`     |                     | `WHERE column IS NULL`              |
+  | `:not_empty` |                     | `WHERE column IS NOT NULL`          |
   | `:<=`        | `10`                | `WHERE column <= 10`                |
   | `:<`         | `10`                | `WHERE column < 10`                 |
   | `:>=`        | `10`                | `WHERE column >= 10`                |
@@ -53,6 +55,8 @@ defmodule Flop.Filter do
           :==
           | :!=
           | :=~
+          | :empty
+          | :not_empty
           | :<=
           | :<
           | :>=
@@ -77,7 +81,7 @@ defmodule Flop.Filter do
   def changeset(filter, %{} = params, opts \\ []) do
     filter
     |> cast(params, [:field, :op, :value])
-    |> validate_required([:field, :op, :value])
+    |> validate_required([:field, :op])
     |> validate_filterable(opts[:for])
   end
 

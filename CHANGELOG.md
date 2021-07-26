@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Added
+
+- New filter operator `empty`.
+- New filter operator `not_empty`.
+
+### Changed
+
+- Silently ignore filters with `nil` value for the field or the value instead of
+  raising an `ArgumentError`.
+
 ## [0.11.0] - 2021-06-13
 
 ### Added

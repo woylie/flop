@@ -8,6 +8,8 @@ defmodule Flop.CustomTypes.Operator do
     :==,
     :!=,
     :=~,
+    :empty,
+    :not_empty,
     :<=,
     :<,
     :>=,

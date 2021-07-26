@@ -440,6 +440,23 @@ defmodule FlopTest do
       end
     end
 
+    test "applies empty and not_empty filter" do
+      %{id: pet_1_id} = insert(:pet, species: "fox")
+      %{id: pet_2_id} = insert(:pet, species: nil)
+
+      assert {:ok, flop} =
+               Flop.validate(%{filters: [%{field: :species, op: :empty}]})
+
+      query = Flop.query(Pet, flop)
+      assert [%{id: ^pet_2_id}] = Repo.all(query)
+
+      assert {:ok, flop} =
+               Flop.validate(%{filters: [%{field: :species, op: :not_empty}]})
+
+      query = Flop.query(Pet, flop)
+      assert [%{id: ^pet_1_id}] = Repo.all(query)
+    end
+
     defp filter_pets(pets, field, op, value),
       do: Enum.filter(pets, pet_matches?(op, field, value))
 
@@ -588,12 +605,12 @@ defmodule FlopTest do
              ] = Flop.query(Pet, flop).wheres
     end
 
-    test "raises error if field or value are nil" do
+    test "silently ignores nil values for field and value" do
       flop = %Flop{filters: [%Filter{op: :>=, value: 4}]}
-      assert_raise ArgumentError, fn -> Flop.query(Pet, flop) end
+      assert Flop.query(Pet, flop) == Pet
 
       flop = %Flop{filters: [%Filter{field: :name, op: :>=}]}
-      assert_raise ArgumentError, fn -> Flop.query(Pet, flop) end
+      assert Flop.query(Pet, flop) == Pet
     end
 
     test "leaves query unchanged if everything is nil" do
