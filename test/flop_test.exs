@@ -533,16 +533,18 @@ defmodule FlopTest do
 
         case op do
           :=~ ->
-            assert [%BooleanExpr{expr: {:ilike, _, _}, op: :and}] = query.wheres
+            assert [
+                     %BooleanExpr{
+                       expr: {:and, _, [_, {:ilike, _, _}]},
+                       op: :and
+                     }
+                   ] = query.wheres
 
           :ilike_and ->
             assert [
                      %BooleanExpr{
-                       expr: {:and, _, [true, {:ilike, _, _}]},
-                       file: _,
-                       line: _,
+                       expr: {:and, _, [_, {:and, _, [_, {:ilike, _, _}]}]},
                        op: :and,
-                       params: _,
                        subqueries: []
                      }
                    ] = query.wheres
@@ -550,11 +552,8 @@ defmodule FlopTest do
           :ilike_or ->
             assert [
                      %BooleanExpr{
-                       expr: {:or, _, [false, {:ilike, _, _}]},
-                       file: _,
-                       line: _,
+                       expr: {:and, _, [_, {:or, _, [_, {:ilike, _, _}]}]},
                        op: :and,
-                       params: _,
                        subqueries: []
                      }
                    ] = query.wheres
@@ -562,11 +561,8 @@ defmodule FlopTest do
           :like_and ->
             assert [
                      %BooleanExpr{
-                       expr: {:and, _, [true, {:like, _, _}]},
-                       file: _,
-                       line: _,
+                       expr: {:and, _, [_, {:and, _, [_, {:like, _, _}]}]},
                        op: :and,
-                       params: _,
                        subqueries: []
                      }
                    ] = query.wheres
@@ -574,17 +570,15 @@ defmodule FlopTest do
           :like_or ->
             assert [
                      %BooleanExpr{
-                       expr: {:or, _, [false, {:like, _, _}]},
-                       file: _,
-                       line: _,
+                       expr: {:and, [], [_, {:or, _, [_, {:like, _, _}]}]},
                        op: :and,
-                       params: _,
                        subqueries: []
                      }
                    ] = query.wheres
 
           _ ->
-            assert [%BooleanExpr{expr: {^op, _, _}, op: :and}] = query.wheres
+            assert [%BooleanExpr{expr: {:and, _, [_, {^op, _, _}]}, op: :and}] =
+                     query.wheres
         end
 
         assert is_list(Repo.all(query))
@@ -600,8 +594,10 @@ defmodule FlopTest do
       }
 
       assert [
-               %BooleanExpr{expr: {:>=, _, _}, op: :and},
-               %BooleanExpr{expr: {:==, _, _}, op: :and}
+               %BooleanExpr{
+                 expr: {:and, _, [{:and, _, [_, {:>=, _, _}]}, {:==, _, _}]},
+                 op: :and
+               }
              ] = Flop.query(Pet, flop).wheres
     end
 
