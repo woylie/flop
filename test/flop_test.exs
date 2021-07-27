@@ -20,6 +20,10 @@ defmodule FlopTest do
   @base_query from p in Pet, where: p.age > 8, select: p.name
   @whitespace ["\u0020", "\u2000", "\u3000"]
 
+  @pet_with_owner_query Pet
+                        |> join(:left, [p], o in assoc(p, :owner), as: :owner)
+                        |> preload(:owner)
+
   setup do
     :ok = Sandbox.checkout(Repo)
   end
@@ -126,10 +130,10 @@ defmodule FlopTest do
     end
 
     property "applies equality filter" do
-      pets = insert_list(50, :pet)
+      pets = insert_list(50, :pet_with_owner)
 
-      check all field <- member_of([:age, :name]),
-                values = Enum.map(pets, &Map.get(&1, field)),
+      check all field <- member_of([:age, :name, :owner_name]),
+                values = Enum.map(pets, &Pet.get_field(&1, field)),
                 query_value <-
                   one_of([member_of(values), value_by_field(field)]),
                 query_value != "" do
@@ -140,20 +144,22 @@ defmodule FlopTest do
             ]
           })
 
-        query = Flop.query(Pet, flop)
+        query = Flop.query(@pet_with_owner_query, flop, for: Pet)
         result = Repo.all(query)
-        assert Enum.all?(result, &(Map.get(&1, field) == query_value))
+        assert Enum.all?(result, &(Pet.get_field(&1, field) == query_value))
 
-        expected_pets = Enum.filter(pets, &(Map.get(&1, field) == query_value))
+        expected_pets =
+          Enum.filter(pets, &(Pet.get_field(&1, field) == query_value))
+
         assert length(result) == length(expected_pets)
       end
     end
 
     property "applies inequality filter" do
-      pets = insert_list(50, :pet)
+      pets = insert_list(50, :pet_with_owner)
 
-      check all field <- member_of([:age, :name]),
-                values = Enum.map(pets, &Map.get(&1, field)),
+      check all field <- member_of([:age, :name, :owner_name]),
+                values = Enum.map(pets, &Pet.get_field(&1, field)),
                 query_value <-
                   one_of([member_of(values), value_by_field(field)]),
                 query_value != "" do
@@ -164,11 +170,13 @@ defmodule FlopTest do
             ]
           })
 
-        query = Flop.query(Pet, flop)
+        query = Flop.query(@pet_with_owner_query, flop, for: Pet)
         result = Repo.all(query)
-        refute Enum.any?(result, &(Map.get(&1, field) == query_value))
+        refute Enum.any?(result, &(Pet.get_field(&1, field) == query_value))
 
-        expected_pets = Enum.filter(pets, &(Map.get(&1, field) != query_value))
+        expected_pets =
+          Enum.filter(pets, &(Pet.get_field(&1, field) != query_value))
+
         assert length(result) == length(expected_pets)
       end
     end
@@ -529,7 +537,7 @@ defmodule FlopTest do
       check all filter <- filter() do
         flop = %Flop{filters: [filter]}
         %Filter{op: op} = filter
-        query = Flop.query(Pet, flop)
+        query = Flop.query(@pet_with_owner_query, flop, for: Pet)
 
         case op do
           :=~ ->
@@ -648,6 +656,29 @@ defmodule FlopTest do
 
       assert Flop.all(Pet, %Flop{}) == []
       refute Flop.all(Pet, %Flop{}, prefix: "other_schema") == []
+    end
+  end
+
+  describe "all/3 join fields" do
+    test "applies equality filter" do
+      %{id: id_1} = pet_1 = insert(:pet, owner: build(:owner))
+      %{id: id_2} = pet_2 = insert(:pet, owner: build(:owner))
+
+      params = %{
+        filters: [%{field: :owner_name, op: :==, value: pet_1.owner.name}]
+      }
+
+      q = join(Pet, :left, [p], o in assoc(p, :owner), as: :owner)
+
+      assert {:ok, {[%{id: ^id_1}], %{total_count: 1}}} =
+               Flop.validate_and_run(q, params, for: Pet)
+
+      params = %{
+        filters: [%{field: :owner_name, op: :==, value: pet_2.owner.name}]
+      }
+
+      assert {:ok, {[%{id: ^id_2}], %{total_count: 1}}} =
+               Flop.validate_and_run(q, params, for: Pet)
     end
   end
 

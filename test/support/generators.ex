@@ -61,7 +61,7 @@ defmodule Flop.Generators do
   end
 
   def filter do
-    gen all field <- member_of([:age, :name]),
+    gen all field <- member_of([:age, :name, :owner_name]),
             value <- value_by_field(field),
             op <- operator_by_type(value) do
       %Filter{field: field, op: op, value: value}
@@ -70,6 +70,7 @@ defmodule Flop.Generators do
 
   def value_by_field(:age), do: integer()
   def value_by_field(:name), do: string(:alphanumeric, min_length: 1)
+  def value_by_field(:owner_name), do: string(:alphanumeric, min_length: 1)
 
   def compare_value_by_field(:age), do: integer(1..30)
 

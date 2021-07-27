@@ -81,6 +81,15 @@ defmodule Flop.Factory do
     }
   end
 
+  def pet_with_owner_factory do
+    %Pet{
+      name: build(:name),
+      age: :rand.uniform(30),
+      species: build(:species),
+      owner: build(:owner)
+    }
+  end
+
   def pet_downcase_factory do
     Map.update!(build(:pet), :name, &String.downcase/1)
   end
