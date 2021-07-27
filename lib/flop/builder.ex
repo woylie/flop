@@ -4,6 +4,7 @@ defmodule Flop.Builder do
   import Ecto.Query
 
   alias Flop.Filter
+  alias Flop.Misc
 
   def filter(_, %Filter{field: nil}, c), do: c
 
@@ -20,12 +21,12 @@ defmodule Flop.Builder do
       :normal ->
         build_op(conditions, nil, filter)
 
-        # {:join, {_binding_name, _field_name} = binding} ->
-        #   build_op(conditions, binding, filter)
+      {:join, {_binding_name, _field_name} = binding} ->
+        build_op(conditions, binding, filter)
     end
   end
 
-  @operator_dynamics [
+  @operator_opts [
     {:==, "field(r, ^field) == ^value"},
     {:!=, "field(r, ^field) != ^value"},
     {:empty, "is_nil(field(r, ^field))"},
@@ -40,17 +41,17 @@ defmodule Flop.Builder do
     {:like, "like(field(r, ^field), ^value)", :add_wildcard}
   ]
 
-  for operator_and_condition <- @operator_dynamics do
-    {op, condition, preprocessor} =
+  for operator_and_condition <- @operator_opts do
+    {op, condition, preprocessor, _dynamic_builder} =
       case operator_and_condition do
-        {operator, condition} -> {operator, condition, nil}
-        {operator, condition, func} -> {operator, condition, func}
+        {operator, condition} -> {operator, condition, nil, nil}
+        {operator, condition, func} -> {operator, condition, func, nil}
+        {operator, condition, func, df} -> {operator, condition, func, df}
       end
 
     preprocessing =
-      if is_nil(preprocessor),
-        do: nil,
-        else: Code.string_to_quoted!("value = #{preprocessor}(value)")
+      unless is_nil(preprocessor),
+        do: Code.string_to_quoted!("value = Misc.#{preprocessor}(value)")
 
     defp build_op(c, nil, %Filter{
            field: field,
@@ -65,8 +66,7 @@ defmodule Flop.Builder do
       unquote(Code.string_to_quoted!("dynamic([r], ^c and #{condition})"))
     end
 
-    defp build_op(c, binding, %Filter{
-           field: field,
+    defp build_op(c, {binding, field}, %Filter{
            op: unquote(op),
            value: value
          }) do
@@ -82,7 +82,7 @@ defmodule Flop.Builder do
   end
 
   defp build_op(c, nil, %Filter{field: field, op: :like_and, value: value}) do
-    query_values = split_search_text(value)
+    query_values = Misc.split_search_text(value)
 
     dynamic =
       Enum.reduce(query_values, true, fn value, dynamic ->
@@ -93,7 +93,7 @@ defmodule Flop.Builder do
   end
 
   defp build_op(c, nil, %Filter{field: field, op: :like_or, value: value}) do
-    query_values = split_search_text(value)
+    query_values = Misc.split_search_text(value)
 
     dynamic =
       Enum.reduce(query_values, false, fn value, dynamic ->
@@ -104,7 +104,7 @@ defmodule Flop.Builder do
   end
 
   defp build_op(c, nil, %Filter{field: field, op: :ilike_and, value: value}) do
-    query_values = split_search_text(value)
+    query_values = Misc.split_search_text(value)
 
     dynamic =
       Enum.reduce(query_values, true, fn value, dynamic ->
@@ -115,7 +115,7 @@ defmodule Flop.Builder do
   end
 
   defp build_op(c, nil, %Filter{field: field, op: :ilike_or, value: value}) do
-    query_values = split_search_text(value)
+    query_values = Misc.split_search_text(value)
 
     dynamic =
       Enum.reduce(query_values, false, fn value, dynamic ->
@@ -125,15 +125,9 @@ defmodule Flop.Builder do
     dynamic([r], ^c and ^dynamic)
   end
 
-  defp split_search_text(text) do
-    text |> String.split() |> Enum.map(&"%#{&1}%")
-  end
-
   defp get_field_type(nil, _), do: :normal
 
   defp get_field_type(struct, field) when is_atom(field) do
     Flop.Schema.field_type(struct, field)
   end
-
-  def add_wildcard(value), do: "%#{value}%"
 end
