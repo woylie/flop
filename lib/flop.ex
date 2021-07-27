@@ -419,10 +419,10 @@ defmodule Flop do
   Note that when using cursor-based pagination, the applied limit will be
   `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`.
   """
-  @spec query(Queryable.t(), Flop.t()) :: Queryable.t()
-  def query(q, flop) do
+  @spec query(Queryable.t(), Flop.t(), keyword) :: Queryable.t()
+  def query(q, flop, opts \\ []) do
     q
-    |> filter(flop)
+    |> filter(flop, opts)
     |> order_by(flop)
     |> paginate(flop)
   end
@@ -450,7 +450,7 @@ defmodule Flop do
   @doc since: "0.6.0"
   @spec all(Queryable.t(), Flop.t(), [option()]) :: [any]
   def all(q, flop, opts \\ []) do
-    apply_on_repo(:all, "all", [query(q, flop)], opts)
+    apply_on_repo(:all, "all", [query(q, flop, opts)], opts)
   end
 
   @doc """
@@ -576,7 +576,7 @@ defmodule Flop do
   @doc since: "0.6.0"
   @spec count(Queryable.t(), Flop.t(), [option()]) :: non_neg_integer
   def count(q, flop, opts \\ []) do
-    apply_on_repo(:aggregate, "count", [filter(q, flop), :count], opts)
+    apply_on_repo(:aggregate, "count", [filter(q, flop, opts), :count], opts)
   end
 
   @doc """
@@ -960,7 +960,7 @@ defmodule Flop do
   Used by `Flop.query/2`.
   """
   @spec filter(Queryable.t(), Flop.t(), keyword) :: Queryable.t()
-  def filter(q, flop, opts \\ [])
+  def filter(q, flop, opt \\ [])
 
   def filter(q, %Flop{filters: nil}, _), do: q
   def filter(q, %Flop{filters: []}, _), do: q
