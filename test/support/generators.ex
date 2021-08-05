@@ -4,6 +4,8 @@ defmodule Flop.Generators do
 
   alias Flop.Filter
 
+  @dialyzer {:nowarn_function, [filter: 0, pagination_parameters: 1, pet: 0]}
+
   @order_directions [
     :asc,
     :asc_nulls_first,
@@ -59,7 +61,7 @@ defmodule Flop.Generators do
   end
 
   def filter do
-    gen all field <- member_of([:age, :name]),
+    gen all field <- member_of([:age, :name, :owner_name]),
             value <- value_by_field(field),
             op <- operator_by_type(value) do
       %Filter{field: field, op: op, value: value}
@@ -68,11 +70,15 @@ defmodule Flop.Generators do
 
   def value_by_field(:age), do: integer()
   def value_by_field(:name), do: string(:alphanumeric, min_length: 1)
+  def value_by_field(:owner_age), do: integer()
+  def value_by_field(:owner_name), do: string(:alphanumeric, min_length: 1)
 
   def compare_value_by_field(:age), do: integer(1..30)
 
   def compare_value_by_field(:name),
     do: string(?a..?z, min_length: 1, max_length: 3)
+
+  def compare_value_by_field(:owner_age), do: integer(1..100)
 
   defp operator_by_type(a) when is_binary(a),
     do:

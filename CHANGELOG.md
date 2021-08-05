@@ -4,6 +4,9 @@
 
 ### Added
 
+- Allow to define join fields in `Flop.Schema`.
+- Allow to define compound fields in `Flop.Schema`.
+- Support filtering by join fields.
 - New filter operator `empty`.
 - New filter operator `not_empty`.
 

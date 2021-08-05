@@ -2,10 +2,17 @@ defmodule Flop.Repo.Migrations.CreateTestTables do
   use Ecto.Migration
 
   def change do
+    create table(:owners) do
+      add(:name, :string)
+      add(:email, :string)
+      add(:age, :integer)
+    end
+
     create table(:pets) do
       add(:name, :string)
       add(:age, :integer)
       add(:species, :string)
+      add(:owner_id, references(:owners))
     end
 
     create table(:fruits) do

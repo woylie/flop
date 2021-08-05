@@ -242,6 +242,7 @@ defmodule Flop do
   alias Ecto.Changeset
   alias Ecto.Query
   alias Ecto.Queryable
+  alias Flop.Builder
   alias Flop.Cursor
   alias Flop.CustomTypes.ExistingAtom
   alias Flop.CustomTypes.OrderDirection
@@ -418,11 +419,11 @@ defmodule Flop do
   Note that when using cursor-based pagination, the applied limit will be
   `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`.
   """
-  @spec query(Queryable.t(), Flop.t()) :: Queryable.t()
-  def query(q, flop) do
+  @spec query(Queryable.t(), Flop.t(), keyword) :: Queryable.t()
+  def query(q, flop, opts \\ []) do
     q
-    |> filter(flop)
-    |> order_by(flop)
+    |> filter(flop, opts)
+    |> order_by(flop, opts)
     |> paginate(flop)
   end
 
@@ -449,7 +450,7 @@ defmodule Flop do
   @doc since: "0.6.0"
   @spec all(Queryable.t(), Flop.t(), [option()]) :: [any]
   def all(q, flop, opts \\ []) do
-    apply_on_repo(:all, "all", [query(q, flop)], opts)
+    apply_on_repo(:all, "all", [query(q, flop, opts)], opts)
   end
 
   @doc """
@@ -575,7 +576,7 @@ defmodule Flop do
   @doc since: "0.6.0"
   @spec count(Queryable.t(), Flop.t(), [option()]) :: non_neg_integer
   def count(q, flop, opts \\ []) do
-    apply_on_repo(:aggregate, "count", [filter(q, flop), :count], opts)
+    apply_on_repo(:aggregate, "count", [filter(q, flop, opts), :count], opts)
   end
 
   @doc """
@@ -752,8 +753,10 @@ defmodule Flop do
 
   Used by `Flop.query/2`.
   """
-  @spec order_by(Queryable.t(), Flop.t()) :: Queryable.t()
-  def order_by(q, %Flop{order_by: nil}), do: q
+  @spec order_by(Queryable.t(), Flop.t(), keyword) :: Queryable.t()
+  def order_by(q, flop, opts \\ [])
+
+  def order_by(q, %Flop{order_by: nil}, _opts), do: q
 
   # For backwards cursor pagination
   def order_by(
@@ -765,7 +768,8 @@ defmodule Flop do
           first: nil,
           after: nil,
           offset: nil
-        }
+        },
+        _opts
       )
       when is_integer(last) do
     reversed_order =
@@ -776,7 +780,11 @@ defmodule Flop do
     Query.order_by(q, ^reversed_order)
   end
 
-  def order_by(q, %Flop{order_by: fields, order_directions: directions}) do
+  def order_by(
+        q,
+        %Flop{order_by: fields, order_directions: directions},
+        _opts
+      ) do
     Query.order_by(q, ^prepare_order(fields, directions))
   end
 
@@ -958,108 +966,23 @@ defmodule Flop do
 
   Used by `Flop.query/2`.
   """
-  @spec filter(Queryable.t(), Flop.t()) :: Queryable.t()
-  def filter(q, %Flop{filters: nil}), do: q
-  def filter(q, %Flop{filters: []}), do: q
+  @spec filter(Queryable.t(), Flop.t(), keyword) :: Queryable.t()
+  def filter(q, flop, opt \\ [])
 
-  def filter(q, %Flop{filters: filters}) when is_list(filters) do
-    Enum.reduce(filters, q, &filter(&2, &1))
-  end
+  def filter(q, %Flop{filters: nil}, _), do: q
+  def filter(q, %Flop{filters: []}, _), do: q
 
-  def filter(q, %Filter{field: nil}), do: q
+  def filter(q, %Flop{filters: filters}, opts) when is_list(filters) do
+    schema_struct =
+      case opts[:for] do
+        nil -> nil
+        module -> struct(module)
+      end
 
-  def filter(q, %Filter{field: field, op: :empty}) do
-    Query.where(q, [r], is_nil(field(r, ^field)))
-  end
+    conditions =
+      Enum.reduce(filters, true, &Builder.filter(schema_struct, &1, &2))
 
-  def filter(q, %Filter{field: field, op: :not_empty}) do
-    Query.where(q, [r], not is_nil(field(r, ^field)))
-  end
-
-  def filter(q, %Filter{value: nil}), do: q
-
-  def filter(q, %Filter{field: field, op: :==, value: value}),
-    do: Query.where(q, [r], field(r, ^field) == ^value)
-
-  def filter(q, %Filter{field: field, op: :!=, value: value}),
-    do: Query.where(q, [r], field(r, ^field) != ^value)
-
-  def filter(q, %Filter{field: field, op: :=~, value: value}) do
-    query_value = "%#{value}%"
-    Query.where(q, [r], ilike(field(r, ^field), ^query_value))
-  end
-
-  def filter(q, %Filter{field: field, op: :>=, value: value}),
-    do: Query.where(q, [r], field(r, ^field) >= ^value)
-
-  def filter(q, %Filter{field: field, op: :<=, value: value}),
-    do: Query.where(q, [r], field(r, ^field) <= ^value)
-
-  def filter(q, %Filter{field: field, op: :>, value: value}),
-    do: Query.where(q, [r], field(r, ^field) > ^value)
-
-  def filter(q, %Filter{field: field, op: :<, value: value}),
-    do: Query.where(q, [r], field(r, ^field) < ^value)
-
-  def filter(q, %Filter{field: field, op: :in, value: value}),
-    do: Query.where(q, [r], field(r, ^field) in ^value)
-
-  def filter(q, %Filter{field: field, op: :like, value: value}) do
-    query_value = "%#{value}%"
-    Query.where(q, [r], like(field(r, ^field), ^query_value))
-  end
-
-  def filter(q, %Filter{field: field, op: :like_and, value: value}) do
-    query_values = split_search_text(value)
-
-    dynamic =
-      Enum.reduce(query_values, Query.dynamic(true), fn value, dynamic ->
-        Query.dynamic([r], ^dynamic and like(field(r, ^field), ^value))
-      end)
-
-    Query.where(q, [r], ^dynamic)
-  end
-
-  def filter(q, %Filter{field: field, op: :like_or, value: value}) do
-    query_values = split_search_text(value)
-
-    dynamic =
-      Enum.reduce(query_values, Query.dynamic(false), fn value, dynamic ->
-        Query.dynamic([r], ^dynamic or like(field(r, ^field), ^value))
-      end)
-
-    Query.where(q, [r], ^dynamic)
-  end
-
-  def filter(q, %Filter{field: field, op: :ilike, value: value}) do
-    query_value = "%#{value}%"
-    Query.where(q, [r], ilike(field(r, ^field), ^query_value))
-  end
-
-  def filter(q, %Filter{field: field, op: :ilike_and, value: value}) do
-    query_values = split_search_text(value)
-
-    dynamic =
-      Enum.reduce(query_values, Query.dynamic(true), fn value, dynamic ->
-        Query.dynamic([r], ^dynamic and ilike(field(r, ^field), ^value))
-      end)
-
-    Query.where(q, [r], ^dynamic)
-  end
-
-  def filter(q, %Filter{field: field, op: :ilike_or, value: value}) do
-    query_values = split_search_text(value)
-
-    dynamic =
-      Enum.reduce(query_values, Query.dynamic(false), fn value, dynamic ->
-        Query.dynamic([r], ^dynamic or ilike(field(r, ^field), ^value))
-      end)
-
-    Query.where(q, [r], ^dynamic)
-  end
-
-  defp split_search_text(text) do
-    text |> String.split() |> Enum.map(&"%#{&1}%")
+    Query.where(q, ^conditions)
   end
 
   ## Validation

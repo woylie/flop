@@ -10,9 +10,11 @@ defprotocol Flop.Schema do
       defmodule Flop.Pet do
         use Ecto.Schema
 
-        @derive {Flop.Schema,
-                 filterable: [:name, :species],
-                 sortable: [:name, :age]}
+        @derive {
+          Flop.Schema,
+          filterable: [:name, :species],
+          sortable: [:name, :age]
+        }
 
         schema "pets" do
           field :name, :string
@@ -53,11 +55,13 @@ defprotocol Flop.Schema do
   `max_limit` option when deriving `Flop.Schema`. The maximum limit will be
   validated and the default limit applied by `Flop.validate/1`.
 
-      @derive {Flop.Schema,
-                filterable: [:name, :species],
-                sortable: [:name, :age],
-                max_limit: 100,
-                default_limit: 50}
+      @derive {
+        Flop.Schema,
+        filterable: [:name, :species],
+        sortable: [:name, :age],
+        max_limit: 100,
+        default_limit: 50
+      }
 
   ### Defining a default sort order
 
@@ -66,11 +70,13 @@ defprotocol Flop.Schema do
   values are applied by `Flop.validate/1`. If no order directions are set,
   `:asc` is assumed for all fields.
 
-      @derive {Flop.Schema,
-                filterable: [:name, :species],
-                sortable: [:name, :age],
-                default_order_by: [:name, :age],
-                default_order_directions: [:asc, :desc]}
+      @derive {
+        Flop.Schema,
+        filterable: [:name, :species],
+        sortable: [:name, :age],
+        default_order_by: [:name, :age],
+        default_order_directions: [:asc, :desc]
+      }
 
   ### Restricting pagination types
 
@@ -79,22 +85,132 @@ defprotocol Flop.Schema do
   pagination type for a schema, you can do that by setting the
   `pagination_types` option.
 
-      @derive {Flop.Schema,
-                filterable: [:name, :species],
-                sortable: [:name, :age],
-                pagination_types: [:first, :last]}
+      @derive {
+        Flop.Schema,
+        filterable: [:name, :species],
+        sortable: [:name, :age],
+        pagination_types: [:first, :last]
+      }
 
   See also `t:Flop.option/0` and `t:Flop.pagination_type/0`. Setting the value
   to `nil` allows all pagination types.
+
+  ### Defining compound fields
+
+  Sometimes you might need to apply a search term to multiple fields at once,
+  e.g. you might want to search in both the family name and given name field.
+  You can do that with Flop by defining a compound field.
+
+      @derive {
+        Flop.Schema,
+        filterable: [:full_name],
+        sortable: [],
+        compound_fields: [full_name: [:family_name, :given_name]]
+      }
+
+  This allows you to use the field name `:full_name` as any other field in the
+  filters.
+
+      params = %{
+        filters: [%{
+          field: :full_name,
+          op: :==,
+          value: "margo"
+        }]
+      }
+
+  This would translate to:
+
+      WHERE family_name='margo' OR given_name ='martindale'
+
+  Partial matches and splitting of the search term can be achieved with one of
+  the ilike operators.
+
+      params = %{
+        filters: [%{
+          field: :full_name,
+          op: :ilike_and,
+          value: "margo martindale"
+        }]
+      }
+
+  This would translate to:
+
+      WHERE (family_name ilike '%margo%' OR given_name ='%margo%')
+      AND (family_name ilike '%martindale%' OR given_name ='%martindale%')
+
+  ### Defining join fields
+
+  If you need filter or order across tables, you can define join fields.
+
+  As an example, let's define these schemas:
+
+      schema "owners" do
+        field :name, :string
+        field :email, :string
+
+        has_many :pets, Pet
+      end
+
+      schema "pets" do
+        field :name, :string
+        field :species, :string
+
+        belongs_to :owner, Owner
+      end
+
+  And now we want to find all owners that have pets of the species
+  `"E. africanus"`. To do this, first we need to define a join field on the
+  `Owner` schema.
+
+      @derive {
+        Flop.Schema,
+        filterable: [:pet_species],
+        sortable: [:pet_species],
+        join_fields: [pet_species: {:pets, :species}]
+      }
+
+  In this case, `:pet_species` would be the alias of the field that you can
+  refer to in the filter and order parameters. In `{:pets, :species}`, `:pets`
+  refers to a named binding and `:species` refers to a field in that binding.
+
+  After setting up the join fields, you can write a query like this:
+
+      params = %{
+        filters: [%{field: :pet_species, op: :==, value: "E. africanus"}]
+      }
+
+      Owner
+      |> join(:left, [o], p in assoc(o, :pets), as: :pets)
+      |> Flop.validate_and_run!(params, for: Owner)
+
+  Note that Flop doesn't create the join clauses for you. The named bindings
+  already have to be present in the query you pass to the Flop functions.
   """
 
   @fallback_to_any true
 
   @doc """
+  Returns the field type in a schema.
+
+  - `:normal` - An ordinary field on the schema.
+  - `{:compound, [atom]}` - A combination of fields defined with the
+    `compound_fields` option. The list of atoms refers to the list of fields
+    that are included.
+  - `{:join, {atom, atom}}` - A field from a named binding as defined with the
+    `join_fields` option. The first atom refers to the binding name, the second
+    atom refers to the field.
+  """
+  @doc since: "0.11.0"
+  @spec field_type(any, atom) ::
+          :normal | {:compound, [atom]} | {:join, {atom, atom}}
+  def field_type(data, field)
+
+  @doc """
   Returns the filterable fields of a schema.
 
       iex> Flop.Schema.filterable(%Flop.Pet{})
-      [:name, :species]
+      [:name, :owner_age, :owner_name, :species]
   """
   @spec filterable(any) :: [atom]
   def filterable(data)
@@ -159,8 +275,11 @@ defimpl Flop.Schema, for: Any do
   To do this, you have to derive Flop.Schema in your Ecto schema module. You
   have to set both the filterable and the sortable option.
 
-      @derive {Flop.Schema,
-               filterable: [:name, :species], sortable: [:name, :age, :species]}
+      @derive {
+        Flop.Schema,
+        filterable: [:name, :species],
+        sortable: [:name, :age, :species]
+      }
 
       schema "pets" do
         field :name, :string
@@ -185,6 +304,11 @@ defimpl Flop.Schema, for: Any do
       order_directions: Keyword.get(options, :default_order_directions)
     }
 
+    compound_fields = Keyword.get(options, :compound_fields, [])
+    join_fields = Keyword.get(options, :join_fields, [])
+
+    field_type_func = build_field_type_func(compound_fields, join_fields)
+
     quote do
       defimpl Flop.Schema, for: unquote(module) do
         def default_limit(_) do
@@ -194,6 +318,8 @@ defimpl Flop.Schema, for: Any do
         def default_order(_) do
           unquote(Macro.escape(default_order))
         end
+
+        unquote(field_type_func)
 
         def filterable(_) do
           unquote(filterable_fields)
@@ -214,6 +340,35 @@ defimpl Flop.Schema, for: Any do
     end
   end
 
+  def build_field_type_func(compound_fields, join_fields) do
+    compound_fields =
+      for {name, fields} <- compound_fields do
+        quote do
+          def field_type(_, unquote(name)) do
+            {:compound, unquote(fields)}
+          end
+        end
+      end
+
+    join_fields =
+      for {name, {_binding_name, _field} = path} <- join_fields do
+        quote do
+          def field_type(_, unquote(name)) do
+            {:join, unquote(path)}
+          end
+        end
+      end
+
+    default =
+      quote do
+        def field_type(_, _) do
+          :normal
+        end
+      end
+
+    [compound_fields, join_fields, default]
+  end
+
   def default_limit(struct) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
@@ -222,6 +377,13 @@ defimpl Flop.Schema, for: Any do
   end
 
   def default_order(struct) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol,
+      value: struct,
+      description: @instructions
+  end
+
+  def field_type(struct, _field) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,
