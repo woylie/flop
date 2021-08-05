@@ -785,6 +785,7 @@ defmodule Flop do
         %Flop{order_by: fields, order_directions: directions},
         _opts
       ) do
+    Query.order_by(q, ^prepare_order(fields, directions))
   end
 
   @spec prepare_order([atom], [order_direction()]) :: [
