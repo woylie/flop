@@ -423,7 +423,7 @@ defmodule Flop do
   def query(q, flop, opts \\ []) do
     q
     |> filter(flop, opts)
-    |> order_by(flop)
+    |> order_by(flop, opts)
     |> paginate(flop)
   end
 
@@ -753,8 +753,10 @@ defmodule Flop do
 
   Used by `Flop.query/2`.
   """
-  @spec order_by(Queryable.t(), Flop.t()) :: Queryable.t()
-  def order_by(q, %Flop{order_by: nil}), do: q
+  @spec order_by(Queryable.t(), Flop.t(), keyword) :: Queryable.t()
+  def order_by(q, flop, opts \\ [])
+
+  def order_by(q, %Flop{order_by: nil}, _opts), do: q
 
   # For backwards cursor pagination
   def order_by(
@@ -766,7 +768,8 @@ defmodule Flop do
           first: nil,
           after: nil,
           offset: nil
-        }
+        },
+        _opts
       )
       when is_integer(last) do
     reversed_order =
@@ -777,8 +780,11 @@ defmodule Flop do
     Query.order_by(q, ^reversed_order)
   end
 
-  def order_by(q, %Flop{order_by: fields, order_directions: directions}) do
-    Query.order_by(q, ^prepare_order(fields, directions))
+  def order_by(
+        q,
+        %Flop{order_by: fields, order_directions: directions},
+        opts
+      ) do
   end
 
   @spec prepare_order([atom], [order_direction()]) :: [
