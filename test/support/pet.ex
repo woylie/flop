@@ -11,7 +11,7 @@ defmodule Flop.Pet do
     filterable: [:name, :owner_age, :owner_name, :species],
     sortable: [:name, :age],
     max_limit: 20,
-    join_fields: [owner_name: {:owner, :name}]
+    join_fields: [owner_age: {:owner, :age}, owner_name: {:owner, :name}]
   }
 
   schema "pets" do

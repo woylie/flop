@@ -31,18 +31,46 @@ defmodule Flop.Builder do
     {:!=, "field(r, ^field) != ^value"},
     {:empty, "is_nil(field(r, ^field))"},
     {:not_empty, "not is_nil(field(r, ^field))"},
-    {:=~, "ilike(field(r, ^field), ^value)", :add_wildcard},
-    {:ilike, "ilike(field(r, ^field), ^value)", :add_wildcard},
     {:>=, "field(r, ^field) >= ^value"},
     {:<=, "field(r, ^field) <= ^value"},
     {:>, "field(r, ^field) > ^value"},
     {:<, "field(r, ^field) < ^value"},
     {:in, "field(r, ^field) in ^value"},
-    {:like, "like(field(r, ^field), ^value)", :add_wildcard}
+    {:like, "like(field(r, ^field), ^value)", :add_wildcard},
+    {:=~, "ilike(field(r, ^field), ^value)", :add_wildcard},
+    {:ilike, "ilike(field(r, ^field), ^value)", :add_wildcard},
+    {:like_and, "^d", :split_search_text,
+     """
+     d =
+       Enum.reduce(value, true, fn value, dynamic ->
+         dynamic(<<<binding>>>, ^dynamic and like(field(r, ^field), ^value))
+       end)
+     """},
+    {:like_or, "^d", :split_search_text,
+     """
+     d =
+       Enum.reduce(value, false, fn value, dynamic ->
+         dynamic(<<<binding>>>, ^dynamic or like(field(r, ^field), ^value))
+       end)
+     """},
+    {:ilike_and, "^d", :split_search_text,
+     """
+     d =
+       Enum.reduce(value, true, fn value, dynamic ->
+         dynamic(<<<binding>>>, ^dynamic and ilike(field(r, ^field), ^value))
+       end)
+     """},
+    {:ilike_or, "^d", :split_search_text,
+     """
+     d =
+       Enum.reduce(value, false, fn value, dynamic ->
+         dynamic(<<<binding>>>, ^dynamic or ilike(field(r, ^field), ^value))
+       end)
+     """}
   ]
 
   for operator_and_condition <- @operator_opts do
-    {op, condition, preprocessor, _dynamic_builder} =
+    {op, condition, preprocessor, dynamic_builder} =
       case operator_and_condition do
         {operator, condition} -> {operator, condition, nil, nil}
         {operator, condition, func} -> {operator, condition, func, nil}
@@ -63,6 +91,14 @@ defmodule Flop.Builder do
       # prevent unused variable warning for operators that don't use value
       _ = value
 
+      unquote(
+        if dynamic_builder do
+          dynamic_builder
+          |> String.replace("<<<binding>>>", "[r]")
+          |> Code.string_to_quoted!()
+        end
+      )
+
       unquote(Code.string_to_quoted!("dynamic([r], ^c and #{condition})"))
     end
 
@@ -76,53 +112,17 @@ defmodule Flop.Builder do
       _ = value
 
       unquote(
+        if dynamic_builder do
+          dynamic_builder
+          |> String.replace("<<<binding>>>", "[{^binding, r}]")
+          |> Code.string_to_quoted!()
+        end
+      )
+
+      unquote(
         Code.string_to_quoted!("dynamic([{^binding, r}], ^c and #{condition})")
       )
     end
-  end
-
-  defp build_op(c, nil, %Filter{field: field, op: :like_and, value: value}) do
-    query_values = Misc.split_search_text(value)
-
-    dynamic =
-      Enum.reduce(query_values, true, fn value, dynamic ->
-        dynamic([r], ^dynamic and like(field(r, ^field), ^value))
-      end)
-
-    dynamic([r], ^c and ^dynamic)
-  end
-
-  defp build_op(c, nil, %Filter{field: field, op: :like_or, value: value}) do
-    query_values = Misc.split_search_text(value)
-
-    dynamic =
-      Enum.reduce(query_values, false, fn value, dynamic ->
-        dynamic([r], ^dynamic or like(field(r, ^field), ^value))
-      end)
-
-    dynamic([r], ^c and ^dynamic)
-  end
-
-  defp build_op(c, nil, %Filter{field: field, op: :ilike_and, value: value}) do
-    query_values = Misc.split_search_text(value)
-
-    dynamic =
-      Enum.reduce(query_values, true, fn value, dynamic ->
-        dynamic([r], ^dynamic and ilike(field(r, ^field), ^value))
-      end)
-
-    dynamic([r], ^c and ^dynamic)
-  end
-
-  defp build_op(c, nil, %Filter{field: field, op: :ilike_or, value: value}) do
-    query_values = Misc.split_search_text(value)
-
-    dynamic =
-      Enum.reduce(query_values, false, fn value, dynamic ->
-        dynamic([r], ^dynamic or ilike(field(r, ^field), ^value))
-      end)
-
-    dynamic([r], ^c and ^dynamic)
   end
 
   defp get_field_type(nil, _), do: :normal
