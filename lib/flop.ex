@@ -783,7 +783,7 @@ defmodule Flop do
   def order_by(
         q,
         %Flop{order_by: fields, order_directions: directions},
-        opts
+        _opts
       ) do
   end
 
