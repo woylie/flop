@@ -10,7 +10,6 @@ defmodule FlopTest do
 
   alias Ecto.Adapters.SQL.Sandbox
   alias Ecto.Changeset
-  alias Ecto.Query.BooleanExpr
   alias Ecto.Query.QueryExpr
   alias Flop.Filter
   alias Flop.Meta
