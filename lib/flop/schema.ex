@@ -49,7 +49,7 @@ defprotocol Flop.Schema do
          [validation: :subset, enum: [:name, :age]]}
       ]
 
-  ### Defining default and maximum limits
+  ## Default and maximum limits
 
   To define a default or maximum limit, you can set the `default_limit` and
   `max_limit` option when deriving `Flop.Schema`. The maximum limit will be
@@ -63,7 +63,7 @@ defprotocol Flop.Schema do
         default_limit: 50
       }
 
-  ### Defining a default sort order
+  ## Default sort order
 
   To define a default sort order, you can set the `default_order_by` and
   `default_order_directions` options when deriving `Flop.Schema`. The default
@@ -78,7 +78,7 @@ defprotocol Flop.Schema do
         default_order_directions: [:asc, :desc]
       }
 
-  ### Restricting pagination types
+  ## Restricting pagination types
 
   By default, `page`/`page_size`, `offset`/`limit` and cursor-based pagination
   (`first`/`after` and `last`/`before`) are enabled. If you want to restrict the
@@ -95,7 +95,7 @@ defprotocol Flop.Schema do
   See also `t:Flop.option/0` and `t:Flop.pagination_type/0`. Setting the value
   to `nil` allows all pagination types.
 
-  ### Defining compound fields
+  ## Compound fields
 
   Sometimes you might need to apply a search term to multiple fields at once,
   e.g. you might want to search in both the family name and given name field.
@@ -139,7 +139,7 @@ defprotocol Flop.Schema do
       WHERE (family_name ilike '%margo%' OR given_name ='%margo%')
       AND (family_name ilike '%martindale%' OR given_name ='%martindale%')
 
-  #### Filter operator rules
+  ### Filter operator rules
 
   - `:=~`, `:like`, `:like_and`, `:like_or`, `:ilike`, `:ilike_and`,
     `:ilike_or` - The filter value is split at whitespace characters as usual.
@@ -153,7 +153,7 @@ defprotocol Flop.Schema do
     joined with a space again. **This will be added in a future version. These
     filter operators are ignored for compound fields at the moment.**
 
-  ### Defining join fields
+  ## Join fields
 
   If you need filter or order across tables, you can define join fields.
 
