@@ -13,7 +13,7 @@
 
 ### Changed
 
-- Option `get_cursor_value_func` renamed to `cursor_value_func`.
+- Rename option `get_cursor_value_func` to `cursor_value_func`.
 - Silently ignore filters with `nil` value for the field or the value instead of
   raising an `ArgumentError`.
 
