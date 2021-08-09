@@ -17,6 +17,8 @@ defmodule FlopTest do
   alias Flop.Pet
   alias Flop.Repo
 
+  @pet_count_range 1..1000
+
   setup do
     :ok = Sandbox.checkout(Repo)
   end
@@ -69,9 +71,9 @@ defmodule FlopTest do
 
   describe "filtering" do
     property "applies equality filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:name, :species, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(),
                 pet <- member_of(pets),
                 query_value = Pet.get_field(pet, field),
                 query_value != "" do
@@ -84,9 +86,9 @@ defmodule FlopTest do
     end
 
     property "applies inequality filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:name, :species, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(),
                 pet <- member_of(pets),
                 query_value = Pet.get_field(pet, field),
                 query_value != "" do
@@ -99,15 +101,15 @@ defmodule FlopTest do
     end
 
     test "applies empty and not_empty filter" do
-      pets =
-        insert_list_and_sort(50, :pet,
-          species: fn -> Enum.random([nil, "fox"]) end,
-          owner: fn ->
-            build(:owner, name: fn -> Enum.random([nil, "Carl"]) end)
-          end
-        )
-
-      check all field <- member_of([:species, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets =
+                  insert_list_and_sort(pet_count, :pet,
+                    species: fn -> Enum.random([nil, "fox"]) end,
+                    owner: fn ->
+                      build(:owner, name: fn -> Enum.random([nil, "Carl"]) end)
+                    end
+                  ),
+                field <- member_of([:species, :owner_name]),
                 op <- member_of([:empty, :not_empty]) do
         expected = filter_pets(pets, field, op)
 
@@ -117,9 +119,9 @@ defmodule FlopTest do
     end
 
     property "applies like filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:name, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 query_value <- substring(value) do
@@ -132,9 +134,9 @@ defmodule FlopTest do
     end
 
     property "applies ilike filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:name, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
                 op <- member_of([:=~, :ilike]),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
@@ -148,9 +150,9 @@ defmodule FlopTest do
     end
 
     property "applies like_and filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:name, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 search_text <- search_text(value) do
@@ -163,9 +165,9 @@ defmodule FlopTest do
     end
 
     property "applies like_or filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:name, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 search_text <- search_text(value) do
@@ -177,10 +179,10 @@ defmodule FlopTest do
       end
     end
 
-    test "applies ilike_and filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:name, :owner_name]),
+    property "applies ilike_and filter" do
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 search_text <- search_text(value) do
@@ -193,9 +195,9 @@ defmodule FlopTest do
     end
 
     property "applies ilike_or filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:name, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 search_text <- search_text(value) do
@@ -208,12 +210,12 @@ defmodule FlopTest do
     end
 
     property "applies lte, lt, gt and gte filters" do
-      pets =
-        50
-        |> insert_list(:pet_downcase, owner: fn -> build(:owner) end)
-        |> Enum.sort_by(& &1.id)
-
-      check all field <- member_of([:age, :name, :owner_age]),
+      check all pet_count <- integer(@pet_count_range),
+                pets =
+                  pet_count
+                  |> insert_list(:pet_downcase, owner: fn -> build(:owner) end)
+                  |> Enum.sort_by(& &1.id),
+                field <- member_of([:age, :name, :owner_age]),
                 op <- one_of([:<=, :<, :>, :>=]),
                 query_value <- compare_value_by_field(field) do
         expected = filter_pets(pets, field, op, query_value)
@@ -225,9 +227,9 @@ defmodule FlopTest do
     end
 
     property "applies 'in' filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:age, :name, :owner_age]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- member_of([:age, :name, :owner_age]),
                 values = Enum.map(pets, &Map.get(&1, field)),
                 query_value <-
                   list_of(one_of([member_of(values), value_by_field(field)]),
@@ -261,99 +263,6 @@ defmodule FlopTest do
       }
 
       assert Flop.query(Pet, flop) == Pet
-    end
-  end
-
-  describe "compound field filters" do
-    property "applies like filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all pet <- member_of(pets),
-                field <- member_of([:full_name, :pet_and_owner_name]),
-                value = Pet.random_value_for_compound_field(pet, field),
-                query_value <- substring(value) do
-        expected = filter_pets(pets, field, :like, query_value)
-
-        assert query_pets_with_owners(%{
-                 filters: [%{field: field, op: :like, value: query_value}]
-               }) == expected
-      end
-    end
-
-    property "applies ilike filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:full_name, :pet_and_owner_name]),
-                op <- member_of([:=~, :ilike]),
-                pet <- member_of(pets),
-                value = Pet.random_value_for_compound_field(pet, field),
-                query_value <- substring(value) do
-        expected = filter_pets(pets, field, op, query_value)
-
-        assert query_pets_with_owners(%{
-                 filters: [%{field: field, op: op, value: query_value}]
-               }) == expected
-      end
-    end
-
-    property "applies like_and filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:full_name, :pet_and_owner_name]),
-                pet <- member_of(pets),
-                value = Pet.random_value_for_compound_field(pet, field),
-                search_text <- search_text(value) do
-        expected = filter_pets(pets, field, :like_and, search_text)
-
-        assert query_pets_with_owners(%{
-                 filters: [%{field: field, op: :like_and, value: search_text}]
-               }) == expected
-      end
-    end
-
-    property "applies like_or filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:full_name, :pet_and_owner_name]),
-                pet <- member_of(pets),
-                value = Pet.random_value_for_compound_field(pet, field),
-                search_text <- search_text(value) do
-        expected = filter_pets(pets, field, :like_or, search_text)
-
-        assert query_pets_with_owners(%{
-                 filters: [%{field: field, op: :like_or, value: search_text}]
-               }) == expected
-      end
-    end
-
-    property "applies ilike_and filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:full_name, :pet_and_owner_name]),
-                pet <- member_of(pets),
-                value = Pet.random_value_for_compound_field(pet, field),
-                search_text <- search_text(value) do
-        expected = filter_pets(pets, field, :ilike_and, search_text)
-
-        assert query_pets_with_owners(%{
-                 filters: [%{field: field, op: :ilike_and, value: search_text}]
-               }) == expected
-      end
-    end
-
-    property "applies ilike_or filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:full_name, :pet_and_owner_name]),
-                pet <- member_of(pets),
-                value = Pet.random_value_for_compound_field(pet, field),
-                search_text <- search_text(value) do
-        expected = filter_pets(pets, field, :ilike_or, search_text)
-
-        assert query_pets_with_owners(%{
-                 filters: [%{field: field, op: :ilike_or, value: search_text}]
-               }) == expected
-      end
     end
   end
 

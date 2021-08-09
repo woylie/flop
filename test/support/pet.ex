@@ -45,6 +45,10 @@ defmodule Flop.Pet do
       when field in [:name, :age, :species],
       do: Map.get(pet, field)
 
+  def get_field(%__MODULE__{} = pet, field)
+      when field in [:full_name, :pet_and_owner_name],
+      do: random_value_for_compound_field(pet, field)
+
   def random_value_for_compound_field(
         %__MODULE__{family_name: family_name, given_name: given_name},
         :full_name

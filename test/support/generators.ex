@@ -25,6 +25,18 @@ defmodule Flop.Generators do
     end
   end
 
+  def filterable_pet_field do
+    member_of(Flop.Schema.filterable(%Flop.Pet{}))
+  end
+
+  def filterable_pet_field(:string) do
+    member_of([:full_name, :name, :owner_name, :pet_and_owner_name, :species])
+  end
+
+  def filterable_pet_field(:integer) do
+    member_of([:age, :owner_age])
+  end
+
   def uniq_list_of_pets(opts) do
     length_range = Keyword.fetch!(opts, :length)
 
