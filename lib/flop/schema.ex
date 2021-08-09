@@ -207,7 +207,8 @@ defprotocol Flop.Schema do
   @doc """
   Returns the field type in a schema.
 
-  - `:normal` - An ordinary field on the schema.
+  - `{:normal, atom}` - An ordinary field on the schema. The second tuple
+    element is the field name.
   - `{:compound, [atom]}` - A combination of fields defined with the
     `compound_fields` option. The list of atoms refers to the list of fields
     that are included.
