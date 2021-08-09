@@ -18,9 +18,9 @@ defmodule Flop.Generators do
   @whitespace ["\u0020", "\u2000", "\u3000"]
 
   def pet do
-    gen all name <- string(:printable),
+    gen all name <- string(:alphanumeric, min_length: 2),
             age <- integer(1..500),
-            species <- string(:printable) do
+            species <- string(:alphanumeric, min_length: 2) do
       %{name: name, age: age, species: species}
     end
   end
@@ -41,9 +41,11 @@ defmodule Flop.Generators do
     length_range = Keyword.fetch!(opts, :length)
 
     gen all length <- integer(length_range),
-            names <- uniq_list_of(string(:printable), length: length),
+            names <-
+              uniq_list_of(string(:alphanumeric, min_length: 2), length: length),
             ages <- uniq_list_of(integer(1..500), length: length),
-            species <- uniq_list_of(string(:printable), length: length) do
+            species <-
+              uniq_list_of(string(:alphanumeric, min_length: 2), length: length) do
       [names, ages, species]
       |> Enum.zip()
       |> Enum.map(fn {name, age, species} ->
@@ -66,7 +68,8 @@ defmodule Flop.Generators do
 
   def pagination_parameters(type) when type in [:first, :last] do
     gen all val_1 <- positive_integer(),
-            val_2 <- one_of([string(:alphanumeric), constant(nil)]) do
+            val_2 <-
+              one_of([string(:alphanumeric, min_length: 2), constant(nil)]) do
       case type do
         :first -> %{first: val_1, after: val_2}
         :last -> %{last: val_1, before: val_2}
@@ -83,9 +86,14 @@ defmodule Flop.Generators do
   end
 
   def value_by_field(:age), do: integer()
-  def value_by_field(:name), do: string(:alphanumeric, min_length: 1)
+
+  def value_by_field(:name),
+    do: string(:alphanumeric, min_length: 2, min_length: 1)
+
   def value_by_field(:owner_age), do: integer()
-  def value_by_field(:owner_name), do: string(:alphanumeric, min_length: 1)
+
+  def value_by_field(:owner_name),
+    do: string(:alphanumeric, min_length: 2, min_length: 1)
 
   def compare_value_by_field(:age), do: integer(1..30)
 
