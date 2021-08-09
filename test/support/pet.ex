@@ -60,4 +60,16 @@ defmodule Flop.Pet do
         :pet_and_owner_name
       ),
       do: Enum.random([name, owner_name])
+
+  def concatenated_value_for_compound_field(
+        %__MODULE__{family_name: family_name, given_name: given_name},
+        :full_name
+      ),
+      do: family_name <> " " <> given_name
+
+  def concatenated_value_for_compound_field(
+        %__MODULE__{name: name, owner: %Owner{name: owner_name}},
+        :pet_and_owner_name
+      ),
+      do: name <> " " <> owner_name
 end

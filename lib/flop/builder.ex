@@ -68,7 +68,17 @@ defmodule Flop.Builder do
      """}
   ]
 
-  defp build_op(c, schema_struct, {:compound, fields}, %Filter{} = filter) do
+  defp build_op(c, schema_struct, {:compound, fields}, %Filter{op: op} = filter)
+       when op in [
+              :=~,
+              :like,
+              :like_and,
+              :like_or,
+              :ilike,
+              :ilike_and,
+              :ilike_or,
+              :not_empty
+            ] do
     compound_dynamic =
       fields
       |> Enum.map(&get_field_type(schema_struct, &1))
@@ -80,6 +90,38 @@ defmodule Flop.Builder do
       end)
 
     dynamic([r], ^c and ^compound_dynamic)
+  end
+
+  defp build_op(
+         c,
+         schema_struct,
+         {:compound, fields},
+         %Filter{op: :empty} = filter
+       ) do
+    compound_dynamic =
+      fields
+      |> Enum.map(&get_field_type(schema_struct, &1))
+      |> Enum.reduce(true, fn field, dynamic ->
+        dynamic_for_field =
+          build_op(true, schema_struct, field, %{filter | field: field})
+
+        dynamic([r], ^dynamic and ^dynamic_for_field)
+      end)
+
+    dynamic([r], ^c and ^compound_dynamic)
+  end
+
+  defp build_op(
+         c,
+         _schema_struct,
+         {:compound, _fields},
+         %Filter{op: op, value: _value} = _filter
+       )
+       when op in [:==, :!=, :<=, :<, :>=, :>, :in] do
+    # value = value |> String.split() |> Enum.join(" ")
+    # filter = %{filter | value: value}
+    # compare value with concatenated fields
+    c
   end
 
   for operator_and_condition <- @operator_opts do

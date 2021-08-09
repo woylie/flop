@@ -73,9 +73,30 @@ defmodule FlopTest do
     property "applies equality filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
-                field <- filterable_pet_field(),
+                # all except compound fields
+                field <-
+                  member_of([:age, :name, :owner_age, :owner_name, :species]),
                 pet <- member_of(pets),
                 query_value <- pet |> Pet.get_field(field) |> constant(),
+                query_value != "" do
+        expected = filter_pets(pets, field, :==, query_value)
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :==, value: query_value}]
+               }) == expected
+      end
+    end
+
+    property "applies equality filter to compound fields" do
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                # only compound fields
+                field <- member_of([:full_name, :pet_and_owner_name]),
+                pet <- member_of(pets),
+                query_value <-
+                  pet
+                  |> Pet.concatenated_value_for_compound_field(field)
+                  |> constant(),
                 query_value != "" do
         expected = filter_pets(pets, field, :==, query_value)
 
@@ -88,9 +109,28 @@ defmodule FlopTest do
     property "applies inequality filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
-                field <- filterable_pet_field(),
+                # all except compound fields
+                field <-
+                  member_of([:age, :name, :owner_age, :owner_name, :species]),
                 pet <- member_of(pets),
                 query_value = Pet.get_field(pet, field),
+                query_value != "" do
+        expected = filter_pets(pets, field, :!=, query_value)
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :!=, value: query_value}]
+               }) == expected
+      end
+    end
+
+    property "applies inequality filter to compound fields" do
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                # only compound fields
+                field <- member_of([:full_name, :pet_and_owner_name]),
+                pet <- member_of(pets),
+                query_value =
+                  Pet.concatenated_value_for_compound_field(pet, field),
                 query_value != "" do
         expected = filter_pets(pets, field, :!=, query_value)
 

@@ -16,10 +16,10 @@ defmodule Flop.TestUtil do
   def filter_pets(pets, field, op, value \\ nil)
 
   def filter_pets(pets, field, op, value) when is_atom(field) do
-    filter_func = matches?(op, value)
-
     case Flop.Schema.field_type(%Pet{}, field) do
       {type, _field} = field_type when type in [:normal, :join] ->
+        filter_func = matches?(op, value)
+
         Enum.filter(pets, fn pet ->
           pet |> get_field(field_type) |> filter_func.()
         end)
@@ -27,12 +27,38 @@ defmodule Flop.TestUtil do
       {:compound, fields} ->
         Enum.filter(
           pets,
-          &apply_filter_to_compound_fields(&1, fields, filter_func)
+          &apply_filter_to_compound_fields(&1, fields, op, value)
         )
     end
   end
 
-  defp apply_filter_to_compound_fields(pet, fields, filter_func) do
+  defp apply_filter_to_compound_fields(_pet, _fields, op, _value)
+       when op in [:==, :=~, :<=, :<, :>=, :>, :in] do
+    # joined_field_value =
+    #   fields
+    #   |> Enum.map(&Flop.Schema.field_type(%Pet{}, &1))
+    #   |> Enum.map(&get_field(pet, &1))
+    #   |> Enum.map(&String.split/1)
+    #   |> Enum.concat()
+    #   |> Enum.join(" ")
+
+    # joined_query_value = value |> String.split() |> Enum.join(" ")
+    # matches?(op, joined_query_value).(joined_field_value)
+    true
+  end
+
+  defp apply_filter_to_compound_fields(pet, fields, :empty, value) do
+    filter_func = matches?(:empty, value)
+
+    Enum.all?(fields, fn field ->
+      field_type = Flop.Schema.field_type(%Pet{}, field)
+      pet |> get_field(field_type) |> filter_func.()
+    end)
+  end
+
+  defp apply_filter_to_compound_fields(pet, fields, op, value) do
+    filter_func = matches?(op, value)
+
     Enum.any?(fields, fn field ->
       field_type = Flop.Schema.field_type(%Pet{}, field)
       pet |> get_field(field_type) |> filter_func.()
