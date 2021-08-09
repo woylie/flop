@@ -26,40 +26,43 @@ defmodule Flop.Builder do
   end
 
   @operator_opts [
-    {:==, "field(r, ^field) == ^value"},
-    {:!=, "field(r, ^field) != ^value"},
-    {:empty, "is_nil(field(r, ^field))"},
-    {:not_empty, "not is_nil(field(r, ^field))"},
-    {:>=, "field(r, ^field) >= ^value"},
-    {:<=, "field(r, ^field) <= ^value"},
-    {:>, "field(r, ^field) > ^value"},
-    {:<, "field(r, ^field) < ^value"},
-    {:in, "field(r, ^field) in ^value"},
-    {:like, "like(field(r, ^field), ^value)", :add_wildcard},
-    {:=~, "ilike(field(r, ^field), ^value)", :add_wildcard},
-    {:ilike, "ilike(field(r, ^field), ^value)", :add_wildcard},
-    {:like_and, "^d", :split_search_text,
+    {:==, quote(do: field(r, ^var!(field)) == ^var!(value))},
+    {:!=, quote(do: field(r, ^var!(field)) != ^var!(value))},
+    {:empty, quote(do: is_nil(field(r, ^var!(field))))},
+    {:not_empty, quote(do: not is_nil(field(r, ^var!(field))))},
+    {:>=, quote(do: field(r, ^var!(field)) >= ^var!(value))},
+    {:<=, quote(do: field(r, ^var!(field)) <= ^var!(value))},
+    {:>, quote(do: field(r, ^var!(field)) > ^var!(value))},
+    {:<, quote(do: field(r, ^var!(field)) < ^var!(value))},
+    {:in, quote(do: field(r, ^var!(field)) in ^var!(value))},
+    {:like, quote(do: like(field(r, ^var!(field)), ^var!(value))),
+     :add_wildcard},
+    {:=~, quote(do: ilike(field(r, ^var!(field)), ^var!(value))),
+     :add_wildcard},
+    {:ilike, quote(do: ilike(field(r, ^var!(field)), ^var!(value))),
+     :add_wildcard},
+    {:like_and, quote(do: ^var!(d)), :split_search_text,
      """
      d =
        Enum.reduce(value, true, fn value, dynamic ->
          dynamic(<<<binding>>>, ^dynamic and like(field(r, ^field), ^value))
        end)
      """},
-    {:like_or, "^d", :split_search_text,
+    {:like_or, quote(do: ^var!(d)), :split_search_text,
      """
      d =
        Enum.reduce(value, false, fn value, dynamic ->
          dynamic(<<<binding>>>, ^dynamic or like(field(r, ^field), ^value))
        end)
      """},
-    {:ilike_and, "^d", :split_search_text,
+    {:ilike_and, quote(do: ^var!(d)), :split_search_text,
      """
      d =
        Enum.reduce(value, true, fn value, dynamic ->
          dynamic(<<<binding>>>, ^dynamic and ilike(field(r, ^field), ^value))
        end)
      """},
-    {:ilike_or, "^d", :split_search_text,
+    {:ilike_or, quote(do: ^var!(d)), :split_search_text,
      """
      d =
        Enum.reduce(value, false, fn value, dynamic ->
@@ -153,7 +156,11 @@ defmodule Flop.Builder do
         end
       )
 
-      unquote(Code.string_to_quoted!("dynamic([r], ^c and #{condition})"))
+      unquote(
+        quote do
+          dynamic([r], ^var!(c) and unquote(condition))
+        end
+      )
     end
 
     defp build_op(c, _schema_struct, {:join, {binding, field}}, %Filter{
@@ -174,7 +181,9 @@ defmodule Flop.Builder do
       )
 
       unquote(
-        Code.string_to_quoted!("dynamic([{^binding, r}], ^c and #{condition})")
+        quote do
+          dynamic([{^var!(binding), r}], ^var!(c) and unquote(condition))
+        end
       )
     end
   end
