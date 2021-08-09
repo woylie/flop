@@ -2,6 +2,7 @@ defmodule Flop.Builder do
   @moduledoc false
 
   import Ecto.Query
+  import Flop.Misc
 
   alias Flop.Filter
   alias Flop.Misc
@@ -151,13 +152,7 @@ defmodule Flop.Builder do
       # prevent unused variable warning for operators that don't use value
       _ = value
 
-      unquote(
-        if dynamic_builder do
-          dynamic_builder
-          |> String.replace("<<<binding>>>", "[r]")
-          |> Code.string_to_quoted!()
-        end
-      )
+      unquote(quote_dynamic(dynamic_builder, "[r]"))
 
       unquote(
         quote do
@@ -175,13 +170,7 @@ defmodule Flop.Builder do
       # prevent unused variable warning for operators that don't use value
       _ = value
 
-      unquote(
-        if dynamic_builder do
-          dynamic_builder
-          |> String.replace("<<<binding>>>", "[{^binding, r}]")
-          |> Code.string_to_quoted!()
-        end
-      )
+      unquote(quote_dynamic(dynamic_builder, "[{^binding, r}]"))
 
       unquote(
         quote do
