@@ -2,10 +2,8 @@
 
 ![CI](https://github.com/woylie/flop/workflows/CI/badge.svg) [![Hex](https://img.shields.io/hexpm/v/flop)](https://hex.pm/packages/flop) [![Coverage Status](https://coveralls.io/repos/github/woylie/flop/badge.svg)](https://coveralls.io/github/woylie/flop)
 
-Flop is an Elixir library for making filtering, ordering and pagination with
-Ecto a bit easier.
-
-**This library is in early development.**
+Flop is an Elixir library that applies filtering, ordering and pagination
+parameters to your Ecto queries.
 
 ## Features
 
@@ -17,6 +15,11 @@ Ecto a bit easier.
 - configurable filterable and sortable fields
 - query and meta data helpers
 - Relay connection formatter (edges, nodes and page info)
+
+## Status
+
+This library has been used in production for a while now. Nevertheless, there
+may still be API changes on the way to a more complete feature set.
 
 ## Installation
 
