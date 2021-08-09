@@ -14,9 +14,9 @@ defmodule Flop.Owner do
   }
 
   schema "owners" do
-    field :name, :string
-    field :email, :string
     field :age, :integer
+    field :email, :string
+    field :name, :string
 
     has_many :pets, Pet
   end

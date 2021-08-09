@@ -17,13 +17,12 @@ defmodule Flop.Builder do
         %Filter{field: field} = filter,
         conditions
       ) do
-    case get_field_type(schema_struct, field) do
-      :normal ->
-        build_op(conditions, nil, filter)
-
-      {:join, {_binding_name, _field_name} = binding} ->
-        build_op(conditions, binding, filter)
-    end
+    build_op(
+      conditions,
+      schema_struct,
+      get_field_type(schema_struct, field),
+      filter
+    )
   end
 
   @operator_opts [
@@ -69,6 +68,62 @@ defmodule Flop.Builder do
      """}
   ]
 
+  defp build_op(c, schema_struct, {:compound, fields}, %Filter{op: op} = filter)
+       when op in [
+              :=~,
+              :like,
+              :like_and,
+              :like_or,
+              :ilike,
+              :ilike_and,
+              :ilike_or,
+              :not_empty
+            ] do
+    compound_dynamic =
+      fields
+      |> Enum.map(&get_field_type(schema_struct, &1))
+      |> Enum.reduce(false, fn field, dynamic ->
+        dynamic_for_field =
+          build_op(true, schema_struct, field, %{filter | field: field})
+
+        dynamic([r], ^dynamic or ^dynamic_for_field)
+      end)
+
+    dynamic([r], ^c and ^compound_dynamic)
+  end
+
+  defp build_op(
+         c,
+         schema_struct,
+         {:compound, fields},
+         %Filter{op: :empty} = filter
+       ) do
+    compound_dynamic =
+      fields
+      |> Enum.map(&get_field_type(schema_struct, &1))
+      |> Enum.reduce(true, fn field, dynamic ->
+        dynamic_for_field =
+          build_op(true, schema_struct, field, %{filter | field: field})
+
+        dynamic([r], ^dynamic and ^dynamic_for_field)
+      end)
+
+    dynamic([r], ^c and ^compound_dynamic)
+  end
+
+  defp build_op(
+         c,
+         _schema_struct,
+         {:compound, _fields},
+         %Filter{op: op, value: _value} = _filter
+       )
+       when op in [:==, :!=, :<=, :<, :>=, :>, :in] do
+    # value = value |> String.split() |> Enum.join(" ")
+    # filter = %{filter | value: value}
+    # compare value with concatenated fields
+    c
+  end
+
   for operator_and_condition <- @operator_opts do
     {op, condition, preprocessor, dynamic_builder} =
       case operator_and_condition do
@@ -81,8 +136,7 @@ defmodule Flop.Builder do
       unless is_nil(preprocessor),
         do: Code.string_to_quoted!("value = Misc.#{preprocessor}(value)")
 
-    defp build_op(c, nil, %Filter{
-           field: field,
+    defp build_op(c, _schema_struct, {:normal, field}, %Filter{
            op: unquote(op),
            value: value
          }) do
@@ -102,7 +156,7 @@ defmodule Flop.Builder do
       unquote(Code.string_to_quoted!("dynamic([r], ^c and #{condition})"))
     end
 
-    defp build_op(c, {binding, field}, %Filter{
+    defp build_op(c, _schema_struct, {:join, {binding, field}}, %Filter{
            op: unquote(op),
            value: value
          }) do
@@ -125,7 +179,7 @@ defmodule Flop.Builder do
     end
   end
 
-  defp get_field_type(nil, _), do: :normal
+  defp get_field_type(nil, field), do: {:normal, field}
 
   defp get_field_type(struct, field) when is_atom(field) do
     Flop.Schema.field_type(struct, field)

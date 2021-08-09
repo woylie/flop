@@ -14,32 +14,60 @@ defmodule Flop.Factory do
     "Sapotaceae"
   ]
 
-  @name [
-    "Flossie Blackwell",
-    "Casey Pierce",
-    "Ingrid Gallagher",
-    "Emil Smith",
-    "Brittney Johnson",
-    "Rodney Carter",
-    "Brittany Villegas",
-    "Etta Romero",
-    "Loretta Norris",
-    "Eddie Becker",
-    "Floyd Holland",
-    "Bernardo Wade",
-    "Gay Rich",
-    "Harrison Brooks",
-    "Frederic Snow",
-    "Clay Sutton",
-    "Genevieve Singh",
-    "Albert Adkins",
-    "Bianca Schroeder",
-    "Rolando Barker",
-    "Billy Francis",
-    "Jody Hanna",
-    "Marisa Williamson",
-    "Kenton Hess",
-    "Carrol Simon"
+  @given_name [
+    "Albert",
+    "Bernardo",
+    "Bianca",
+    "Billy",
+    "Brittany",
+    "Brittney",
+    "Carrol",
+    "Casey",
+    "Clay",
+    "Eddie",
+    "Emil",
+    "Etta",
+    "Flossie",
+    "Floyd",
+    "Frederic",
+    "Gay",
+    "Genevieve",
+    "Harrison",
+    "Ingrid",
+    "Jody",
+    "Kenton",
+    "Loretta",
+    "Marisa",
+    "Rodney",
+    "Rolando"
+  ]
+
+  @family_name [
+    "Adkins",
+    "Barker",
+    "Becker",
+    "Blackwell",
+    "Brooks",
+    "Carter",
+    "Francis",
+    "Gallagher",
+    "Hanna",
+    "Hess",
+    "Holland",
+    "Johnson",
+    "Norris",
+    "Pierce",
+    "Rich",
+    "Romero",
+    "Schroeder",
+    "Simon",
+    "Singh",
+    "Smith",
+    "Snow",
+    "Sutton",
+    "Villegas",
+    "Wade",
+    "Williamson"
   ]
 
   @species [
@@ -67,26 +95,30 @@ defmodule Flop.Factory do
 
   def owner_factory do
     %Owner{
-      name: build(:name),
       age: :rand.uniform(100),
-      email: build(:species)
+      email: build(:species),
+      name: build(:name)
     }
   end
 
   def pet_factory do
     %Pet{
-      name: build(:name),
       age: :rand.uniform(30),
+      family_name: sequence(:family_name, @family_name),
+      given_name: sequence(:given_name, @given_name),
+      name: build(:name),
       species: build(:species)
     }
   end
 
   def pet_with_owner_factory do
     %Pet{
-      name: build(:name),
       age: :rand.uniform(30),
-      species: build(:species),
-      owner: build(:owner)
+      family_name: sequence(:family_name, @family_name),
+      given_name: sequence(:given_name, @given_name),
+      name: build(:name),
+      owner: build(:owner),
+      species: build(:species)
     }
   end
 
@@ -109,7 +141,7 @@ defmodule Flop.Factory do
   end
 
   def name_factory(_) do
-    sequence(:name, @name)
+    sequence(:name, @given_name) <> " " <> sequence(:name, @family_name)
   end
 
   def species_factory(_) do

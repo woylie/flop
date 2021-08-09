@@ -79,13 +79,13 @@ defmodule Flop do
       iex> flop.limit
       5
 
-      iex> params = %{"order_by" => ["name", "age"], "limit" => 200}
+      iex> params = %{"order_by" => ["name", "age"], "limit" => 10_000}
       iex> {:error, changeset} = Flop.validate(params, for: Flop.Pet)
       iex> [{:limit, {msg, _}}] = changeset.errors
       iex> msg
       "must be less than or equal to %{number}"
 
-      iex> params = %{"order_by" => ["name", "age"], "limit" => 200}
+      iex> params = %{"order_by" => ["name", "age"], "limit" => 10_000}
       iex> {:error, changeset} =
       ...>   Flop.validate_and_run(
       ...>     Flop.Pet,

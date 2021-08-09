@@ -7,6 +7,7 @@ defmodule FlopTest do
   import Ecto.Query
   import Flop.Factory
   import Flop.Generators
+  import Flop.TestUtil
 
   alias Ecto.Adapters.SQL.Sandbox
   alias Ecto.Changeset
@@ -16,56 +17,43 @@ defmodule FlopTest do
   alias Flop.Pet
   alias Flop.Repo
 
-  @base_query from p in Pet, where: p.age > 8, select: p.name
-  @whitespace ["\u0020", "\u2000", "\u3000"]
-
-  @pet_with_owner_query Pet
-                        |> join(:left, [p], o in assoc(p, :owner), as: :owner)
-                        |> preload(:owner)
+  @pet_count_range 1..200
 
   setup do
     :ok = Sandbox.checkout(Repo)
   end
 
-  defp insert_list_and_sort(count, factory, args \\ []) do
-    count |> insert_list(factory, args) |> Enum.sort_by(& &1.id)
-  end
-
-  describe "query/2" do
+  describe "ordering" do
     test "adds order_by to query if set" do
       pets = insert_list(20, :pet)
 
-      sorted_pets =
+      expected =
         Enum.sort(
           pets,
           &(&1.species < &2.species ||
               (&1.species == &2.species && &1.name >= &2.name))
         )
 
-      flop = %Flop{
-        order_by: [:species, :name],
-        order_directions: [:asc, :desc]
-      }
-
-      result = Pet |> Flop.query(flop) |> Repo.all()
-      assert result == sorted_pets
+      assert Flop.all(Pet, %Flop{
+               order_by: [:species, :name],
+               order_directions: [:asc, :desc]
+             }) == expected
     end
 
-    test "uses :asc as default direction" do
+    test "uses :asc as default direction if no directions are passed" do
+      pets = insert_list(20, :pet)
+      expected = Enum.sort_by(pets, &{&1.species, &1.name, &1.age})
+
+      assert Flop.all(Pet, %Flop{
+               order_by: [:species, :name, :age],
+               order_directions: nil
+             }) == expected
+    end
+
+    test "uses :asc as default direction if not enough directions are passed" do
       pets = insert_list(20, :pet)
 
-      # order by three fieds, no order directions passed
-
-      flop = %Flop{order_by: [:species, :name, :age], order_directions: nil}
-      sorted_pets = Enum.sort_by(pets, &{&1.species, &1.name, &1.age})
-      result = Pet |> Flop.query(flop) |> Repo.all()
-      assert result == sorted_pets
-
-      # order by three fields, one order direction passed
-
-      flop = %Flop{order_by: [:species, :name, :age], order_directions: [:desc]}
-
-      sorted_pets =
+      expected =
         Enum.sort(
           pets,
           &(&1.species > &2.species ||
@@ -74,483 +62,250 @@ defmodule FlopTest do
                     (&1.name == &2.name && &1.age <= &2.age))))
         )
 
-      result = Pet |> Flop.query(flop) |> Repo.all()
-      assert result == sorted_pets
-
-      flop = %Flop{order_by: [:species], order_directions: [:desc, :desc]}
-
-      assert [
-               %QueryExpr{
-                 expr: [desc: {{_, _, [_, :species]}, _, _}]
-               }
-             ] = Flop.query(Pet, flop).order_bys
+      assert Flop.all(Pet, %Flop{
+               order_by: [:species, :name, :age],
+               order_directions: [:desc]
+             }) == expected
     end
+  end
 
-    test "adds adds limit to query if set" do
-      insert_list(11, :pet)
-      flop = %Flop{limit: 10}
-      query = Flop.query(Pet, flop)
-      assert %QueryExpr{params: [{10, :integer}]} = query.limit
-      assert length(Repo.all(query)) == 10
-    end
-
-    test "adds adds offset to query if set" do
-      pets = insert_list(10, :pet)
-
-      expected_pets =
-        pets
-        |> Enum.sort_by(&{&1.name, &1.species, &1.age})
-        |> Enum.slice(4..10)
-
-      flop = %Flop{offset: 4, order_by: [:name, :species, :age]}
-      query = Flop.query(Pet, flop)
-      assert %QueryExpr{params: [{4, :integer}]} = query.offset
-      assert Repo.all(query) == expected_pets
-    end
-
-    test "adds adds limit and offset to query if page and page size are set" do
-      pets = insert_list(40, :pet)
-      sorted_pets = Enum.sort_by(pets, &{&1.name, &1.species, &1.age})
-      order_by = [:name, :species, :age]
-
-      flop = %Flop{page: 1, page_size: 10, order_by: order_by}
-      query = Flop.query(Pet, flop)
-      assert %QueryExpr{params: [{0, :integer}]} = query.offset
-      assert %QueryExpr{params: [{10, :integer}]} = query.limit
-      assert Repo.all(query) == Enum.slice(sorted_pets, 0..9)
-
-      flop = %Flop{page: 2, page_size: 10, order_by: order_by}
-      query = Flop.query(Pet, flop)
-      assert %QueryExpr{params: [{10, :integer}]} = query.offset
-      assert %QueryExpr{params: [{10, :integer}]} = query.limit
-      assert Repo.all(query) == Enum.slice(sorted_pets, 10..19)
-
-      flop = %Flop{page: 3, page_size: 4, order_by: order_by}
-      query = Flop.query(Pet, flop)
-      assert %QueryExpr{params: [{8, :integer}]} = query.offset
-      assert %QueryExpr{params: [{4, :integer}]} = query.limit
-      assert Repo.all(query) == Enum.slice(sorted_pets, 8..11)
-    end
-
+  describe "filtering" do
     property "applies equality filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:age, :name, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                # all except compound fields
+                field <-
+                  member_of([:age, :name, :owner_age, :owner_name, :species]),
                 pet <- member_of(pets),
-                query_value = Pet.get_field(pet, field),
+                query_value <- pet |> Pet.get_field(field) |> constant(),
                 query_value != "" do
-        {:ok, flop} =
-          Flop.validate(%{
-            filters: [%{field: field, op: :==, value: query_value}]
-          })
+        expected = filter_pets(pets, field, :==, query_value)
 
-        expected = Enum.filter(pets, &(Pet.get_field(&1, field) == query_value))
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :==, value: query_value}]
+               }) == expected
 
-        result =
-          @pet_with_owner_query
-          |> Flop.query(flop, for: Pet)
-          |> Repo.all()
-          |> Enum.sort_by(& &1.id)
+        checkin_checkout()
+      end
+    end
 
-        assert result == expected
+    property "applies equality filter to compound fields" do
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                # only compound fields
+                field <- member_of([:full_name, :pet_and_owner_name]),
+                pet <- member_of(pets),
+                query_value <-
+                  pet
+                  |> Pet.concatenated_value_for_compound_field(field)
+                  |> constant(),
+                query_value != "" do
+        expected = filter_pets(pets, field, :==, query_value)
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :==, value: query_value}]
+               }) == expected
+
+        checkin_checkout()
       end
     end
 
     property "applies inequality filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:age, :name, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                # all except compound fields
+                field <-
+                  member_of([:age, :name, :owner_age, :owner_name, :species]),
                 pet <- member_of(pets),
                 query_value = Pet.get_field(pet, field),
                 query_value != "" do
-        {:ok, flop} =
-          Flop.validate(%{
-            filters: [%{field: field, op: :!=, value: query_value}]
-          })
+        expected = filter_pets(pets, field, :!=, query_value)
 
-        expected = Enum.filter(pets, &(Pet.get_field(&1, field) != query_value))
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :!=, value: query_value}]
+               }) == expected
 
-        result =
-          @pet_with_owner_query
-          |> Flop.query(flop, for: Pet)
-          |> Repo.all()
-          |> Enum.sort_by(& &1.id)
+        checkin_checkout()
+      end
+    end
 
-        assert result == expected
+    property "applies inequality filter to compound fields" do
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                # only compound fields
+                field <- member_of([:full_name, :pet_and_owner_name]),
+                pet <- member_of(pets),
+                query_value =
+                  Pet.concatenated_value_for_compound_field(pet, field),
+                query_value != "" do
+        expected = filter_pets(pets, field, :!=, query_value)
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :!=, value: query_value}]
+               }) == expected
+
+        checkin_checkout()
       end
     end
 
     test "applies empty and not_empty filter" do
-      pets =
-        insert_list_and_sort(50, :pet,
-          species: fn -> Enum.random([nil, "fox"]) end,
-          owner: fn ->
-            build(:owner, name: fn -> Enum.random([nil, "Carl"]) end)
-          end
-        )
-
-      check all field <- member_of([:species, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets =
+                  insert_list_and_sort(pet_count, :pet,
+                    species: fn -> Enum.random([nil, "fox"]) end,
+                    owner: fn ->
+                      build(:owner, name: fn -> Enum.random([nil, "Carl"]) end)
+                    end
+                  ),
+                field <- member_of([:species, :owner_name]),
                 op <- member_of([:empty, :not_empty]) do
-        {:ok, flop} = Flop.validate(%{filters: [%{field: field, op: op}]})
+        expected = filter_pets(pets, field, op)
 
-        expected =
-          if op == :empty do
-            Enum.filter(pets, &(&1 |> Pet.get_field(field) |> is_nil()))
-          else
-            Enum.filter(pets, &(!(&1 |> Pet.get_field(field) |> is_nil())))
-          end
+        assert query_pets_with_owners(%{filters: [%{field: field, op: op}]}) ==
+                 expected
 
-        result =
-          @pet_with_owner_query
-          |> Flop.query(flop, for: Pet)
-          |> Repo.all()
-          |> Enum.sort_by(& &1.id)
-
-        assert result == expected
+        checkin_checkout()
       end
     end
 
     property "applies like filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:name, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
-                str_length = String.length(value),
-                start_at <- integer(0..(str_length - 1)),
-                end_at <- integer(start_at..(str_length - 1)),
-                query_value = String.slice(value, start_at..end_at),
-                query_value != " " do
-        {:ok, flop} =
-          Flop.validate(%{
-            filters: [%{field: field, op: :like, value: query_value}]
-          })
+                query_value <- substring(value) do
+        expected = filter_pets(pets, field, :like, query_value)
 
-        expected = Enum.filter(pets, &(Pet.get_field(&1, field) =~ query_value))
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :like, value: query_value}]
+               }) == expected
 
-        result =
-          @pet_with_owner_query
-          |> Flop.query(flop, for: Pet)
-          |> Repo.all()
-          |> Enum.sort_by(& &1.id)
-
-        assert result == expected
+        checkin_checkout()
       end
     end
 
     property "applies ilike filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:name, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
+                op <- member_of([:=~, :ilike]),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
-                str_length = String.length(value),
-                start_at <- integer(0..(str_length - 1)),
-                end_at <- integer(start_at..(str_length - 1)),
-                query_value = String.slice(value, start_at..end_at),
-                query_value != " ",
-                op <- member_of([:=~, :ilike]) do
-        {:ok, flop} =
-          Flop.validate(%{
-            filters: [%{field: field, op: op, value: query_value}]
-          })
+                query_value <- substring(value) do
+        expected = filter_pets(pets, field, :ilike, query_value)
 
-        ci_query_value = String.downcase(query_value)
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: op, value: query_value}]
+               }) == expected
 
-        expected =
-          Enum.filter(
-            pets,
-            fn pet ->
-              pet |> Pet.get_field(field) |> String.downcase() =~ ci_query_value
-            end
-          )
-
-        result =
-          @pet_with_owner_query
-          |> Flop.query(flop, for: Pet)
-          |> Repo.all()
-          |> Enum.sort_by(& &1.id)
-
-        assert result == expected
+        checkin_checkout()
       end
     end
 
     property "applies like_and filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:name, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
-                str_length = String.length(value),
-                start_at_a <- integer(0..(str_length - 2)),
-                end_at_a <- integer((start_at_a + 1)..(str_length - 1)),
-                start_at_b <- integer(0..(str_length - 2)),
-                end_at_b <- integer((start_at_b + 1)..(str_length - 1)),
-                query_value_a <-
-                  value
-                  |> String.slice(start_at_a..end_at_a)
-                  |> String.trim()
-                  |> constant(),
-                query_value_a != "",
-                query_value_b <-
-                  value
-                  |> String.slice(start_at_b..end_at_b)
-                  |> String.trim()
-                  |> constant(),
-                query_value_b != "",
-                whitespace_character <- member_of(@whitespace) do
-        query_values =
-          Enum.concat([
-            String.split(query_value_a),
-            String.split(query_value_b)
-          ])
+                search_text <- search_text(value) do
+        expected = filter_pets(pets, field, :like_and, search_text)
 
-        filter_value = Enum.join(query_values, whitespace_character)
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :like_and, value: search_text}]
+               }) == expected
 
-        {:ok, flop} =
-          Flop.validate(%{
-            filters: [%{field: field, op: :like_and, value: filter_value}]
-          })
-
-        expected =
-          Enum.filter(pets, fn pet ->
-            field_value = Pet.get_field(pet, field)
-            Enum.all?(query_values, fn value -> field_value =~ value end)
-          end)
-
-        result =
-          @pet_with_owner_query
-          |> Flop.query(flop, for: Pet)
-          |> Repo.all()
-          |> Enum.sort_by(& &1.id)
-
-        assert result == expected
+        checkin_checkout()
       end
     end
 
     property "applies like_or filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:name, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
-                str_length = String.length(value),
-                start_at_a <- integer(0..(str_length - 2)),
-                end_at_a <- integer((start_at_a + 2)..(str_length - 1)),
-                start_at_b <- integer(0..(str_length - 2)),
-                end_at_b <- integer((start_at_b + 2)..(str_length - 1)),
-                query_value_a <-
-                  value
-                  |> String.slice(start_at_a..end_at_a)
-                  |> String.trim()
-                  |> constant(),
-                query_value_a != "",
-                query_value_b <-
-                  value
-                  |> String.slice(start_at_b..end_at_b)
-                  |> String.trim()
-                  |> constant(),
-                query_value_b != "",
-                whitespace_character <- member_of(@whitespace) do
-        query_values =
-          Enum.concat([
-            String.split(query_value_a),
-            String.split(query_value_b)
-          ])
+                search_text <- search_text(value) do
+        expected = filter_pets(pets, field, :like_or, search_text)
 
-        filter_value = Enum.join(query_values, whitespace_character)
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :like_or, value: search_text}]
+               }) == expected
 
-        {:ok, flop} =
-          Flop.validate(%{
-            filters: [%{field: field, op: :like_or, value: filter_value}]
-          })
-
-        expected =
-          Enum.filter(pets, fn pet ->
-            field_value = Pet.get_field(pet, field)
-            Enum.any?(query_values, fn value -> field_value =~ value end)
-          end)
-
-        result =
-          @pet_with_owner_query
-          |> Flop.query(flop, for: Pet)
-          |> Repo.all()
-          |> Enum.sort_by(& &1.id)
-
-        assert result == expected
+        checkin_checkout()
       end
     end
 
-    test "applies ilike_and filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:name, :owner_name]),
+    property "applies ilike_and filter" do
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
-                str_length = String.length(value),
-                start_at_a <- integer(0..(str_length - 2)),
-                end_at_a <- integer((start_at_a + 1)..(str_length - 1)),
-                start_at_b <- integer(0..(str_length - 2)),
-                end_at_b <- integer((start_at_b + 1)..(str_length - 1)),
-                query_value_a <-
-                  value
-                  |> String.slice(start_at_a..end_at_a)
-                  |> String.trim()
-                  |> constant(),
-                query_value_a != "",
-                query_value_b <-
-                  value
-                  |> String.slice(start_at_b..end_at_b)
-                  |> String.trim()
-                  |> constant(),
-                query_value_b != "",
-                whitespace_character <- member_of(@whitespace) do
-        query_values =
-          Enum.concat([
-            String.split(query_value_a),
-            String.split(query_value_b)
-          ])
+                search_text <- search_text(value) do
+        expected = filter_pets(pets, field, :ilike_and, search_text)
 
-        filter_value = Enum.join(query_values, whitespace_character)
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :ilike_and, value: search_text}]
+               }) == expected
 
-        {:ok, flop} =
-          Flop.validate(%{
-            filters: [%{field: field, op: :ilike_and, value: filter_value}]
-          })
-
-        expected =
-          Enum.filter(pets, fn pet ->
-            field_value = pet |> Pet.get_field(field) |> String.downcase()
-
-            Enum.all?(query_values, fn value ->
-              field_value =~ String.downcase(value)
-            end)
-          end)
-
-        result =
-          @pet_with_owner_query
-          |> Flop.query(flop, for: Pet)
-          |> Repo.all()
-          |> Enum.sort_by(& &1.id)
-
-        assert result == expected
+        checkin_checkout()
       end
     end
 
     property "applies ilike_or filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:name, :owner_name]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
-                str_length = String.length(value),
-                start_at_a <- integer(0..(str_length - 2)),
-                end_at_a <- integer((start_at_a + 1)..(str_length - 1)),
-                start_at_b <- integer(0..(str_length - 2)),
-                end_at_b <- integer((start_at_b + 1)..(str_length - 1)),
-                query_value_a <-
-                  value
-                  |> String.slice(start_at_a..end_at_a)
-                  |> String.trim()
-                  |> constant(),
-                query_value_a != "",
-                query_value_b <-
-                  value
-                  |> String.slice(start_at_b..end_at_b)
-                  |> String.trim()
-                  |> constant(),
-                query_value_b != "",
-                whitespace_character <- member_of(@whitespace) do
-        query_values =
-          Enum.concat([
-            String.split(query_value_a),
-            String.split(query_value_b)
-          ])
+                search_text <- search_text(value) do
+        expected = filter_pets(pets, field, :ilike_or, search_text)
 
-        filter_value = Enum.join(query_values, whitespace_character)
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :ilike_or, value: search_text}]
+               }) == expected
 
-        {:ok, flop} =
-          Flop.validate(%{
-            filters: [%{field: field, op: :ilike_or, value: filter_value}]
-          })
-
-        expected =
-          Enum.filter(pets, fn pet ->
-            field_value = pet |> Pet.get_field(field) |> String.downcase()
-
-            Enum.any?(query_values, fn value ->
-              field_value =~ String.downcase(value)
-            end)
-          end)
-
-        result =
-          @pet_with_owner_query
-          |> Flop.query(flop, for: Pet)
-          |> Repo.all()
-          |> Enum.sort_by(& &1.id)
-
-        assert result == expected
+        checkin_checkout()
       end
     end
 
-    defp filter_pets(pets, field, op, value),
-      do: Enum.filter(pets, pet_matches?(op, field, value))
-
-    defp pet_matches?(:<=, k, v), do: &(Pet.get_field(&1, k) <= v)
-    defp pet_matches?(:<, k, v), do: &(Pet.get_field(&1, k) < v)
-    defp pet_matches?(:>, k, v), do: &(Pet.get_field(&1, k) > v)
-    defp pet_matches?(:>=, k, v), do: &(Pet.get_field(&1, k) >= v)
-    defp pet_matches?(:in, k, v), do: &(Pet.get_field(&1, k) in v)
-
     property "applies lte, lt, gt and gte filters" do
-      pets = insert_list(50, :pet_downcase, owner: fn -> build(:owner) end)
-
-      check all field <- member_of([:age, :name, :owner_age]),
+      check all pet_count <- integer(@pet_count_range),
+                pets =
+                  pet_count
+                  |> insert_list(:pet_downcase, owner: fn -> build(:owner) end)
+                  |> Enum.sort_by(& &1.id),
+                field <- member_of([:age, :name, :owner_age]),
                 op <- one_of([:<=, :<, :>, :>=]),
                 query_value <- compare_value_by_field(field) do
-        flop =
-          Flop.validate!(%{
-            filters: [%{field: field, op: op, value: query_value}]
-          })
+        expected = filter_pets(pets, field, op, query_value)
 
-        expected =
-          pets
-          |> filter_pets(field, op, query_value)
-          |> Enum.sort_by(& &1.id)
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: op, value: query_value}]
+               }) == expected
 
-        result =
-          @pet_with_owner_query
-          |> Flop.query(flop, for: Pet)
-          |> Repo.all()
-          |> Enum.sort_by(& &1.id)
-
-        assert result == expected
+        checkin_checkout()
       end
     end
 
     property "applies 'in' filter" do
-      pets = insert_list_and_sort(50, :pet_with_owner)
-
-      check all field <- member_of([:age, :name, :owner_age]),
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- member_of([:age, :name, :owner_age]),
                 values = Enum.map(pets, &Map.get(&1, field)),
                 query_value <-
                   list_of(one_of([member_of(values), value_by_field(field)]),
                     max_length: 5
                   ) do
-        flop =
-          Flop.validate!(%{
-            filters: [%{field: field, op: :in, value: query_value}]
-          })
-
         expected = filter_pets(pets, field, :in, query_value)
 
-        result =
-          @pet_with_owner_query
-          |> Flop.query(flop, for: Pet)
-          |> Repo.all()
-          |> Enum.sort_by(& &1.id)
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :in, value: query_value}]
+               }) == expected
 
-        assert result == expected
+        checkin_checkout()
       end
     end
 
@@ -574,7 +329,6 @@ defmodule FlopTest do
       }
 
       assert Flop.query(Pet, flop) == Pet
-      assert Flop.query(@base_query, flop) == @base_query
     end
   end
 
@@ -814,14 +568,57 @@ defmodule FlopTest do
     end
   end
 
-  describe "cursor paging" do
+  describe "offset-based pagination" do
+    test "applies limit to query" do
+      insert_list(6, :pet)
+      assert Pet |> Flop.query(%Flop{limit: 4}) |> Repo.all() |> length() == 4
+    end
+
+    test "applies offset to query if set" do
+      pets = insert_list(10, :pet)
+
+      expected_pets =
+        pets
+        |> Enum.sort_by(&{&1.name, &1.species, &1.age})
+        |> Enum.slice(4..10)
+
+      flop = %Flop{offset: 4, order_by: [:name, :species, :age]}
+      query = Flop.query(Pet, flop)
+      assert %QueryExpr{params: [{4, :integer}]} = query.offset
+      assert Repo.all(query) == expected_pets
+    end
+
+    test "applies limit and offset to query if page and page size are set" do
+      pets = insert_list(40, :pet)
+      sorted_pets = Enum.sort_by(pets, &{&1.name, &1.species, &1.age})
+      order_by = [:name, :species, :age]
+
+      flop = %Flop{page: 1, page_size: 10, order_by: order_by}
+      query = Flop.query(Pet, flop)
+      assert %QueryExpr{params: [{0, :integer}]} = query.offset
+      assert %QueryExpr{params: [{10, :integer}]} = query.limit
+      assert Repo.all(query) == Enum.slice(sorted_pets, 0..9)
+
+      flop = %Flop{page: 2, page_size: 10, order_by: order_by}
+      query = Flop.query(Pet, flop)
+      assert %QueryExpr{params: [{10, :integer}]} = query.offset
+      assert %QueryExpr{params: [{10, :integer}]} = query.limit
+      assert Repo.all(query) == Enum.slice(sorted_pets, 10..19)
+
+      flop = %Flop{page: 3, page_size: 4, order_by: order_by}
+      query = Flop.query(Pet, flop)
+      assert %QueryExpr{params: [{8, :integer}]} = query.offset
+      assert %QueryExpr{params: [{4, :integer}]} = query.limit
+      assert Repo.all(query) == Enum.slice(sorted_pets, 8..11)
+    end
+  end
+
+  describe "cursor pagination" do
     property "querying cursor by cursor forward includes all items in order" do
       check all pets <- uniq_list_of_pets(length: 1..25),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         # insert pets into DB, retrieve them so we have the IDs
         pet_count = length(pets)
@@ -879,9 +676,7 @@ defmodule FlopTest do
       check all pets <- uniq_list_of_pets(length: 1..25),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         pet_count = length(pets)
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -908,9 +703,7 @@ defmodule FlopTest do
       check all pets <- uniq_list_of_pets(length: 1..25),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         # insert pets into DB, retrieve them so we have the IDs
         pet_count = length(pets)
@@ -970,9 +763,7 @@ defmodule FlopTest do
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
                 first <- integer(1..(length(pets) + 1)) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         pet_count = length(pets)
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -992,9 +783,7 @@ defmodule FlopTest do
                 directions <- order_directions(%Pet{}),
                 first <- integer(1..(length(pets) + 1)),
                 cursor_pet <- member_of(pets) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         pet_count = length(pets)
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -1021,9 +810,7 @@ defmodule FlopTest do
                 directions <- order_directions(%Pet{}),
                 last <- integer(1..(pet_count - 2)),
                 cursor_index <- integer((last + 1)..(pet_count - 1)) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         # insert pets
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -1059,9 +846,7 @@ defmodule FlopTest do
                 # include test with limits greater than item count
                 last <- integer(1..(pet_count + 20)),
                 cursor_index <- integer(0..min(pet_count - 1, last)) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         # insert pets
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -1094,9 +879,7 @@ defmodule FlopTest do
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
                 last <- integer(1..(length(pets) + 1)) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         pet_count = length(pets)
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -1116,9 +899,7 @@ defmodule FlopTest do
                 directions <- order_directions(%Pet{}),
                 last <- integer(1..(length(pets) + 1)),
                 cursor_pet <- member_of(pets) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         pet_count = length(pets)
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -1145,9 +926,7 @@ defmodule FlopTest do
                 directions <- order_directions(%Pet{}),
                 first <- integer(1..(pet_count - 2)),
                 cursor_index <- integer((first + 1)..(pet_count - 1)) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         # insert pets
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -1183,9 +962,7 @@ defmodule FlopTest do
                 # include test with limits greater than item count
                 first <- integer(1..(pet_count + 20)),
                 cursor_index <- integer(0..min(pet_count - 1, first)) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         # insert pets
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)

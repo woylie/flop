@@ -139,6 +139,20 @@ defprotocol Flop.Schema do
       WHERE (family_name ilike '%margo%' OR given_name ='%margo%')
       AND (family_name ilike '%martindale%' OR given_name ='%martindale%')
 
+  #### Filter operator rules
+
+  - `:=~`, `:like`, `:like_and`, `:like_or`, `:ilike`, `:ilike_and`,
+    `:ilike_or` - The filter value is split at whitespace characters as usual.
+    The filter matches for a value if it matches for any of the fields.
+  - `:empty` - Matches if all fields of the compound field are `nil`.
+  - `:not_empty` - Matches if any field of the compound field is not `nil`.
+  - `:==`, `:!=`, `:<=`, `:<`, `:>=`, `:>`, `:in` - The filter value is
+    normalized by splitting the string at whitespaces and joining it with a
+    space. The values of all fields of the compound field are split by
+    whitespace character and joined with a space, and the resulting values are
+    joined with a space again. **This will be added in a future version. These
+    filter operators are ignored for compound fields at the moment.**
+
   ### Defining join fields
 
   If you need filter or order across tables, you can define join fields.
@@ -203,14 +217,22 @@ defprotocol Flop.Schema do
   """
   @doc since: "0.11.0"
   @spec field_type(any, atom) ::
-          :normal | {:compound, [atom]} | {:join, {atom, atom}}
+          {:normal, atom} | {:compound, [atom]} | {:join, {atom, atom}}
   def field_type(data, field)
 
   @doc """
   Returns the filterable fields of a schema.
 
       iex> Flop.Schema.filterable(%Flop.Pet{})
-      [:name, :owner_age, :owner_name, :species]
+      [
+        :age,
+        :full_name,
+        :name,
+        :owner_age,
+        :owner_name,
+        :pet_and_owner_name,
+        :species
+      ]
   """
   @spec filterable(any) :: [atom]
   def filterable(data)
@@ -261,7 +283,7 @@ defprotocol Flop.Schema do
   Returns the maximum limit of a schema.
 
       iex> Flop.Schema.max_limit(%Flop.Pet{})
-      20
+      1000
   """
   @doc since: "0.2.0"
   @spec max_limit(any) :: pos_integer | nil
@@ -341,7 +363,7 @@ defimpl Flop.Schema, for: Any do
   end
 
   def build_field_type_func(compound_fields, join_fields) do
-    compound_fields =
+    compound_field_funcs =
       for {name, fields} <- compound_fields do
         quote do
           def field_type(_, unquote(name)) do
@@ -350,7 +372,7 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
-    join_fields =
+    join_field_funcs =
       for {name, {_binding_name, _field} = path} <- join_fields do
         quote do
           def field_type(_, unquote(name)) do
@@ -359,14 +381,14 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
-    default =
+    default_funcs =
       quote do
-        def field_type(_, _) do
-          :normal
+        def field_type(_, name) do
+          {:normal, name}
         end
       end
 
-    [compound_fields, join_fields, default]
+    [compound_field_funcs, join_field_funcs, default_funcs]
   end
 
   def default_limit(struct) do
