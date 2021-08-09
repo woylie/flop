@@ -75,7 +75,7 @@ defmodule FlopTest do
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
                 field <- filterable_pet_field(),
                 pet <- member_of(pets),
-                query_value = Pet.get_field(pet, field),
+                query_value <- pet |> Pet.get_field(field) |> constant(),
                 query_value != "" do
         expected = filter_pets(pets, field, :==, query_value)
 
