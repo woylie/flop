@@ -4,7 +4,14 @@ defmodule Flop.TestUtil do
   import Ecto.Query
   import Flop.Factory
 
+  alias Ecto.Adapters.SQL.Sandbox
   alias Flop.Pet
+  alias Flop.Repo
+
+  def checkin_checkout do
+    :ok = Sandbox.checkin(Repo)
+    :ok = Sandbox.checkout(Repo)
+  end
 
   @doc """
   Takes a list of pets and applies filter operators on the list using

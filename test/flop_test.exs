@@ -84,6 +84,8 @@ defmodule FlopTest do
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :==, value: query_value}]
                }) == expected
+
+        checkin_checkout()
       end
     end
 
@@ -103,6 +105,8 @@ defmodule FlopTest do
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :==, value: query_value}]
                }) == expected
+
+        checkin_checkout()
       end
     end
 
@@ -120,6 +124,8 @@ defmodule FlopTest do
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :!=, value: query_value}]
                }) == expected
+
+        checkin_checkout()
       end
     end
 
@@ -137,6 +143,8 @@ defmodule FlopTest do
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :!=, value: query_value}]
                }) == expected
+
+        checkin_checkout()
       end
     end
 
@@ -155,6 +163,8 @@ defmodule FlopTest do
 
         assert query_pets_with_owners(%{filters: [%{field: field, op: op}]}) ==
                  expected
+
+        checkin_checkout()
       end
     end
 
@@ -170,6 +180,8 @@ defmodule FlopTest do
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :like, value: query_value}]
                }) == expected
+
+        checkin_checkout()
       end
     end
 
@@ -186,6 +198,8 @@ defmodule FlopTest do
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: op, value: query_value}]
                }) == expected
+
+        checkin_checkout()
       end
     end
 
@@ -201,6 +215,8 @@ defmodule FlopTest do
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :like_and, value: search_text}]
                }) == expected
+
+        checkin_checkout()
       end
     end
 
@@ -216,6 +232,8 @@ defmodule FlopTest do
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :like_or, value: search_text}]
                }) == expected
+
+        checkin_checkout()
       end
     end
 
@@ -231,6 +249,8 @@ defmodule FlopTest do
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :ilike_and, value: search_text}]
                }) == expected
+
+        checkin_checkout()
       end
     end
 
@@ -246,6 +266,8 @@ defmodule FlopTest do
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :ilike_or, value: search_text}]
                }) == expected
+
+        checkin_checkout()
       end
     end
 
@@ -263,6 +285,8 @@ defmodule FlopTest do
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: op, value: query_value}]
                }) == expected
+
+        checkin_checkout()
       end
     end
 
@@ -280,6 +304,8 @@ defmodule FlopTest do
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :in, value: query_value}]
                }) == expected
+
+        checkin_checkout()
       end
     end
 
@@ -592,9 +618,7 @@ defmodule FlopTest do
       check all pets <- uniq_list_of_pets(length: 1..25),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         # insert pets into DB, retrieve them so we have the IDs
         pet_count = length(pets)
@@ -652,9 +676,7 @@ defmodule FlopTest do
       check all pets <- uniq_list_of_pets(length: 1..25),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         pet_count = length(pets)
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -681,9 +703,7 @@ defmodule FlopTest do
       check all pets <- uniq_list_of_pets(length: 1..25),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         # insert pets into DB, retrieve them so we have the IDs
         pet_count = length(pets)
@@ -743,9 +763,7 @@ defmodule FlopTest do
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
                 first <- integer(1..(length(pets) + 1)) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         pet_count = length(pets)
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -765,9 +783,7 @@ defmodule FlopTest do
                 directions <- order_directions(%Pet{}),
                 first <- integer(1..(length(pets) + 1)),
                 cursor_pet <- member_of(pets) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         pet_count = length(pets)
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -794,9 +810,7 @@ defmodule FlopTest do
                 directions <- order_directions(%Pet{}),
                 last <- integer(1..(pet_count - 2)),
                 cursor_index <- integer((last + 1)..(pet_count - 1)) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         # insert pets
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -832,9 +846,7 @@ defmodule FlopTest do
                 # include test with limits greater than item count
                 last <- integer(1..(pet_count + 20)),
                 cursor_index <- integer(0..min(pet_count - 1, last)) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         # insert pets
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -867,9 +879,7 @@ defmodule FlopTest do
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
                 last <- integer(1..(length(pets) + 1)) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         pet_count = length(pets)
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -889,9 +899,7 @@ defmodule FlopTest do
                 directions <- order_directions(%Pet{}),
                 last <- integer(1..(length(pets) + 1)),
                 cursor_pet <- member_of(pets) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         pet_count = length(pets)
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -918,9 +926,7 @@ defmodule FlopTest do
                 directions <- order_directions(%Pet{}),
                 first <- integer(1..(pet_count - 2)),
                 cursor_index <- integer((first + 1)..(pet_count - 1)) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         # insert pets
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
@@ -956,9 +962,7 @@ defmodule FlopTest do
                 # include test with limits greater than item count
                 first <- integer(1..(pet_count + 20)),
                 cursor_index <- integer(0..min(pet_count - 1, first)) do
-        # make sure we have a clean db after each generation
-        :ok = Sandbox.checkin(Repo)
-        :ok = Sandbox.checkout(Repo)
+        checkin_checkout()
 
         # insert pets
         assert {^pet_count, _} = Repo.insert_all(Pet, pets)
