@@ -37,15 +37,17 @@ defmodule Flop.Generators do
     member_of([:age, :owner_age])
   end
 
+  def uniq_list_of_strings(len) do
+    uniq_list_of(string(:alphanumeric, min_length: 2), length: len)
+  end
+
   def uniq_list_of_pets(opts) do
     length_range = Keyword.fetch!(opts, :length)
 
     gen all length <- integer(length_range),
-            names <-
-              uniq_list_of(string(:alphanumeric, min_length: 2), length: length),
+            names <- uniq_list_of_strings(length),
             ages <- uniq_list_of(integer(1..500), length: length),
-            species <-
-              uniq_list_of(string(:alphanumeric, min_length: 2), length: length) do
+            species <- uniq_list_of_strings(length) do
       [names, ages, species]
       |> Enum.zip()
       |> Enum.map(fn {name, age, species} ->
@@ -68,8 +70,7 @@ defmodule Flop.Generators do
 
   def pagination_parameters(type) when type in [:first, :last] do
     gen all val_1 <- positive_integer(),
-            val_2 <-
-              one_of([string(:alphanumeric, min_length: 2), constant(nil)]) do
+            val_2 <- one_of([string(:alphanumeric), constant(nil)]) do
       case type do
         :first -> %{first: val_1, after: val_2}
         :last -> %{last: val_1, before: val_2}
@@ -88,12 +89,12 @@ defmodule Flop.Generators do
   def value_by_field(:age), do: integer()
 
   def value_by_field(:name),
-    do: string(:alphanumeric, min_length: 2, min_length: 1)
+    do: string(:alphanumeric, min_length: 1)
 
   def value_by_field(:owner_age), do: integer()
 
   def value_by_field(:owner_name),
-    do: string(:alphanumeric, min_length: 2, min_length: 1)
+    do: string(:alphanumeric, min_length: 1)
 
   def compare_value_by_field(:age), do: integer(1..30)
 
