@@ -49,8 +49,8 @@ config :flop, repo: MyApp.Repo
 To configure the sortable and filterable fields, derive `Flop.Schema` in your
 Ecto schema. While this step is optional, it is highly recommend, since the
 parameters you will pass to the Flop functions will come from the user side and
-should be validated. Deriving `Flop.Schema` will ensure that Flop will only
-apply filtering and sorting parameters on the configured fields.
+should be validated. Deriving `Flop.Schema` will ensure that Flop only
+applies filtering and sorting parameters on the configured fields.
 
 ```elixir
 defmodule MyApp.Pet do
