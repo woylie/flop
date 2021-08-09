@@ -136,8 +136,11 @@ defmodule Flop.Builder do
       end
 
     preprocessing =
-      unless is_nil(preprocessor),
-        do: Code.string_to_quoted!("value = Misc.#{preprocessor}(value)")
+      unless is_nil(preprocessor) do
+        quote do
+          var!(value) = Misc.unquote(preprocessor)(var!(value))
+        end
+      end
 
     defp build_op(c, _schema_struct, {:normal, field}, %Filter{
            op: unquote(op),
