@@ -31,6 +31,15 @@ defmodule FlopTest do
     count |> insert_list(factory, args) |> Enum.sort_by(& &1.id)
   end
 
+  defp filter_pets(pets, field, op, value),
+    do: Enum.filter(pets, pet_matches?(op, field, value))
+
+  defp pet_matches?(:<=, k, v), do: &(Pet.get_field(&1, k) <= v)
+  defp pet_matches?(:<, k, v), do: &(Pet.get_field(&1, k) < v)
+  defp pet_matches?(:>, k, v), do: &(Pet.get_field(&1, k) > v)
+  defp pet_matches?(:>=, k, v), do: &(Pet.get_field(&1, k) >= v)
+  defp pet_matches?(:in, k, v), do: &(Pet.get_field(&1, k) in v)
+
   describe "query/2" do
     test "adds order_by to query if set" do
       pets = insert_list(20, :pet)
@@ -493,15 +502,6 @@ defmodule FlopTest do
       end
     end
 
-    defp filter_pets(pets, field, op, value),
-      do: Enum.filter(pets, pet_matches?(op, field, value))
-
-    defp pet_matches?(:<=, k, v), do: &(Pet.get_field(&1, k) <= v)
-    defp pet_matches?(:<, k, v), do: &(Pet.get_field(&1, k) < v)
-    defp pet_matches?(:>, k, v), do: &(Pet.get_field(&1, k) > v)
-    defp pet_matches?(:>=, k, v), do: &(Pet.get_field(&1, k) >= v)
-    defp pet_matches?(:in, k, v), do: &(Pet.get_field(&1, k) in v)
-
     property "applies lte, lt, gt and gte filters" do
       pets = insert_list(50, :pet_downcase, owner: fn -> build(:owner) end)
 
@@ -575,6 +575,361 @@ defmodule FlopTest do
 
       assert Flop.query(Pet, flop) == Pet
       assert Flop.query(@base_query, flop) == @base_query
+    end
+  end
+
+  describe "compound field filters" do
+    property "applies like filter" do
+      pets = insert_list_and_sort(50, :pet_with_owner)
+
+      check all pet <- member_of(pets),
+                field <- member_of([:full_name, :pet_and_owner_name]),
+                value = Pet.random_value_for_compound_field(pet, field),
+                str_length = String.length(value),
+                start_at <- integer(0..(str_length - 1)),
+                end_at <- integer(start_at..(str_length - 1)),
+                query_value = String.slice(value, start_at..end_at),
+                query_value != " " do
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [%{field: field, op: :like, value: query_value}]
+          })
+
+        expected =
+          Enum.filter(
+            pets,
+            fn pet ->
+              case field do
+                :full_name ->
+                  pet.family_name =~ query_value ||
+                    pet.given_name =~ query_value
+
+                :pet_and_owner_name ->
+                  pet.name =~ query_value ||
+                    pet.owner.name =~ query_value
+              end
+            end
+          )
+
+        result =
+          @pet_with_owner_query
+          |> Flop.query(flop, for: Pet)
+          |> Repo.all()
+          |> Enum.sort_by(& &1.id)
+
+        assert result == expected
+      end
+    end
+
+    property "applies ilike filter" do
+      pets = insert_list_and_sort(50, :pet_with_owner)
+
+      check all field <- member_of([:full_name, :pet_and_owner_name]),
+                pet <- member_of(pets),
+                value = Pet.random_value_for_compound_field(pet, field),
+                str_length = String.length(value),
+                start_at <- integer(0..(str_length - 1)),
+                end_at <- integer(start_at..(str_length - 1)),
+                query_value = String.slice(value, start_at..end_at),
+                query_value != " ",
+                op <- member_of([:=~, :ilike]) do
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [%{field: field, op: op, value: query_value}]
+          })
+
+        ci_query_value = String.downcase(query_value)
+
+        expected =
+          Enum.filter(
+            pets,
+            fn pet ->
+              case field do
+                :full_name ->
+                  String.downcase(pet.family_name) =~ ci_query_value ||
+                    String.downcase(pet.given_name) =~ ci_query_value
+
+                :pet_and_owner_name ->
+                  String.downcase(pet.name) =~ ci_query_value ||
+                    String.downcase(pet.owner.name) =~ ci_query_value
+              end
+            end
+          )
+
+        result =
+          @pet_with_owner_query
+          |> Flop.query(flop, for: Pet)
+          |> Repo.all()
+          |> Enum.sort_by(& &1.id)
+
+        assert result == expected
+      end
+    end
+
+    property "applies like_and filter" do
+      pets = insert_list_and_sort(50, :pet_with_owner)
+
+      check all field <- member_of([:full_name, :pet_and_owner_name]),
+                pet <- member_of(pets),
+                value = Pet.random_value_for_compound_field(pet, field),
+                str_length = String.length(value),
+                start_at_a <- integer(0..(str_length - 2)),
+                end_at_a <- integer((start_at_a + 1)..(str_length - 1)),
+                start_at_b <- integer(0..(str_length - 2)),
+                end_at_b <- integer((start_at_b + 1)..(str_length - 1)),
+                query_value_a <-
+                  value
+                  |> String.slice(start_at_a..end_at_a)
+                  |> String.trim()
+                  |> constant(),
+                query_value_a != "",
+                query_value_b <-
+                  value
+                  |> String.slice(start_at_b..end_at_b)
+                  |> String.trim()
+                  |> constant(),
+                query_value_b != "",
+                whitespace_character <- member_of(@whitespace) do
+        query_values =
+          Enum.concat([
+            String.split(query_value_a),
+            String.split(query_value_b)
+          ])
+
+        filter_value = Enum.join(query_values, whitespace_character)
+
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [%{field: field, op: :like_and, value: filter_value}]
+          })
+
+        expected =
+          Enum.filter(
+            pets,
+            fn pet ->
+              case field do
+                :full_name ->
+                  Enum.all?(query_values, fn value ->
+                    pet.family_name =~ value || pet.given_name =~ value
+                  end)
+
+                :pet_and_owner_name ->
+                  Enum.all?(query_values, fn value ->
+                    pet.name =~ value || pet.owner.name =~ value
+                  end)
+              end
+            end
+          )
+
+        result =
+          @pet_with_owner_query
+          |> Flop.query(flop, for: Pet)
+          |> Repo.all()
+          |> Enum.sort_by(& &1.id)
+
+        assert result == expected
+      end
+    end
+
+    property "applies like_or filter" do
+      pets = insert_list_and_sort(50, :pet_with_owner)
+
+      check all field <- member_of([:full_name, :pet_and_owner_name]),
+                pet <- member_of(pets),
+                value = Pet.random_value_for_compound_field(pet, field),
+                str_length = String.length(value),
+                start_at_a <- integer(0..(str_length - 2)),
+                end_at_a <- integer((start_at_a + 2)..(str_length - 1)),
+                start_at_b <- integer(0..(str_length - 2)),
+                end_at_b <- integer((start_at_b + 2)..(str_length - 1)),
+                query_value_a <-
+                  value
+                  |> String.slice(start_at_a..end_at_a)
+                  |> String.trim()
+                  |> constant(),
+                query_value_a != "",
+                query_value_b <-
+                  value
+                  |> String.slice(start_at_b..end_at_b)
+                  |> String.trim()
+                  |> constant(),
+                query_value_b != "",
+                whitespace_character <- member_of(@whitespace) do
+        query_values =
+          Enum.concat([
+            String.split(query_value_a),
+            String.split(query_value_b)
+          ])
+
+        filter_value = Enum.join(query_values, whitespace_character)
+
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [%{field: field, op: :like_or, value: filter_value}]
+          })
+
+        expected =
+          Enum.filter(
+            pets,
+            fn pet ->
+              case field do
+                :full_name ->
+                  Enum.any?(query_values, fn value ->
+                    pet.family_name =~ value || pet.given_name =~ value
+                  end)
+
+                :pet_and_owner_name ->
+                  Enum.any?(query_values, fn value ->
+                    pet.name =~ value || pet.owner.name =~ value
+                  end)
+              end
+            end
+          )
+
+        result =
+          @pet_with_owner_query
+          |> Flop.query(flop, for: Pet)
+          |> Repo.all()
+          |> Enum.sort_by(& &1.id)
+
+        assert result == expected
+      end
+    end
+
+    test "applies ilike_and filter" do
+      pets = insert_list_and_sort(50, :pet_with_owner)
+
+      check all field <- member_of([:full_name, :pet_and_owner_name]),
+                pet <- member_of(pets),
+                value = Pet.random_value_for_compound_field(pet, field),
+                str_length = String.length(value),
+                start_at_a <- integer(0..(str_length - 2)),
+                end_at_a <- integer((start_at_a + 1)..(str_length - 1)),
+                start_at_b <- integer(0..(str_length - 2)),
+                end_at_b <- integer((start_at_b + 1)..(str_length - 1)),
+                query_value_a <-
+                  value
+                  |> String.slice(start_at_a..end_at_a)
+                  |> String.trim()
+                  |> constant(),
+                query_value_a != "",
+                query_value_b <-
+                  value
+                  |> String.slice(start_at_b..end_at_b)
+                  |> String.trim()
+                  |> constant(),
+                query_value_b != "",
+                whitespace_character <- member_of(@whitespace) do
+        query_values =
+          Enum.concat([
+            String.split(query_value_a),
+            String.split(query_value_b)
+          ])
+
+        filter_value = Enum.join(query_values, whitespace_character)
+
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [%{field: field, op: :ilike_and, value: filter_value}]
+          })
+
+        expected =
+          Enum.filter(
+            pets,
+            fn pet ->
+              case field do
+                :full_name ->
+                  Enum.all?(query_values, fn value ->
+                    String.downcase(pet.family_name) =~
+                      String.downcase(value) ||
+                      String.downcase(pet.given_name) =~ String.downcase(value)
+                  end)
+
+                :pet_and_owner_name ->
+                  Enum.all?(query_values, fn value ->
+                    String.downcase(pet.name) =~ String.downcase(value) ||
+                      String.downcase(pet.owner.name) =~ String.downcase(value)
+                  end)
+              end
+            end
+          )
+
+        result =
+          @pet_with_owner_query
+          |> Flop.query(flop, for: Pet)
+          |> Repo.all()
+          |> Enum.sort_by(& &1.id)
+
+        assert result == expected
+      end
+    end
+
+    property "applies ilike_or filter" do
+      pets = insert_list_and_sort(50, :pet_with_owner)
+
+      check all field <- member_of([:full_name, :pet_and_owner_name]),
+                pet <- member_of(pets),
+                value = Pet.random_value_for_compound_field(pet, field),
+                str_length = String.length(value),
+                start_at_a <- integer(0..(str_length - 2)),
+                end_at_a <- integer((start_at_a + 1)..(str_length - 1)),
+                start_at_b <- integer(0..(str_length - 2)),
+                end_at_b <- integer((start_at_b + 1)..(str_length - 1)),
+                query_value_a <-
+                  value
+                  |> String.slice(start_at_a..end_at_a)
+                  |> String.trim()
+                  |> constant(),
+                query_value_a != "",
+                query_value_b <-
+                  value
+                  |> String.slice(start_at_b..end_at_b)
+                  |> String.trim()
+                  |> constant(),
+                query_value_b != "",
+                whitespace_character <- member_of(@whitespace) do
+        query_values =
+          Enum.concat([
+            String.split(query_value_a),
+            String.split(query_value_b)
+          ])
+
+        filter_value = Enum.join(query_values, whitespace_character)
+
+        {:ok, flop} =
+          Flop.validate(%{
+            filters: [%{field: field, op: :ilike_or, value: filter_value}]
+          })
+
+        expected =
+          Enum.filter(
+            pets,
+            fn pet ->
+              case field do
+                :full_name ->
+                  Enum.any?(query_values, fn value ->
+                    String.downcase(pet.family_name) =~
+                      String.downcase(value) ||
+                      String.downcase(pet.given_name) =~ String.downcase(value)
+                  end)
+
+                :pet_and_owner_name ->
+                  Enum.any?(query_values, fn value ->
+                    String.downcase(pet.name) =~ String.downcase(value) ||
+                      String.downcase(pet.owner.name) =~ String.downcase(value)
+                  end)
+              end
+            end
+          )
+
+        result =
+          @pet_with_owner_query
+          |> Flop.query(flop, for: Pet)
+          |> Repo.all()
+          |> Enum.sort_by(& &1.id)
+
+        assert result == expected
+      end
     end
   end
 

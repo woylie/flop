@@ -203,7 +203,7 @@ defprotocol Flop.Schema do
   """
   @doc since: "0.11.0"
   @spec field_type(any, atom) ::
-          :normal | {:compound, [atom]} | {:join, {atom, atom}}
+          {:normal, atom} | {:compound, [atom]} | {:join, {atom, atom}}
   def field_type(data, field)
 
   @doc """
@@ -341,7 +341,7 @@ defimpl Flop.Schema, for: Any do
   end
 
   def build_field_type_func(compound_fields, join_fields) do
-    compound_fields =
+    compound_field_funcs =
       for {name, fields} <- compound_fields do
         quote do
           def field_type(_, unquote(name)) do
@@ -350,7 +350,7 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
-    join_fields =
+    join_field_funcs =
       for {name, {_binding_name, _field} = path} <- join_fields do
         quote do
           def field_type(_, unquote(name)) do
@@ -359,14 +359,14 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
-    default =
+    default_funcs =
       quote do
-        def field_type(_, _) do
-          :normal
+        def field_type(_, name) do
+          {:normal, name}
         end
       end
 
-    [compound_fields, join_fields, default]
+    [compound_field_funcs, join_field_funcs, default_funcs]
   end
 
   def default_limit(struct) do

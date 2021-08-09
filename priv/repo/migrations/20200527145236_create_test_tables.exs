@@ -3,23 +3,23 @@ defmodule Flop.Repo.Migrations.CreateTestTables do
 
   def change do
     create table(:owners) do
-      add :given_name, :string
-      add :family_name, :string
-      add :name, :string
-      add :email, :string
       add :age, :integer
+      add :email, :string
+      add :name, :string
     end
 
     create table(:pets) do
-      add :name, :string
       add :age, :integer
-      add :species, :string
+      add :family_name, :string
+      add :given_name, :string
+      add :name, :string
       add :owner_id, references(:owners)
+      add :species, :string
     end
 
     create table(:fruits) do
+      add :family, :string
       add :name, :string
-      add :familiy, :string
     end
   end
 end

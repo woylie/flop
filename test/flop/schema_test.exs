@@ -30,9 +30,9 @@ defmodule Flop.SchemaTest do
     assert Schema.default_limit(%Panini{}) == 20
   end
 
-  test "field_type/2 returns :normal for normal fields" do
-    assert Schema.field_type(%Panini{}, :name) == :normal
-    assert Schema.field_type(%Panini{}, :age) == :normal
+  test "field_type/2 returns :normal tuple for normal fields" do
+    assert Schema.field_type(%Panini{}, :name) == {:normal, :name}
+    assert Schema.field_type(%Panini{}, :age) == {:normal, :age}
   end
 
   test "field_type/2 returns config for compound fields" do

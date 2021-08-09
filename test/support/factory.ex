@@ -97,26 +97,28 @@ defmodule Flop.Factory do
     %Owner{
       age: :rand.uniform(100),
       email: build(:species),
-      family_name: sequence(:name, @family_name),
-      given_name: sequence(:name, @given_name),
       name: build(:name)
     }
   end
 
   def pet_factory do
     %Pet{
-      name: build(:name),
       age: :rand.uniform(30),
+      family_name: sequence(:family_name, @family_name),
+      given_name: sequence(:given_name, @given_name),
+      name: build(:name),
       species: build(:species)
     }
   end
 
   def pet_with_owner_factory do
     %Pet{
-      name: build(:name),
       age: :rand.uniform(30),
-      species: build(:species),
-      owner: build(:owner)
+      family_name: sequence(:family_name, @family_name),
+      given_name: sequence(:given_name, @given_name),
+      name: build(:name),
+      owner: build(:owner),
+      species: build(:species)
     }
   end
 
@@ -139,7 +141,7 @@ defmodule Flop.Factory do
   end
 
   def name_factory(_) do
-    sequence(:name, @given_name) <> sequence(:name, @family_name)
+    sequence(:name, @given_name) <> " " <> sequence(:name, @family_name)
   end
 
   def species_factory(_) do
