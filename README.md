@@ -13,8 +13,11 @@ parameters to your Ecto queries.
 - filtering by multiple conditions with diverse operators on multiple fields
 - parameter validation
 - configurable filterable and sortable fields
+- join fields
+- compound fields
 - query and meta data helpers
 - Relay connection formatter (edges, nodes and page info)
+- UI helpers and URL builders through [Flop Phoenix](https://hex.pm/packages/flop_phoenix).
 
 ## Status
 
