@@ -17,7 +17,7 @@ defmodule FlopTest do
   alias Flop.Pet
   alias Flop.Repo
 
-  @pet_count_range 1..1000
+  @pet_count_range 1..200
 
   setup do
     :ok = Sandbox.checkout(Repo)
