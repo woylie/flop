@@ -990,11 +990,11 @@ defmodule FlopTest do
       end
     end
 
-    test "get_cursor_value function can be overridden" do
+    test "cursor value function can be overridden" do
       insert_list(4, :pet)
       query = select(Pet, [p], {p, %{other: :data}})
 
-      get_cursor_value_func = fn {pet, _}, order_by ->
+      cursor_value_func = fn {pet, _}, order_by ->
         Map.take(pet, order_by)
       end
 
@@ -1007,7 +1007,7 @@ defmodule FlopTest do
         Flop.validate_and_run(
           query,
           %Flop{first: 2, order_by: [:id]},
-          get_cursor_value_func: get_cursor_value_func
+          cursor_value_func: cursor_value_func
         )
 
       {:ok,
@@ -1019,7 +1019,7 @@ defmodule FlopTest do
         Flop.validate_and_run(
           query,
           %Flop{first: 2, after: end_cursor, order_by: [:id]},
-          get_cursor_value_func: get_cursor_value_func
+          cursor_value_func: cursor_value_func
         )
     end
   end

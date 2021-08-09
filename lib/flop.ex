@@ -174,7 +174,7 @@ defmodule Flop do
 
   By default, it is assumed that the query result is a list of maps or structs.
   If your query returns a different data structure, you can pass the
-  `:get_cursor_value_func` option to retrieve the cursor values. See
+  `:cursor_value_func` option to retrieve the cursor values. See
   `t:Flop.option/0` and `Flop.Cursor` for more information.
 
   You can restrict which pagination types are available. See `t:Flop.option/0`
@@ -266,7 +266,7 @@ defmodule Flop do
     Can only be set in the application configuration.
   - `:filtering` (boolean) - Can be set to `false` to silently ignore filter
     parameters.
-  - `:get_cursor_value_func` - 2-arity function used to get the (unencoded)
+  - `:cursor_value_func` - 2-arity function used to get the (unencoded)
     cursor value from a record. Only used with cursor-based pagination. The
     first argument is the record, the second argument is the list of fields used
     in the `ORDER BY` clause. Needs to return a map with the order fields as
@@ -297,7 +297,7 @@ defmodule Flop do
       config :flop,
         default_limit: 25,
         filtering: false,
-        get_cursor_value_func: &MyApp.Repo.get_cursor_value/2,
+        cursor_value_func: &MyApp.Repo.get_cursor_value/2,
         max_limit: 100,
         ordering: false,
         pagination_types: [:first, :last, :page],
@@ -310,13 +310,13 @@ defmodule Flop do
   2. option set for schema using `Flop.Schema` (only `:max_limit`,
      `:default_limit` and `:pagination_types`)
   3. option set in global config (except `:for`)
-  4. default value (only `:get_cursor_value_func`)
+  4. default value (only `:cursor_value_func`)
   """
   @type option ::
           {:for, module}
           | {:default_limit, pos_integer}
           | {:filtering, boolean}
-          | {:get_cursor_value_func, (any, [atom] -> map)}
+          | {:cursor_value_func, (any, [atom] -> map)}
           | {:max_limit, pos_integer}
           | {:ordering, boolean}
           | {:pagination_types, [pagination_type()]}
@@ -528,7 +528,7 @@ defmodule Flop do
 
   - `for`: Passed to `Flop.validate/2`.
   - `repo`: The `Ecto.Repo` module. Required if no default repo is configured.
-  - `get_cursor_value_func`: An arity-2 function to be used to retrieve an
+  - `cursor_value_func`: An arity-2 function to be used to retrieve an
     unencoded cursor value from a query result item and the `order_by` fields.
     Defaults to `Flop.Cursor.get_cursor_from_node/2`.
   """

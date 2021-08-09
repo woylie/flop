@@ -137,7 +137,7 @@ defmodule Flop.Cursor do
 
   The default function to retrieve the cursor value from the query result is
   `Flop.Cursor.get_cursor_from_node/2`, which expects the query result to be a
-  map or a 2-tuple. You can set the `get_cursor_value_func` option to use
+  map or a 2-tuple. You can set the `cursor_value_func` option to use
   another function. Flop also comes with `Flop.Cursor.get_cursor_from_edge/2`.
 
   If the records in the result set are not maps, you can define a custom cursor
@@ -150,7 +150,7 @@ defmodule Flop.Cursor do
       ...>     :year -> {:year, year}
       ...>   end)
       ...> end
-      iex> opts = [get_cursor_value_func: cursor_func]
+      iex> opts = [cursor_value_func: cursor_func]
       iex>
       iex> {start_cursor, end_cursor} =
       ...>   Flop.Cursor.get_cursors(results, [:name, :year], opts)
@@ -166,7 +166,7 @@ defmodule Flop.Cursor do
   @spec get_cursors([any], [atom], [Flop.option()]) ::
           {binary(), binary()} | {nil, nil}
   def get_cursors(results, order_by, opts \\ []) do
-    get_cursor_value_func = get_cursor_value_func(opts)
+    cursor_value_func = cursor_value_func(opts)
 
     case results do
       [] ->
@@ -174,10 +174,10 @@ defmodule Flop.Cursor do
 
       [first | _] ->
         {
-          first |> get_cursor_value_func.(order_by) |> encode(),
+          first |> cursor_value_func.(order_by) |> encode(),
           results
           |> List.last()
-          |> get_cursor_value_func.(order_by)
+          |> cursor_value_func.(order_by)
           |> encode()
         }
     end
@@ -211,7 +211,7 @@ defmodule Flop.Cursor do
   If a map is passed instead of a tuple, it retrieves the cursor value from that
   map.
 
-  This function can be used for the `:get_cursor_value_func` option. See also
+  This function can be used for the `:cursor_value_func` option. See also
   `Flop.Cursor.get_cursor_from_node/2`.
 
       iex> record = %{id: 20, name: "George", age: 62}
@@ -241,7 +241,7 @@ defmodule Flop.Cursor do
   If a map is passed instead of a tuple, it retrieves the cursor value from that
   map.
 
-  This function is used as a default if no `:get_cursor_value_func` option is
+  This function is used as a default if no `:cursor_value_func` option is
   set. See also `Flop.Cursor.get_cursor_from_edge/2`.
 
       iex> record = %{id: 20, name: "George", age: 62}
@@ -265,9 +265,9 @@ defmodule Flop.Cursor do
   end
 
   @doc false
-  def get_cursor_value_func(opts \\ []) do
-    opts[:get_cursor_value_func] ||
-      Application.get_env(:flop, :get_cursor_value_func) ||
+  def cursor_value_func(opts \\ []) do
+    opts[:cursor_value_func] ||
+      Application.get_env(:flop, :cursor_value_func) ||
       (&get_cursor_from_node/2)
   end
 end

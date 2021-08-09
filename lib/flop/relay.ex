@@ -54,7 +54,7 @@ defmodule Flop.Relay do
 
   ## Options
 
-  - `:get_cursor_value_func`: 2-arity function that takes an item from the query
+  - `:cursor_value_func`: 2-arity function that takes an item from the query
     result and the `order_by` fields and returns the unencoded cursor value.
   """
   @doc since: "0.8.0"
@@ -152,7 +152,7 @@ defmodule Flop.Relay do
       iex> func = fn {fruit, _edge}, order_by -> Map.take(fruit, order_by) end
       iex> Flop.Relay.edges_from_result(
       ...>   {items, meta},
-      ...>   get_cursor_value_func: func
+      ...>   cursor_value_func: func
       ...> )
       [
         %{
@@ -164,7 +164,7 @@ defmodule Flop.Relay do
 
   ## Options
 
-  - `:get_cursor_value_func`: 2-arity function that takes an item from the query
+  - `:cursor_value_func`: 2-arity function that takes an item from the query
     result and the `order_by` fields and returns the unencoded cursor value.
   """
   @doc since: "0.8.0"
@@ -174,28 +174,28 @@ defmodule Flop.Relay do
         {items, %Meta{flop: %Flop{order_by: order_by}}},
         opts \\ []
       ) do
-    get_cursor_value_func = Cursor.get_cursor_value_func(opts)
-    Enum.map(items, &build_edge(&1, order_by, get_cursor_value_func))
+    cursor_value_func = Cursor.cursor_value_func(opts)
+    Enum.map(items, &build_edge(&1, order_by, cursor_value_func))
   end
 
-  defp build_edge({node, nil}, order_by, get_cursor_value_func) do
-    build_edge({node, %{}}, order_by, get_cursor_value_func)
+  defp build_edge({node, nil}, order_by, cursor_value_func) do
+    build_edge({node, %{}}, order_by, cursor_value_func)
   end
 
-  defp build_edge({node, edge_info} = item, order_by, get_cursor_value_func) do
+  defp build_edge({node, edge_info} = item, order_by, cursor_value_func) do
     edge_info
-    |> Map.put(:cursor, get_cursor(item, order_by, get_cursor_value_func))
+    |> Map.put(:cursor, get_cursor(item, order_by, cursor_value_func))
     |> Map.put(:node, node)
   end
 
-  defp build_edge(node, order_by, get_cursor_value_func) do
+  defp build_edge(node, order_by, cursor_value_func) do
     %{
-      cursor: get_cursor(node, order_by, get_cursor_value_func),
+      cursor: get_cursor(node, order_by, cursor_value_func),
       node: node
     }
   end
 
-  defp get_cursor(node, order_by, get_cursor_value_func) do
-    node |> get_cursor_value_func.(order_by) |> Cursor.encode()
+  defp get_cursor(node, order_by, cursor_value_func) do
+    node |> cursor_value_func.(order_by) |> Cursor.encode()
   end
 end

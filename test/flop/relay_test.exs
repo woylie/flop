@@ -11,7 +11,7 @@ defmodule Flop.RelayTest do
       func = fn {fruit, _edge}, order_by -> Map.take(fruit, order_by) end
 
       assert Flop.Relay.edges_from_result({items, meta},
-               get_cursor_value_func: func
+               cursor_value_func: func
              ) == [
                %{
                  cursor: "g3QAAAABZAAEbmFtZW0AAAAFQXBwbGU=",
