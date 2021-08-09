@@ -25,13 +25,18 @@ defmodule Flop.TestUtil do
         end)
 
       {:compound, fields} ->
-        Enum.filter(pets, fn pet ->
-          Enum.any?(fields, fn field ->
-            field_type = Flop.Schema.field_type(%Pet{}, field)
-            pet |> get_field(field_type) |> filter_func.()
-          end)
-        end)
+        Enum.filter(
+          pets,
+          &apply_filter_to_compound_fields(&1, fields, filter_func)
+        )
     end
+  end
+
+  defp apply_filter_to_compound_fields(pet, fields, filter_func) do
+    Enum.any?(fields, fn field ->
+      field_type = Flop.Schema.field_type(%Pet{}, field)
+      pet |> get_field(field_type) |> filter_func.()
+    end)
   end
 
   defp get_field(pet, {:normal, field}), do: Map.fetch!(pet, field)
