@@ -15,6 +15,8 @@ defmodule Flop.Generators do
     :desc_nulls_last
   ]
 
+  @whitespace ["\u0020", "\u2000", "\u3000"]
+
   def pet do
     gen all name <- string(:printable),
             age <- integer(1..500),
@@ -117,5 +119,48 @@ defmodule Flop.Generators do
     @order_directions
     |> member_of()
     |> list_of(length: field_count)
+  end
+
+  @doc """
+  Generates a random sub string for the given string. Empty sub strings are
+  filtered.
+  """
+  def substring(s) when is_binary(s) do
+    str_length = String.length(s)
+
+    gen all start_at <- integer(0..(str_length - 1)),
+            end_at <- integer(start_at..(str_length - 1)),
+            query_value = String.slice(s, start_at..end_at),
+            query_value != " " do
+      query_value
+    end
+  end
+
+  @doc """
+  Generates a search string consisting of two random substrings from the given
+  string.
+  """
+  def search_text(s) when is_binary(s) do
+    str_length = String.length(s)
+
+    gen all start_at_a <- integer(0..(str_length - 2)),
+            end_at_a <- integer((start_at_a + 1)..(str_length - 1)),
+            start_at_b <- integer(0..(str_length - 2)),
+            end_at_b <- integer((start_at_b + 1)..(str_length - 1)),
+            query_value_a <-
+              s
+              |> String.slice(start_at_a..end_at_a)
+              |> String.trim()
+              |> constant(),
+            query_value_a != "",
+            query_value_b <-
+              s
+              |> String.slice(start_at_b..end_at_b)
+              |> String.trim()
+              |> constant(),
+            query_value_b != "",
+            whitespace_character <- member_of(@whitespace) do
+      Enum.join([query_value_a, query_value_b], whitespace_character)
+    end
   end
 end

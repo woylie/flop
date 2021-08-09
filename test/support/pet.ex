@@ -8,7 +8,15 @@ defmodule Flop.Pet do
 
   @derive {
     Flop.Schema,
-    filterable: [:name, :owner_age, :owner_name, :species],
+    filterable: [
+      :age,
+      :full_name,
+      :name,
+      :owner_age,
+      :owner_name,
+      :pet_and_owner_name,
+      :species
+    ],
     sortable: [:name, :age],
     max_limit: 20,
     compound_fields: [

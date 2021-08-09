@@ -210,7 +210,15 @@ defprotocol Flop.Schema do
   Returns the filterable fields of a schema.
 
       iex> Flop.Schema.filterable(%Flop.Pet{})
-      [:name, :owner_age, :owner_name, :species]
+      [
+        :age,
+        :full_name,
+        :name,
+        :owner_age,
+        :owner_name,
+        :pet_and_owner_name,
+        :species
+      ]
   """
   @spec filterable(any) :: [atom]
   def filterable(data)
