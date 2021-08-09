@@ -10,7 +10,7 @@ parameters to your Ecto queries.
 - offset-based pagination with `offset`/`limit` or `page`/`page_size`
 - cursor-based pagination (aka key set pagination), compatible with Relay pagination arguments
 - ordering by multiple fields in multiple directions
-- filtering by multiple conditions with diverse operators on multiple fields
+- filtering by multiple conditions with various operators on multiple fields
 - parameter validation
 - configurable filterable and sortable fields
 - join fields
