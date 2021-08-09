@@ -25,7 +25,7 @@ defmodule Flop.Builder do
     )
   end
 
-  @operator_opts [
+  operator_opts = [
     {:==, quote(do: field(r, ^var!(field)) == ^var!(value))},
     {:!=, quote(do: field(r, ^var!(field)) != ^var!(value))},
     {:empty, quote(do: is_nil(field(r, ^var!(field))))},
@@ -127,7 +127,7 @@ defmodule Flop.Builder do
     c
   end
 
-  for operator_and_condition <- @operator_opts do
+  for operator_and_condition <- operator_opts do
     {op, condition, preprocessor, dynamic_builder} =
       case operator_and_condition do
         {operator, condition} -> {operator, condition, nil, nil}
