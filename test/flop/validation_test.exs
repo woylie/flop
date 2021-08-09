@@ -98,11 +98,11 @@ defmodule Flop.ValidationTest do
     end
 
     test "validates max limit if set with Flop.Schema" do
-      params = %{limit: 21}
+      params = %{limit: 1001}
       assert {:error, changeset} = validate(params, for: Pet)
 
       assert errors_on(changeset)[:limit] == [
-               "must be less than or equal to 20"
+               "must be less than or equal to 1000"
              ]
     end
 
@@ -160,11 +160,11 @@ defmodule Flop.ValidationTest do
     end
 
     test "validates max limit if set with Flop.Schema" do
-      params = %{page: 1, page_size: 21}
+      params = %{page: 1, page_size: 1001}
       assert {:error, changeset} = validate(params, for: Pet)
 
       assert errors_on(changeset)[:page_size] == [
-               "must be less than or equal to 20"
+               "must be less than or equal to 1000"
              ]
     end
 
@@ -205,11 +205,11 @@ defmodule Flop.ValidationTest do
     end
 
     test "validates max limit if set with Flop.Schema" do
-      params = %{first: 21}
+      params = %{first: 1001}
       assert {:error, changeset} = validate(params, for: Pet)
 
       assert errors_on(changeset)[:first] == [
-               "must be less than or equal to 20"
+               "must be less than or equal to 1000"
              ]
     end
 
@@ -296,11 +296,11 @@ defmodule Flop.ValidationTest do
     end
 
     test "validates max limit if set with Flop.Schema" do
-      params = %{last: 21}
+      params = %{last: 1100}
       assert {:error, changeset} = validate(params, for: Pet)
 
       assert errors_on(changeset)[:last] == [
-               "must be less than or equal to 20"
+               "must be less than or equal to 1000"
              ]
     end
 

@@ -269,7 +269,7 @@ defprotocol Flop.Schema do
   Returns the maximum limit of a schema.
 
       iex> Flop.Schema.max_limit(%Flop.Pet{})
-      20
+      1000
   """
   @doc since: "0.2.0"
   @spec max_limit(any) :: pos_integer | nil
