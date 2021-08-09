@@ -46,15 +46,21 @@ config :flop, repo: MyApp.Repo
 
 ### Define sortable and filterable fields
 
-If you want the order by and filter fields to be validated, configure the
-sortable and filterable fields in your Ecto schema like this:
+To configure the sortable and filterable fields, derive `Flop.Schema` in your
+Ecto schema. While this step is optional, it is highly recommend, since the
+parameters you will pass to the Flop functions will come from the user side and
+should be validated. Deriving `Flop.Schema` will ensure that Flop will only
+apply filtering and sorting parameters on the configured fields.
 
 ```elixir
 defmodule MyApp.Pet do
   use Ecto.Schema
 
-  @derive {Flop.Schema,
-           filterable: [:name, :species], sortable: [:name, :age, :species]}
+  @derive {
+    Flop.Schema,
+    filterable: [:name, :species],
+    sortable: [:name, :age, :species]
+  }
 
   schema "pets" do
     field :name, :string
@@ -65,7 +71,9 @@ defmodule MyApp.Pet do
 end
 ```
 
-See [Flop.Schema documentation](https://hexdocs.pm/flop/Flop.Schema.html) for more options.
+You can also define join fields, compound fields, max and default limit, and
+more. See the [Flop.Schema documentation](https://hexdocs.pm/flop/Flop.Schema.html)
+for all the options.
 
 ### Query data
 
@@ -91,7 +99,8 @@ end
 
 The `for` option sets the Ecto schema for which you derived `Flop.Schema`. If
 you didn't derive Flop.Schema as described above and don't care to do so,
-you can omit this option.
+you can omit this option (not recommended, unless you only deal with internally
+generated, safe parameters).
 
 On success, `Flop.validate_and_run/3` returns an `:ok` tuple, with the second
 element being a tuple with the data and the meta data.
@@ -152,8 +161,10 @@ Flop.meta(Pet, flop, repo: MyApp.Repo)
 # etc.
 ```
 
-See the [docs](https://hexdocs.pm/flop/readme.html) for more information.
+See the [docs](https://hexdocs.pm/flop/readme.html) for more detailed
+information.
 
 ## Flop Phoenix
 
-[Flop Phoenix](https://hex.pm/packages/flop_phoenix) is a companion library that defines view helpers for use in Phoenix templates.
+[Flop Phoenix](https://hex.pm/packages/flop_phoenix) is a companion library that
+defines view helpers for use in Phoenix templates.
