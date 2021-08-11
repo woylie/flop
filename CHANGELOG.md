@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.12.0] - 2021-08-11
+
 ### Added
 
 - Allow to define join fields in `Flop.Schema`.
