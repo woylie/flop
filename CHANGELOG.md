@@ -17,6 +17,7 @@
 - Rename option `get_cursor_value_func` to `cursor_value_func`.
 - Silently ignore filters with `nil` value for the field or the value instead of
   raising an `ArgumentError`.
+- Allow passing a string as the second argument to `Flop.push_order/2`.
 
 ## [0.11.0] - 2021-06-13
 

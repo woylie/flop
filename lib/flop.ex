@@ -1155,8 +1155,19 @@ defmodule Flop do
       [:age, :species, :name]
       iex> flop.order_directions
       [:asc, :asc, :asc]
+
+  If a string is passed as the second argument, it will be converted to an atom
+  using `String.to_existing_atom/1`. If the atom does not exist, the `Flop`
+  struct will be returned unchanged.
+
+      iex> flop = push_order(%Flop{}, "name")
+      iex> flop.order_by
+      [:name]
+      iex> flop = push_order(%Flop{}, "this_atom_does_not_exist")
+      iex> flop.order_by
+      nil
   """
-  @spec push_order(Flop.t(), atom) :: Flop.t()
+  @spec push_order(Flop.t(), atom | String.t()) :: Flop.t()
   @doc since: "0.10.0"
   def push_order(
         %Flop{order_by: order_by, order_directions: order_directions} = flop,
@@ -1177,6 +1188,12 @@ defmodule Flop do
       )
 
     %{flop | order_by: order_by, order_directions: order_directions}
+  end
+
+  def push_order(flop, field) when is_binary(field) do
+    push_order(flop, String.to_existing_atom(field))
+  rescue
+    _e in ArgumentError -> flop
   end
 
   defp get_index(nil, _field), do: nil
