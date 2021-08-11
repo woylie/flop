@@ -157,6 +157,9 @@ defprotocol Flop.Schema do
 
   If you need filter or order across tables, you can define join fields.
 
+  **Note: Support for ordering by join fields will be added in a future
+  version.**
+
   As an example, let's define these schemas:
 
       schema "owners" do
