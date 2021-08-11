@@ -10,6 +10,7 @@
 - Support filtering by compound fields.
 - New filter operator `empty`.
 - New filter operator `not_empty`.
+- New function `Flop.set_page/2`.
 
 ### Changed
 

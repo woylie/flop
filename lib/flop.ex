@@ -1088,6 +1088,37 @@ defmodule Flop do
   end
 
   @doc """
+  Sets the page value of a `Flop` struct while also removing/converting
+  pagination parameters for other pagination types.
+
+      iex> set_page(%Flop{page: 2, page_size: 10}, 6)
+      %Flop{page: 6, page_size: 10}
+
+      iex> set_page(%Flop{limit: 10, offset: 20}, 8)
+      %Flop{limit: nil, offset: nil, page: 8, page_size: 10}
+
+  The page number will not be allowed to go below 1.
+
+      iex> set_page(%Flop{}, -5)
+      %Flop{page: 1}
+  """
+  @doc since: "0.12.0"
+  @spec set_page(Flop.t(), pos_integer) :: Flop.t()
+  def set_page(%Flop{} = flop, page) do
+    %{
+      flop
+      | after: nil,
+        before: nil,
+        first: nil,
+        last: nil,
+        limit: nil,
+        offset: nil,
+        page_size: flop.page_size || flop.limit || flop.first || flop.last,
+        page: max(page, 1)
+    }
+  end
+
+  @doc """
   Updates the `order_by` and `order_directions` values of a `Flop` struct.
 
   - If the field is not in the current `order_by` value, it will be prepended to
