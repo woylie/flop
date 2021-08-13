@@ -70,7 +70,7 @@ defmodule Flop.MixProject do
       licenses: ["MIT"],
       links: %{
         "GitHub" => @source_url,
-        "Changelog" => "https://hexdocs.pm/flop/changelog.html"
+        "Changelog" => @source_url <> "/blob/main/CHANGELOG.md"
       },
       files: ~w(lib .formatter.exs mix.exs README* LICENSE* CHANGELOG*)
     ]
@@ -79,7 +79,7 @@ defmodule Flop.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md", "CHANGELOG.md"],
+      extras: ["README.md"],
       source_ref: "main"
     ]
   end
