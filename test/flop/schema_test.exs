@@ -76,6 +76,18 @@ defmodule Flop.SchemaTest do
              "have to set both the filterable and the sortable option"
   end
 
+  test "calling apply_order_by/3 without deriving raises error" do
+    assert_raise Protocol.UndefinedError, fn ->
+      Schema.apply_order_by(%{}, nil, nil)
+    end
+  end
+
+  test "calling cursor_dynamic/3 without deriving raises error" do
+    assert_raise Protocol.UndefinedError, fn ->
+      Schema.cursor_dynamic(%{}, nil, nil)
+    end
+  end
+
   test "calling default_limit/1 without deriving raises error" do
     assert_raise Protocol.UndefinedError, fn ->
       Schema.default_limit(%{})
@@ -98,6 +110,16 @@ defmodule Flop.SchemaTest do
     assert_raise Protocol.UndefinedError, fn ->
       Schema.filterable(%{})
     end
+  end
+
+  test "calling get_field/2 without deriving raises error" do
+    assert_raise Protocol.UndefinedError, fn ->
+      Schema.get_field(:a, :field)
+    end
+  end
+
+  test "get_field/2 has default implementation for maps" do
+    assert Schema.get_field(%{wait: "what?"}, :wait) == "what?"
   end
 
   test "calling max_limit/1 without deriving raises error" do
