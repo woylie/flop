@@ -46,7 +46,7 @@ defprotocol Flop.Schema do
       iex> changeset.errors
       [
         order_by: {"has an invalid entry",
-         [validation: :subset, enum: [:name, :age]]}
+         [validation: :subset, enum: [:name, :age, :owner_name, :owner_age]]}
       ]
 
   ## Default and maximum limits
@@ -241,6 +241,11 @@ defprotocol Flop.Schema do
   @spec filterable(any) :: [atom]
   def filterable(data)
 
+  @doc false
+  @doc since: "0.13.0"
+  @spec dynamic_order_by(any, Ecto.Query.t(), keyword) :: Ecto.Query.t()
+  def dynamic_order_by(data, q, expr)
+
   @doc """
   Returns the allowed pagination types of a schema.
 
@@ -255,7 +260,7 @@ defprotocol Flop.Schema do
   Returns the sortable fields of a schema.
 
       iex> Flop.Schema.sortable(%Flop.Pet{})
-      [:name, :age]
+      [:name, :age, :owner_name, :owner_age]
   """
   @spec sortable(any) :: [atom]
   def sortable(data)
@@ -334,9 +339,12 @@ defimpl Flop.Schema, for: Any do
     join_fields = Keyword.get(options, :join_fields, [])
 
     field_type_func = build_field_type_func(compound_fields, join_fields)
+    dynamic_func = build_dynamic_func(join_fields)
 
     quote do
       defimpl Flop.Schema, for: unquote(module) do
+        import Ecto.Query
+
         def default_limit(_) do
           unquote(default_limit)
         end
@@ -346,6 +354,7 @@ defimpl Flop.Schema, for: Any do
         end
 
         unquote(field_type_func)
+        unquote(dynamic_func)
 
         def filterable(_) do
           unquote(filterable_fields)
@@ -395,6 +404,32 @@ defimpl Flop.Schema, for: Any do
     [compound_field_funcs, join_field_funcs, default_funcs]
   end
 
+  def build_dynamic_func(join_fields) do
+    join_field_funcs =
+      for {join_field, {binding, field}} <- join_fields do
+        bindings = Code.string_to_quoted!("[#{binding}: r]")
+
+        quote do
+          def dynamic_order_by(_struct, q, {direction, unquote(join_field)}) do
+            order_by(
+              q,
+              unquote(bindings),
+              [{^direction, field(r, unquote(field))}]
+            )
+          end
+        end
+      end
+
+    normal_field_func =
+      quote do
+        def dynamic_order_by(_struct, q, direction) do
+          order_by(q, ^direction)
+        end
+      end
+
+    [join_field_funcs, normal_field_func]
+  end
+
   def default_limit(struct) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
@@ -403,6 +438,13 @@ defimpl Flop.Schema, for: Any do
   end
 
   def default_order(struct) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol,
+      value: struct,
+      description: @instructions
+  end
+
+  def dynamic_order_by(struct, _, _) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,

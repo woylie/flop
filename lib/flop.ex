@@ -769,7 +769,7 @@ defmodule Flop do
           after: nil,
           offset: nil
         },
-        _opts
+        opts
       )
       when is_integer(last) do
     reversed_order =
@@ -777,15 +777,37 @@ defmodule Flop do
       |> prepare_order(directions)
       |> reverse_ordering()
 
-    Query.order_by(q, ^reversed_order)
+    case opts[:for] do
+      nil ->
+        Query.order_by(q, ^reversed_order)
+
+      module ->
+        struct = struct(module)
+
+        Enum.reduce(reversed_order, q, fn expr, acc_q ->
+          Flop.Schema.dynamic_order_by(struct, acc_q, expr)
+        end)
+    end
   end
 
   def order_by(
         q,
         %Flop{order_by: fields, order_directions: directions},
-        _opts
+        opts
       ) do
-    Query.order_by(q, ^prepare_order(fields, directions))
+    case opts[:for] do
+      nil ->
+        Query.order_by(q, ^prepare_order(fields, directions))
+
+      module ->
+        struct = struct(module)
+
+        fields
+        |> prepare_order(directions)
+        |> Enum.reduce(q, fn expr, acc_q ->
+          Flop.Schema.dynamic_order_by(struct, acc_q, expr)
+        end)
+    end
   end
 
   @spec prepare_order([atom], [order_direction()]) :: [
@@ -1037,7 +1059,7 @@ defmodule Flop do
       iex> msg
       "has an invalid entry"
       iex> enum
-      [:name, :age]
+      [:name, :age, :owner_name, :owner_age]
 
   Note that currently, trying to use an existing field that is not allowed as
   seen above will result in the error message `has an invalid entry`, while

@@ -67,6 +67,27 @@ defmodule FlopTest do
                order_directions: [:desc]
              }) == expected
     end
+
+    test "orders by join fields" do
+      pets = insert_list(20, :pet_with_owner)
+
+      expected =
+        Enum.sort_by(
+          pets,
+          &{&1.owner.name, &1.owner.age, &1.name, &1.age}
+        )
+
+      result =
+        Pet
+        |> join(:left, [p], o in assoc(p, :owner), as: :owner)
+        |> preload(:owner)
+        |> Flop.all(
+          %Flop{order_by: [:owner_name, :owner_age, :name, :age]},
+          for: Pet
+        )
+
+      assert result == expected
+    end
   end
 
   describe "filtering" do
