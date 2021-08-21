@@ -74,8 +74,8 @@ defmodule Flop.TestUtil do
 
   defp get_field(pet, {:normal, field}), do: Map.fetch!(pet, field)
 
-  defp get_field(pet, {:join, {assoc, field}}),
-    do: pet |> Map.fetch!(assoc) |> Map.fetch!(field)
+  defp get_field(pet, {:join, %{path: [a, b]}}),
+    do: pet |> Map.fetch!(a) |> Map.fetch!(b)
 
   defp matches?(:==, v), do: &(&1 == v)
   defp matches?(:!=, v), do: &(&1 != v)

@@ -167,10 +167,15 @@ defmodule Flop.Builder do
       )
     end
 
-    defp build_op(c, _schema_struct, {:join, {binding, field}}, %Filter{
-           op: unquote(op),
-           value: value
-         }) do
+    defp build_op(
+           c,
+           _schema_struct,
+           {:join, %{binding: binding, field: field}},
+           %Filter{
+             op: unquote(op),
+             value: value
+           }
+         ) do
       unquote(preprocessing)
 
       # prevent unused variable warning for operators that don't use value

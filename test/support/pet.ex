@@ -23,7 +23,10 @@ defmodule Flop.Pet do
       full_name: [:family_name, :given_name],
       pet_and_owner_name: [:name, :owner_name]
     ],
-    join_fields: [owner_age: {:owner, :age}, owner_name: {:owner, :name}]
+    join_fields: [
+      owner_age: {:owner, :age},
+      owner_name: [binding: :owner, field: :name, path: [:owner, :name]]
+    ]
   }
 
   schema "pets" do
