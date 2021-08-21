@@ -456,7 +456,7 @@ defimpl Flop.Schema, for: Any do
   def build_cursor_dynamic_func(compound_fields, join_fields) do
     empty_func =
       quote do
-        def cursor_dynamic(_, [], _), do: nil
+        def cursor_dynamic(_, [], _), do: true
       end
 
     compound_field_funcs =

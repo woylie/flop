@@ -1132,8 +1132,7 @@ defmodule FlopTest do
         )
     end
 
-    @tag :thiss
-    test "nil values for cursors are ignored" do
+    test "nil values for cursors are ignored when using for option" do
       check all pets <- uniq_list_of_pets(length: 2..2),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
@@ -1165,6 +1164,40 @@ defmodule FlopTest do
                      order_directions: directions
                    },
                    for: Pet
+                 )
+      end
+    end
+
+    test "nil values for cursors are ignored when not using for option" do
+      check all pets <- uniq_list_of_pets(length: 2..2),
+                directions <- order_directions(%Pet{}) do
+        checkin_checkout()
+        cursor_fields = [:name, :age]
+
+        # set name fields to nil and insert
+        pets
+        |> Enum.map(&Map.update!(&1, :name, fn _ -> nil end))
+        |> Enum.each(&Repo.insert!(&1))
+
+        assert {:ok, {[_], %Meta{end_cursor: end_cursor}}} =
+                 Flop.validate_and_run(
+                   pets_with_owners_query(),
+                   %Flop{
+                     first: 1,
+                     order_by: cursor_fields,
+                     order_directions: directions
+                   }
+                 )
+
+        assert {:ok, _} =
+                 Flop.validate_and_run(
+                   pets_with_owners_query(),
+                   %Flop{
+                     first: 1,
+                     after: end_cursor,
+                     order_by: cursor_fields,
+                     order_directions: directions
+                   }
                  )
       end
     end

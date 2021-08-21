@@ -960,35 +960,45 @@ defmodule Flop do
     Query.where(q, ^where_dynamic)
   end
 
-  defp cursor_dynamic([], _), do: nil
+  defp cursor_dynamic([], _), do: true
 
   defp cursor_dynamic([{direction, field}], cursor) do
-    case direction do
-      dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
-        Query.dynamic([r], field(r, ^field) > ^cursor[field])
+    field_cursor = cursor[field]
 
-      dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
-        Query.dynamic([r], field(r, ^field) < ^cursor[field])
+    if is_nil(field_cursor) do
+      true
+    else
+      case direction do
+        dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
+          Query.dynamic([r], field(r, ^field) > ^field_cursor)
+
+        dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
+          Query.dynamic([r], field(r, ^field) < ^field_cursor)
+      end
     end
   end
 
   defp cursor_dynamic([{direction, field} | [{_, _} | _] = tail], cursor) do
     field_cursor = cursor[field]
 
-    case direction do
-      dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
-        Query.dynamic(
-          [r],
-          field(r, ^field) >= ^field_cursor and
-            (field(r, ^field) > ^field_cursor or ^cursor_dynamic(tail, cursor))
-        )
+    if is_nil(field_cursor) do
+      cursor_dynamic(tail, cursor)
+    else
+      case direction do
+        dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
+          Query.dynamic(
+            [r],
+            field(r, ^field) >= ^field_cursor and
+              (field(r, ^field) > ^field_cursor or ^cursor_dynamic(tail, cursor))
+          )
 
-      dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
-        Query.dynamic(
-          [r],
-          field(r, ^field) <= ^field_cursor and
-            (field(r, ^field) < ^field_cursor or ^cursor_dynamic(tail, cursor))
-        )
+        dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
+          Query.dynamic(
+            [r],
+            field(r, ^field) <= ^field_cursor and
+              (field(r, ^field) < ^field_cursor or ^cursor_dynamic(tail, cursor))
+          )
+      end
     end
   end
 
