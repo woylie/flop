@@ -507,24 +507,28 @@ defimpl Flop.Schema, for: Any do
     end
   end
 
-  function_names = [
-    :field_type,
-    :get_field
-  ]
-
-  for function_name <- function_names do
-    def unquote(function_name)(struct, _) do
-      raise Protocol.UndefinedError,
-        protocol: @protocol,
-        value: struct,
-        description: @instructions
-    end
+  def field_type(struct, _) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol,
+      value: struct,
+      description: @instructions
   end
 
   def dynamic_order_by(struct, _, _) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,
+      description: @instructions
+  end
+
+  # add default implementation for maps, so that cursor value functions can use
+  # it without checking protocol implementation
+  def get_field(%{} = map, field), do: Map.get(map, field)
+
+  def get_field(thing, _) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol,
+      value: thing,
       description: @instructions
   end
 end
