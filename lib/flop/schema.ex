@@ -104,12 +104,14 @@ defprotocol Flop.Schema do
       @derive {
         Flop.Schema,
         filterable: [:full_name],
-        sortable: [],
+        sortable: [:full_name],
         compound_fields: [full_name: [:family_name, :given_name]]
       }
 
   This allows you to use the field name `:full_name` as any other field in the
-  filters.
+  filter and order parameters.
+
+  ### Filtering
 
       params = %{
         filters: [%{
@@ -152,6 +154,19 @@ defprotocol Flop.Schema do
     whitespace character and joined with a space, and the resulting values are
     joined with a space again. **This will be added in a future version. These
     filter operators are ignored for compound fields at the moment.**
+
+  ### Sorting
+
+      params = %{
+        order_by: [:full_name],
+        order_directions: [:desc]
+      }
+
+  This would translate to:
+
+      ORDER BY family_name DESC, given_name DESC
+
+  Note that compound fields cannot be used as pagination cursors.
 
   ## Join fields
 
