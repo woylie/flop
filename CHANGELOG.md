@@ -9,6 +9,13 @@
 - `Flop.Cursor.get_cursor_from_edge/2` and `Flop.Cursor.get_cursor_from_node/2`
   can get cursor values from join and compound fields now.
 
+### Changed
+
+- To allow Flop to get the join field value from a struct, for example when
+  generating the pagination cursor, it is now required that the join field name
+  matches the association field in the struct and the join binding name in the
+  query.
+
 ## [0.12.0] - 2021-08-11
 
 ### Added
