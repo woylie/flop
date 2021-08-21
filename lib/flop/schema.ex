@@ -196,14 +196,37 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [:pet_species],
         sortable: [:pet_species],
-        join_fields: [pet_species: {:pets, :species}]
+        join_fields: [pet_species: [binding: :pets, field: :species]]
       }
 
   In this case, `:pet_species` would be the alias of the field that you can
-  refer to in the filter and order parameters. In `{:pets, :species}`, `:pets`
-  refers to the field name for the association as set with `:has_one`,
-  `:has_many` or `:belongs_to`. The binding name used for the join in the query
-  must match the field name. `:species` refers to a field on the association.
+  refer to in the filter and order parameters. The `:binding` option refers to
+  the named binding you set with the `:as` option in the join statement of your
+  query. `:field` is the field name on that binding.
+
+  In order to retrieve the pagination cursor value for a join field, Flop needs
+  to know how to get the field value from the struct that is returned from the
+  database. `Flop.Schema.get_field/2` is used for that. By default, Flop assumes
+  that the binding name matches the name of the field for the association in
+  your Ecto schema (the one you set with `has_one`, `has_many` or `belongs_to`).
+
+  In the example above, Flop would try to access the field in the struct under
+  the path `[:pets, :species]`.
+
+  If you have joins across multiple tables, or if you can't give the binding
+  the same name as the association field, you can specify the path explicitly.
+
+      @derive {
+        Flop.Schema,
+        filterable: [:pet_species],
+        sortable: [:pet_species],
+        join_fields: [
+          pet_species: [
+            binding: :pets,
+            field: :species,
+            path: [:pets, :species]
+        ]
+      }
 
   After setting up the join fields, you can write a query like this:
 
@@ -229,13 +252,20 @@ defprotocol Flop.Schema do
   - `{:compound, [atom]}` - A combination of fields defined with the
     `compound_fields` option. The list of atoms refers to the list of fields
     that are included.
-  - `{:join, {atom, atom}}` - A field from a named binding as defined with the
-    `join_fields` option. The first atom refers to the binding name, the second
-    atom refers to the field.
+  - `{:join, map}` - A field from a named binding as defined with the
+    `join_fields` option. The map has keys for the `:binding`, `:field` and
+    `:path`.
+
+      iex> field_type(%Flop.Pet{}, :age)
+      {:normal, :age}
+      iex> field_type(%Flop.Pet{}, :full_name)
+      {:compound, [:family_name, :given_name]}
+      iex> field_type(%Flop.Pet{}, :owner_name)
+      {:join, %{binding: :owner, field: :name, path: [:owner, :name]}}
   """
   @doc since: "0.11.0"
   @spec field_type(any, atom) ::
-          {:normal, atom} | {:compound, [atom]} | {:join, {atom, atom}}
+          {:normal, atom} | {:compound, [atom]} | {:join, map}
   def field_type(data, field)
 
   @doc """
@@ -378,7 +408,11 @@ defimpl Flop.Schema, for: Any do
     }
 
     compound_fields = Keyword.get(options, :compound_fields, [])
-    join_fields = Keyword.get(options, :join_fields, [])
+
+    join_fields =
+      options
+      |> Keyword.get(:join_fields, [])
+      |> Enum.map(&normalize_join_opts/1)
 
     field_type_func = build_field_type_func(compound_fields, join_fields)
     order_by_func = build_order_by_func(compound_fields, join_fields)
@@ -432,6 +466,26 @@ defimpl Flop.Schema, for: Any do
     end
   end
 
+  def normalize_join_opts({name, opts}) do
+    opts =
+      case opts do
+        {binding, field} ->
+          %{binding: binding, field: field, path: [binding, field]}
+
+        opts when is_list(opts) ->
+          binding = Keyword.fetch!(opts, :binding)
+          field = Keyword.fetch!(opts, :field)
+
+          %{
+            binding: binding,
+            field: field,
+            path: opts[:path] || [binding, field]
+          }
+      end
+
+    {name, opts}
+  end
+
   def build_field_type_func(compound_fields, join_fields) do
     compound_field_funcs =
       for {name, fields} <- compound_fields do
@@ -443,10 +497,10 @@ defimpl Flop.Schema, for: Any do
       end
 
     join_field_funcs =
-      for {name, {_binding_name, _field} = path} <- join_fields do
+      for {name, opts} <- join_fields do
         quote do
           def field_type(_, unquote(name)) do
-            {:join, unquote(path)}
+            {:join, unquote(Macro.escape(opts))}
           end
         end
       end
@@ -489,7 +543,7 @@ defimpl Flop.Schema, for: Any do
 
   # credo:disable-for-next-line
   def build_cursor_dynamic_func_join(join_fields) do
-    for {join_field, {binding, field}} <- join_fields do
+    for {join_field, %{binding: binding, field: field}} <- join_fields do
       bindings = Code.string_to_quoted!("[#{binding}: r]")
 
       quote do
@@ -523,7 +577,7 @@ defimpl Flop.Schema, for: Any do
 
         def cursor_dynamic(
               struct,
-              [{direction, unquote(join_field) = jf} | [{_, _} | _] = tail],
+              [{direction, unquote(join_field)} | [{_, _} | _] = tail],
               cursor
             ) do
           field_cursor = cursor[unquote(join_field)]
@@ -618,7 +672,7 @@ defimpl Flop.Schema, for: Any do
       end
 
     join_field_funcs =
-      for {join_field, {binding, field}} <- join_fields do
+      for {join_field, %{binding: binding, field: field}} <- join_fields do
         bindings = Code.string_to_quoted!("[#{binding}: r]")
 
         quote do
@@ -655,11 +709,18 @@ defimpl Flop.Schema, for: Any do
       end
 
     join_field_funcs =
-      for {name, {assoc_field, field}} <- join_fields do
+      for {name, %{path: path}} <- join_fields do
         quote do
           def get_field(struct, unquote(name)) do
-            assoc = Map.get(struct, unquote(assoc_field)) || %{}
-            Map.get(assoc, unquote(field))
+            Enum.reduce(unquote(path), struct, fn field, acc ->
+              case acc do
+                %{} -> Map.get(acc, field)
+                _ -> nil
+              end
+            end)
+
+            # assoc = Map.get(struct, unquote(assoc_field)) || %{}
+            # Map.get(assoc, unquote(field))
           end
         end
       end

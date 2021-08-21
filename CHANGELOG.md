@@ -13,9 +13,46 @@
 
 ### Changed
 
-- To allow Flop to get the join field value from a struct, for example when
-  generating the pagination cursor, it is now required that the binding name of
-  the join matches the name of the association field in the schema.
+To get the pagination cursor value from a join field, Flop needs to know how
+to access the field value from the returned struct or map. The configuration
+format for join fields has been changed to allow specifying the path to the
+nested field.
+
+Before:
+
+```elixir
+@derive {
+  Flop.Schema,
+  join_fields: [
+    owner_name: {:owner, :name}
+  ]
+}
+```
+
+After:
+
+```elixir
+@derive {
+  Flop.Schema,
+  join_fields: [
+    owner_name: [binding: :owner, field: :name, path: [:owner, :name]]
+  ]
+}
+```
+
+The `:path` is optional and inferred from the `:binding` and `:field` options,
+if omitted.
+
+The old configuration format is still accepted. All of these settings are
+equivalent:
+
+```
+[owner_name: {:owner, :name}]
+
+[owner_name: [binding: :owner, field: :name]]
+
+[owner_name: [binding: :owner, field: :name, path: [:owner, :name]]]
+```
 
 ### Fixed
 

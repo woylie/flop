@@ -4,7 +4,7 @@ defmodule Flop.SchemaTest do
   alias __MODULE__.Panini
   alias Flop.Schema
 
-  doctest Flop.Schema
+  doctest Flop.Schema, import: true
 
   defmodule Panini do
     @derive {Flop.Schema,
@@ -42,7 +42,8 @@ defmodule Flop.SchemaTest do
 
   test "field_type/2 returns config for join fields" do
     assert Schema.field_type(%Panini{}, :topping_name) ==
-             {:join, {:toppings, :name}}
+             {:join,
+              %{binding: :toppings, field: :name, path: [:toppings, :name]}}
   end
 
   test "max_limit/1 returns the max limit passed as option" do
