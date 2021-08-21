@@ -360,6 +360,7 @@ defimpl Flop.Schema, for: Any do
       end
 
   """
+  # credo:disable-for-next-line
   defmacro __deriving__(module, _struct, options) do
     filterable_fields = Keyword.get(options, :filterable)
     sortable_fields = Keyword.get(options, :sortable)
@@ -383,8 +384,11 @@ defimpl Flop.Schema, for: Any do
     order_by_func = build_order_by_func(compound_fields, join_fields)
     get_field_func = build_get_field_func(compound_fields, join_fields)
 
-    cursor_dynamic_func =
-      build_cursor_dynamic_func(compound_fields, join_fields)
+    cursor_dynamic_func_compound =
+      build_cursor_dynamic_func_compound(compound_fields)
+
+    cursor_dynamic_func_join = build_cursor_dynamic_func_join(join_fields)
+    cursor_dynamic_func_normal = build_cursor_dynamic_func_normal()
 
     quote do
       defimpl Flop.Schema, for: unquote(module) do
@@ -403,7 +407,6 @@ defimpl Flop.Schema, for: Any do
         unquote(field_type_func)
         unquote(order_by_func)
         unquote(get_field_func)
-        unquote(cursor_dynamic_func)
 
         def filterable(_) do
           unquote(filterable_fields)
@@ -420,6 +423,11 @@ defimpl Flop.Schema, for: Any do
         def sortable(_) do
           unquote(sortable_fields)
         end
+
+        def cursor_dynamic(_, [], _), do: true
+        unquote(cursor_dynamic_func_compound)
+        unquote(cursor_dynamic_func_join)
+        unquote(cursor_dynamic_func_normal)
       end
     end
   end
@@ -453,126 +461,72 @@ defimpl Flop.Schema, for: Any do
     [compound_field_funcs, join_field_funcs, default_funcs]
   end
 
-  def build_cursor_dynamic_func(compound_fields, join_fields) do
-    empty_func =
+  def build_cursor_dynamic_func_compound(compound_fields) do
+    for {compound_field, _fields} <- compound_fields do
       quote do
-        def cursor_dynamic(_, [], _), do: true
-      end
+        def cursor_dynamic(_, [{_, unquote(compound_field)}], _) do
+          Logger.warn(
+            "Flop: Cursor pagination is not supported for compound fields. Ignored."
+          )
 
-    compound_field_funcs =
-      for {compound_field, _fields} <- compound_fields do
-        quote do
-          def cursor_dynamic(_, [{_, unquote(compound_field)}], _) do
-            Logger.warn(
-              "Flop: Cursor pagination is not supported for compound fields. Ignored."
-            )
+          true
+        end
 
-            true
-          end
+        def cursor_dynamic(
+              struct,
+              [{_, unquote(compound_field)} | tail],
+              cursor
+            ) do
+          Logger.warn(
+            "Flop: Cursor pagination is not supported for compound fields. Ignored."
+          )
 
-          def cursor_dynamic(
-                struct,
-                [{_, unquote(compound_field)} | tail],
-                cursor
-              ) do
-            Logger.warn(
-              "Flop: Cursor pagination is not supported for compound fields. Ignored."
-            )
-
-            cursor_dynamic(struct, tail, cursor)
-          end
+          cursor_dynamic(struct, tail, cursor)
         end
       end
+    end
+  end
 
-    join_field_funcs =
-      for {join_field, {binding, field}} <- join_fields do
-        bindings = Code.string_to_quoted!("[#{binding}: r]")
+  # credo:disable-for-next-line
+  def build_cursor_dynamic_func_join(join_fields) do
+    for {join_field, {binding, field}} <- join_fields do
+      bindings = Code.string_to_quoted!("[#{binding}: r]")
 
-        quote do
-          def cursor_dynamic(_, [{direction, unquote(join_field)}], cursor)
-              when direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
-            field_cursor = cursor[unquote(join_field)]
-
-            if is_nil(field_cursor) do
-              true
-            else
-              dynamic(
-                unquote(bindings),
-                field(r, unquote(field)) > ^field_cursor
-              )
-            end
-          end
-
-          def cursor_dynamic(_, [{direction, unquote(join_field)}], cursor)
-              when direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
-            field_cursor = cursor[unquote(join_field)]
-
-            if is_nil(field_cursor) do
-              true
-            else
-              dynamic(
-                unquote(bindings),
-                field(r, unquote(field)) < ^field_cursor
-              )
-            end
-          end
-
-          def cursor_dynamic(
-                struct,
-                [{direction, unquote(join_field) = jf} | [{_, _} | _] = tail],
-                cursor
-              ) do
-            field_cursor = cursor[unquote(join_field)]
-
-            if is_nil(field_cursor) do
-              cursor_dynamic(struct, tail, cursor)
-            else
-              case direction do
-                dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
-                  dynamic(
-                    unquote(bindings),
-                    field(r, unquote(field)) >= ^field_cursor and
-                      (field(r, unquote(field)) > ^field_cursor or
-                         ^cursor_dynamic(struct, tail, cursor))
-                  )
-
-                dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
-                  dynamic(
-                    unquote(bindings),
-                    field(r, unquote(field)) <= ^field_cursor and
-                      (field(r, unquote(field)) < ^field_cursor or
-                         ^cursor_dynamic(struct, tail, cursor))
-                  )
-              end
-            end
-          end
-        end
-      end
-
-    normal_field_func =
       quote do
-        def cursor_dynamic(_, [{direction, field}], cursor) do
-          field_cursor = cursor[field]
+        def cursor_dynamic(_, [{direction, unquote(join_field)}], cursor)
+            when direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
+          field_cursor = cursor[unquote(join_field)]
 
           if is_nil(field_cursor) do
             true
           else
-            case direction do
-              dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
-                dynamic([r], field(r, ^field) > ^cursor[field])
+            dynamic(
+              unquote(bindings),
+              field(r, unquote(field)) > ^field_cursor
+            )
+          end
+        end
 
-              dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
-                dynamic([r], field(r, ^field) < ^cursor[field])
-            end
+        def cursor_dynamic(_, [{direction, unquote(join_field)}], cursor)
+            when direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
+          field_cursor = cursor[unquote(join_field)]
+
+          if is_nil(field_cursor) do
+            true
+          else
+            dynamic(
+              unquote(bindings),
+              field(r, unquote(field)) < ^field_cursor
+            )
           end
         end
 
         def cursor_dynamic(
               struct,
-              [{direction, field} | [{_, _} | _] = tail],
+              [{direction, unquote(join_field) = jf} | [{_, _} | _] = tail],
               cursor
             ) do
-          field_cursor = cursor[field]
+          field_cursor = cursor[unquote(join_field)]
 
           if is_nil(field_cursor) do
             cursor_dynamic(struct, tail, cursor)
@@ -580,25 +534,75 @@ defimpl Flop.Schema, for: Any do
             case direction do
               dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
                 dynamic(
-                  [r],
-                  field(r, ^field) >= ^field_cursor and
-                    (field(r, ^field) > ^field_cursor or
+                  unquote(bindings),
+                  field(r, unquote(field)) >= ^field_cursor and
+                    (field(r, unquote(field)) > ^field_cursor or
                        ^cursor_dynamic(struct, tail, cursor))
                 )
 
               dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
                 dynamic(
-                  [r],
-                  field(r, ^field) <= ^field_cursor and
-                    (field(r, ^field) < ^field_cursor or
+                  unquote(bindings),
+                  field(r, unquote(field)) <= ^field_cursor and
+                    (field(r, unquote(field)) < ^field_cursor or
                        ^cursor_dynamic(struct, tail, cursor))
                 )
             end
           end
         end
       end
+    end
+  end
 
-    [empty_func, compound_field_funcs, join_field_funcs, normal_field_func]
+  # credo:disable-for-next-line
+  def build_cursor_dynamic_func_normal do
+    quote do
+      def cursor_dynamic(_, [{direction, field}], cursor) do
+        field_cursor = cursor[field]
+
+        if is_nil(field_cursor) do
+          true
+        else
+          case direction do
+            dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
+              dynamic([r], field(r, ^field) > ^cursor[field])
+
+            dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
+              dynamic([r], field(r, ^field) < ^cursor[field])
+          end
+        end
+      end
+
+      def cursor_dynamic(
+            struct,
+            [{direction, field} | [{_, _} | _] = tail],
+            cursor
+          ) do
+        field_cursor = cursor[field]
+
+        if is_nil(field_cursor) do
+          cursor_dynamic(struct, tail, cursor)
+        else
+          case direction do
+            dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
+              dynamic(
+                [r],
+                field(r, ^field) >= ^field_cursor and
+                  (field(r, ^field) > ^field_cursor or
+                     ^cursor_dynamic(struct, tail, cursor))
+              )
+
+            dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
+              dynamic(
+                [r],
+                field(r, ^field) <= ^field_cursor and
+                  (field(r, ^field) < ^field_cursor or
+                     ^cursor_dynamic(struct, tail, cursor))
+              )
+          end
+        end
+      end
+    end
   end
 
   def build_order_by_func(compound_fields, join_fields) do

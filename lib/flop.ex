@@ -989,14 +989,16 @@ defmodule Flop do
           Query.dynamic(
             [r],
             field(r, ^field) >= ^field_cursor and
-              (field(r, ^field) > ^field_cursor or ^cursor_dynamic(tail, cursor))
+              (field(r, ^field) > ^field_cursor or
+                 ^cursor_dynamic(tail, cursor))
           )
 
         dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
           Query.dynamic(
             [r],
             field(r, ^field) <= ^field_cursor and
-              (field(r, ^field) < ^field_cursor or ^cursor_dynamic(tail, cursor))
+              (field(r, ^field) < ^field_cursor or
+                 ^cursor_dynamic(tail, cursor))
           )
       end
     end
