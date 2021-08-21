@@ -375,6 +375,8 @@ defimpl Flop.Schema, for: Any do
       defimpl Flop.Schema, for: unquote(module) do
         import Ecto.Query
 
+        require Logger
+
         def default_limit(_) do
           unquote(default_limit)
         end
@@ -436,10 +438,35 @@ defimpl Flop.Schema, for: Any do
     [compound_field_funcs, join_field_funcs, default_funcs]
   end
 
-  def build_cursor_dynamic_func(_compound_fields, join_fields) do
+  def build_cursor_dynamic_func(compound_fields, join_fields) do
     empty_func =
       quote do
         def cursor_dynamic(_, [], _), do: nil
+      end
+
+    compound_field_funcs =
+      for {compound_field, _fields} <- compound_fields do
+        quote do
+          def cursor_dynamic(_, [{_, unquote(compound_field)}], _) do
+            Logger.warn(
+              "Flop: Cursor pagination is not supported for compound fields. Ignored."
+            )
+
+            true
+          end
+
+          def cursor_dynamic(
+                struct,
+                [{_, unquote(compound_field)} | tail],
+                cursor
+              ) do
+            Logger.warn(
+              "Flop: Cursor pagination is not supported for compound fields. Ignored."
+            )
+
+            cursor_dynamic(struct, tail, cursor)
+          end
+        end
       end
 
     join_field_funcs =
@@ -556,7 +583,7 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
-    [empty_func, join_field_funcs, normal_field_func]
+    [empty_func, compound_field_funcs, join_field_funcs, normal_field_func]
   end
 
   def build_order_by_func(compound_fields, join_fields) do
