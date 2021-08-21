@@ -189,7 +189,9 @@ defprotocol Flop.Schema do
 
   In this case, `:pet_species` would be the alias of the field that you can
   refer to in the filter and order parameters. In `{:pets, :species}`, `:pets`
-  refers to a named binding and `:species` refers to a field in that binding.
+  refers to the field name for the association as set with `:has_one`,
+  `:has_many` or `:belongs_to`. The binding name used for the join in the query
+  must match the field name. `:species` refers to a field on the association.
 
   After setting up the join fields, you can write a query like this:
 
@@ -245,6 +247,30 @@ defprotocol Flop.Schema do
   @doc since: "0.13.0"
   @spec dynamic_order_by(any, Ecto.Query.t(), keyword) :: Ecto.Query.t()
   def dynamic_order_by(data, q, expr)
+
+  @doc """
+  Gets the field value from a struct.
+
+  Resolves join fields and compound fields according to the config.
+
+      # join_fields: [owner_name: {:owner, :name}]
+      iex> pet = %Flop.Pet{name: "George", owner: %Flop.Owner{name: "Carl"}}
+      iex> Flop.Schema.get_field(pet, :name)
+      "George"
+      iex> Flop.Schema.get_field(pet, :owner_name)
+      "Carl"
+
+      # compound_fields: [full_name: [:family_name, :given_name]]
+      iex> pet = %Flop.Pet{given_name: "George", family_name: "Gooney"}
+      iex> Flop.Schema.get_field(pet, :full_name)
+      "Gooney George"
+
+  For join fields, this function relies on the binding name in the schema config
+  matching the field name for the association in the struct.
+  """
+  @doc since: "0.13.0"
+  @spec get_field(any, atom) :: any
+  def get_field(data, field)
 
   @doc """
   Returns the allowed pagination types of a schema.
@@ -340,6 +366,7 @@ defimpl Flop.Schema, for: Any do
 
     field_type_func = build_field_type_func(compound_fields, join_fields)
     dynamic_func = build_dynamic_func(join_fields)
+    get_field_func = build_get_field_func(compound_fields, join_fields)
 
     quote do
       defimpl Flop.Schema, for: unquote(module) do
@@ -355,6 +382,7 @@ defimpl Flop.Schema, for: Any do
 
         unquote(field_type_func)
         unquote(dynamic_func)
+        unquote(get_field_func)
 
         def filterable(_) do
           unquote(filterable_fields)
@@ -430,56 +458,70 @@ defimpl Flop.Schema, for: Any do
     [join_field_funcs, normal_field_func]
   end
 
-  def default_limit(struct) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
+  def build_get_field_func(compound_fields, join_fields) do
+    compound_field_funcs =
+      for {name, fields} <- compound_fields do
+        quote do
+          def get_field(struct, unquote(name)) do
+            unquote(fields)
+            |> Enum.map(&get_field(struct, &1))
+            |> Enum.join(" ")
+          end
+        end
+      end
+
+    join_field_funcs =
+      for {name, {assoc_field, field}} <- join_fields do
+        quote do
+          def get_field(struct, unquote(name)) do
+            struct
+            |> Map.get(unquote(assoc_field), %{})
+            |> Map.get(unquote(field))
+          end
+        end
+      end
+
+    fallback_func =
+      quote do
+        def get_field(struct, field), do: Map.get(struct, field)
+      end
+
+    [compound_field_funcs, join_field_funcs, fallback_func]
   end
 
-  def default_order(struct) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
+  function_names = [
+    :default_limit,
+    :default_order,
+    :filterable,
+    :max_limit,
+    :pagination_types,
+    :sortable
+  ]
+
+  for function_name <- function_names do
+    def unquote(function_name)(struct) do
+      raise Protocol.UndefinedError,
+        protocol: @protocol,
+        value: struct,
+        description: @instructions
+    end
+  end
+
+  function_names = [
+    :field_type,
+    :get_field
+  ]
+
+  for function_name <- function_names do
+    def unquote(function_name)(struct, _) do
+      raise Protocol.UndefinedError,
+        protocol: @protocol,
+        value: struct,
+        description: @instructions
+    end
   end
 
   def dynamic_order_by(struct, _, _) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
-
-  def field_type(struct, _field) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
-
-  def filterable(struct) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
-
-  def max_limit(struct) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
-
-  def pagination_types(struct) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
-
-  def sortable(struct) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,

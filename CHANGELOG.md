@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- New function `Flop.Schema.get_field/2`.
+
 ## [0.12.0] - 2021-08-11
 
 ### Added
