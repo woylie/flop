@@ -88,6 +88,19 @@ defmodule FlopTest do
 
       assert result == expected
     end
+
+    test "orders by compound fields" do
+      pets = insert_list(20, :pet)
+
+      expected =
+        Enum.sort_by(
+          pets,
+          &{&1.family_name, &1.given_name, &1.id}
+        )
+
+      result = Flop.all(Pet, %Flop{order_by: [:full_name, :id]}, for: Pet)
+      assert result == expected
+    end
   end
 
   describe "filtering" do

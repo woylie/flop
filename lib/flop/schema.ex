@@ -362,7 +362,7 @@ defimpl Flop.Schema, for: Any do
     join_fields = Keyword.get(options, :join_fields, [])
 
     field_type_func = build_field_type_func(compound_fields, join_fields)
-    dynamic_func = build_order_by_func(join_fields)
+    order_by_func = build_order_by_func(compound_fields, join_fields)
     get_field_func = build_get_field_func(compound_fields, join_fields)
 
     quote do
@@ -378,7 +378,7 @@ defimpl Flop.Schema, for: Any do
         end
 
         unquote(field_type_func)
-        unquote(dynamic_func)
+        unquote(order_by_func)
         unquote(get_field_func)
 
         def filterable(_) do
@@ -429,7 +429,18 @@ defimpl Flop.Schema, for: Any do
     [compound_field_funcs, join_field_funcs, default_funcs]
   end
 
-  def build_order_by_func(join_fields) do
+  def build_order_by_func(compound_fields, join_fields) do
+    compound_field_funcs =
+      for {name, fields} <- compound_fields do
+        quote do
+          def apply_order_by(struct, q, {direction, unquote(name)}) do
+            Enum.reduce(unquote(fields), q, fn field, acc_q ->
+              apply_order_by(struct, acc_q, field)
+            end)
+          end
+        end
+      end
+
     join_field_funcs =
       for {join_field, {binding, field}} <- join_fields do
         bindings = Code.string_to_quoted!("[#{binding}: r]")
@@ -452,7 +463,7 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
-    [join_field_funcs, normal_field_func]
+    [compound_field_funcs, join_field_funcs, normal_field_func]
   end
 
   def build_get_field_func(compound_fields, join_fields) do

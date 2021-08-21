@@ -4,6 +4,7 @@
 
 ### Added
 
+- Support ordering by compound fields.
 - New function `Flop.Schema.get_field/2`.
 - `Flop.Cursor.get_cursor_from_edge/2` and `Flop.Cursor.get_cursor_from_node/2`
   can get cursor values from join and compound fields now.
