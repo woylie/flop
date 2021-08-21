@@ -223,15 +223,43 @@ defmodule Flop.Cursor do
       %{id: 25, relation: "sibling"}
       iex> Flop.Cursor.get_cursor_from_edge(record, [:id])
       %{id: 20}
+
+  If the edge is a struct that derives `Flop.Schema`, join and compound fields
+  are resolved according to the configuration.
+
+      iex> record = %{id: 25, relation: "sibling"}
+      iex> edge = %Flop.Pet{
+      ...>   name: "George",
+      ...>   owner: %Flop.Owner{name: "Carl"}
+      ...> }
+      iex>
+      iex> Flop.Cursor.get_cursor_from_edge({record, edge}, [:owner_name])
+      %{owner_name: "Carl"}
+      iex> Flop.Cursor.get_cursor_from_edge(edge, [:owner_name])
+      %{owner_name: "Carl"}
+
+      iex> record = %{id: 25, relation: "sibling"}
+      iex> edge = %Flop.Pet{
+      ...>   given_name: "George",
+      ...>   family_name: "Gooney"
+      ...> }
+      iex> Flop.Cursor.get_cursor_from_edge({record, edge}, [:full_name])
+      %{full_name: "Gooney George"}
+      iex> Flop.Cursor.get_cursor_from_edge(edge, [:full_name])
+      %{full_name: "Gooney George"}
   """
   @doc since: "0.11.0"
   @spec get_cursor_from_edge({map, map} | map, [atom]) :: map
-  def get_cursor_from_edge({_, %{} = edge}, order_by) do
-    Map.take(edge, order_by)
+  def get_cursor_from_edge({_, %{} = item}, order_by) do
+    Enum.into(order_by, %{}, fn field ->
+      {field, Flop.Schema.get_field(item, field)}
+    end)
   end
 
   def get_cursor_from_edge(%{} = item, order_by) do
-    Map.take(item, order_by)
+    Enum.into(order_by, %{}, fn field ->
+      {field, Flop.Schema.get_field(item, field)}
+    end)
   end
 
   @doc """
@@ -253,15 +281,43 @@ defmodule Flop.Cursor do
       %{id: 20, name: "George"}
       iex> Flop.Cursor.get_cursor_from_node(record, [:id])
       %{id: 20}
+
+  If the node is a struct that derives `Flop.Schema`, join and compound fields
+  are resolved according to the configuration.
+
+      iex> record = %Flop.Pet{
+      ...>   name: "George",
+      ...>   owner: %Flop.Owner{name: "Carl"}
+      ...> }
+      iex> edge = %{id: 25, relation: "sibling"}
+      iex>
+      iex> Flop.Cursor.get_cursor_from_node({record, edge}, [:owner_name])
+      %{owner_name: "Carl"}
+      iex> Flop.Cursor.get_cursor_from_node(record, [:owner_name])
+      %{owner_name: "Carl"}
+
+      iex> record = %Flop.Pet{
+      ...>   given_name: "George",
+      ...>   family_name: "Gooney"
+      ...> }
+      iex> edge = %{id: 25, relation: "sibling"}
+      iex> Flop.Cursor.get_cursor_from_node({record, edge}, [:full_name])
+      %{full_name: "Gooney George"}
+      iex> Flop.Cursor.get_cursor_from_node(record, [:full_name])
+      %{full_name: "Gooney George"}
   """
   @doc since: "0.11.0"
   @spec get_cursor_from_node({map, map} | map, [atom]) :: map
-  def get_cursor_from_node({%{} = node_map, _}, order_by) do
-    Map.take(node_map, order_by)
+  def get_cursor_from_node({%{} = item, _}, order_by) do
+    Enum.into(order_by, %{}, fn field ->
+      {field, Flop.Schema.get_field(item, field)}
+    end)
   end
 
   def get_cursor_from_node(%{} = item, order_by) do
-    Map.take(item, order_by)
+    Enum.into(order_by, %{}, fn field ->
+      {field, Flop.Schema.get_field(item, field)}
+    end)
   end
 
   @doc false

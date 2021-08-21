@@ -17,7 +17,7 @@ defmodule Flop.Pet do
       :pet_and_owner_name,
       :species
     ],
-    sortable: [:name, :age],
+    sortable: [:name, :age, :owner_name, :owner_age],
     max_limit: 1000,
     compound_fields: [
       full_name: [:family_name, :given_name],

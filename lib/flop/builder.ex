@@ -7,6 +7,8 @@ defmodule Flop.Builder do
   alias Flop.Filter
   alias Flop.Misc
 
+  require Logger
+
   def filter(_, %Filter{field: nil}, c), do: c
 
   def filter(_, %Filter{op: op, value: nil}, c)
@@ -125,6 +127,10 @@ defmodule Flop.Builder do
     # value = value |> String.split() |> Enum.join(" ")
     # filter = %{filter | value: value}
     # compare value with concatenated fields
+    Logger.warn(
+      "Flop: Operator '#{op}' not supported for compound fields. Ignored."
+    )
+
     c
   end
 

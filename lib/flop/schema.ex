@@ -46,7 +46,7 @@ defprotocol Flop.Schema do
       iex> changeset.errors
       [
         order_by: {"has an invalid entry",
-         [validation: :subset, enum: [:name, :age]]}
+         [validation: :subset, enum: [:name, :age, :owner_name, :owner_age]]}
       ]
 
   ## Default and maximum limits
@@ -104,12 +104,14 @@ defprotocol Flop.Schema do
       @derive {
         Flop.Schema,
         filterable: [:full_name],
-        sortable: [],
+        sortable: [:full_name],
         compound_fields: [full_name: [:family_name, :given_name]]
       }
 
   This allows you to use the field name `:full_name` as any other field in the
-  filters.
+  filter and order parameters.
+
+  ### Filtering
 
       params = %{
         filters: [%{
@@ -153,12 +155,22 @@ defprotocol Flop.Schema do
     joined with a space again. **This will be added in a future version. These
     filter operators are ignored for compound fields at the moment.**
 
+  ### Sorting
+
+      params = %{
+        order_by: [:full_name],
+        order_directions: [:desc]
+      }
+
+  This would translate to:
+
+      ORDER BY family_name DESC, given_name DESC
+
+  Note that compound fields cannot be used as pagination cursors.
+
   ## Join fields
 
   If you need filter or order across tables, you can define join fields.
-
-  **Note: Support for ordering by join fields will be added in a future
-  version.**
 
   As an example, let's define these schemas:
 
@@ -189,7 +201,9 @@ defprotocol Flop.Schema do
 
   In this case, `:pet_species` would be the alias of the field that you can
   refer to in the filter and order parameters. In `{:pets, :species}`, `:pets`
-  refers to a named binding and `:species` refers to a field in that binding.
+  refers to the field name for the association as set with `:has_one`,
+  `:has_many` or `:belongs_to`. The binding name used for the join in the query
+  must match the field name. `:species` refers to a field on the association.
 
   After setting up the join fields, you can write a query like this:
 
@@ -241,6 +255,38 @@ defprotocol Flop.Schema do
   @spec filterable(any) :: [atom]
   def filterable(data)
 
+  @doc false
+  @spec apply_order_by(any, Ecto.Query.t(), keyword) :: Ecto.Query.t()
+  def apply_order_by(data, q, expr)
+
+  @doc false
+  @spec cursor_dynamic(any, keyword, map) :: Ecto.Query.t()
+  def cursor_dynamic(data, order, cursor_map)
+
+  @doc """
+  Gets the field value from a struct.
+
+  Resolves join fields and compound fields according to the config.
+
+      # join_fields: [owner_name: {:owner, :name}]
+      iex> pet = %Flop.Pet{name: "George", owner: %Flop.Owner{name: "Carl"}}
+      iex> Flop.Schema.get_field(pet, :name)
+      "George"
+      iex> Flop.Schema.get_field(pet, :owner_name)
+      "Carl"
+
+      # compound_fields: [full_name: [:family_name, :given_name]]
+      iex> pet = %Flop.Pet{given_name: "George", family_name: "Gooney"}
+      iex> Flop.Schema.get_field(pet, :full_name)
+      "Gooney George"
+
+  For join fields, this function relies on the binding name in the schema config
+  matching the field name for the association in the struct.
+  """
+  @doc since: "0.13.0"
+  @spec get_field(any, atom) :: any
+  def get_field(data, field)
+
   @doc """
   Returns the allowed pagination types of a schema.
 
@@ -255,7 +301,7 @@ defprotocol Flop.Schema do
   Returns the sortable fields of a schema.
 
       iex> Flop.Schema.sortable(%Flop.Pet{})
-      [:name, :age]
+      [:name, :age, :owner_name, :owner_age]
   """
   @spec sortable(any) :: [atom]
   def sortable(data)
@@ -314,6 +360,7 @@ defimpl Flop.Schema, for: Any do
       end
 
   """
+  # credo:disable-for-next-line
   defmacro __deriving__(module, _struct, options) do
     filterable_fields = Keyword.get(options, :filterable)
     sortable_fields = Keyword.get(options, :sortable)
@@ -334,9 +381,21 @@ defimpl Flop.Schema, for: Any do
     join_fields = Keyword.get(options, :join_fields, [])
 
     field_type_func = build_field_type_func(compound_fields, join_fields)
+    order_by_func = build_order_by_func(compound_fields, join_fields)
+    get_field_func = build_get_field_func(compound_fields, join_fields)
+
+    cursor_dynamic_func_compound =
+      build_cursor_dynamic_func_compound(compound_fields)
+
+    cursor_dynamic_func_join = build_cursor_dynamic_func_join(join_fields)
+    cursor_dynamic_func_normal = build_cursor_dynamic_func_normal()
 
     quote do
       defimpl Flop.Schema, for: unquote(module) do
+        import Ecto.Query
+
+        require Logger
+
         def default_limit(_) do
           unquote(default_limit)
         end
@@ -346,6 +405,8 @@ defimpl Flop.Schema, for: Any do
         end
 
         unquote(field_type_func)
+        unquote(order_by_func)
+        unquote(get_field_func)
 
         def filterable(_) do
           unquote(filterable_fields)
@@ -362,6 +423,11 @@ defimpl Flop.Schema, for: Any do
         def sortable(_) do
           unquote(sortable_fields)
         end
+
+        def cursor_dynamic(_, [], _), do: true
+        unquote(cursor_dynamic_func_compound)
+        unquote(cursor_dynamic_func_join)
+        unquote(cursor_dynamic_func_normal)
       end
     end
   end
@@ -395,52 +461,264 @@ defimpl Flop.Schema, for: Any do
     [compound_field_funcs, join_field_funcs, default_funcs]
   end
 
-  def default_limit(struct) do
+  def build_cursor_dynamic_func_compound(compound_fields) do
+    for {compound_field, _fields} <- compound_fields do
+      quote do
+        def cursor_dynamic(_, [{_, unquote(compound_field)}], _) do
+          Logger.warn(
+            "Flop: Cursor pagination is not supported for compound fields. Ignored."
+          )
+
+          true
+        end
+
+        def cursor_dynamic(
+              struct,
+              [{_, unquote(compound_field)} | tail],
+              cursor
+            ) do
+          Logger.warn(
+            "Flop: Cursor pagination is not supported for compound fields. Ignored."
+          )
+
+          cursor_dynamic(struct, tail, cursor)
+        end
+      end
+    end
+  end
+
+  # credo:disable-for-next-line
+  def build_cursor_dynamic_func_join(join_fields) do
+    for {join_field, {binding, field}} <- join_fields do
+      bindings = Code.string_to_quoted!("[#{binding}: r]")
+
+      quote do
+        def cursor_dynamic(_, [{direction, unquote(join_field)}], cursor)
+            when direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
+          field_cursor = cursor[unquote(join_field)]
+
+          if is_nil(field_cursor) do
+            true
+          else
+            dynamic(
+              unquote(bindings),
+              field(r, unquote(field)) > ^field_cursor
+            )
+          end
+        end
+
+        def cursor_dynamic(_, [{direction, unquote(join_field)}], cursor)
+            when direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
+          field_cursor = cursor[unquote(join_field)]
+
+          if is_nil(field_cursor) do
+            true
+          else
+            dynamic(
+              unquote(bindings),
+              field(r, unquote(field)) < ^field_cursor
+            )
+          end
+        end
+
+        def cursor_dynamic(
+              struct,
+              [{direction, unquote(join_field) = jf} | [{_, _} | _] = tail],
+              cursor
+            ) do
+          field_cursor = cursor[unquote(join_field)]
+
+          if is_nil(field_cursor) do
+            cursor_dynamic(struct, tail, cursor)
+          else
+            case direction do
+              dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
+                dynamic(
+                  unquote(bindings),
+                  field(r, unquote(field)) >= ^field_cursor and
+                    (field(r, unquote(field)) > ^field_cursor or
+                       ^cursor_dynamic(struct, tail, cursor))
+                )
+
+              dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
+                dynamic(
+                  unquote(bindings),
+                  field(r, unquote(field)) <= ^field_cursor and
+                    (field(r, unquote(field)) < ^field_cursor or
+                       ^cursor_dynamic(struct, tail, cursor))
+                )
+            end
+          end
+        end
+      end
+    end
+  end
+
+  # credo:disable-for-next-line
+  def build_cursor_dynamic_func_normal do
+    quote do
+      def cursor_dynamic(_, [{direction, field}], cursor) do
+        field_cursor = cursor[field]
+
+        if is_nil(field_cursor) do
+          true
+        else
+          case direction do
+            dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
+              dynamic([r], field(r, ^field) > ^cursor[field])
+
+            dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
+              dynamic([r], field(r, ^field) < ^cursor[field])
+          end
+        end
+      end
+
+      def cursor_dynamic(
+            struct,
+            [{direction, field} | [{_, _} | _] = tail],
+            cursor
+          ) do
+        field_cursor = cursor[field]
+
+        if is_nil(field_cursor) do
+          cursor_dynamic(struct, tail, cursor)
+        else
+          case direction do
+            dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
+              dynamic(
+                [r],
+                field(r, ^field) >= ^field_cursor and
+                  (field(r, ^field) > ^field_cursor or
+                     ^cursor_dynamic(struct, tail, cursor))
+              )
+
+            dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
+              dynamic(
+                [r],
+                field(r, ^field) <= ^field_cursor and
+                  (field(r, ^field) < ^field_cursor or
+                     ^cursor_dynamic(struct, tail, cursor))
+              )
+          end
+        end
+      end
+    end
+  end
+
+  def build_order_by_func(compound_fields, join_fields) do
+    compound_field_funcs =
+      for {name, fields} <- compound_fields do
+        quote do
+          def apply_order_by(struct, q, {direction, unquote(name)}) do
+            Enum.reduce(unquote(fields), q, fn field, acc_q ->
+              apply_order_by(struct, acc_q, field)
+            end)
+          end
+        end
+      end
+
+    join_field_funcs =
+      for {join_field, {binding, field}} <- join_fields do
+        bindings = Code.string_to_quoted!("[#{binding}: r]")
+
+        quote do
+          def apply_order_by(_struct, q, {direction, unquote(join_field)}) do
+            order_by(
+              q,
+              unquote(bindings),
+              [{^direction, field(r, unquote(field))}]
+            )
+          end
+        end
+      end
+
+    normal_field_func =
+      quote do
+        def apply_order_by(_struct, q, direction) do
+          order_by(q, ^direction)
+        end
+      end
+
+    [compound_field_funcs, join_field_funcs, normal_field_func]
+  end
+
+  def build_get_field_func(compound_fields, join_fields) do
+    compound_field_funcs =
+      for {name, fields} <- compound_fields do
+        quote do
+          def get_field(struct, unquote(name)) do
+            unquote(fields)
+            |> Enum.map(&get_field(struct, &1))
+            |> Enum.join(" ")
+          end
+        end
+      end
+
+    join_field_funcs =
+      for {name, {assoc_field, field}} <- join_fields do
+        quote do
+          def get_field(struct, unquote(name)) do
+            assoc = Map.get(struct, unquote(assoc_field)) || %{}
+            Map.get(assoc, unquote(field))
+          end
+        end
+      end
+
+    fallback_func =
+      quote do
+        def get_field(struct, field), do: Map.get(struct, field)
+      end
+
+    [compound_field_funcs, join_field_funcs, fallback_func]
+  end
+
+  function_names = [
+    :default_limit,
+    :default_order,
+    :filterable,
+    :max_limit,
+    :pagination_types,
+    :sortable
+  ]
+
+  for function_name <- function_names do
+    def unquote(function_name)(struct) do
+      raise Protocol.UndefinedError,
+        protocol: @protocol,
+        value: struct,
+        description: @instructions
+    end
+  end
+
+  def field_type(struct, _) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,
       description: @instructions
   end
 
-  def default_order(struct) do
+  def apply_order_by(struct, _, _) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,
       description: @instructions
   end
 
-  def field_type(struct, _field) do
+  def cursor_dynamic(struct, _, _) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,
       description: @instructions
   end
 
-  def filterable(struct) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
+  # add default implementation for maps, so that cursor value functions can use
+  # it without checking protocol implementation
+  def get_field(%{} = map, field), do: Map.get(map, field)
 
-  def max_limit(struct) do
+  def get_field(thing, _) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
-
-  def pagination_types(struct) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
-
-  def sortable(struct) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
+      value: thing,
       description: @instructions
   end
 end

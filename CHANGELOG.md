@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Added
+
+- Support ordering by join fields.
+- Support ordering by compound fields.
+- Support join fields as cursor fields.
+- New function `Flop.Schema.get_field/2`.
+- `Flop.Cursor.get_cursor_from_edge/2` and `Flop.Cursor.get_cursor_from_node/2`
+  can get cursor values from join and compound fields now.
+
+### Changed
+
+- To allow Flop to get the join field value from a struct, for example when
+  generating the pagination cursor, it is now required that the binding name of
+  the join matches the name of the association field in the schema.
+
+### Fixed
+
+- Cursor pagination failed when one of the cursor field values was `nil`.
+
 ## [0.12.0] - 2021-08-11
 
 ### Added
