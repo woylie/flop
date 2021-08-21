@@ -12,9 +12,8 @@
 ### Changed
 
 - To allow Flop to get the join field value from a struct, for example when
-  generating the pagination cursor, it is now required that the join field name
-  matches the association field in the struct and the join binding name in the
-  query.
+  generating the pagination cursor, it is now required that the binding name of
+  the join matches the name of the association field in the schema.
 
 ## [0.12.0] - 2021-08-11
 
