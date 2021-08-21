@@ -362,7 +362,7 @@ defimpl Flop.Schema, for: Any do
     join_fields = Keyword.get(options, :join_fields, [])
 
     field_type_func = build_field_type_func(compound_fields, join_fields)
-    dynamic_func = build_dynamic_func(join_fields)
+    dynamic_func = build_order_by_func(join_fields)
     get_field_func = build_get_field_func(compound_fields, join_fields)
 
     quote do
@@ -429,7 +429,7 @@ defimpl Flop.Schema, for: Any do
     [compound_field_funcs, join_field_funcs, default_funcs]
   end
 
-  def build_dynamic_func(join_fields) do
+  def build_order_by_func(join_fields) do
     join_field_funcs =
       for {join_field, {binding, field}} <- join_fields do
         bindings = Code.string_to_quoted!("[#{binding}: r]")
