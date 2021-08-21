@@ -785,7 +785,7 @@ defmodule Flop do
         struct = struct(module)
 
         Enum.reduce(reversed_order, q, fn expr, acc_q ->
-          Flop.Schema.dynamic_order_by(struct, acc_q, expr)
+          Flop.Schema.apply_order_by(struct, acc_q, expr)
         end)
     end
   end
@@ -805,7 +805,7 @@ defmodule Flop do
         fields
         |> prepare_order(directions)
         |> Enum.reduce(q, fn expr, acc_q ->
-          Flop.Schema.dynamic_order_by(struct, acc_q, expr)
+          Flop.Schema.apply_order_by(struct, acc_q, expr)
         end)
     end
   end

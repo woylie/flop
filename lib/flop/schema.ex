@@ -242,8 +242,8 @@ defprotocol Flop.Schema do
 
   @doc false
   @doc since: "0.13.0"
-  @spec dynamic_order_by(any, Ecto.Query.t(), keyword) :: Ecto.Query.t()
-  def dynamic_order_by(data, q, expr)
+  @spec apply_order_by(any, Ecto.Query.t(), keyword) :: Ecto.Query.t()
+  def apply_order_by(data, q, expr)
 
   @doc """
   Gets the field value from a struct.
@@ -435,7 +435,7 @@ defimpl Flop.Schema, for: Any do
         bindings = Code.string_to_quoted!("[#{binding}: r]")
 
         quote do
-          def dynamic_order_by(_struct, q, {direction, unquote(join_field)}) do
+          def apply_order_by(_struct, q, {direction, unquote(join_field)}) do
             order_by(
               q,
               unquote(bindings),
@@ -447,7 +447,7 @@ defimpl Flop.Schema, for: Any do
 
     normal_field_func =
       quote do
-        def dynamic_order_by(_struct, q, direction) do
+        def apply_order_by(_struct, q, direction) do
           order_by(q, ^direction)
         end
       end
@@ -510,7 +510,7 @@ defimpl Flop.Schema, for: Any do
       description: @instructions
   end
 
-  def dynamic_order_by(struct, _, _) do
+  def apply_order_by(struct, _, _) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,
