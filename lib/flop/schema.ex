@@ -157,9 +157,6 @@ defprotocol Flop.Schema do
 
   If you need filter or order across tables, you can define join fields.
 
-  **Note: Support for ordering by join fields will be added in a future
-  version.**
-
   As an example, let's define these schemas:
 
       schema "owners" do
@@ -474,9 +471,8 @@ defimpl Flop.Schema, for: Any do
       for {name, {assoc_field, field}} <- join_fields do
         quote do
           def get_field(struct, unquote(name)) do
-            struct
-            |> Map.get(unquote(assoc_field), %{})
-            |> Map.get(unquote(field))
+            assoc = Map.get(struct, unquote(assoc_field)) || %{}
+            Map.get(assoc, unquote(field))
           end
         end
       end
