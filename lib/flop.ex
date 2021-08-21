@@ -424,7 +424,7 @@ defmodule Flop do
     q
     |> filter(flop, opts)
     |> order_by(flop, opts)
-    |> paginate(flop)
+    |> paginate(flop, opts)
   end
 
   @doc """
@@ -843,8 +843,10 @@ defmodule Flop do
 
   Used by `Flop.query/2`.
   """
-  @spec paginate(Queryable.t(), Flop.t()) :: Queryable.t()
-  def paginate(q, %Flop{limit: limit, offset: offset})
+  @spec paginate(Queryable.t(), Flop.t(), keyword) :: Queryable.t()
+  def paginate(q, flop, opts \\ [])
+
+  def paginate(q, %Flop{limit: limit, offset: offset}, _)
       when (is_integer(limit) and limit >= 1) or
              (is_integer(offset) and offset >= 0) do
     q
@@ -852,7 +854,7 @@ defmodule Flop do
     |> offset(offset)
   end
 
-  def paginate(q, %Flop{page: page, page_size: page_size})
+  def paginate(q, %Flop{page: page, page_size: page_size}, _)
       when is_integer(page) and is_integer(page_size) and
              page >= 1 and page_size >= 1 do
     q
@@ -860,13 +862,17 @@ defmodule Flop do
     |> offset((page - 1) * page_size)
   end
 
-  def paginate(q, %Flop{
-        first: first,
-        after: nil,
-        before: nil,
-        last: nil,
-        limit: nil
-      })
+  def paginate(
+        q,
+        %Flop{
+          first: first,
+          after: nil,
+          before: nil,
+          last: nil,
+          limit: nil
+        },
+        _
+      )
       when is_integer(first),
       do: limit(q, first + 1)
 
@@ -880,13 +886,14 @@ defmodule Flop do
           before: nil,
           last: nil,
           limit: nil
-        }
+        },
+        opts
       )
       when is_integer(first) do
     orderings = prepare_order(order_by, order_directions)
 
     q
-    |> apply_cursor(after_, orderings)
+    |> apply_cursor(after_, orderings, opts)
     |> limit(first + 1)
   end
 
@@ -900,7 +907,8 @@ defmodule Flop do
           first: nil,
           after: nil,
           limit: nil
-        }
+        },
+        opts
       )
       when is_integer(last) do
     prepared_order_reversed =
@@ -909,11 +917,11 @@ defmodule Flop do
       |> reverse_ordering()
 
     q
-    |> apply_cursor(before, prepared_order_reversed)
+    |> apply_cursor(before, prepared_order_reversed, opts)
     |> limit(last + 1)
   end
 
-  def paginate(q, _), do: q
+  def paginate(q, _, _), do: q
 
   ## Offset/limit pagination
 
@@ -927,13 +935,28 @@ defmodule Flop do
 
   ## Cursor pagination helpers
 
-  @spec apply_cursor(Queryable.t(), map() | nil, [order_direction()]) ::
-          Queryable.t()
-  defp apply_cursor(q, nil, _), do: q
+  @spec apply_cursor(
+          Queryable.t(),
+          map() | nil,
+          [order_direction()],
+          keyword
+        ) :: Queryable.t()
+  defp apply_cursor(q, nil, _, _), do: q
 
-  defp apply_cursor(q, cursor, ordering) do
+  defp apply_cursor(q, cursor, ordering, opts) do
     cursor = Cursor.decode!(cursor)
-    where_dynamic = cursor_dynamic(ordering, cursor)
+
+    where_dynamic =
+      case opts[:for] do
+        nil ->
+          cursor_dynamic(ordering, cursor)
+
+        module ->
+          module
+          |> struct()
+          |> Flop.Schema.cursor_dynamic(ordering, cursor)
+      end
+
     Query.where(q, ^where_dynamic)
   end
 

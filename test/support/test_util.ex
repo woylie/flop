@@ -123,16 +123,28 @@ defmodule Flop.TestUtil do
   end
 
   @doc """
-  Queries all pets using `Flop.all`. Preloads the owners and sorts by Pet ID.
+  Query that returns all pets with owners joined and preloaded.
   """
-  def query_pets_with_owners(params) do
-    flop = Flop.validate!(params, for: Pet)
-
+  def pets_with_owners_query do
     Pet
     |> join(:left, [p], o in assoc(p, :owner), as: :owner)
     |> preload(:owner)
-    |> order_by([p], p.id)
-    |> Flop.all(flop, for: Pet)
+  end
+
+  @doc """
+  Queries all pets using `Flop.all`. Preloads the owners and sorts by Pet ID.
+  """
+  def query_pets_with_owners(params, opts \\ []) do
+    flop = Flop.validate!(params, for: Pet)
+    sort? = opts[:sort] || true
+
+    q =
+      Pet
+      |> join(:left, [p], o in assoc(p, :owner), as: :owner)
+      |> preload(:owner)
+
+    q = if sort?, do: order_by(q, [p], p.id), else: q
+    Flop.all(q, flop, for: Pet)
   end
 
   @doc """

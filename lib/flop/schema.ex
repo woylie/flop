@@ -241,9 +241,12 @@ defprotocol Flop.Schema do
   def filterable(data)
 
   @doc false
-  @doc since: "0.13.0"
   @spec apply_order_by(any, Ecto.Query.t(), keyword) :: Ecto.Query.t()
   def apply_order_by(data, q, expr)
+
+  @doc false
+  @spec cursor_dynamic(any, keyword, map) :: Ecto.Query.t()
+  def cursor_dynamic(data, order, cursor_map)
 
   @doc """
   Gets the field value from a struct.
@@ -365,6 +368,9 @@ defimpl Flop.Schema, for: Any do
     order_by_func = build_order_by_func(compound_fields, join_fields)
     get_field_func = build_get_field_func(compound_fields, join_fields)
 
+    cursor_dynamic_func =
+      build_cursor_dynamic_func(compound_fields, join_fields)
+
     quote do
       defimpl Flop.Schema, for: unquote(module) do
         import Ecto.Query
@@ -380,6 +386,7 @@ defimpl Flop.Schema, for: Any do
         unquote(field_type_func)
         unquote(order_by_func)
         unquote(get_field_func)
+        unquote(cursor_dynamic_func)
 
         def filterable(_) do
           unquote(filterable_fields)
@@ -427,6 +434,129 @@ defimpl Flop.Schema, for: Any do
       end
 
     [compound_field_funcs, join_field_funcs, default_funcs]
+  end
+
+  def build_cursor_dynamic_func(_compound_fields, join_fields) do
+    empty_func =
+      quote do
+        def cursor_dynamic(_, [], _), do: nil
+      end
+
+    join_field_funcs =
+      for {join_field, {binding, field}} <- join_fields do
+        bindings = Code.string_to_quoted!("[#{binding}: r]")
+
+        quote do
+          def cursor_dynamic(_, [{direction, unquote(join_field)}], cursor)
+              when direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
+            field_cursor = cursor[unquote(join_field)]
+
+            if is_nil(field_cursor) do
+              true
+            else
+              dynamic(
+                unquote(bindings),
+                field(r, unquote(field)) > ^field_cursor
+              )
+            end
+          end
+
+          def cursor_dynamic(_, [{direction, unquote(join_field)}], cursor)
+              when direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
+            field_cursor = cursor[unquote(join_field)]
+
+            if is_nil(field_cursor) do
+              true
+            else
+              dynamic(
+                unquote(bindings),
+                field(r, unquote(field)) < ^field_cursor
+              )
+            end
+          end
+
+          def cursor_dynamic(
+                struct,
+                [{direction, unquote(join_field) = jf} | [{_, _} | _] = tail],
+                cursor
+              ) do
+            field_cursor = cursor[unquote(join_field)]
+
+            if is_nil(field_cursor) do
+              cursor_dynamic(struct, tail, cursor)
+            else
+              case direction do
+                dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
+                  dynamic(
+                    unquote(bindings),
+                    field(r, unquote(field)) >= ^field_cursor and
+                      (field(r, unquote(field)) > ^field_cursor or
+                         ^cursor_dynamic(struct, tail, cursor))
+                  )
+
+                dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
+                  dynamic(
+                    unquote(bindings),
+                    field(r, unquote(field)) <= ^field_cursor and
+                      (field(r, unquote(field)) < ^field_cursor or
+                         ^cursor_dynamic(struct, tail, cursor))
+                  )
+              end
+            end
+          end
+        end
+      end
+
+    normal_field_func =
+      quote do
+        def cursor_dynamic(_, [{direction, field}], cursor) do
+          field_cursor = cursor[field]
+
+          if is_nil(field_cursor) do
+            true
+          else
+            case direction do
+              dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
+                dynamic([r], field(r, ^field) > ^cursor[field])
+
+              dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
+                dynamic([r], field(r, ^field) < ^cursor[field])
+            end
+          end
+        end
+
+        def cursor_dynamic(
+              struct,
+              [{direction, field} | [{_, _} | _] = tail],
+              cursor
+            ) do
+          field_cursor = cursor[field]
+
+          if is_nil(field_cursor) do
+            cursor_dynamic(struct, tail, cursor)
+          else
+            case direction do
+              dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
+                dynamic(
+                  [r],
+                  field(r, ^field) >= ^field_cursor and
+                    (field(r, ^field) > ^field_cursor or
+                       ^cursor_dynamic(struct, tail, cursor))
+                )
+
+              dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
+                dynamic(
+                  [r],
+                  field(r, ^field) <= ^field_cursor and
+                    (field(r, ^field) < ^field_cursor or
+                       ^cursor_dynamic(struct, tail, cursor))
+                )
+            end
+          end
+        end
+      end
+
+    [empty_func, join_field_funcs, normal_field_func]
   end
 
   def build_order_by_func(compound_fields, join_fields) do
@@ -522,6 +652,13 @@ defimpl Flop.Schema, for: Any do
   end
 
   def apply_order_by(struct, _, _) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol,
+      value: struct,
+      description: @instructions
+  end
+
+  def cursor_dynamic(struct, _, _) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,

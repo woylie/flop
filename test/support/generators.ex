@@ -46,12 +46,34 @@ defmodule Flop.Generators do
 
     gen all length <- integer(length_range),
             names <- uniq_list_of_strings(length),
+            family_names <- uniq_list_of_strings(length),
+            given_names <- uniq_list_of_strings(length),
+            owners <- uniq_list_of_owners(length),
             ages <- uniq_list_of(integer(1..500), length: length),
             species <- uniq_list_of_strings(length) do
-      [names, ages, species]
+      [names, ages, species, family_names, given_names, owners]
       |> Enum.zip()
-      |> Enum.map(fn {name, age, species} ->
-        %{name: name, age: age, species: species}
+      |> Enum.map(fn {name, age, species, family_name, given_name, owner} ->
+        %Flop.Pet{
+          name: name,
+          age: age,
+          species: species,
+          family_name: family_name,
+          given_name: given_name,
+          owner: owner
+        }
+      end)
+    end
+  end
+
+  def uniq_list_of_owners(len) do
+    gen all names <- uniq_list_of_strings(len),
+            ages <- uniq_list_of(integer(1..500), length: len),
+            emails <- uniq_list_of_strings(len) do
+      [names, ages, emails]
+      |> Enum.zip()
+      |> Enum.map(fn {name, age, email} ->
+        %Flop.Owner{name: name, age: age, email: email}
       end)
     end
   end

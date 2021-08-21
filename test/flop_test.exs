@@ -655,21 +655,28 @@ defmodule FlopTest do
         checkin_checkout()
 
         # insert pets into DB, retrieve them so we have the IDs
-        pet_count = length(pets)
-        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
-        order_by = Enum.zip(directions, cursor_fields)
-        pets = Pet |> order_by(^order_by) |> Repo.all()
-        assert length(pets) == pet_count
+        Enum.each(pets, &Repo.insert!(&1))
+
+        pets =
+          Flop.all(
+            pets_with_owners_query(),
+            %Flop{order_by: cursor_fields, order_directions: directions},
+            for: Pet
+          )
 
         # retrieve first cursor, ensure returned pet matches first one in list
         [first_pet | remaining_pets] = pets
 
         {:ok, {[returned_pet], %Meta{end_cursor: cursor}}} =
-          Flop.validate_and_run(Pet, %Flop{
-            first: 1,
-            order_by: cursor_fields,
-            order_directions: directions
-          })
+          Flop.validate_and_run(
+            pets_with_owners_query(),
+            %Flop{
+              first: 1,
+              order_by: cursor_fields,
+              order_directions: directions
+            },
+            for: Pet
+          )
 
         assert returned_pet == first_pet
 
@@ -680,12 +687,16 @@ defmodule FlopTest do
             {[first_pet], cursor},
             fn _current_pet, {pet_list, cursor} ->
               assert {:ok, {[returned_pet], %Meta{end_cursor: new_cursor}}} =
-                       Flop.validate_and_run(Pet, %Flop{
-                         first: 1,
-                         after: cursor,
-                         order_by: cursor_fields,
-                         order_directions: directions
-                       })
+                       Flop.validate_and_run(
+                         pets_with_owners_query(),
+                         %Flop{
+                           first: 1,
+                           after: cursor,
+                           order_by: cursor_fields,
+                           order_directions: directions
+                         },
+                         for: Pet
+                       )
 
               {[returned_pet | pet_list], new_cursor}
             end
@@ -693,16 +704,21 @@ defmodule FlopTest do
 
         # ensure the accumulated list matches the manually sorted list
         returned_pets = Enum.reverse(reversed_returned_pets)
+
         assert returned_pets == pets
 
         # ensure nothing comes after the last cursor
         assert {:ok, {[], %Meta{end_cursor: nil}}} =
-                 Flop.validate_and_run(Pet, %Flop{
-                   first: 1,
-                   after: last_cursor,
-                   order_by: cursor_fields,
-                   order_directions: directions
-                 })
+                 Flop.validate_and_run(
+                   pets_with_owners_query(),
+                   %Flop{
+                     first: 1,
+                     after: last_cursor,
+                     order_by: cursor_fields,
+                     order_directions: directions
+                   },
+                   for: Pet
+                 )
       end
     end
 
@@ -711,23 +727,30 @@ defmodule FlopTest do
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
         checkin_checkout()
-
+        Enum.each(pets, &Repo.insert!(&1))
         pet_count = length(pets)
-        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
 
         {:ok, {with_first, _meta}} =
-          Flop.validate_and_run(Pet, %Flop{
-            first: pet_count,
-            order_by: cursor_fields,
-            order_directions: directions
-          })
+          Flop.validate_and_run(
+            pets_with_owners_query(),
+            %Flop{
+              first: pet_count,
+              order_by: cursor_fields,
+              order_directions: directions
+            },
+            for: Pet
+          )
 
         {:ok, {with_last, _meta}} =
-          Flop.validate_and_run(Pet, %Flop{
-            last: pet_count,
-            order_by: cursor_fields,
-            order_directions: directions
-          })
+          Flop.validate_and_run(
+            pets_with_owners_query(),
+            %Flop{
+              last: pet_count,
+              order_by: cursor_fields,
+              order_directions: directions
+            },
+            for: Pet
+          )
 
         assert with_first == with_last
       end
@@ -740,22 +763,30 @@ defmodule FlopTest do
         checkin_checkout()
 
         # insert pets into DB, retrieve them so we have the IDs
-        pet_count = length(pets)
-        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
-        order_by = Enum.zip(directions, cursor_fields)
-        pets = Pet |> order_by(^order_by) |> Repo.all()
-        assert length(pets) == pet_count
+        Enum.each(pets, &Repo.insert!(&1))
+
+        pets =
+          Flop.all(
+            pets_with_owners_query(),
+            %Flop{order_by: cursor_fields, order_directions: directions},
+            for: Pet
+          )
+
         pets = Enum.reverse(pets)
 
         # retrieve last cursor, ensure returned pet matches last one in list
         [last_pet | remaining_pets] = pets
 
         {:ok, {[returned_pet], %Meta{end_cursor: cursor}}} =
-          Flop.validate_and_run(Pet, %Flop{
-            last: 1,
-            order_by: cursor_fields,
-            order_directions: directions
-          })
+          Flop.validate_and_run(
+            pets_with_owners_query(),
+            %Flop{
+              last: 1,
+              order_by: cursor_fields,
+              order_directions: directions
+            },
+            for: Pet
+          )
 
         assert returned_pet == last_pet
 
@@ -766,12 +797,16 @@ defmodule FlopTest do
             {[last_pet], cursor},
             fn _current_pet, {pet_list, cursor} ->
               assert {:ok, {[returned_pet], %Meta{end_cursor: new_cursor}}} =
-                       Flop.validate_and_run(Pet, %Flop{
-                         last: 1,
-                         before: cursor,
-                         order_by: cursor_fields,
-                         order_directions: directions
-                       })
+                       Flop.validate_and_run(
+                         pets_with_owners_query(),
+                         %Flop{
+                           last: 1,
+                           before: cursor,
+                           order_by: cursor_fields,
+                           order_directions: directions
+                         },
+                         for: Pet
+                       )
 
               {[returned_pet | pet_list], new_cursor}
             end
@@ -783,12 +818,16 @@ defmodule FlopTest do
 
         # ensure nothing comes after the last cursor
         assert {:ok, {[], %Meta{end_cursor: nil}}} =
-                 Flop.validate_and_run(Pet, %Flop{
-                   last: 1,
-                   before: last_cursor,
-                   order_by: cursor_fields,
-                   order_directions: directions
-                 })
+                 Flop.validate_and_run(
+                   pets_with_owners_query(),
+                   %Flop{
+                     last: 1,
+                     before: last_cursor,
+                     order_by: cursor_fields,
+                     order_directions: directions
+                   },
+                   for: Pet
+                 )
       end
     end
 
@@ -798,16 +837,18 @@ defmodule FlopTest do
                 directions <- order_directions(%Pet{}),
                 first <- integer(1..(length(pets) + 1)) do
         checkin_checkout()
-
-        pet_count = length(pets)
-        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
+        Enum.each(pets, &Repo.insert!(&1))
 
         assert {_, %Meta{has_previous_page?: false}} =
-                 Flop.validate_and_run!(Pet, %Flop{
-                   first: first,
-                   order_by: cursor_fields,
-                   order_directions: directions
-                 })
+                 Flop.validate_and_run!(
+                   pets_with_owners_query(),
+                   %Flop{
+                     first: first,
+                     order_by: cursor_fields,
+                     order_directions: directions
+                   },
+                   for: Pet
+                 )
       end
     end
 
@@ -818,22 +859,26 @@ defmodule FlopTest do
                 first <- integer(1..(length(pets) + 1)),
                 cursor_pet <- member_of(pets) do
         checkin_checkout()
-
-        pet_count = length(pets)
-        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
+        Enum.each(pets, &Repo.insert!(&1))
 
         cursor =
           cursor_fields
-          |> Enum.into(%{}, fn field -> {field, Map.get(cursor_pet, field)} end)
+          |> Enum.into(%{}, fn field ->
+            {field, Pet.get_field(cursor_pet, field)}
+          end)
           |> Flop.Cursor.encode()
 
         assert {_, %Meta{has_previous_page?: false}} =
-                 Flop.validate_and_run!(Pet, %Flop{
-                   first: first,
-                   after: cursor,
-                   order_by: cursor_fields,
-                   order_directions: directions
-                 })
+                 Flop.validate_and_run!(
+                   pets_with_owners_query(),
+                   %Flop{
+                     first: first,
+                     after: cursor,
+                     order_by: cursor_fields,
+                     order_directions: directions
+                   },
+                   for: Pet
+                 )
       end
     end
 
@@ -845,30 +890,35 @@ defmodule FlopTest do
                 last <- integer(1..(pet_count - 2)),
                 cursor_index <- integer((last + 1)..(pet_count - 1)) do
         checkin_checkout()
-
-        # insert pets
-        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
-        order_by = Enum.zip(directions, cursor_fields)
+        Enum.each(pets, &Repo.insert!(&1))
 
         # retrieve ordered pets
-        pets = Pet |> order_by(^order_by) |> Repo.all()
-        assert length(pets) == pet_count
+        pets =
+          Flop.all(
+            pets_with_owners_query(),
+            %Flop{order_by: cursor_fields, order_directions: directions},
+            for: Pet
+          )
 
         # retrieve cursor
         pet = Enum.at(pets, cursor_index)
 
         cursor =
           cursor_fields
-          |> Enum.into(%{}, fn field -> {field, Map.get(pet, field)} end)
+          |> Enum.into(%{}, fn field -> {field, Pet.get_field(pet, field)} end)
           |> Flop.Cursor.encode()
 
         assert {_, %Meta{has_previous_page?: true}} =
-                 Flop.validate_and_run!(Pet, %Flop{
-                   last: last,
-                   before: cursor,
-                   order_by: cursor_fields,
-                   order_directions: directions
-                 })
+                 Flop.validate_and_run!(
+                   pets_with_owners_query(),
+                   %Flop{
+                     last: last,
+                     before: cursor,
+                     order_by: cursor_fields,
+                     order_directions: directions
+                   },
+                   for: Pet
+                 )
       end
     end
 
@@ -883,28 +933,35 @@ defmodule FlopTest do
         checkin_checkout()
 
         # insert pets
-        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
-        order_by = Enum.zip(directions, cursor_fields)
+        Enum.each(pets, &Repo.insert!(&1))
 
         # retrieve ordered pets
-        pets = Pet |> order_by(^order_by) |> Repo.all()
-        assert length(pets) == pet_count
+        pets =
+          Flop.all(
+            pets_with_owners_query(),
+            %Flop{order_by: cursor_fields, order_directions: directions},
+            for: Pet
+          )
 
         # retrieve cursor
         pet = Enum.at(pets, cursor_index)
 
         cursor =
           cursor_fields
-          |> Enum.into(%{}, fn field -> {field, Map.get(pet, field)} end)
+          |> Enum.into(%{}, fn field -> {field, Pet.get_field(pet, field)} end)
           |> Flop.Cursor.encode()
 
         assert {_, %Meta{has_previous_page?: false}} =
-                 Flop.validate_and_run!(Pet, %Flop{
-                   last: last,
-                   before: cursor,
-                   order_by: cursor_fields,
-                   order_directions: directions
-                 })
+                 Flop.validate_and_run!(
+                   pets_with_owners_query(),
+                   %Flop{
+                     last: last,
+                     before: cursor,
+                     order_by: cursor_fields,
+                     order_directions: directions
+                   },
+                   for: Pet
+                 )
       end
     end
 
@@ -914,16 +971,18 @@ defmodule FlopTest do
                 directions <- order_directions(%Pet{}),
                 last <- integer(1..(length(pets) + 1)) do
         checkin_checkout()
-
-        pet_count = length(pets)
-        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
+        Enum.each(pets, &Repo.insert!(&1))
 
         assert {_, %Meta{has_next_page?: false}} =
-                 Flop.validate_and_run!(Pet, %Flop{
-                   last: last,
-                   order_by: cursor_fields,
-                   order_directions: directions
-                 })
+                 Flop.validate_and_run!(
+                   pets_with_owners_query(),
+                   %Flop{
+                     last: last,
+                     order_by: cursor_fields,
+                     order_directions: directions
+                   },
+                   for: Pet
+                 )
       end
     end
 
@@ -934,22 +993,26 @@ defmodule FlopTest do
                 last <- integer(1..(length(pets) + 1)),
                 cursor_pet <- member_of(pets) do
         checkin_checkout()
-
-        pet_count = length(pets)
-        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
+        Enum.each(pets, &Repo.insert!(&1))
 
         cursor =
           cursor_fields
-          |> Enum.into(%{}, fn field -> {field, Map.get(cursor_pet, field)} end)
+          |> Enum.into(%{}, fn field ->
+            {field, Pet.get_field(cursor_pet, field)}
+          end)
           |> Flop.Cursor.encode()
 
         assert {_, %Meta{has_next_page?: false}} =
-                 Flop.validate_and_run!(Pet, %Flop{
-                   last: last,
-                   before: cursor,
-                   order_by: cursor_fields,
-                   order_directions: directions
-                 })
+                 Flop.validate_and_run!(
+                   pets_with_owners_query(),
+                   %Flop{
+                     last: last,
+                     before: cursor,
+                     order_by: cursor_fields,
+                     order_directions: directions
+                   },
+                   for: Pet
+                 )
       end
     end
 
@@ -961,30 +1024,36 @@ defmodule FlopTest do
                 first <- integer(1..(pet_count - 2)),
                 cursor_index <- integer((first + 1)..(pet_count - 1)) do
         checkin_checkout()
-
-        # insert pets
-        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
-        order_by = Enum.zip(directions, cursor_fields)
+        Enum.each(pets, &Repo.insert!(&1))
 
         # retrieve ordered pets
-        pets = Pet |> order_by(^order_by) |> Repo.all() |> Enum.reverse()
-        assert length(pets) == pet_count
+        pets =
+          pets_with_owners_query()
+          |> Flop.all(
+            %Flop{order_by: cursor_fields, order_directions: directions},
+            for: Pet
+          )
+          |> Enum.reverse()
 
         # retrieve cursor
         pet = Enum.at(pets, cursor_index)
 
         cursor =
           cursor_fields
-          |> Enum.into(%{}, fn field -> {field, Map.get(pet, field)} end)
+          |> Enum.into(%{}, fn field -> {field, Pet.get_field(pet, field)} end)
           |> Flop.Cursor.encode()
 
         assert {_, %Meta{has_next_page?: true}} =
-                 Flop.validate_and_run!(Pet, %Flop{
-                   first: first,
-                   after: cursor,
-                   order_by: cursor_fields,
-                   order_directions: directions
-                 })
+                 Flop.validate_and_run!(
+                   pets_with_owners_query(),
+                   %Flop{
+                     first: first,
+                     after: cursor,
+                     order_by: cursor_fields,
+                     order_directions: directions
+                   },
+                   for: Pet
+                 )
       end
     end
 
@@ -998,29 +1067,35 @@ defmodule FlopTest do
                 cursor_index <- integer(0..min(pet_count - 1, first)) do
         checkin_checkout()
 
-        # insert pets
-        assert {^pet_count, _} = Repo.insert_all(Pet, pets)
-        order_by = Enum.zip(directions, cursor_fields)
+        Enum.each(pets, &Repo.insert!(&1))
 
         # retrieve ordered pets
-        pets = Pet |> order_by(^order_by) |> Repo.all() |> Enum.reverse()
-        assert length(pets) == pet_count
+        pets =
+          Flop.all(
+            pets_with_owners_query(),
+            %Flop{order_by: cursor_fields, order_directions: directions},
+            for: Pet
+          )
 
         # retrieve cursor
         pet = Enum.at(pets, cursor_index)
 
         cursor =
           cursor_fields
-          |> Enum.into(%{}, fn field -> {field, Map.get(pet, field)} end)
+          |> Enum.into(%{}, fn field -> {field, Pet.get_field(pet, field)} end)
           |> Flop.Cursor.encode()
 
         assert {_, %Meta{has_previous_page?: false}} =
-                 Flop.validate_and_run!(Pet, %Flop{
-                   first: first,
-                   after: cursor,
-                   order_by: cursor_fields,
-                   order_directions: directions
-                 })
+                 Flop.validate_and_run!(
+                   pets_with_owners_query(),
+                   %{
+                     first: first,
+                     after: cursor,
+                     order_by: cursor_fields,
+                     order_directions: directions
+                   },
+                   for: Pet
+                 )
       end
     end
 
@@ -1055,6 +1130,43 @@ defmodule FlopTest do
           %Flop{first: 2, after: end_cursor, order_by: [:id]},
           cursor_value_func: cursor_value_func
         )
+    end
+
+    @tag :thiss
+    test "nil values for cursors are ignored" do
+      check all pets <- uniq_list_of_pets(length: 2..2),
+                cursor_fields <- cursor_fields(%Pet{}),
+                directions <- order_directions(%Pet{}) do
+        checkin_checkout()
+
+        # set name fields to nil and insert
+        pets
+        |> Enum.map(&Map.update!(&1, :name, fn _ -> nil end))
+        |> Enum.each(&Repo.insert!(&1))
+
+        assert {:ok, {[_], %Meta{end_cursor: end_cursor}}} =
+                 Flop.validate_and_run(
+                   pets_with_owners_query(),
+                   %Flop{
+                     first: 1,
+                     order_by: cursor_fields,
+                     order_directions: directions
+                   },
+                   for: Pet
+                 )
+
+        assert {:ok, _} =
+                 Flop.validate_and_run(
+                   pets_with_owners_query(),
+                   %Flop{
+                     first: 1,
+                     after: end_cursor,
+                     order_by: cursor_fields,
+                     order_directions: directions
+                   },
+                   for: Pet
+                 )
+      end
     end
   end
 
