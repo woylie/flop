@@ -259,8 +259,8 @@ defmodule Flop do
   - `:for` - The schema module to be used for validation. `Flop.Schema` must be
     derived for the given module. This option is optional and can not be set
     globally. If it is not set, schema specific validation will be omitted. Used
-    by the validation functions and passed on by any function calling a
-    validation function.
+    by the validation functions. It is also used to determine which fields are
+    join and compound fields.
   - `:default_limit` - Sets a global default limit for queries that is used if
     no default limit is set for a schema and no limit is set in the parameters.
     Can only be set in the application configuration.
@@ -419,7 +419,7 @@ defmodule Flop do
   Note that when using cursor-based pagination, the applied limit will be
   `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`.
   """
-  @spec query(Queryable.t(), Flop.t(), keyword) :: Queryable.t()
+  @spec query(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def query(q, flop, opts \\ []) do
     q
     |> filter(flop, opts)
@@ -753,7 +753,7 @@ defmodule Flop do
 
   Used by `Flop.query/2`.
   """
-  @spec order_by(Queryable.t(), Flop.t(), keyword) :: Queryable.t()
+  @spec order_by(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def order_by(q, flop, opts \\ [])
 
   def order_by(q, %Flop{order_by: nil}, _opts), do: q
@@ -843,7 +843,7 @@ defmodule Flop do
 
   Used by `Flop.query/2`.
   """
-  @spec paginate(Queryable.t(), Flop.t(), keyword) :: Queryable.t()
+  @spec paginate(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def paginate(q, flop, opts \\ [])
 
   def paginate(q, %Flop{limit: limit, offset: offset}, _)
@@ -1023,7 +1023,7 @@ defmodule Flop do
 
   Used by `Flop.query/2`.
   """
-  @spec filter(Queryable.t(), Flop.t(), keyword) :: Queryable.t()
+  @spec filter(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def filter(q, flop, opt \\ [])
 
   def filter(q, %Flop{filters: nil}, _), do: q

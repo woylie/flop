@@ -256,6 +256,8 @@ defprotocol Flop.Schema do
     `join_fields` option. The map has keys for the `:binding`, `:field` and
     `:path`.
 
+  ## Examples
+
       iex> field_type(%Flop.Pet{}, :age)
       {:normal, :age}
       iex> field_type(%Flop.Pet{}, :full_name)
