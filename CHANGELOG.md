@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.13.0] - 2021-08-22
+
 ### Added
 
 - Support ordering by join fields.
