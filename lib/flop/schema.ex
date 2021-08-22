@@ -170,7 +170,7 @@ defprotocol Flop.Schema do
 
   ## Join fields
 
-  If you need filter or order across tables, you can define join fields.
+  If you need to filter or order across tables, you can define join fields.
 
   As an example, let's define these schemas:
 
@@ -236,7 +236,12 @@ defprotocol Flop.Schema do
 
       Owner
       |> join(:left, [o], p in assoc(o, :pets), as: :pets)
+      |> preload([pets: p], [pets: p])
       |> Flop.validate_and_run!(params, for: Owner)
+
+  If your query returns data in a different format, you don't need to set the
+  `:path` option. Instead, you can pass a custom cursor value function in the
+  options. See `Flop.Cursor.get_cursors/2` and `t:Flop.option/0`.
 
   Note that Flop doesn't create the join clauses for you. The named bindings
   already have to be present in the query you pass to the Flop functions.
