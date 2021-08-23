@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.13.1] - 2021-08-23
+
+### Fixed
+
+- Wrong type spec for cursor_dynamic/3 callback.
+
 ## [0.13.0] - 2021-08-22
 
 ### Added
