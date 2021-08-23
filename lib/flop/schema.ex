@@ -297,7 +297,7 @@ defprotocol Flop.Schema do
   def apply_order_by(data, q, expr)
 
   @doc false
-  @spec cursor_dynamic(any, keyword, map) :: Ecto.Query.t()
+  @spec cursor_dynamic(any, keyword, map) :: any
   def cursor_dynamic(data, order, cursor_map)
 
   @doc """
