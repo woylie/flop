@@ -123,7 +123,7 @@ defprotocol Flop.Schema do
 
   This would translate to:
 
-      WHERE family_name='margo' OR given_name ='martindale'
+      WHERE family_name='margo' OR given_name ='margo'
 
   Partial matches and splitting of the search term can be achieved with one of
   the ilike operators.
