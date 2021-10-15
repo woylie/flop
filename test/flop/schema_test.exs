@@ -1,12 +1,16 @@
 defmodule Flop.SchemaTest do
   use ExUnit.Case, async: true
 
+  import Ecto.Query
+
   alias __MODULE__.Panini
   alias Flop.Schema
 
   doctest Flop.Schema, import: true
 
   defmodule Panini do
+    import Ecto.Query
+
     @derive {Flop.Schema,
              filterable: [],
              sortable: [],
@@ -15,7 +19,10 @@ defmodule Flop.SchemaTest do
              default_order_by: [:name, :age],
              default_order_directions: [:desc, :asc],
              compound_fields: [name_or_email: [:name, :email]],
-             join_fields: [topping_name: {:toppings, :name}]}
+             join_fields: [topping_name: {:toppings, :name}],
+             dynamic_fields: [
+               topping_count: "[toppings: t], count(t.id)"
+             ]}
     defstruct [:name, :email, :age]
   end
 
@@ -44,6 +51,11 @@ defmodule Flop.SchemaTest do
     assert Schema.field_type(%Panini{}, :topping_name) ==
              {:join,
               %{binding: :toppings, field: :name, path: [:toppings, :name]}}
+  end
+
+  test "field_type/2 returns dynamics" do
+    assert {:dynamic, "\"[toppings: t], count(t.id)\""} =
+             Schema.field_type(%Panini{}, :topping_count)
   end
 
   test "max_limit/1 returns the max limit passed as option" do

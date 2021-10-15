@@ -247,6 +247,8 @@ defprotocol Flop.Schema do
   already have to be present in the query you pass to the Flop functions.
   """
 
+  import Ecto.Query
+
   @fallback_to_any true
 
   @doc """
@@ -272,7 +274,7 @@ defprotocol Flop.Schema do
   """
   @doc since: "0.11.0"
   @spec field_type(any, atom) ::
-          {:normal, atom} | {:compound, [atom]} | {:join, map}
+          {:normal, atom} | {:compound, [atom]} | {:dynamic, any} | {:join, map}
   def field_type(data, field)
 
   @doc """
@@ -397,6 +399,9 @@ defimpl Flop.Schema, for: Any do
       end
 
   """
+
+  import Ecto.Query
+
   # credo:disable-for-next-line
   defmacro __deriving__(module, _struct, options) do
     filterable_fields = Keyword.get(options, :filterable)
@@ -421,8 +426,14 @@ defimpl Flop.Schema, for: Any do
       |> Keyword.get(:join_fields, [])
       |> Enum.map(&normalize_join_opts/1)
 
-    field_type_func = build_field_type_func(compound_fields, join_fields)
-    order_by_func = build_order_by_func(compound_fields, join_fields)
+    dynamic_fields = Keyword.get(options, :dynamic_fields, [])
+
+    field_type_func =
+      build_field_type_func(compound_fields, join_fields, dynamic_fields)
+
+    order_by_func =
+      build_order_by_func(compound_fields, join_fields, dynamic_fields)
+
     get_field_func = build_get_field_func(compound_fields, join_fields)
 
     cursor_dynamic_func_compound =
@@ -493,7 +504,7 @@ defimpl Flop.Schema, for: Any do
     {name, opts}
   end
 
-  def build_field_type_func(compound_fields, join_fields) do
+  def build_field_type_func(compound_fields, join_fields, dynamic_fields) do
     compound_field_funcs =
       for {name, fields} <- compound_fields do
         quote do
@@ -512,6 +523,15 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
+    dynamic_funcs =
+      for {name, dynamic} <- dynamic_fields do
+        quote do
+          def field_type(_, unquote(name)) do
+            {:dynamic, unquote(Macro.to_string(dynamic))}
+          end
+        end
+      end
+
     default_funcs =
       quote do
         def field_type(_, name) do
@@ -519,7 +539,7 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
-    [compound_field_funcs, join_field_funcs, default_funcs]
+    [compound_field_funcs, join_field_funcs, dynamic_funcs, default_funcs]
   end
 
   def build_cursor_dynamic_func_compound(compound_fields) do
@@ -666,7 +686,7 @@ defimpl Flop.Schema, for: Any do
     end
   end
 
-  def build_order_by_func(compound_fields, join_fields) do
+  def build_order_by_func(compound_fields, join_fields, dynamic_fields) do
     compound_field_funcs =
       for {name, fields} <- compound_fields do
         quote do
@@ -693,6 +713,23 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
+    dynamic_funcs =
+      for {field, dynamic} <- dynamic_fields do
+        quote do
+          def apply_order_by(_struct, q, {direction, unquote(field)}) do
+            order_by(
+              q,
+              ^[
+                {direction,
+                 unquote(
+                   Code.string_to_quoted!("Ecto.Query.dynamic(#{dynamic})")
+                 )}
+              ]
+            )
+          end
+        end
+      end
+
     normal_field_func =
       quote do
         def apply_order_by(_struct, q, direction) do
@@ -700,7 +737,7 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
-    [compound_field_funcs, join_field_funcs, normal_field_func]
+    [compound_field_funcs, join_field_funcs, dynamic_funcs, normal_field_func]
   end
 
   def build_get_field_func(compound_fields, join_fields) do

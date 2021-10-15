@@ -4,13 +4,18 @@ defmodule Flop.Owner do
   """
   use Ecto.Schema
 
+  import Ecto.Query
+
   alias Flop.Pet
 
   @derive {
     Flop.Schema,
     filterable: [:name, :species],
-    sortable: [:name, :age],
-    join_fields: [pet_age: {:pets, :age}]
+    sortable: [:name, :age, :pet_count],
+    join_fields: [pet_age: {:pets, :age}],
+    dynamic_fields: [
+      pet_count: "[pets: p], count(p.id)"
+    ]
   }
 
   schema "owners" do

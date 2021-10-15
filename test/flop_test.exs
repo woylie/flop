@@ -14,6 +14,7 @@ defmodule FlopTest do
   alias Ecto.Query.QueryExpr
   alias Flop.Filter
   alias Flop.Meta
+  alias Flop.Owner
   alias Flop.Pet
   alias Flop.Repo
 
@@ -99,6 +100,38 @@ defmodule FlopTest do
         )
 
       result = Flop.all(Pet, %Flop{order_by: [:full_name, :id]}, for: Pet)
+      assert result == expected
+    end
+
+    test "orders by dynamic expressions" do
+      owner_1 = insert(:owner, pets: build_list(2, :pet))
+      owner_2 = insert(:owner, pets: build_list(1, :pet))
+      owner_3 = insert(:owner, pets: build_list(5, :pet))
+      owner_4 = insert(:owner, pets: [])
+
+      expected = [owner_4.id, owner_2.id, owner_1.id, owner_3.id]
+
+      result =
+        Owner
+        |> join(:left, [o], p in assoc(o, :pets), as: :pets)
+        |> group_by([o], o.id)
+        |> select([p], p.id)
+        |> Flop.all(%Flop{order_by: [:pet_count]}, for: Owner)
+
+      assert result == expected
+
+      expected = Enum.reverse(expected)
+
+      result =
+        Owner
+        |> join(:left, [o], p in assoc(o, :pets), as: :pets)
+        |> group_by([o], o.id)
+        |> select([p], p.id)
+        |> Flop.all(
+          %Flop{order_by: [:pet_count], order_directions: [:desc]},
+          for: Owner
+        )
+
       assert result == expected
     end
   end
