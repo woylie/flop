@@ -7,7 +7,7 @@
 - Fix error when sorting by a compound field that consists of at least one
   join field.
 - Fix import conflict when importing `Ecto.Changeset` in a module that derives
-  `Flop.Schema`.
+  `Flop.Schema` and configures a compound field.
 
 ## [0.13.1] - 2021-08-23
 
