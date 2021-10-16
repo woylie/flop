@@ -642,7 +642,7 @@ defimpl Flop.Schema, for: Any do
         field_cursor = cursor[field]
 
         if is_nil(field_cursor) do
-          cursor_dynamic(struct, tail, cursor)
+          Flop.Schema.cursor_dynamic(struct, tail, cursor)
         else
           case direction do
             dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
@@ -650,7 +650,7 @@ defimpl Flop.Schema, for: Any do
                 [r],
                 field(r, ^field) >= ^field_cursor and
                   (field(r, ^field) > ^field_cursor or
-                     ^cursor_dynamic(struct, tail, cursor))
+                     ^Flop.Schema.cursor_dynamic(struct, tail, cursor))
               )
 
             dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
@@ -658,7 +658,7 @@ defimpl Flop.Schema, for: Any do
                 [r],
                 field(r, ^field) <= ^field_cursor and
                   (field(r, ^field) < ^field_cursor or
-                     ^cursor_dynamic(struct, tail, cursor))
+                     ^Flop.Schema.cursor_dynamic(struct, tail, cursor))
               )
           end
         end
@@ -672,7 +672,7 @@ defimpl Flop.Schema, for: Any do
         quote do
           def apply_order_by(struct, q, {direction, unquote(name)}) do
             Enum.reduce(unquote(fields), q, fn field, acc_q ->
-              apply_order_by(struct, acc_q, {direction, field})
+              Flop.Schema.apply_order_by(struct, acc_q, {direction, field})
             end)
           end
         end
@@ -709,7 +709,7 @@ defimpl Flop.Schema, for: Any do
         quote do
           def get_field(struct, unquote(name)) do
             unquote(fields)
-            |> Enum.map(&get_field(struct, &1))
+            |> Enum.map(&Flop.Schema.get_field(struct, &1))
             |> Enum.join(" ")
           end
         end
