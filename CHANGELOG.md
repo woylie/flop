@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## Fixed
+
+- Fix error when sorting by a compound field that consists of at least one
+  join field.
+
 ## [0.13.1] - 2021-08-23
 
 ### Fixed

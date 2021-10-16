@@ -672,7 +672,7 @@ defimpl Flop.Schema, for: Any do
         quote do
           def apply_order_by(struct, q, {direction, unquote(name)}) do
             Enum.reduce(unquote(fields), q, fn field, acc_q ->
-              apply_order_by(struct, acc_q, field)
+              apply_order_by(struct, acc_q, {direction, field})
             end)
           end
         end
