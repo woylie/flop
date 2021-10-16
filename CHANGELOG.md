@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.13.2] - 2021-10-16
+
 ## Fixed
 
 - Fix error when sorting by a compound field that consists of at least one
