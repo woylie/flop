@@ -101,6 +101,33 @@ defmodule FlopTest do
       result = Flop.all(Pet, %Flop{order_by: [:full_name, :id]}, for: Pet)
       assert result == expected
     end
+
+    test "orders by compound fields with join fields" do
+      pets = insert_list(20, :pet, owner: fn -> build(:owner) end)
+
+      expected =
+        pets |> Enum.map(&{&1.name, &1.owner.name, &1.id}) |> Enum.sort()
+
+      q =
+        Pet
+        |> join(:left, [p], o in assoc(p, :owner), as: :owner)
+        |> select([p, owner: o], {p.name, o.name, p.id})
+
+      assert Flop.all(
+               q,
+               %Flop{order_by: [:pet_and_owner_name, :id]},
+               for: Pet
+             ) == expected
+
+      assert Flop.all(
+               q,
+               %Flop{
+                 order_by: [:pet_and_owner_name, :id],
+                 order_directions: [:desc, :desc]
+               },
+               for: Pet
+             ) == Enum.reverse(expected)
+    end
   end
 
   describe "filtering" do
