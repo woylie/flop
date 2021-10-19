@@ -293,7 +293,7 @@ defprotocol Flop.Schema do
   def filterable(data)
 
   @doc false
-  @spec apply_order_by(any, Ecto.Query.t(), keyword) :: Ecto.Query.t()
+  @spec apply_order_by(any, Ecto.Query.t(), tuple | keyword) :: Ecto.Query.t()
   def apply_order_by(data, q, expr)
 
   @doc false
