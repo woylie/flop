@@ -86,6 +86,24 @@ defmodule Flop.Factory do
     "O. aries"
   ]
 
+  @tags [
+    "catalunya",
+    "cateyes",
+    "catlady",
+    "catlife",
+    "catlove",
+    "caturday",
+    "doge",
+    "doggie",
+    "doggo",
+    "doglife",
+    "doglove",
+    "dogmodel",
+    "dogmom",
+    "dogscorner",
+    "petscorner"
+  ]
+
   def fruit_factory do
     %Fruit{
       family: build(:fruit_family),
@@ -97,7 +115,8 @@ defmodule Flop.Factory do
     %Owner{
       age: :rand.uniform(100),
       email: build(:species),
-      name: build(:name)
+      name: build(:name),
+      tags: Enum.take_random(@tags, Enum.random(1..5))
     }
   end
 
@@ -107,7 +126,8 @@ defmodule Flop.Factory do
       family_name: sequence(:family_name, @family_name),
       given_name: sequence(:given_name, @given_name),
       name: build(:name),
-      species: build(:species)
+      species: build(:species),
+      tags: Enum.take_random(@tags, Enum.random(1..5))
     }
   end
 
@@ -118,7 +138,8 @@ defmodule Flop.Factory do
       given_name: sequence(:given_name, @given_name),
       name: build(:name),
       owner: build(:owner),
-      species: build(:species)
+      species: build(:species),
+      tags: Enum.take_random(@tags, Enum.random(1..5))
     }
   end
 
