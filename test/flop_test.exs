@@ -592,6 +592,11 @@ defmodule FlopTest do
       assert Flop.meta(Pet, %Flop{}).total_count == 0
       assert Flop.meta(Pet, %Flop{}, prefix: "other_schema").total_count == 1
     end
+
+    test "sets the schema if :for option is passed" do
+      assert Flop.meta(Pet, %Flop{}).schema == nil
+      assert Flop.meta(Pet, %Flop{}, for: Pet).schema == Pet
+    end
   end
 
   describe "run/3" do

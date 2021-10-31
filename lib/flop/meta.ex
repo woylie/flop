@@ -43,6 +43,7 @@ defmodule Flop.Meta do
           page_size: pos_integer | nil,
           previous_offset: non_neg_integer | nil,
           previous_page: pos_integer | nil,
+          schema: module | nil,
           start_cursor: String.t() | nil,
           total_count: non_neg_integer | nil,
           total_pages: non_neg_integer | nil
@@ -60,6 +61,7 @@ defmodule Flop.Meta do
     :page_size,
     :previous_offset,
     :previous_page,
+    :schema,
     :start_cursor,
     :total_count,
     :total_pages
