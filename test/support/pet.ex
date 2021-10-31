@@ -14,8 +14,10 @@ defmodule Flop.Pet do
       :name,
       :owner_age,
       :owner_name,
+      :owner_tags,
       :pet_and_owner_name,
-      :species
+      :species,
+      :tags
     ],
     sortable: [:name, :age, :owner_name, :owner_age],
     max_limit: 1000,
@@ -25,7 +27,8 @@ defmodule Flop.Pet do
     ],
     join_fields: [
       owner_age: {:owner, :age},
-      owner_name: [binding: :owner, field: :name, path: [:owner, :name]]
+      owner_name: [binding: :owner, field: :name, path: [:owner, :name]],
+      owner_tags: {:owner, :tags}
     ]
   }
 
@@ -35,6 +38,7 @@ defmodule Flop.Pet do
     field :given_name, :string
     field :name, :string
     field :species, :string
+    field :tags, {:array, :string}, default: []
 
     belongs_to :owner, Owner
   end
@@ -43,9 +47,11 @@ defmodule Flop.Pet do
   def get_field(%__MODULE__{owner: nil}, :owner_age), do: nil
   def get_field(%__MODULE__{owner: %Owner{name: name}}, :owner_name), do: name
   def get_field(%__MODULE__{owner: nil}, :owner_name), do: nil
+  def get_field(%__MODULE__{owner: %Owner{tags: tags}}, :owner_tags), do: tags
+  def get_field(%__MODULE__{owner: nil}, :owner_tags), do: nil
 
   def get_field(%__MODULE__{} = pet, field)
-      when field in [:name, :age, :species],
+      when field in [:name, :age, :species, :tags],
       do: Map.get(pet, field)
 
   def get_field(%__MODULE__{} = pet, field)

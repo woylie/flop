@@ -18,6 +18,7 @@ defmodule Flop.Owner do
     field :age, :integer
     field :email, :string
     field :name, :string
+    field :tags, {:array, :string}, default: []
 
     has_many :pets, Pet
   end

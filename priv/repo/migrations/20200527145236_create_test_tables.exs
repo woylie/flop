@@ -6,6 +6,7 @@ defmodule Flop.Repo.Migrations.CreateTestTables do
       add :age, :integer
       add :email, :string
       add :name, :string
+      add :tags, {:array, :string}
     end
 
     create table(:pets) do
@@ -15,6 +16,7 @@ defmodule Flop.Repo.Migrations.CreateTestTables do
       add :name, :string
       add :owner_id, references(:owners)
       add :species, :string
+      add :tags, {:array, :string}
     end
 
     create table(:fruits) do

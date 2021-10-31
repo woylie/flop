@@ -351,7 +351,7 @@ defmodule FlopTest do
       end
     end
 
-    property "applies 'in' filter" do
+    property "applies :in operator" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
                 field <- member_of([:age, :name, :owner_age]),
@@ -364,6 +364,22 @@ defmodule FlopTest do
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :in, value: query_value}]
+               }) == expected
+
+        checkin_checkout()
+      end
+    end
+
+    property "applies :contains operator" do
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- member_of([:tags, :owner_tags]),
+                values = Enum.flat_map(pets, &Pet.get_field(&1, field)),
+                query_value <- member_of(values) do
+        expected = filter_pets(pets, field, :contains, query_value)
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :contains, value: query_value}]
                }) == expected
 
         checkin_checkout()
