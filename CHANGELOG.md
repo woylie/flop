@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## Changed
+
+- Add `:schema` key to `Flop.Meta`. This field points to the schema module set
+  by passing the `:for` option.
+- Minimum Ecto version changed to 3.5.
+
 ## [0.13.2] - 2021-10-16
 
 ## Fixed

@@ -245,7 +245,6 @@ defmodule Flop do
   alias Flop.Builder
   alias Flop.Cursor
   alias Flop.CustomTypes.ExistingAtom
-  alias Flop.CustomTypes.OrderDirection
   alias Flop.Filter
   alias Flop.Meta
 
@@ -389,7 +388,17 @@ defmodule Flop do
     field :limit, :integer
     field :offset, :integer
     field :order_by, {:array, ExistingAtom}
-    field :order_directions, {:array, OrderDirection}
+
+    field :order_directions, {:array, Ecto.Enum},
+      values: [
+        :asc,
+        :asc_nulls_first,
+        :asc_nulls_last,
+        :desc,
+        :desc_nulls_first,
+        :desc_nulls_last
+      ]
+
     field :page, :integer
     field :page_size, :integer
 

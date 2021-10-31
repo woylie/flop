@@ -11,7 +11,6 @@ defmodule Flop.Filter do
   alias Ecto.Changeset
   alias Flop.CustomTypes.Any
   alias Flop.CustomTypes.ExistingAtom
-  alias Flop.CustomTypes.Operator
 
   @typedoc """
   Represents filter query parameters.
@@ -72,7 +71,28 @@ defmodule Flop.Filter do
   @primary_key false
   embedded_schema do
     field :field, ExistingAtom
-    field :op, Operator, default: :==
+
+    field :op, Ecto.Enum,
+      default: :==,
+      values: [
+        :==,
+        :!=,
+        :=~,
+        :empty,
+        :not_empty,
+        :<=,
+        :<,
+        :>=,
+        :>,
+        :in,
+        :like,
+        :like_and,
+        :like_or,
+        :ilike,
+        :ilike_and,
+        :ilike_or
+      ]
+
     field :value, Any
   end
 
