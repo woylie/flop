@@ -53,9 +53,6 @@ defmodule Flop.Meta do
     :current_offset,
     :current_page,
     :end_cursor,
-    :flop,
-    :has_next_page?,
-    :has_previous_page?,
     :next_offset,
     :next_page,
     :page_size,
@@ -64,6 +61,9 @@ defmodule Flop.Meta do
     :schema,
     :start_cursor,
     :total_count,
-    :total_pages
+    :total_pages,
+    flop: %Flop{},
+    has_next_page?: false,
+    has_previous_page?: false
   ]
 end
