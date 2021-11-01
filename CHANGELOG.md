@@ -12,6 +12,8 @@
   by passing the `:for` option.
 - Minimum Ecto version changed to 3.5.
 - Replace `Operator` and `OrderDirection` custom Ecto types with Ecto.Enum.
+- Update `Flop.Meta` struct default values for the fields `:flop`,
+  `:has_next_page?` and `:has_previous_page?`.
 
 ## [0.13.2] - 2021-10-16
 
