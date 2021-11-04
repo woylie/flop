@@ -529,8 +529,10 @@ defmodule Flop do
       ...>   Flop.validate_and_run(Flop.Pet, %Flop{limit: -1})
       iex> meta.errors
       %{
-        limit: [{"must be greater than %{number}",
-          [validation: :number, kind: :greater_than, number: 0]}]
+        limit: [
+          {"must be greater than %{number}",
+           [validation: :number, kind: :greater_than, number: 0]}
+        ]
       }
 
   ## Options
@@ -1080,8 +1082,10 @@ defmodule Flop do
       nil
       iex> meta.errors
       %{
-        offset: [{"must be greater than or equal to %{number}",
-         [validation: :number, kind: :greater_than_or_equal_to, number: 0]}]
+        offset: [
+          {"must be greater than or equal to %{number}",
+           [validation: :number, kind: :greater_than_or_equal_to, number: 0]}
+        ]
       }
 
   It also makes sure that only one pagination method is used.
