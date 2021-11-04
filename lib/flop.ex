@@ -80,19 +80,19 @@ defmodule Flop do
       5
 
       iex> params = %{"order_by" => ["name", "age"], "limit" => 10_000}
-      iex> {:error, changeset} = Flop.validate(params, for: Flop.Pet)
-      iex> [{:limit, {msg, _}}] = changeset.errors
+      iex> {:error, meta} = Flop.validate(params, for: Flop.Pet)
+      iex> %{limit: [{msg, _}]} = meta.errors
       iex> msg
       "must be less than or equal to %{number}"
 
       iex> params = %{"order_by" => ["name", "age"], "limit" => 10_000}
-      iex> {:error, changeset} =
+      iex> {:error, %Flop.Meta{} = meta} =
       ...>   Flop.validate_and_run(
       ...>     Flop.Pet,
       ...>     params,
       ...>     for: Flop.Pet
       ...>   )
-      iex> [{:limit, {msg, _}}] = changeset.errors
+      iex> %{limit: [{msg, _}]} = meta.errors
       iex> msg
       "must be less than or equal to %{number}"
 
@@ -429,7 +429,7 @@ defmodule Flop do
   `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`.
   """
   @spec query(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
-  def query(q, flop, opts \\ []) do
+  def query(q, %Flop{} = flop, opts \\ []) do
     q
     |> filter(flop, opts)
     |> order_by(flop, opts)
@@ -458,7 +458,7 @@ defmodule Flop do
   """
   @doc since: "0.6.0"
   @spec all(Queryable.t(), Flop.t(), [option()]) :: [any]
-  def all(q, flop, opts \\ []) do
+  def all(q, %Flop{} = flop, opts \\ []) do
     apply_on_repo(:all, "all", [query(q, flop, opts)], opts)
   end
 
@@ -515,7 +515,7 @@ defmodule Flop do
     {page_data, meta(results, flop, opts)}
   end
 
-  def run(q, flop, opts) do
+  def run(q, %Flop{} = flop, opts) do
     {all(q, flop, opts), meta(q, flop, opts)}
   end
 
@@ -525,13 +525,15 @@ defmodule Flop do
 
       iex> {:ok, {[], %Flop.Meta{}}} =
       ...>   Flop.validate_and_run(Flop.Pet, %Flop{}, for: Flop.Pet)
-      iex> {:error, %Ecto.Changeset{} = changeset} =
+      iex> {:error, %Flop.Meta{} = meta} =
       ...>   Flop.validate_and_run(Flop.Pet, %Flop{limit: -1})
-      iex> changeset.errors
-      [
-        limit: {"must be greater than %{number}",
-          [validation: :number, kind: :greater_than, number: 0]}
-      ]
+      iex> meta.errors
+      %{
+        limit: [
+          {"must be greater than %{number}",
+           [validation: :number, kind: :greater_than, number: 0]}
+        ]
+      }
 
   ## Options
 
@@ -543,11 +545,11 @@ defmodule Flop do
   """
   @doc since: "0.6.0"
   @spec validate_and_run(Queryable.t(), map | Flop.t(), [option()]) ::
-          {:ok, {[any], Meta.t()}} | {:error, Changeset.t()}
-  def validate_and_run(q, flop, opts \\ []) do
+          {:ok, {[any], Meta.t()}} | {:error, Meta.t()}
+  def validate_and_run(q, map_or_flop, opts \\ []) do
     validate_opts = Keyword.take(opts, [:for, :pagination_types])
 
-    with {:ok, flop} <- validate(flop, validate_opts) do
+    with {:ok, flop} <- validate(map_or_flop, validate_opts) do
       {:ok, run(q, flop, opts)}
     end
   end
@@ -558,9 +560,9 @@ defmodule Flop do
   @doc since: "0.6.0"
   @spec validate_and_run!(Queryable.t(), map | Flop.t(), [option()]) ::
           {[any], Meta.t()}
-  def validate_and_run!(q, flop, opts \\ []) do
+  def validate_and_run!(q, map_or_flop, opts \\ []) do
     validate_opts = Keyword.take(opts, [:for, :pagination_types])
-    flop = validate!(flop, validate_opts)
+    flop = validate!(map_or_flop, validate_opts)
     run(q, flop, opts)
   end
 
@@ -584,7 +586,7 @@ defmodule Flop do
   """
   @doc since: "0.6.0"
   @spec count(Queryable.t(), Flop.t(), [option()]) :: non_neg_integer
-  def count(q, flop, opts \\ []) do
+  def count(q, %Flop{} = flop, opts \\ []) do
     apply_on_repo(:aggregate, "count", [filter(q, flop, opts), :count], opts)
   end
 
@@ -680,7 +682,7 @@ defmodule Flop do
     }
   end
 
-  def meta(q, flop, opts) do
+  def meta(q, %Flop{} = flop, opts) do
     repo = option_or_default(opts, :repo) || raise no_repo_error("meta")
     opts = Keyword.put(opts, :repo, repo)
 
@@ -1075,23 +1077,23 @@ defmodule Flop do
        }}
 
       iex> flop = %Flop{offset: -1}
-      iex> {:error, changeset} = Flop.validate(flop)
-      iex> changeset.valid?
-      false
-      iex> changeset.errors
-      [
-        offset: {"must be greater than or equal to %{number}",
-         [validation: :number, kind: :greater_than_or_equal_to, number: 0]}
-      ]
+      iex> {:error, %Flop.Meta{} = meta} = Flop.validate(flop)
+      iex> meta.flop
+      nil
+      iex> meta.errors
+      %{
+        offset: [
+          {"must be greater than or equal to %{number}",
+           [validation: :number, kind: :greater_than_or_equal_to, number: 0]}
+        ]
+      }
 
   It also makes sure that only one pagination method is used.
 
       iex> params = %{limit: 10, offset: 0, page: 5, page_size: 10}
-      iex> {:error, changeset} = Flop.validate(params)
-      iex> changeset.valid?
-      false
-      iex> changeset.errors
-      [limit: {"cannot combine multiple pagination types", []}]
+      iex> {:error, %Flop.Meta{} = meta} = Flop.validate(params)
+      iex> meta.errors
+      %{limit: [{"cannot combine multiple pagination types", []}]}
 
   If you derived `Flop.Schema` in your Ecto schema to define the filterable
   and sortable fields, you can pass the module name to the function to validate
@@ -1099,10 +1101,8 @@ defmodule Flop do
   values set for the schema.
 
       iex> params = %{"order_by" => ["species"]}
-      iex> {:error, changeset} = Flop.validate(params, for: Flop.Pet)
-      iex> changeset.valid?
-      false
-      iex> [order_by: {msg, [_, {_, enum}]}] = changeset.errors
+      iex> {:error, %Flop.Meta{} = meta} = Flop.validate(params, for: Flop.Pet)
+      iex> %{order_by: [{msg, [_, {_, enum}]}]} = meta.errors
       iex> msg
       "has an invalid entry"
       iex> enum
@@ -1115,12 +1115,12 @@ defmodule Flop do
   the error message `is invalid`. This might change in the future.
   """
   @spec validate(Flop.t() | map, [option()]) ::
-          {:ok, Flop.t()} | {:error, Changeset.t()}
-  def validate(flop, opts \\ [])
+          {:ok, Flop.t()} | {:error, Meta.t()}
+  def validate(flop_or_map, opts \\ [])
 
   def validate(%Flop{} = flop, opts) do
     flop
-    |> Map.from_struct()
+    |> flop_struct_to_map()
     |> validate(opts)
   end
 
@@ -1134,11 +1134,54 @@ defmodule Flop do
       {:ok, _} = r ->
         r
 
-      {:error, %Changeset{} = changeset} = r ->
+      {:error, %Changeset{} = changeset} ->
         Logger.debug("Invalid Flop: #{inspect(changeset)}")
-        r
+
+        {:error,
+         %Meta{
+           errors: Changeset.traverse_errors(changeset, & &1),
+           params: map_to_string_keys(params),
+           schema: opts[:for]
+         }}
     end
   end
+
+  defp flop_struct_to_map(%Flop{} = flop) do
+    flop
+    |> Map.from_struct()
+    |> Map.update!(:filters, &filters_to_maps/1)
+    |> Enum.reject(fn {_, value} -> is_nil(value) end)
+    |> Enum.into(%{})
+  end
+
+  defp filters_to_maps(nil), do: nil
+
+  defp filters_to_maps(filters) when is_list(filters),
+    do: Enum.map(filters, &filter_to_map/1)
+
+  defp filter_to_map(%Filter{} = filter) do
+    filter
+    |> Map.from_struct()
+    |> Enum.reject(fn {_, value} -> is_nil(value) end)
+    |> Enum.into(%{})
+  end
+
+  defp filter_to_map(%{} = filter), do: filter
+
+  defp map_to_string_keys(%{} = params) do
+    Enum.into(params, %{}, fn
+      {key, value} when is_atom(key) ->
+        {Atom.to_string(key), map_to_string_keys(value)}
+
+      {key, value} when is_binary(key) ->
+        {key, map_to_string_keys(value)}
+    end)
+  end
+
+  defp map_to_string_keys(values) when is_list(values),
+    do: Enum.map(values, &map_to_string_keys/1)
+
+  defp map_to_string_keys(value), do: value
 
   @doc """
   Same as `Flop.validate/2`, but raises an `Ecto.InvalidChangesetError` if the
@@ -1146,13 +1189,13 @@ defmodule Flop do
   """
   @doc since: "0.5.0"
   @spec validate!(Flop.t() | map, [option()]) :: Flop.t()
-  def validate!(flop, opts \\ []) do
-    case validate(flop, opts) do
+  def validate!(flop_or_map, opts \\ []) do
+    case validate(flop_or_map, opts) do
       {:ok, flop} ->
         flop
 
-      {:error, changeset} ->
-        raise Ecto.InvalidChangesetError, action: :replace, changeset: changeset
+      {:error, %Meta{errors: errors, params: params}} ->
+        raise Flop.InvalidParamsError, errors: errors, params: params
     end
   end
 
