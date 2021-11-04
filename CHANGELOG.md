@@ -8,6 +8,14 @@
 
 ## Changed
 
+- `Flop.validate/2` and `Flop.validate_and_run/3` return `{:error, Flop.Meta.t}`
+  instead of `{:error, Ecto.Changeset.t}` now. The Meta struct has the new
+  fields `:errors` and `:params`, which are set when validation errors occur.
+  This accompanies the changes in `Flop.Phoenix`, which include the
+  implementation of the `Phoenix.HTML.FormData` protocol for the `Flop.Meta`
+  struct.
+- `Flop.validate!/2` and `Flop.validate_and_run!/3` raise a
+  `Flop.InvalidParamsError` instead of an `Ecto.InvalidChangesetError` now.
 - Add `:schema` key to `Flop.Meta`. This field points to the schema module set
   by passing the `:for` option.
 - Minimum Ecto version changed to 3.5.
