@@ -10,7 +10,6 @@ defmodule FlopTest do
   import Flop.TestUtil
 
   alias Ecto.Adapters.SQL.Sandbox
-  alias Ecto.Changeset
   alias Ecto.Query.QueryExpr
   alias Flop.Filter
   alias Flop.Meta
@@ -625,8 +624,19 @@ defmodule FlopTest do
 
   describe "validate_and_run/3" do
     test "returns error if flop is invalid" do
-      flop = %{page_size: -1}
-      assert {:error, %Changeset{}} = Flop.validate_and_run(Pet, flop)
+      flop = %Flop{
+        page_size: -1,
+        filters: [%Filter{field: :name, op: :something_like}]
+      }
+
+      assert {:error, %Meta{} = meta} = Flop.validate_and_run(Pet, flop)
+
+      assert meta.params == %{
+               "page_size" => -1,
+               "filters" => [%{"field" => :name, "op" => :something_like}]
+             }
+
+      assert %{filters: [_], page_size: [_]} = meta.errors
     end
 
     test "returns data and meta data" do
@@ -638,7 +648,7 @@ defmodule FlopTest do
 
   describe "validate_and_run!/3" do
     test "raises if flop is invalid" do
-      assert_raise Ecto.InvalidChangesetError, fn ->
+      assert_raise Flop.InvalidParamsError, fn ->
         Flop.validate_and_run!(Pet, %{limit: -1})
       end
     end
@@ -1258,7 +1268,30 @@ defmodule FlopTest do
     end
 
     test "returns error if parameters are invalid" do
-      assert {:error, %Changeset{}} = Flop.validate(%{limit: -1})
+      assert {:error, %Meta{} = meta} =
+               Flop.validate(
+                 %{
+                   limit: -1,
+                   filters: [%{field: :name}, %{field: :age, op: "approx"}]
+                 },
+                 for: Pet
+               )
+
+      assert meta.flop == nil
+      assert meta.schema == Pet
+
+      assert meta.params == %{
+               "limit" => -1,
+               "filters" => [
+                 %{"field" => :name},
+                 %{"field" => :age, "op" => "approx"}
+               ]
+             }
+
+      assert %{
+               limit: [{"must be greater than %{number}", _}],
+               filters: [%{}, %{op: [{"is invalid", _}]}]
+             } = meta.errors
     end
   end
 
@@ -1269,9 +1302,27 @@ defmodule FlopTest do
     end
 
     test "raises if params are invalid" do
-      assert_raise Ecto.InvalidChangesetError, fn ->
-        Flop.validate!(%{limit: -1})
-      end
+      error =
+        assert_raise Flop.InvalidParamsError, fn ->
+          Flop.validate!(%{
+            limit: -1,
+            filters: [%{field: :name}, %{field: :age, op: "approx"}]
+          })
+        end
+
+      assert error.params ==
+               %{
+                 "limit" => -1,
+                 "filters" => [
+                   %{"field" => :name},
+                   %{"field" => :age, "op" => "approx"}
+                 ]
+               }
+
+      assert %{
+               limit: [{"must be greater than %{number}", _}],
+               filters: [%{}, %{op: [{"is invalid", _}]}]
+             } = error.errors
     end
   end
 end

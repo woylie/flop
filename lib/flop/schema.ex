@@ -38,16 +38,20 @@ defprotocol Flop.Schema do
          page_size: nil
        }}
 
-      iex> {:error, changeset} = Flop.validate(
+      iex> {:error, %Flop.Meta{} = meta} = Flop.validate(
       ...>   %Flop{order_by: [:species]}, for: Flop.Pet
       ...> )
-      iex> changeset.valid?
-      false
-      iex> changeset.errors
-      [
-        order_by: {"has an invalid entry",
-         [validation: :subset, enum: [:name, :age, :owner_name, :owner_age]]}
-      ]
+      iex> meta.flop
+      nil
+      iex> meta.params
+      %{"order_by" => [:species], "filters" => []}
+      iex> meta.errors
+      %{
+        order_by: [
+          {"has an invalid entry",
+           [validation: :subset, enum: [:name, :age, :owner_name, :owner_age]]}
+        ]
+      }
 
   ## Default and maximum limits
 

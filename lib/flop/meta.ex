@@ -14,6 +14,8 @@ defmodule Flop.Meta do
     pagination or a derived value when using offset-based pagination. Note that
     the value will be rounded if the offset lies between pages. Always `nil`
     when using cursor-based pagination.
+  - `:errors` - Any validation errors that occurred. The format is the same as
+    the result of `Ecto.Changeset.traverse_errors(changeset, & &1)`.
   - `:previous_offset`, `:next_offset`, `:previous_page`, `:next_page` - Values
     based on `:current_page` and `:current_offset`/`page_size`. Always `nil`
     when using cursor-based pagination.
@@ -26,6 +28,8 @@ defmodule Flop.Meta do
     when using cursor-based pagination with `:last`/`:before`.
   - `:page_size` - The page size or limit of the query. Set to the `:first`
     or `:last` parameter when using cursor-based pagination.
+  - `:params` - The original, unvalidated params that were passed. Only set
+    if validation errors occurred.
   - `:total_count` - The total count of records for the given query. Always
     `nil` when using cursor-based pagination.
   - `:total_pages` - The total page count based on the total record count and
@@ -35,12 +39,14 @@ defmodule Flop.Meta do
           current_offset: non_neg_integer | nil,
           current_page: pos_integer | nil,
           end_cursor: String.t() | nil,
-          flop: Flop.t(),
+          errors: %{required(atom()) => [term()]} | nil,
+          flop: Flop.t() | nil,
           has_next_page?: boolean,
           has_previous_page?: boolean,
           next_offset: non_neg_integer | nil,
           next_page: pos_integer | nil,
           page_size: pos_integer | nil,
+          params: %{optional(String.t()) => term()},
           previous_offset: non_neg_integer | nil,
           previous_page: pos_integer | nil,
           schema: module | nil,
@@ -53,6 +59,8 @@ defmodule Flop.Meta do
     :current_offset,
     :current_page,
     :end_cursor,
+    :errors,
+    :flop,
     :next_offset,
     :next_page,
     :page_size,
@@ -62,8 +70,8 @@ defmodule Flop.Meta do
     :start_cursor,
     :total_count,
     :total_pages,
-    flop: %Flop{},
     has_next_page?: false,
-    has_previous_page?: false
+    has_previous_page?: false,
+    params: %{}
   ]
 end
