@@ -429,7 +429,7 @@ defmodule Flop do
   `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`.
   """
   @spec query(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
-  def query(q, flop, opts \\ []) do
+  def query(q, %Flop{} = flop, opts \\ []) do
     q
     |> filter(flop, opts)
     |> order_by(flop, opts)
@@ -458,7 +458,7 @@ defmodule Flop do
   """
   @doc since: "0.6.0"
   @spec all(Queryable.t(), Flop.t(), [option()]) :: [any]
-  def all(q, flop, opts \\ []) do
+  def all(q, %Flop{} = flop, opts \\ []) do
     apply_on_repo(:all, "all", [query(q, flop, opts)], opts)
   end
 
@@ -515,7 +515,7 @@ defmodule Flop do
     {page_data, meta(results, flop, opts)}
   end
 
-  def run(q, flop, opts) do
+  def run(q, %Flop{} = flop, opts) do
     {all(q, flop, opts), meta(q, flop, opts)}
   end
 
@@ -544,10 +544,10 @@ defmodule Flop do
   @doc since: "0.6.0"
   @spec validate_and_run(Queryable.t(), map | Flop.t(), [option()]) ::
           {:ok, {[any], Meta.t()}} | {:error, Changeset.t()}
-  def validate_and_run(q, flop, opts \\ []) do
+  def validate_and_run(q, map_or_flop, opts \\ []) do
     validate_opts = Keyword.take(opts, [:for, :pagination_types])
 
-    with {:ok, flop} <- validate(flop, validate_opts) do
+    with {:ok, flop} <- validate(map_or_flop, validate_opts) do
       {:ok, run(q, flop, opts)}
     end
   end
@@ -558,9 +558,9 @@ defmodule Flop do
   @doc since: "0.6.0"
   @spec validate_and_run!(Queryable.t(), map | Flop.t(), [option()]) ::
           {[any], Meta.t()}
-  def validate_and_run!(q, flop, opts \\ []) do
+  def validate_and_run!(q, map_or_flop, opts \\ []) do
     validate_opts = Keyword.take(opts, [:for, :pagination_types])
-    flop = validate!(flop, validate_opts)
+    flop = validate!(map_or_flop, validate_opts)
     run(q, flop, opts)
   end
 
@@ -584,7 +584,7 @@ defmodule Flop do
   """
   @doc since: "0.6.0"
   @spec count(Queryable.t(), Flop.t(), [option()]) :: non_neg_integer
-  def count(q, flop, opts \\ []) do
+  def count(q, %Flop{} = flop, opts \\ []) do
     apply_on_repo(:aggregate, "count", [filter(q, flop, opts), :count], opts)
   end
 
@@ -680,7 +680,7 @@ defmodule Flop do
     }
   end
 
-  def meta(q, flop, opts) do
+  def meta(q, %Flop{} = flop, opts) do
     repo = option_or_default(opts, :repo) || raise no_repo_error("meta")
     opts = Keyword.put(opts, :repo, repo)
 
@@ -1116,7 +1116,7 @@ defmodule Flop do
   """
   @spec validate(Flop.t() | map, [option()]) ::
           {:ok, Flop.t()} | {:error, Changeset.t()}
-  def validate(flop, opts \\ [])
+  def validate(flop_or_map, opts \\ [])
 
   def validate(%Flop{} = flop, opts) do
     flop
