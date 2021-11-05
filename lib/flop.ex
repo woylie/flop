@@ -81,7 +81,7 @@ defmodule Flop do
 
       iex> params = %{"order_by" => ["name", "age"], "limit" => 10_000}
       iex> {:error, meta} = Flop.validate(params, for: Flop.Pet)
-      iex> %{limit: [{msg, _}]} = meta.errors
+      iex> [limit: [{msg, _}]] = meta.errors
       iex> msg
       "must be less than or equal to %{number}"
 
@@ -92,7 +92,7 @@ defmodule Flop do
       ...>     params,
       ...>     for: Flop.Pet
       ...>   )
-      iex> %{limit: [{msg, _}]} = meta.errors
+      iex> [limit: [{msg, _}]] = meta.errors
       iex> msg
       "must be less than or equal to %{number}"
 
@@ -528,12 +528,12 @@ defmodule Flop do
       iex> {:error, %Flop.Meta{} = meta} =
       ...>   Flop.validate_and_run(Flop.Pet, %Flop{limit: -1})
       iex> meta.errors
-      %{
+      [
         limit: [
           {"must be greater than %{number}",
            [validation: :number, kind: :greater_than, number: 0]}
         ]
-      }
+      ]
 
   ## Options
 
@@ -1079,19 +1079,19 @@ defmodule Flop do
       iex> flop = %Flop{offset: -1}
       iex> {:error, %Flop.Meta{} = meta} = Flop.validate(flop)
       iex> meta.errors
-      %{
+      [
         offset: [
           {"must be greater than or equal to %{number}",
            [validation: :number, kind: :greater_than_or_equal_to, number: 0]}
         ]
-      }
+      ]
 
   It also makes sure that only one pagination method is used.
 
       iex> params = %{limit: 10, offset: 0, page: 5, page_size: 10}
       iex> {:error, %Flop.Meta{} = meta} = Flop.validate(params)
       iex> meta.errors
-      %{limit: [{"cannot combine multiple pagination types", []}]}
+      [limit: [{"cannot combine multiple pagination types", []}]]
 
   If you derived `Flop.Schema` in your Ecto schema to define the filterable
   and sortable fields, you can pass the module name to the function to validate
@@ -1100,7 +1100,7 @@ defmodule Flop do
 
       iex> params = %{"order_by" => ["species"]}
       iex> {:error, %Flop.Meta{} = meta} = Flop.validate(params, for: Flop.Pet)
-      iex> %{order_by: [{msg, [_, {_, enum}]}]} = meta.errors
+      iex> [order_by: [{msg, [_, {_, enum}]}]] = meta.errors
       iex> msg
       "has an invalid entry"
       iex> enum
@@ -1137,12 +1137,28 @@ defmodule Flop do
 
         {:error,
          %Meta{
-           errors: Changeset.traverse_errors(changeset, & &1),
+           errors: convert_errors(changeset),
            params: map_to_string_keys(params),
            schema: opts[:for]
          }}
     end
   end
+
+  defp convert_errors(changeset) do
+    changeset
+    |> Changeset.traverse_errors(& &1)
+    |> map_to_keyword()
+  end
+
+  defp map_to_keyword(%{} = map) do
+    Enum.into(map, [], fn {key, value} -> {key, map_to_keyword(value)} end)
+  end
+
+  defp map_to_keyword(list) when is_list(list) do
+    Enum.map(list, &map_to_keyword/1)
+  end
+
+  defp map_to_keyword(value), do: value
 
   defp flop_struct_to_map(%Flop{} = flop) do
     flop

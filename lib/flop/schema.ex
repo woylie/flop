@@ -44,12 +44,12 @@ defprotocol Flop.Schema do
       iex> meta.params
       %{"order_by" => [:species], "filters" => []}
       iex> meta.errors
-      %{
+      [
         order_by: [
           {"has an invalid entry",
            [validation: :subset, enum: [:name, :age, :owner_name, :owner_age]]}
         ]
-      }
+      ]
 
   ## Default and maximum limits
 

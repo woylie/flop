@@ -636,7 +636,7 @@ defmodule FlopTest do
                "filters" => [%{"field" => :name, "op" => :something_like}]
              }
 
-      assert %{filters: [_], page_size: [_]} = meta.errors
+      assert [filters: [_], page_size: [_]] = meta.errors
     end
 
     test "returns data and meta data" do
@@ -1288,10 +1288,11 @@ defmodule FlopTest do
                ]
              }
 
-      assert %{
-               limit: [{"must be greater than %{number}", _}],
-               filters: [%{}, %{op: [{"is invalid", _}]}]
-             } = meta.errors
+      assert [{"must be greater than %{number}", _}] =
+               Keyword.get(meta.errors, :limit)
+
+      assert [[], [op: [{"is invalid", _}]]] =
+               Keyword.get(meta.errors, :filters)
     end
   end
 
@@ -1319,10 +1320,11 @@ defmodule FlopTest do
                  ]
                }
 
-      assert %{
-               limit: [{"must be greater than %{number}", _}],
-               filters: [%{}, %{op: [{"is invalid", _}]}]
-             } = error.errors
+      assert [{"must be greater than %{number}", _}] =
+               Keyword.get(error.errors, :limit)
+
+      assert [[], [op: [{"is invalid", _}]]] =
+               Keyword.get(error.errors, :filters)
     end
   end
 end
