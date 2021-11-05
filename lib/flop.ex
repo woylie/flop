@@ -1078,8 +1078,6 @@ defmodule Flop do
 
       iex> flop = %Flop{offset: -1}
       iex> {:error, %Flop.Meta{} = meta} = Flop.validate(flop)
-      iex> meta.flop
-      nil
       iex> meta.errors
       %{
         offset: [

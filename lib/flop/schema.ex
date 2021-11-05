@@ -41,8 +41,6 @@ defprotocol Flop.Schema do
       iex> {:error, %Flop.Meta{} = meta} = Flop.validate(
       ...>   %Flop{order_by: [:species]}, for: Flop.Pet
       ...> )
-      iex> meta.flop
-      nil
       iex> meta.params
       %{"order_by" => [:species], "filters" => []}
       iex> meta.errors

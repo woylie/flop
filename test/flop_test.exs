@@ -1277,7 +1277,7 @@ defmodule FlopTest do
                  for: Pet
                )
 
-      assert meta.flop == nil
+      assert meta.flop == %Flop{}
       assert meta.schema == Pet
 
       assert meta.params == %{
