@@ -1294,6 +1294,28 @@ defmodule FlopTest do
       assert [[], [op: [{"is invalid", _}]]] =
                Keyword.get(meta.errors, :filters)
     end
+
+    test "returns filter params as list if passed as a map" do
+      assert {:error, %Meta{} = meta} =
+               Flop.validate(
+                 %{
+                   limit: -1,
+                   filters: %{
+                     "0" => %{field: :name},
+                     "1" => %{field: :age, op: "approx"}
+                   }
+                 },
+                 for: Pet
+               )
+
+      assert meta.params == %{
+               "limit" => -1,
+               "filters" => [
+                 %{"field" => :name},
+                 %{"field" => :age, "op" => "approx"}
+               ]
+             }
+    end
   end
 
   describe "validate!/1" do

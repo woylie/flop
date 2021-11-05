@@ -1138,7 +1138,7 @@ defmodule Flop do
         {:error,
          %Meta{
            errors: convert_errors(changeset),
-           params: map_to_string_keys(params),
+           params: convert_params(params),
            schema: opts[:for]
          }}
     end
@@ -1181,6 +1181,24 @@ defmodule Flop do
   end
 
   defp filter_to_map(%{} = filter), do: filter
+
+  defp convert_params(params) do
+    params
+    |> map_to_string_keys()
+    |> filters_to_list()
+  end
+
+  defp filters_to_list(%{"filters" => filters} = params) when is_map(filters) do
+    filters =
+      filters
+      |> Enum.map(fn {index, filter} -> {String.to_integer(index), filter} end)
+      |> Enum.sort_by(fn {index, _} -> index end)
+      |> Enum.map(fn {_, filter} -> filter end)
+
+    Map.put(params, "filters", filters)
+  end
+
+  defp filters_to_list(params), do: params
 
   defp map_to_string_keys(%{} = params) do
     Enum.into(params, %{}, fn
