@@ -5,6 +5,7 @@
 ## Added
 
 - Add `:contains` operator.
+- Add `Flop.map_to_filter_params/2`.
 
 ## Changed
 
