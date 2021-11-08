@@ -1339,6 +1339,7 @@ defmodule Flop do
       ...> ]})
       %Flop{filters: []}
   """
+  @doc since: "0.15.0"
   @spec reset_filters(Flop.t()) :: Flop.t()
   def reset_filters(%Flop{} = flop), do: %{flop | filters: []}
 
