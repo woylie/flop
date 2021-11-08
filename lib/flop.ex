@@ -1344,6 +1344,19 @@ defmodule Flop do
   def reset_filters(%Flop{} = flop), do: %{flop | filters: []}
 
   @doc """
+  Removes the order parameters from a Flop struct.
+
+  ## Example
+
+      iex> reset_order(%Flop{order_by: [:name], order_directions: [:asc]})
+      %Flop{order_by: nil, order_directions: nil}
+  """
+  @doc since: "0.15.0"
+  @spec reset_order(Flop.t()) :: Flop.t()
+  def reset_order(%Flop{} = flop),
+    do: %{flop | order_by: nil, order_directions: nil}
+
+  @doc """
   Updates the `order_by` and `order_directions` values of a `Flop` struct.
 
   - If the field is not in the current `order_by` value, it will be prepended to
