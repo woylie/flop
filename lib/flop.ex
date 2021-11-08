@@ -1263,6 +1263,19 @@ defmodule Flop do
   end
 
   @doc """
+  Removes all filters from a Flop struct.
+
+  ## Example
+
+      iex> reset_filters(%Flop{filters: [
+      ...>   %Flop.Filter{field: :name, value: "Jim"}
+      ...> ]})
+      %Flop{filters: []}
+  """
+  @spec reset_filters(Flop.t()) :: Flop.t()
+  def reset_filters(%Flop{} = flop), do: %{flop | filters: []}
+
+  @doc """
   Updates the `order_by` and `order_directions` values of a `Flop` struct.
 
   - If the field is not in the current `order_by` value, it will be prepended to
