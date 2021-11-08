@@ -1361,6 +1361,82 @@ defmodule Flop do
   end
 
   @doc """
+  Sets the offset of a Flop struct to the page depending on the limit.
+
+  ## Examples
+
+      iex> to_previous_offset(%Flop{offset: 20, limit: 10})
+      %Flop{offset: 10, limit: 10}
+
+      iex> to_previous_offset(%Flop{offset: 5, limit: 10})
+      %Flop{offset: 0, limit: 10}
+
+      iex> to_previous_offset(%Flop{offset: -2, limit: 10})
+      %Flop{offset: 0, limit: 10}
+  """
+  @doc since: "0.15.0"
+  @spec to_previous_offset(Flop.t()) :: Flop.t()
+  def to_previous_offset(%Flop{offset: 0} = flop), do: flop
+
+  def to_previous_offset(%Flop{offset: offset, limit: limit} = flop)
+      when is_integer(limit) and is_integer(offset),
+      do: %{flop | offset: max(offset - limit, 0)}
+
+  @doc """
+  Sets the offset of a Flop struct to the next page depending on the limit.
+
+  If the total count is given as the second argument, the offset will not be
+  increased if the last page has already been reached. You can get the total
+  count from the `Flop.Meta` struct. If the Flop has an offset beyond the total
+  count, the offset will be set to the last page.
+
+  ## Examples
+
+      iex> to_next_offset(%Flop{offset: 10, limit: 5})
+      %Flop{offset: 15, limit: 5}
+
+      iex> to_next_offset(%Flop{offset: 15, limit: 5}, 21)
+      %Flop{offset: 20, limit: 5}
+
+      iex> to_next_offset(%Flop{offset: 15, limit: 5}, 20)
+      %Flop{offset: 15, limit: 5}
+
+      iex> to_next_offset(%Flop{offset: 28, limit: 5}, 22)
+      %Flop{offset: 20, limit: 5}
+
+      iex> to_next_offset(%Flop{offset: -5, limit: 20})
+      %Flop{offset: 0, limit: 20}
+  """
+  @doc since: "0.15.0"
+  @spec to_next_offset(Flop.t(), non_neg_integer | nil) :: Flop.t()
+  def to_next_offset(flop, total_count \\ nil)
+
+  def to_next_offset(%Flop{limit: limit, offset: offset} = flop, _)
+      when is_integer(limit) and is_integer(offset) and offset < 0,
+      do: %{flop | offset: 0}
+
+  def to_next_offset(%Flop{limit: limit, offset: offset} = flop, nil)
+      when is_integer(limit) and is_integer(offset),
+      do: %{flop | offset: offset + limit}
+
+  def to_next_offset(%Flop{limit: limit, offset: offset} = flop, total_count)
+      when is_integer(limit) and
+             is_integer(offset) and
+             is_integer(total_count) and offset >= total_count do
+    %{flop | offset: (ceil(total_count / limit) - 1) * limit}
+  end
+
+  def to_next_offset(%Flop{limit: limit, offset: offset} = flop, total_count)
+      when is_integer(limit) and
+             is_integer(offset) and
+             is_integer(total_count) do
+    case offset + limit do
+      new_offset when new_offset >= total_count -> flop
+      new_offset -> %{flop | offset: new_offset}
+    end
+  end
+
+  @doc """
   Removes all filters from a Flop struct.
 
   ## Example

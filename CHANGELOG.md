@@ -5,7 +5,8 @@
 ### Added
 
 - Add `Flop.reset_filters/1`, `Flop.reset_order/1`, `Flop.to_next_page/2`,
-  `Flop.to_previous_page/1` and `Flop.set_offset/2`.
+  `Flop.to_previous_page/1` and `Flop.set_offset/2`, `Flop.to_previous_offset/1`
+  and `Flop.to_next_offset_2`.
 
 ### Removed
 
