@@ -4,12 +4,12 @@
 
 ## [0.14.0] - 2021-11-08
 
-## Added
+### Added
 
 - Add `:contains` operator.
 - Add `Flop.map_to_filter_params/2`.
 
-## Changed
+### Changed
 
 - `Flop.validate/2` and `Flop.validate_and_run/3` return `{:error, Flop.Meta.t}`
   instead of `{:error, Ecto.Changeset.t}` now. The Meta struct has the new
@@ -28,7 +28,7 @@
 
 ## [0.13.2] - 2021-10-16
 
-## Fixed
+### Fixed
 
 - Fix error when sorting by a compound field that consists of at least one
   join field.
