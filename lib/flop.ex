@@ -1248,7 +1248,7 @@ defmodule Flop do
   """
   @doc since: "0.12.0"
   @spec set_page(Flop.t(), pos_integer) :: Flop.t()
-  def set_page(%Flop{} = flop, page) do
+  def set_page(%Flop{} = flop, page) when is_integer(page) do
     %{
       flop
       | after: nil,
