@@ -1344,7 +1344,7 @@ defmodule Flop do
       iex> set_offset(%Flop{}, -5)
       %Flop{offset: 0}
   """
-  @doc since: "0.12.0"
+  @doc since: "0.15.0"
   @spec set_offset(Flop.t(), non_neg_integer) :: Flop.t()
   def set_offset(%Flop{} = flop, offset) when is_integer(offset) do
     %{
