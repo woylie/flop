@@ -1451,6 +1451,29 @@ defmodule Flop do
   def reset_filters(%Flop{} = flop), do: %{flop | filters: []}
 
   @doc """
+  Returns the current order directions for the given field.
+
+  ## Examples
+
+      iex> flop = %Flop{order_by: [:name, :age], order_directions: [:desc]}
+      iex> current_order(flop, :name)
+      :desc
+      iex> current_order(flop, :age)
+      :asc
+      iex> current_order(flop, :species)
+      nil
+  """
+  @doc since: "0.15.0"
+  @spec current_order(Flop.t(), atom) :: order_direction() | nil
+  def current_order(
+        %Flop{order_by: order_by, order_directions: order_directions},
+        field
+      )
+      when is_atom(field) do
+    get_order_direction(order_directions, get_index(order_by, field))
+  end
+
+  @doc """
   Removes the order parameters from a Flop struct.
 
   ## Example
@@ -1546,7 +1569,9 @@ defmodule Flop do
 
   defp get_order_direction(_, nil), do: nil
   defp get_order_direction(nil, _), do: :asc
-  defp get_order_direction(directions, index), do: Enum.at(directions, index)
+
+  defp get_order_direction(directions, index),
+    do: Enum.at(directions, index, :asc)
 
   defp new_order_direction(0, :asc), do: :desc
   defp new_order_direction(0, :asc_nulls_first), do: :desc_nulls_last
