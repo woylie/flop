@@ -1263,6 +1263,73 @@ defmodule Flop do
   end
 
   @doc """
+  Sets the page of a Flop struct to the previous page, but not less than 1.
+
+  ## Examples
+
+      iex> to_previous_page(%Flop{page: 5})
+      %Flop{page: 4}
+
+      iex> to_previous_page(%Flop{page: 1})
+      %Flop{page: 1}
+
+      iex> to_previous_page(%Flop{page: -2})
+      %Flop{page: 1}
+  """
+  @doc since: "0.15.0"
+  @spec to_previous_page(Flop.t()) :: Flop.t()
+  def to_previous_page(%Flop{page: 1} = flop), do: flop
+
+  def to_previous_page(%Flop{page: page} = flop)
+      when is_integer(page) and page <= 1,
+      do: %{flop | page: 1}
+
+  def to_previous_page(%Flop{page: page} = flop) when is_integer(page),
+    do: %{flop | page: page - 1}
+
+  @doc """
+  Sets the page of a Flop struct to the next page.
+
+  If the total number of pages is given as the second argument, the page number
+  will not be increased if the last page has already been reached. You can get
+  the total number of pages from the `Flop.Meta` struct.
+
+  ## Examples
+
+      iex> to_next_page(%Flop{page: 5})
+      %Flop{page: 6}
+
+      iex> to_next_page(%Flop{page: 5}, 6)
+      %Flop{page: 6}
+
+      iex> to_next_page(%Flop{page: 6}, 6)
+      %Flop{page: 6}
+
+      iex> to_next_page(%Flop{page: 7}, 6)
+      %Flop{page: 6}
+
+      iex> to_next_page(%Flop{page: -5})
+      %Flop{page: 1}
+  """
+  @doc since: "0.15.0"
+  @spec to_next_page(Flop.t(), pos_integer | nil) :: Flop.t()
+  def to_next_page(flop, total_pages \\ nil)
+
+  def to_next_page(%Flop{page: page} = flop, _)
+      when is_integer(page) and page < 0,
+      do: %{flop | page: 1}
+
+  def to_next_page(%Flop{page: page} = flop, nil), do: %{flop | page: page + 1}
+
+  def to_next_page(%Flop{page: page} = flop, total_pages)
+      when is_integer(total_pages) and page < total_pages,
+      do: %{flop | page: page + 1}
+
+  def to_next_page(%Flop{} = flop, total_pages)
+      when is_integer(total_pages),
+      do: %{flop | page: total_pages}
+
+  @doc """
   Removes all filters from a Flop struct.
 
   ## Example
