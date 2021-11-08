@@ -1330,6 +1330,37 @@ defmodule Flop do
       do: %{flop | page: total_pages}
 
   @doc """
+  Sets the offset value of a `Flop` struct while also removing/converting
+  pagination parameters for other pagination types.
+
+      iex> set_offset(%Flop{limit: 10, offset: 10}, 20)
+      %Flop{offset: 20, limit: 10}
+
+      iex> set_offset(%Flop{page: 5, page_size: 10}, 20)
+      %Flop{limit: 10, offset: 20, page: nil, page_size: nil}
+
+  The offset will not be allowed to go below 0.
+
+      iex> set_offset(%Flop{}, -5)
+      %Flop{offset: 0}
+  """
+  @doc since: "0.12.0"
+  @spec set_offset(Flop.t(), non_neg_integer) :: Flop.t()
+  def set_offset(%Flop{} = flop, offset) when is_integer(offset) do
+    %{
+      flop
+      | after: nil,
+        before: nil,
+        first: nil,
+        last: nil,
+        limit: flop.limit || flop.page_size || flop.first || flop.last,
+        offset: max(offset, 0),
+        page_size: nil,
+        page: nil
+    }
+  end
+
+  @doc """
   Removes all filters from a Flop struct.
 
   ## Example
