@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.14.0] - 2021-11-08
+
 ## Added
 
 - Add `:contains` operator.
