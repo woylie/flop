@@ -1434,6 +1434,73 @@ defmodule Flop do
     Application.get_env(:flop, key)
   end
 
+  @doc """
+  Converts a map of filter conditions into a list of Flop filter params.
+
+  The default operator is `:==`. `nil` values are excluded from the result.
+
+      iex> map_to_filter_params(%{name: "George", age: 8, species: nil})
+      [
+        %{field: :age, op: :==, value: 8},
+        %{field: :name, op: :==, value: "George"}
+      ]
+
+      iex> map_to_filter_params(%{"name" => "George", "age" => 8, "cat" => true})
+      [
+        %{field: "age", op: :==, value: 8},
+        %{field: "cat", op: :==, value: true},
+        %{field: "name", op: :==, value: "George"}
+      ]
+
+  You can optionally pass a mapping from field names to operators as a map
+  with atom keys.
+
+      iex> map_to_filter_params(
+      ...>   %{name: "George", age: 8, species: nil},
+      ...>   operators: %{name: :ilike_and}
+      ...> )
+      [
+        %{field: :age, op: :==, value: 8},
+        %{field: :name, op: :ilike_and, value: "George"}
+      ]
+
+      iex> map_to_filter_params(
+      ...>   %{"name" => "George", "age" => 8, "cat" => true},
+      ...>   operators: %{name: :ilike_and, age: :<=}
+      ...> )
+      [
+        %{field: "age", op: :<=, value: 8},
+        %{field: "cat", op: :==, value: true},
+        %{field: "name", op: :ilike_and, value: "George"}
+      ]
+  """
+  @spec map_to_filter_params(map, keyword) :: [map]
+  def map_to_filter_params(%{} = map, opts \\ []) do
+    operators = opts[:operators]
+
+    map
+    |> Stream.reject(fn
+      {_, nil} -> true
+      _ -> false
+    end)
+    |> Enum.map(fn {field, value} ->
+      %{field: field, op: op_from_mapping(field, operators), value: value}
+    end)
+  end
+
+  defp op_from_mapping(_field, nil), do: :==
+
+  defp op_from_mapping(field, %{} = operators) when is_atom(field) do
+    Map.get(operators, field, :==)
+  end
+
+  defp op_from_mapping(field, %{} = operators) when is_binary(field) do
+    atom_key = String.to_existing_atom(field)
+    Map.get(operators, atom_key, :==)
+  rescue
+    ArgumentError -> :==
+  end
+
   # coveralls-ignore-start
   defp no_repo_error(function_name),
     do: """
