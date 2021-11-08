@@ -1281,7 +1281,7 @@ defmodule Flop do
   def to_previous_page(%Flop{page: 1} = flop), do: flop
 
   def to_previous_page(%Flop{page: page} = flop)
-      when is_integer(page) and page <= 1,
+      when is_integer(page) and page < 1,
       do: %{flop | page: 1}
 
   def to_previous_page(%Flop{page: page} = flop) when is_integer(page),
@@ -1312,7 +1312,7 @@ defmodule Flop do
       %Flop{page: 1}
   """
   @doc since: "0.15.0"
-  @spec to_next_page(Flop.t(), pos_integer | nil) :: Flop.t()
+  @spec to_next_page(Flop.t(), non_neg_integer | nil) :: Flop.t()
   def to_next_page(flop, total_pages \\ nil)
 
   def to_next_page(%Flop{page: page} = flop, _)
