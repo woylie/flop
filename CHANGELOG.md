@@ -6,6 +6,11 @@
 
 - Add `Flop.reset_filters/1`.
 
+### Removed
+
+- Remove `Flop.Cursor.get_cursor_from_map/2`. Use
+  `Flop.Cursor.get_cursor_from_node/2` instead.
+
 ## [0.14.0] - 2021-11-08
 
 ### Added
@@ -135,10 +140,13 @@ equivalent:
 
 - Use `Flop.Cursor.get_cursor_from_node/2` as default for the
   `:get_cursor_value_func` option.
-- Deprecate `Flop.Cursor.get_cursor_from_map/2`. Use
-  `Flop.Cursor.get_cursor_from_node/2` instead.
 - `Flop.Relay.edges_from_result/2` can now handle `nil` instead of a map as
   edge information in a query result.
+
+### Deprecated
+
+- Deprecate `Flop.Cursor.get_cursor_from_map/2`. Use
+  `Flop.Cursor.get_cursor_from_node/2` instead.
 
 ## [0.10.0] - 2021-05-03
 
