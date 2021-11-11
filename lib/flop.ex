@@ -1661,6 +1661,47 @@ defmodule Flop do
   end
 
   @doc """
+  Converts key/value filter parameters at the root of a map, converts them into
+  a list of filter parameter maps and nests them under the `:filters` key.
+
+  The second argument is a list of fields as atoms.
+
+  The `opts` argument is passed to `map_to_filter_params/2`.
+
+  ## Examples
+
+      iex> nest_filters(%{name: "Peter", page_size: 10}, [:name])
+      %{filters: [%{field: :name, op: :==, value: "Peter"}], page_size: 10}
+
+      iex> nest_filters(%{"name" => "Peter"}, [:name])
+      %{"filters" => [%{"field" => "name", "op" => :==, "value" =>  "Peter"}]}
+
+      iex> nest_filters(%{name: "Peter"}, [:name], operators: %{name: :!=})
+      %{filters: [%{field: :name, op: :!=, value: "Peter"}]}
+  """
+  def nest_filters(%{} = args, fields, opts \\ []) when is_list(fields) do
+    fields = fields ++ Enum.map(fields, &Atom.to_string/1)
+
+    filters =
+      args
+      |> Map.take(fields)
+      |> map_to_filter_params(opts)
+
+    key = if has_atom_keys?(args), do: :filters, else: "filters"
+
+    args
+    |> Map.put(key, filters)
+    |> Map.drop(fields)
+  end
+
+  defp has_atom_keys?(%{} = map) do
+    map
+    |> Map.keys()
+    |> List.first()
+    |> is_atom()
+  end
+
+  @doc """
   Converts a map of filter conditions into a list of Flop filter params.
 
   The default operator is `:==`. `nil` values are excluded from the result.
@@ -1673,9 +1714,9 @@ defmodule Flop do
 
       iex> map_to_filter_params(%{"name" => "George", "age" => 8, "cat" => true})
       [
-        %{field: "age", op: :==, value: 8},
-        %{field: "cat", op: :==, value: true},
-        %{field: "name", op: :==, value: "George"}
+        %{"field" => "age", "op" => :==, "value" => 8},
+        %{"field" => "cat", "op" => :==, "value" => true},
+        %{"field" => "name", "op" => :==, "value" => "George"}
       ]
 
   You can optionally pass a mapping from field names to operators as a map
@@ -1695,9 +1736,9 @@ defmodule Flop do
       ...>   operators: %{name: :ilike_and, age: :<=}
       ...> )
       [
-        %{field: "age", op: :<=, value: 8},
-        %{field: "cat", op: :==, value: true},
-        %{field: "name", op: :ilike_and, value: "George"}
+        %{"field" => "age", "op" => :<=, "value" => 8},
+        %{"field" => "cat", "op" => :==, "value" => true},
+        %{"field" => "name", "op" => :ilike_and, "value" => "George"}
       ]
   """
   @spec map_to_filter_params(map, keyword) :: [map]
@@ -1709,8 +1750,20 @@ defmodule Flop do
       {_, nil} -> true
       _ -> false
     end)
-    |> Enum.map(fn {field, value} ->
-      %{field: field, op: op_from_mapping(field, operators), value: value}
+    |> Enum.map(fn
+      {field, value} when is_atom(field) ->
+        %{
+          field: field,
+          op: op_from_mapping(field, operators),
+          value: value
+        }
+
+      {field, value} when is_binary(field) ->
+        %{
+          "field" => field,
+          "op" => op_from_mapping(field, operators),
+          "value" => value
+        }
     end)
   end
 
