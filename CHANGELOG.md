@@ -4,9 +4,18 @@
 
 ### Added
 
-- Add `Flop.reset_filters/1`, `Flop.current_order/2`, `Flop.reset_order/1`,
-  `Flop.to_next_page/2`, `Flop.to_previous_page/1`, `Flop.set_offset/2`,
-  `Flop.to_previous_offset/1` and `Flop.to_next_offset_2`.
+- Add `Flop.reset_filters/1` and `Flop.reset_order/1`.
+- Add `Flop.current_order/2` to retrieve the order of a given field.
+- Add `Flop.to_next_page/2` and `Flop.to_previous_page/1`.
+- Add `Flop.set_offset/2`, `Flop.to_previous_offset/1` and
+  `Flop.to_next_offset_2`.
+- Add `Flop.nest_filters/3` for converting filters between a key/value map and
+  a list of `Flop.Filter` parameters.
+
+### Changed
+
+- `Flop.map_to_filter_params` returns maps with string keys if the original
+  map has string keys now.
 
 ### Removed
 
