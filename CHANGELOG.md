@@ -14,7 +14,7 @@
 
 ### Changed
 
-- `Flop.map_to_filter_params` returns maps with string keys if the original
+- `Flop.map_to_filter_params/2` returns maps with string keys if the original
   map has string keys now.
 
 ### Removed
