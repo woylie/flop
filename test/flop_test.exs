@@ -910,7 +910,7 @@ defmodule FlopTest do
       end
     end
 
-    property "has_previous_page? is false with after" do
+    property "has_previous_page? is true with after" do
       check all pets <- uniq_list_of_pets(length: 1..25),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
@@ -926,7 +926,7 @@ defmodule FlopTest do
           end)
           |> Flop.Cursor.encode()
 
-        assert {_, %Meta{has_previous_page?: false}} =
+        assert {_, %Meta{has_previous_page?: true}} =
                  Flop.validate_and_run!(
                    pets_with_owners_query(),
                    %Flop{
@@ -1044,7 +1044,7 @@ defmodule FlopTest do
       end
     end
 
-    property "has_next_page? is false with before" do
+    property "has_next_page? is true with before" do
       check all pets <- uniq_list_of_pets(length: 1..25),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
@@ -1060,7 +1060,7 @@ defmodule FlopTest do
           end)
           |> Flop.Cursor.encode()
 
-        assert {_, %Meta{has_next_page?: false}} =
+        assert {_, %Meta{has_next_page?: true}} =
                  Flop.validate_and_run!(
                    pets_with_owners_query(),
                    %Flop{
@@ -1116,13 +1116,14 @@ defmodule FlopTest do
     end
 
     property "has_next_page? is false with first set and no items left" do
-      check all pets <- uniq_list_of_pets(length: 3..50),
-                pet_count = length(pets),
+      check all pet_count <- integer(3..50),
+                pets <- uniq_list_of_pets(length: pet_count..pet_count),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}),
                 # include test with limits greater than item count
                 first <- integer(1..(pet_count + 20)),
-                cursor_index <- integer(0..min(pet_count - 1, first)) do
+                cursor_index <-
+                  integer(max(0, pet_count - first)..(pet_count - 1)) do
         checkin_checkout()
 
         Enum.each(pets, &Repo.insert!(&1))
@@ -1143,10 +1144,10 @@ defmodule FlopTest do
           |> Enum.into(%{}, fn field -> {field, Pet.get_field(pet, field)} end)
           |> Flop.Cursor.encode()
 
-        assert {_, %Meta{has_previous_page?: false}} =
+        assert {_, %Meta{has_next_page?: false}} =
                  Flop.validate_and_run!(
                    pets_with_owners_query(),
-                   %{
+                   %Flop{
                      first: first,
                      after: cursor,
                      order_by: cursor_fields,
