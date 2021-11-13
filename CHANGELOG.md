@@ -7,7 +7,7 @@
 - Add `Flop.reset_filters/1` and `Flop.reset_order/1`.
 - Add `Flop.current_order/2` to retrieve the order of a given field.
 - Add `Flop.to_next_page/2` and `Flop.to_previous_page/1`.
-- Add `Flop.to_next_cursor/1` and `Flop.to_next_cursor/1`.
+- Add `Flop.to_next_cursor/1` and `Flop.to_previous_cursor/1`.
 - Add `Flop.set_offset/2`, `Flop.to_previous_offset/1` and
   `Flop.to_next_offset_2`.
 - Add `Flop.nest_filters/3` for converting filters between a key/value map and
