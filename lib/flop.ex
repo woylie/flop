@@ -1481,9 +1481,13 @@ defmodule Flop do
     %{
       flop
       | before: start_cursor,
-        last: flop.last || flop.first,
+        last: flop.last || flop.first || flop.page_size || flop.limit,
         after: nil,
-        first: nil
+        first: nil,
+        page: nil,
+        page_size: nil,
+        limit: nil,
+        offset: nil
     }
   end
 
@@ -1532,9 +1536,13 @@ defmodule Flop do
     %{
       flop
       | after: end_cursor,
-        first: flop.first || flop.last,
+        first: flop.first || flop.last || flop.page_size || flop.limit,
         before: nil,
-        last: nil
+        last: nil,
+        page: nil,
+        page_size: nil,
+        limit: nil,
+        offset: nil
     }
   end
 
