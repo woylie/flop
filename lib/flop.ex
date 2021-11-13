@@ -1653,6 +1653,14 @@ defmodule Flop do
       iex> flop = push_order(%Flop{}, "this_atom_does_not_exist")
       iex> flop.order_by
       nil
+
+  Since the pagination cursor depends on the sort order, the `:before` and
+  `:after` parameters are reset.
+
+      iex> push_order(%Flop{order_by: [:id], after: "ABC"}, :name)
+      %Flop{order_by: [:name, :id], order_directions: [:asc], after: nil}
+      iex> push_order(%Flop{order_by: [:id], before: "DEF"}, :name)
+      %Flop{order_by: [:name, :id], order_directions: [:asc], before: nil}
   """
   @spec push_order(Flop.t(), atom | String.t()) :: Flop.t()
   @doc since: "0.10.0"
@@ -1674,7 +1682,13 @@ defmodule Flop do
         previous_index
       )
 
-    %{flop | order_by: order_by, order_directions: order_directions}
+    %{
+      flop
+      | after: nil,
+        before: nil,
+        order_by: order_by,
+        order_directions: order_directions
+    }
   end
 
   def push_order(flop, field) when is_binary(field) do

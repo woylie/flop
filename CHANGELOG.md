@@ -23,6 +23,8 @@
 - The `has_previous_page?` value of the `Flop.Meta` struct is now always `true`
   if `first` is used with `after`. `has_next_page?` is always `true` when
   `last` is used with `before`.
+- `push_order/2` resets the `:after` and `:before` parameters now, since the
+  cursors depend on the order.
 
 ### Removed
 
