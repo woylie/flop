@@ -81,7 +81,7 @@ defmodule Flop.Validation do
   end
 
   defp validate_pagination(changeset, opts) do
-    pagination_type = get_pagination_type(changeset)
+    pagination_type = get_pagination_type(changeset, opts)
 
     changeset
     |> validate_pagination_type(pagination_type, opts)
@@ -239,13 +239,13 @@ defmodule Flop.Validation do
     )
   end
 
-  defp get_pagination_type(changeset) do
+  defp get_pagination_type(changeset, opts) do
     cond do
       any_field_set?(changeset, :first, :after) -> :first
       any_field_set?(changeset, :last, :before) -> :last
       any_field_set?(changeset, :page, :page_size) -> :page
       any_field_set?(changeset, :limit, :offset) -> :offset
-      true -> nil
+      true -> Flop.get_option(:default_pagination_type, opts)
     end
   end
 

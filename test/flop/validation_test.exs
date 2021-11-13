@@ -121,6 +121,20 @@ defmodule Flop.ValidationTest do
       assert {:ok, %Flop{limit: 50}} = validate(%{}, for: Fruit)
     end
 
+    test "sets default limit with default pagination type" do
+      assert {:ok, %Flop{limit: 50}} =
+               validate(%{}, for: Fruit, default_pagination_type: :offset)
+
+      assert {:ok, %Flop{page_size: 50}} =
+               validate(%{}, for: Vegetable, default_pagination_type: :page)
+
+      assert {:ok, %Flop{first: 50}} =
+               validate(%{}, for: Fruit, default_pagination_type: :first)
+
+      assert {:ok, %Flop{last: 50}} =
+               validate(%{}, for: Fruit, default_pagination_type: :last)
+    end
+
     test "does not set default limit for other pagination types" do
       assert {:ok, %Flop{page_size: nil, first: nil, last: nil}} =
                validate(%{}, for: Fruit)
