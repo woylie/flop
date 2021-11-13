@@ -263,6 +263,11 @@ defmodule Flop do
   - `:default_limit` - Sets a global default limit for queries that is used if
     no default limit is set for a schema and no limit is set in the parameters.
     Can only be set in the application configuration.
+  - `:default_pagination_type` - The pagination type to use when setting default
+    parameters and the pagination type cannot be determined from the parameters.
+    Parameters for other pagination types can still be passed when setting this
+    option. To restrict which pagination types can be used, set the
+    `:pagination_types` option.
   - `:filtering` (boolean) - Can be set to `false` to silently ignore filter
     parameters.
   - `:cursor_value_func` - 2-arity function used to get the (unencoded)
@@ -314,6 +319,7 @@ defmodule Flop do
   @type option ::
           {:for, module}
           | {:default_limit, pos_integer}
+          | {:default_pagination_type, pagination_type()}
           | {:filtering, boolean}
           | {:cursor_value_func, (any, [atom] -> map)}
           | {:max_limit, pos_integer}

@@ -12,6 +12,9 @@
   `Flop.to_next_offset_2`.
 - Add `Flop.nest_filters/3` for converting filters between a key/value map and
   a list of `Flop.Filter` parameters.
+- You can now set the `default_pagination_type` option, which forces a certain
+  set of parameters when defaults are applied and the pagination type cannot
+  be determined from the given parameters.
 
 ### Changed
 
