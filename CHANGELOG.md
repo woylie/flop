@@ -17,6 +17,9 @@
 
 - `Flop.map_to_filter_params/2` returns maps with string keys if the original
   map has string keys now.
+- The `has_previous_page?` value of the `Flop.Meta` struct is now always `true`
+  if `first` is used with `after`. `has_next_page?` is always `true` when
+  `last` is used with `before`.
 
 ### Removed
 

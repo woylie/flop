@@ -23,9 +23,10 @@ defmodule Flop.Meta do
     in the result set. Only set when using cursor-based pagination with
     `:first`/`:after` or `:last`/`:before`.
   - `:has_previous_page?`, `:has_next_page?` - Set in all pagination types.
-    Note that `:has_previous_page?` is always `false` when using cursor-based
-    pagination with `:first`/`after` and `:has_next_page?` is always `false`
-    when using cursor-based pagination with `:last`/`:before`.
+    Note that `:has_previous_page?` is always `true` when using cursor-based
+    pagination with `:first` and `:after` is set; likewise, `:has_next_page?` is
+    always `true` when using cursor-based pagination with `:before` and `:last`
+    is set.
   - `:page_size` - The page size or limit of the query. Set to the `:first`
     or `:last` parameter when using cursor-based pagination.
   - `:params` - The original, unvalidated params that were passed. Only set

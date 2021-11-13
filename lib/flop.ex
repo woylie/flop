@@ -648,7 +648,7 @@ defmodule Flop do
       start_cursor: start_cursor,
       end_cursor: end_cursor,
       has_next_page?: length(results) > first,
-      has_previous_page?: false,
+      has_previous_page?: !is_nil(flop.after),
       page_size: first,
       schema: opts[:for]
     }
@@ -675,7 +675,7 @@ defmodule Flop do
       flop: flop,
       start_cursor: start_cursor,
       end_cursor: end_cursor,
-      has_next_page?: false,
+      has_next_page?: !is_nil(flop.before),
       has_previous_page?: length(results) > last,
       page_size: last,
       schema: opts[:for]
