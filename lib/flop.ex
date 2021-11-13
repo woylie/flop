@@ -1437,6 +1437,108 @@ defmodule Flop do
   end
 
   @doc """
+  Takes a `Flop.Meta` struct and returns a `Flop` struct with updated cursor
+  pagination params for going to the previous page.
+
+  If there is no previous page, the `Flop` struct is return unchanged.
+
+  ## Examples
+
+      iex> to_previous_cursor(
+      ...>   %Flop.Meta{
+      ...>     flop: %Flop{first: 5, after: "a"},
+      ...>     has_previous_page?: true, start_cursor: "b"
+      ...>   }
+      ...> )
+      %Flop{last: 5, before: "b"}
+
+      iex> to_previous_cursor(
+      ...>   %Flop.Meta{
+      ...>     flop: %Flop{last: 5, before: "b"},
+      ...>     has_previous_page?: true, start_cursor: "a"
+      ...>   }
+      ...> )
+      %Flop{last: 5, before: "a"}
+
+      iex> to_previous_cursor(
+      ...>   %Flop.Meta{
+      ...>     flop: %Flop{first: 5, after: "b"},
+      ...>     has_previous_page?: false, start_cursor: "a"
+      ...>   }
+      ...> )
+      %Flop{first: 5, after: "b"}
+  """
+  @doc since: "0.15.0"
+  @spec to_previous_cursor(Meta.t()) :: Flop.t()
+  def to_previous_cursor(%Meta{flop: flop, has_previous_page?: false}), do: flop
+
+  def to_previous_cursor(%Meta{
+        flop: flop,
+        has_previous_page?: true,
+        start_cursor: start_cursor
+      })
+      when is_binary(start_cursor) do
+    %{
+      flop
+      | before: start_cursor,
+        last: flop.last || flop.first,
+        after: nil,
+        first: nil
+    }
+  end
+
+  @doc """
+  Takes a `Flop.Meta` struct and returns a `Flop` struct with updated cursor
+  pagination params for going to the next page.
+
+  If there is no next page, the `Flop` struct is return unchanged.
+
+  ## Examples
+
+      iex> to_next_cursor(
+      ...>   %Flop.Meta{
+      ...>     flop: %Flop{first: 5, after: "a"},
+      ...>     has_next_page?: true, end_cursor: "b"
+      ...>   }
+      ...> )
+      %Flop{first: 5, after: "b"}
+
+      iex> to_next_cursor(
+      ...>   %Flop.Meta{
+      ...>     flop: %Flop{last: 5, before: "b"},
+      ...>     has_next_page?: true, end_cursor: "a"
+      ...>   }
+      ...> )
+      %Flop{first: 5, after: "a"}
+
+      iex> to_next_cursor(
+      ...>   %Flop.Meta{
+      ...>     flop: %Flop{first: 5, after: "a"},
+      ...>     has_next_page?: false, start_cursor: "b"
+      ...>   }
+      ...> )
+      %Flop{first: 5, after: "a"}
+  """
+  @doc since: "0.15.0"
+  @spec to_next_cursor(Meta.t()) :: Flop.t()
+  def to_next_cursor(%Meta{flop: flop, has_next_page?: false}), do: flop
+
+  def to_next_cursor(%Meta{
+        flop: flop,
+        has_next_page?: true,
+        end_cursor: end_cursor
+      })
+      when is_binary(end_cursor) do
+    %{
+      flop
+      | after: end_cursor,
+        first: flop.first || flop.last,
+        before: nil,
+        last: nil
+    }
+  end
+
+  @doc """
   Removes all filters from a Flop struct.
 
   ## Example
