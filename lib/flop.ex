@@ -1442,6 +1442,37 @@ defmodule Flop do
 
   @doc """
   Takes a `Flop.Meta` struct and returns a `Flop` struct with updated cursor
+  pagination params for going to either the previous or the next page.
+
+  See `to_previous_cursor/1` and `to_next_cursor/1` for details.
+
+  ## Examples
+
+      iex> set_cursor(
+      ...>   %Flop.Meta{
+      ...>     flop: %Flop{first: 5, after: "a"},
+      ...>     has_previous_page?: true, start_cursor: "b"
+      ...>   },
+      ...>   :previous
+      ...> )
+      %Flop{last: 5, before: "b"}
+
+      iex> set_cursor(
+      ...>   %Flop.Meta{
+      ...>     flop: %Flop{first: 5, after: "a"},
+      ...>     has_next_page?: true, end_cursor: "b"
+      ...>   },
+      ...>   :next
+      ...> )
+      %Flop{first: 5, after: "b"}
+  """
+  @doc since: "0.15.0"
+  @spec set_cursor(Meta.t(), :previous | :next) :: Flop.t()
+  def set_cursor(%Meta{} = meta, :previous), do: to_previous_cursor(meta)
+  def set_cursor(%Meta{} = meta, :next), do: to_next_cursor(meta)
+
+  @doc """
+  Takes a `Flop.Meta` struct and returns a `Flop` struct with updated cursor
   pagination params for going to the previous page.
 
   If there is no previous page, the `Flop` struct is return unchanged.
