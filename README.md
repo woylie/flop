@@ -174,45 +174,49 @@ the parameters that your application needs to add internally.
 For example, if you need to scope a query depending on the current user, it is
 preferred to add a separate function that adds the necessary `WHERE` clauses:
 
-    def list_pets(%{} = args, %User{} = current_user) do
-      Pet
-      |> scope(current_user)
-      |> Flop.validate_and_run(flop, for: Pet)
-    end
+```elixir
+def list_pets(%{} = args, %User{} = current_user) do
+  Pet
+  |> scope(current_user)
+  |> Flop.validate_and_run(flop, for: Pet)
+end
 
-    defp scope(q, %User{role: :admin}), do: q
-    defp scope(q, %User{id: user_id}), do: where(q, user_id: ^user_id)
+defp scope(q, %User{role: :admin}), do: q
+defp scope(q, %User{id: user_id}), do: where(q, user_id: ^user_id)
+```
 
 To add additional filters that can only be used internally without exposing them
 to the user, you can pass them as a separate argument. You can use the same
 argument to override certain options depending on where the function is used.
 
-    def list_pets(%{} = args, opts \\ [], %User{} = current_user) do
-      flop_opts =
-        opts
-        |> Keyword.take([
-          :default_limit,
-          :default_pagination_type,
-          :pagination_types
-        ])
-        |> Keyword.put(:for, Pet)
+```elixir
+def list_pets(%{} = args, opts \\ [], %User{} = current_user) do
+  flop_opts =
+    opts
+    |> Keyword.take([
+      :default_limit,
+      :default_pagination_type,
+      :pagination_types
+    ])
+    |> Keyword.put(:for, Pet)
 
-      Pet
-      |> scope(current_user)
-      |> apply_filters(opts)
-      |> Flop.validate_and_run(flop, flop_opts)
-    end
+  Pet
+  |> scope(current_user)
+  |> apply_filters(opts)
+  |> Flop.validate_and_run(flop, flop_opts)
+end
 
-    defp scope(q, %User{role: :admin}), do: q
-    defp scope(q, %User{id: user_id}), do: where(q, user_id: ^user_id)
+defp scope(q, %User{role: :admin}), do: q
+defp scope(q, %User{id: user_id}), do: where(q, user_id: ^user_id)
 
-    defp apply_filters(q, opts) do
-      Enum.reduce(opts, q, fn
-        {:last_health_check, dt}, q -> where([p], p.last_health_check < ^dt)
-        {:reminder_service, bool}, q -> where([p], p.reminder_service == ^bool)
-        _, q -> q
-      end)
-    end
+defp apply_filters(q, opts) do
+  Enum.reduce(opts, q, fn
+    {:last_health_check, dt}, q -> where([p], p.last_health_check < ^dt)
+    {:reminder_service, bool}, q -> where([p], p.reminder_service == ^bool)
+    _, q -> q
+  end)
+end
+```
 
 ## Flop Phoenix
 
