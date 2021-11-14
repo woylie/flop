@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.15.0] - 2021-11-14
+
 ### Added
 
 - Add `Flop.reset_filters/1` and `Flop.reset_order/1`.
