@@ -553,10 +553,7 @@ defmodule Flop do
   @spec validate_and_run(Queryable.t(), map | Flop.t(), [option()]) ::
           {:ok, {[any], Meta.t()}} | {:error, Meta.t()}
   def validate_and_run(q, map_or_flop, opts \\ []) do
-    validate_opts =
-      Keyword.take(opts, [:default_pagination_type, :for, :pagination_types])
-
-    with {:ok, flop} <- validate(map_or_flop, validate_opts) do
+    with {:ok, flop} <- validate(map_or_flop, opts) do
       {:ok, run(q, flop, opts)}
     end
   end
@@ -568,10 +565,7 @@ defmodule Flop do
   @spec validate_and_run!(Queryable.t(), map | Flop.t(), [option()]) ::
           {[any], Meta.t()}
   def validate_and_run!(q, map_or_flop, opts \\ []) do
-    validate_opts =
-      Keyword.take(opts, [:default_pagination_type, :for, :pagination_types])
-
-    flop = validate!(map_or_flop, validate_opts)
+    flop = validate!(map_or_flop, opts)
     run(q, flop, opts)
   end
 

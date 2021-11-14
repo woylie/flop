@@ -25,6 +25,9 @@
   `last` is used with `before`.
 - `push_order/2` resets the `:after` and `:before` parameters now, since the
   cursors depend on the order.
+- `validate_and_run/3` and `validate_and_run!/3` pass all given options to
+  the validate functions now, allowing you to override defaults set in the
+  schema.
 
 ### Removed
 
