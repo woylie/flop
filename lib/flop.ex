@@ -1583,6 +1583,21 @@ defmodule Flop do
   end
 
   @doc """
+  Removes the `after` and `before` cursors from a Flop struct.
+
+  ## Example
+
+      iex> reset_cursors(%Flop{after: "A"})
+      %Flop{}
+
+      iex> reset_cursors(%Flop{before: "A"})
+      %Flop{}
+  """
+  @doc since: "0.15.0"
+  @spec reset_cursors(Flop.t()) :: Flop.t()
+  def reset_cursors(%Flop{} = flop), do: %{flop | after: nil, before: nil}
+
+  @doc """
   Removes all filters from a Flop struct.
 
   ## Example
