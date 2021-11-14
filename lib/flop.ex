@@ -279,11 +279,11 @@ defmodule Flop do
   - `:max_limit` - Sets a global maximum limit for queries that is used if no
     maximum limit is set for a schema. Can only be set in the application
     configuration.
-  - `:pagination_types` - Defines which pagination types are allowed. Passing
-    parameters for other pagination types will result in a validation error. By
-    default, all pagination types are allowed. See also
-    `t:Flop.pagination_type/0`. Note that an offset value of `0` and a limit
-    are still accepted even if offset-based pagination is disabled.
+  - `:pagination` (boolean) - Can be set to `false` to silently ignore
+    pagination parameters.
+  - `:pagination_types` - Defines which pagination types are allowed. Parameters
+    for other pagination types will not be cast. By default, all pagination
+    types are allowed. See also `t:Flop.pagination_type/0`.
   - `:ordering` (boolean) - Can be set to `false` to silently ignore order
     parameters. Default orders are still applied.
   - `:prefix` - Configures the query to be executed with the given query prefix.
@@ -324,6 +324,7 @@ defmodule Flop do
           | {:cursor_value_func, (any, [atom] -> map)}
           | {:max_limit, pos_integer}
           | {:ordering, boolean}
+          | {:pagination, boolean}
           | {:pagination_types, [pagination_type()]}
           | {:prefix, binary}
           | {:repo, module}
@@ -1752,14 +1753,15 @@ defmodule Flop do
   2. the schema module that derives `Flop.Schema`, if the passed list includes
      the `:for` option
   3. the application environment
+  4. the default passed as the last argument
   """
   @doc since: "0.11.0"
-  @spec get_option(atom, [option()]) :: any
-  def get_option(key, opts) do
+  @spec get_option(atom, [option()], any) :: any
+  def get_option(key, opts, default \\ nil) do
     case opts[key] do
       nil ->
         case schema_option(opts[:for], key) do
-          nil -> global_option(key)
+          nil -> global_option(key, default)
           v -> v
         end
 
@@ -1783,8 +1785,8 @@ defmodule Flop do
 
   defp schema_option(_, _), do: nil
 
-  defp global_option(key) when is_atom(key) do
-    Application.get_env(:flop, key)
+  defp global_option(key, default) when is_atom(key) do
+    Application.get_env(:flop, key, default)
   end
 
   @doc """

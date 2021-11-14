@@ -15,6 +15,8 @@
 - You can now set the `default_pagination_type` option, which forces a certain
   set of parameters when defaults are applied and the pagination type cannot
   be determined from the given parameters.
+- Add optional `default` argument to `get_option`.
+- Add `pagination` option. If set to `true`, pagination parameters are not cast.
 
 ### Changed
 
@@ -28,6 +30,9 @@
 - `validate_and_run/3` and `validate_and_run!/3` pass all given options to
   the validate functions now, allowing you to override defaults set in the
   schema.
+- If the `pagination_types` option is used, parameters for other pagination
+  types will not be cast now instead of casting them and returning validation
+  errors.
 
 ### Removed
 

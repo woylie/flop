@@ -32,53 +32,40 @@ defmodule Flop.ValidationTest do
     end
   end
 
-  test "only allows configured pagination types if used with Flop.Schema" do
-    assert {:error, changeset} = validate(%{page: 1}, for: Fruit)
+  test "only casts configured pagination types if used with Flop.Schema" do
+    assert {:ok, %{page: nil, page_size: nil}} =
+             validate(%{page: 1}, for: Fruit)
 
-    assert errors_on(changeset)[:page] == [
-             "page-based pagination is not allowed"
-           ]
+    assert {:ok, %{first: 1}} =
+             validate(%{first: 1, order_by: [:name]}, for: Fruit)
 
-    assert {:ok, _} = validate(%{first: 1, order_by: [:name]}, for: Fruit)
-    assert {:ok, _} = validate(%{last: 1, order_by: [:name]}, for: Fruit)
-    assert {:ok, _} = validate(%{offset: 1}, for: Fruit)
+    assert {:ok, %{last: 1}} =
+             validate(%{last: 1, order_by: [:name]}, for: Fruit)
 
-    assert {:error, changeset} =
+    assert {:ok, %{offset: 1}} = validate(%{offset: 1}, for: Fruit)
+
+    assert {:ok, %{first: nil}} =
              validate(%{first: 1, order_by: [:name]}, for: Vegetable)
 
-    assert errors_on(changeset)[:first] == [
-             "cursor-based pagination with first/after is not allowed"
-           ]
-
-    assert {:error, changeset} =
+    assert {:ok, %{last: nil}} =
              validate(%{last: 1, order_by: [:name]}, for: Vegetable)
 
-    assert errors_on(changeset)[:last] == [
-             "cursor-based pagination with last/before is not allowed"
-           ]
-
-    assert {:error, changeset} = validate(%{offset: 1}, for: Vegetable)
-
-    assert errors_on(changeset)[:offset] == [
-             "offset-based pagination is not allowed"
-           ]
+    assert {:ok, %{offset: nil}} = validate(%{offset: 1}, for: Vegetable)
   end
 
-  test "an offset of 0 is still allowed if offset pagination is disabled" do
-    # passing only a limit
-    assert {:ok, %Flop{offset: 0, limit: 20}} =
-             validate(%{limit: 20}, for: Vegetable)
+  test "does not cast pagination fields if pagination is disabled" do
+    params = %{
+      offset: 2,
+      limit: 5,
+      page: 1,
+      page_size: 8,
+      first: 4,
+      after: "A",
+      last: 6,
+      before: "B"
+    }
 
-    # passing an offset of 0 and a limit
-    assert {:ok, %Flop{offset: 0, limit: 20}} =
-             validate(%{offset: 0, limit: 20}, for: Vegetable)
-
-    # using the default limit, passing an offset
-    assert {:ok, %Flop{offset: 0, limit: 50}} =
-             validate(%{offset: 0}, for: Vegetable)
-
-    # using the default limit, not passing an offset
-    assert {:ok, %Flop{offset: nil, limit: 50}} = validate(%{}, for: Vegetable)
+    assert {:ok, %Flop{}} = validate(params, pagination: false)
   end
 
   describe "offset/limit parameters" do
