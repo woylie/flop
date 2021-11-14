@@ -1855,6 +1855,7 @@ defmodule Flop do
       iex> nest_filters(%{name: "Peter"}, [:name], operators: %{name: :!=})
       %{filters: [%{field: :name, op: :!=, value: "Peter"}]}
   """
+  @doc since: "0.15.0"
   def nest_filters(%{} = args, fields, opts \\ []) when is_list(fields) do
     fields = fields ++ Enum.map(fields, &Atom.to_string/1)
 
@@ -1917,6 +1918,7 @@ defmodule Flop do
         %{"field" => "name", "op" => :ilike_and, "value" => "George"}
       ]
   """
+  @doc since: "0.14.0"
   @spec map_to_filter_params(map, keyword) :: [map]
   def map_to_filter_params(%{} = map, opts \\ []) do
     operators = opts[:operators]
