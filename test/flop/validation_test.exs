@@ -42,7 +42,7 @@ defmodule Flop.ValidationTest do
 
   test "does not raise if only filtering is enabled" do
     assert {:ok, %Flop{}} =
-             validate(%{filters: %{field: :name}},
+             validate(%{filters: [%{field: :name, op: :==, value: "George"}]},
                ordering: false,
                pagination: false
              )
