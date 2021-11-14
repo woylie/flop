@@ -29,20 +29,21 @@ defmodule Flop.Validation do
 
   defp cast_pagination(changeset, params, opts) do
     if Flop.get_option(:pagination, opts, true) do
-      cast(changeset, params, [
-        :after,
-        :before,
-        :first,
-        :last,
-        :limit,
-        :offset,
-        :page,
-        :page_size
-      ])
+      fields =
+        :pagination_types
+        |> Flop.get_option(opts, [:first, :last, :offset, :page])
+        |> Enum.flat_map(&pagination_params_for_type/1)
+
+      cast(changeset, params, fields)
     else
       changeset
     end
   end
+
+  defp pagination_params_for_type(:page), do: [:page, :page_size]
+  defp pagination_params_for_type(:offset), do: [:limit, :offset]
+  defp pagination_params_for_type(:first), do: [:first, :after]
+  defp pagination_params_for_type(:last), do: [:last, :before]
 
   defp cast_order(changeset, params, opts) do
     if Flop.get_option(:ordering, opts, true),
@@ -84,28 +85,7 @@ defmodule Flop.Validation do
 
   defp validate_pagination(changeset, opts) do
     pagination_type = get_pagination_type(changeset, opts)
-
-    changeset
-    |> validate_pagination_type(pagination_type, opts)
-    |> validate_by_pagination_type(pagination_type, opts)
-  end
-
-  # validates that the used pagination type is allowed
-  defp validate_pagination_type(changeset, nil, _opts), do: changeset
-
-  defp validate_pagination_type(changeset, pagination_type, opts) do
-    allowed_types = Flop.get_option(:pagination_types, opts)
-
-    if allowed_types && pagination_type not in allowed_types do
-      if pagination_type == :offset &&
-           get_field(changeset, :offset) in [0, nil] do
-        changeset
-      else
-        add_pagination_type_error(changeset, pagination_type)
-      end
-    else
-      changeset
-    end
+    validate_by_pagination_type(changeset, pagination_type, opts)
   end
 
   defp validate_by_pagination_type(changeset, :first, opts) do
@@ -207,38 +187,6 @@ defmodule Flop.Validation do
     if !is_nil(default) && is_nil(get_field(changeset, field)),
       do: put_change(changeset, field, default),
       else: changeset
-  end
-
-  defp add_pagination_type_error(changeset, :first) do
-    add_error(
-      changeset,
-      :first,
-      "cursor-based pagination with first/after is not allowed"
-    )
-  end
-
-  defp add_pagination_type_error(changeset, :last) do
-    add_error(
-      changeset,
-      :last,
-      "cursor-based pagination with last/before is not allowed"
-    )
-  end
-
-  defp add_pagination_type_error(changeset, :offset) do
-    add_error(
-      changeset,
-      :offset,
-      "offset-based pagination is not allowed"
-    )
-  end
-
-  defp add_pagination_type_error(changeset, :page) do
-    add_error(
-      changeset,
-      :page,
-      "page-based pagination is not allowed"
-    )
   end
 
   defp get_pagination_type(changeset, opts) do

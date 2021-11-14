@@ -30,6 +30,9 @@
 - `validate_and_run/3` and `validate_and_run!/3` pass all given options to
   the validate functions now, allowing you to override defaults set in the
   schema.
+- If the `pagination_types` option is used, parameters for other pagination
+  types will not be cast now instead of casting them and returning validation
+  errors.
 
 ### Removed
 

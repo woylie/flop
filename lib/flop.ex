@@ -281,11 +281,9 @@ defmodule Flop do
     configuration.
   - `:pagination` (boolean) - Can be set to `false` to silently ignore
     pagination parameters.
-  - `:pagination_types` - Defines which pagination types are allowed. Passing
-    parameters for other pagination types will result in a validation error. By
-    default, all pagination types are allowed. See also
-    `t:Flop.pagination_type/0`. Note that an offset value of `0` and a limit
-    are still accepted even if offset-based pagination is disabled.
+  - `:pagination_types` - Defines which pagination types are allowed. Parameters
+    for other pagination types will not be cast. By default, all pagination
+    types are allowed. See also `t:Flop.pagination_type/0`.
   - `:ordering` (boolean) - Can be set to `false` to silently ignore order
     parameters. Default orders are still applied.
   - `:prefix` - Configures the query to be executed with the given query prefix.
