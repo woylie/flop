@@ -1752,14 +1752,15 @@ defmodule Flop do
   2. the schema module that derives `Flop.Schema`, if the passed list includes
      the `:for` option
   3. the application environment
+  4. the default passed as the last argument
   """
   @doc since: "0.11.0"
-  @spec get_option(atom, [option()]) :: any
-  def get_option(key, opts) do
+  @spec get_option(atom, [option()], any) :: any
+  def get_option(key, opts, default \\ nil) do
     case opts[key] do
       nil ->
         case schema_option(opts[:for], key) do
-          nil -> global_option(key)
+          nil -> global_option(key, default)
           v -> v
         end
 
@@ -1783,8 +1784,8 @@ defmodule Flop do
 
   defp schema_option(_, _), do: nil
 
-  defp global_option(key) when is_atom(key) do
-    Application.get_env(:flop, key)
+  defp global_option(key, default) when is_atom(key) do
+    Application.get_env(:flop, key, default)
   end
 
   @doc """

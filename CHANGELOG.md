@@ -15,6 +15,7 @@
 - You can now set the `default_pagination_type` option, which forces a certain
   set of parameters when defaults are applied and the pagination type cannot
   be determined from the given parameters.
+- Add optional `default` argument to `get_option`.
 
 ### Changed
 
