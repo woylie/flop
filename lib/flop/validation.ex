@@ -10,16 +10,7 @@ defmodule Flop.Validation do
   @spec changeset(map, [Flop.option()]) :: Changeset.t()
   def changeset(%{} = params, opts) do
     %Flop{}
-    |> cast(params, [
-      :after,
-      :before,
-      :first,
-      :last,
-      :limit,
-      :offset,
-      :page,
-      :page_size
-    ])
+    |> cast_pagination(params, opts)
     |> cast_order(params, opts)
     |> cast_filters(opts)
     |> validate_exclusive(
@@ -36,20 +27,31 @@ defmodule Flop.Validation do
     |> validate_pagination(opts)
   end
 
-  defp cast_order(changeset, params, opts) do
-    order_opt = Flop.get_option(:ordering, opts)
-    ordering = if is_nil(order_opt), do: true, else: order_opt
+  defp cast_pagination(changeset, params, opts) do
+    if Flop.get_option(:pagination, opts, true) do
+      cast(changeset, params, [
+        :after,
+        :before,
+        :first,
+        :last,
+        :limit,
+        :offset,
+        :page,
+        :page_size
+      ])
+    else
+      changeset
+    end
+  end
 
-    if ordering,
+  defp cast_order(changeset, params, opts) do
+    if Flop.get_option(:ordering, opts, true),
       do: cast(changeset, params, [:order_by, :order_directions]),
       else: changeset
   end
 
   defp cast_filters(changeset, opts) do
-    filter_opt = Flop.get_option(:filtering, opts)
-    filtering = if is_nil(filter_opt), do: true, else: filter_opt
-
-    if filtering,
+    if Flop.get_option(:filtering, opts, true),
       do: cast_embed(changeset, :filters, with: {Filter, :changeset, [opts]}),
       else: changeset
   end

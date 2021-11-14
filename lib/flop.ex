@@ -279,6 +279,8 @@ defmodule Flop do
   - `:max_limit` - Sets a global maximum limit for queries that is used if no
     maximum limit is set for a schema. Can only be set in the application
     configuration.
+  - `:pagination` (boolean) - Can be set to `false` to silently ignore
+    pagination parameters.
   - `:pagination_types` - Defines which pagination types are allowed. Passing
     parameters for other pagination types will result in a validation error. By
     default, all pagination types are allowed. See also
@@ -324,6 +326,7 @@ defmodule Flop do
           | {:cursor_value_func, (any, [atom] -> map)}
           | {:max_limit, pos_integer}
           | {:ordering, boolean}
+          | {:pagination, boolean}
           | {:pagination_types, [pagination_type()]}
           | {:prefix, binary}
           | {:repo, module}

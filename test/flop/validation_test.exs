@@ -81,6 +81,21 @@ defmodule Flop.ValidationTest do
     assert {:ok, %Flop{offset: nil, limit: 50}} = validate(%{}, for: Vegetable)
   end
 
+  test "does not cast pagination fields if pagination is disabled" do
+    params = %{
+      offset: 2,
+      limit: 5,
+      page: 1,
+      page_size: 8,
+      first: 4,
+      after: "A",
+      last: 6,
+      before: "B"
+    }
+
+    assert {:ok, %Flop{}} = validate(params, pagination: false)
+  end
+
   describe "offset/limit parameters" do
     test "limit must be a positive integer" do
       params = %{limit: 0}
