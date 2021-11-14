@@ -32,6 +32,22 @@ defmodule Flop.ValidationTest do
     end
   end
 
+  test "returns empty Flop if everything is disabled" do
+    assert validate(%{page: 1},
+             ordering: false,
+             filtering: false,
+             pagination: false
+           ) == {:ok, %Flop{}}
+  end
+
+  test "does not raise if only filtering is enabled" do
+    assert {:ok, %Flop{}} =
+             validate(%{filters: %{field: :name}},
+               ordering: false,
+               pagination: false
+             )
+  end
+
   test "only casts configured pagination types if used with Flop.Schema" do
     assert {:ok, %{page: nil, page_size: nil}} =
              validate(%{page: 1}, for: Fruit)

@@ -10,6 +10,7 @@ defmodule Flop.Validation do
   @spec changeset(map, [Flop.option()]) :: Changeset.t()
   def changeset(%{} = params, opts) do
     %Flop{}
+    |> cast(%{}, [])
     |> cast_pagination(params, opts)
     |> cast_order(params, opts)
     |> cast_filters(opts)
