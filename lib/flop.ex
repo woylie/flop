@@ -255,11 +255,12 @@ defmodule Flop do
   Options that can be passed to most of the functions or that can be set via
   the application environment.
 
-  - `:for` - The schema module to be used for validation. `Flop.Schema` must be
-    derived for the given module. This option is optional and can not be set
-    globally. If it is not set, schema specific validation will be omitted. Used
-    by the validation functions. It is also used to determine which fields are
-    join and compound fields.
+  - `:cursor_value_func` - 2-arity function used to get the (unencoded)
+    cursor value from a record. Only used with cursor-based pagination. The
+    first argument is the record, the second argument is the list of fields used
+    in the `ORDER BY` clause. Needs to return a map with the order fields as
+    keys and the the record values of these fields as values. Defaults to
+    `Flop.Cursor.get_cursor_from_node/2`.
   - `:default_limit` - Sets a global default limit for queries that is used if
     no default limit is set for a schema and no limit is set in the parameters.
     Can only be set in the application configuration.
@@ -270,12 +271,11 @@ defmodule Flop do
     `:pagination_types` option.
   - `:filtering` (boolean) - Can be set to `false` to silently ignore filter
     parameters.
-  - `:cursor_value_func` - 2-arity function used to get the (unencoded)
-    cursor value from a record. Only used with cursor-based pagination. The
-    first argument is the record, the second argument is the list of fields used
-    in the `ORDER BY` clause. Needs to return a map with the order fields as
-    keys and the the record values of these fields as values. Defaults to
-    `Flop.Cursor.get_cursor_from_node/2`.
+  - `:for` - The schema module to be used for validation. `Flop.Schema` must be
+    derived for the given module. This option is optional and can not be set
+    globally. If it is not set, schema specific validation will be omitted. Used
+    by the validation functions. It is also used to determine which fields are
+    join and compound fields.
   - `:max_limit` - Sets a global maximum limit for queries that is used if no
     maximum limit is set for a schema. Can only be set in the application
     configuration.
@@ -284,10 +284,11 @@ defmodule Flop do
   - `:pagination_types` - Defines which pagination types are allowed. Parameters
     for other pagination types will not be cast. By default, all pagination
     types are allowed. See also `t:Flop.pagination_type/0`.
+  - `:prefix` - Configures the query to be executed with the given query prefix.
+    See the Ecto documentation on
+    ["Query prefix"](https://hexdocs.pm/ecto/Ecto.Query.html#module-query-prefix).
   - `:ordering` (boolean) - Can be set to `false` to silently ignore order
     parameters. Default orders are still applied.
-  - `:prefix` - Configures the query to be executed with the given query prefix.
-    See the Ecto documentation on ["Query prefix"](https://hexdocs.pm/ecto/Ecto.Query.html#module-query-prefix).
   - `:repo` - The Ecto Repo module to use for the database query. Used by all
     functions that execute a database query.
 
@@ -317,11 +318,11 @@ defmodule Flop do
   4. default value (only `:cursor_value_func`)
   """
   @type option ::
-          {:for, module}
+          {:cursor_value_func, (any, [atom] -> map)}
           | {:default_limit, pos_integer}
           | {:default_pagination_type, pagination_type()}
           | {:filtering, boolean}
-          | {:cursor_value_func, (any, [atom] -> map)}
+          | {:for, module}
           | {:max_limit, pos_integer}
           | {:ordering, boolean}
           | {:pagination, boolean}
@@ -1596,7 +1597,7 @@ defmodule Flop do
   def reset_filters(%Flop{} = flop), do: %{flop | filters: []}
 
   @doc """
-  Returns the current order directions for the given field.
+  Returns the current order direction for the given field.
 
   ## Examples
 
