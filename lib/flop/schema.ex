@@ -712,9 +712,11 @@ defimpl Flop.Schema, for: Any do
       for {name, fields} <- compound_fields do
         quote do
           def get_field(struct, unquote(name)) do
-            unquote(fields)
-            |> Enum.map(&Flop.Schema.get_field(struct, &1))
-            |> Enum.join(" ")
+            Enum.map_join(
+              unquote(fields),
+              " ",
+              &Flop.Schema.get_field(struct, &1)
+            )
           end
         end
       end
