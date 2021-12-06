@@ -22,7 +22,7 @@ defmodule Flop.MixProject do
         "ecto.create": :test,
         "ecto.drop": :test,
         "ecto.migrate": :test,
-        "ecto.reset": :test,
+        "ecto.reset": :test
       ],
       dialyzer: [
         ignore_warnings: ".dialyzer_ignore.exs",
