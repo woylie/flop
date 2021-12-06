@@ -85,6 +85,9 @@ defmodule Flop.MixProject do
   end
 
   defp aliases do
-    [test: ["ecto.create --quiet", "ecto.migrate", "test"]]
+    [
+      "ecto.reset": ["ecto.drop", "ecto.create --quiet", "ecto.migrate"],
+      test: ["ecto.create --quiet", "ecto.migrate", "test"]
+    ]
   end
 end
