@@ -18,7 +18,11 @@ defmodule Flop.MixProject do
         "coveralls.detail": :test,
         "coveralls.post": :test,
         "coveralls.html": :test,
-        "coveralls.github": :test
+        "coveralls.github": :test,
+        "ecto.create": :test,
+        "ecto.drop": :test,
+        "ecto.migrate": :test,
+        "ecto.reset": :test,
       ],
       dialyzer: [
         ignore_warnings: ".dialyzer_ignore.exs",
