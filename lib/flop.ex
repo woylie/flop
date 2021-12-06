@@ -1246,13 +1246,16 @@ defmodule Flop do
       iex> set_page(%Flop{limit: 10, offset: 20}, 8)
       %Flop{limit: nil, offset: nil, page: 8, page_size: 10}
 
+      iex> set_page(%Flop{page: 2, page_size: 10}, "6")
+      %Flop{page: 6, page_size: 10}
+
   The page number will not be allowed to go below 1.
 
       iex> set_page(%Flop{}, -5)
       %Flop{page: 1}
   """
   @doc since: "0.12.0"
-  @spec set_page(Flop.t(), pos_integer) :: Flop.t()
+  @spec set_page(Flop.t(), pos_integer | binary) :: Flop.t()
   def set_page(%Flop{} = flop, page) when is_integer(page) do
     %{
       flop
@@ -1265,6 +1268,10 @@ defmodule Flop do
         page_size: flop.page_size || flop.limit || flop.first || flop.last,
         page: max(page, 1)
     }
+  end
+
+  def set_page(%Flop{} = flop, page) when is_binary(page) do
+    set_page(flop, String.to_integer(page))
   end
 
   @doc """
@@ -1344,13 +1351,16 @@ defmodule Flop do
       iex> set_offset(%Flop{page: 5, page_size: 10}, 20)
       %Flop{limit: 10, offset: 20, page: nil, page_size: nil}
 
+      iex> set_offset(%Flop{limit: 10, offset: 10}, "20")
+      %Flop{offset: 20, limit: 10}
+
   The offset will not be allowed to go below 0.
 
       iex> set_offset(%Flop{}, -5)
       %Flop{offset: 0}
   """
   @doc since: "0.15.0"
-  @spec set_offset(Flop.t(), non_neg_integer) :: Flop.t()
+  @spec set_offset(Flop.t(), non_neg_integer | binary) :: Flop.t()
   def set_offset(%Flop{} = flop, offset) when is_integer(offset) do
     %{
       flop
@@ -1363,6 +1373,10 @@ defmodule Flop do
         page_size: nil,
         page: nil
     }
+  end
+
+  def set_offset(%Flop{} = flop, offset) when is_binary(offset) do
+    set_offset(flop, String.to_integer(offset))
   end
 
   @doc """

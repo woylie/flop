@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+- Allow passing page as string to `Flop.set_page/2`.
+- Allow passing offset as string to `Flop.set_offset/2`.
+
 ## [0.15.0] - 2021-11-14
 
 ### Added
