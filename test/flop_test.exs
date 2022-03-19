@@ -1356,6 +1356,64 @@ defmodule FlopTest do
     end
   end
 
+  describe "bindings/2" do
+    test "returns used binding names with order_by and filters" do
+      flop = %Flop{
+        filters: [
+          # join fields
+          %Flop.Filter{field: :owner_age, op: :==, value: 5},
+          %Flop.Filter{field: :owner_name, op: :==, value: "George"},
+          # compound field
+          %Flop.Filter{field: :full_name, op: :==, value: "George the Dog"}
+        ],
+        # join field and normal field
+        order_by: [:owner_name, :age]
+      }
+
+      assert Flop.bindings(flop, Pet) == [:owner]
+    end
+
+    test "returns used binding names with order_by" do
+      flop = %Flop{
+        # join field and normal field
+        order_by: [:owner_name, :age]
+      }
+
+      assert Flop.bindings(flop, Pet) == [:owner]
+    end
+
+    test "returns used binding names with filters" do
+      flop = %Flop{
+        filters: [
+          # join fields
+          %Flop.Filter{field: :owner_age, op: :==, value: 5},
+          %Flop.Filter{field: :owner_name, op: :==, value: "George"},
+          # compound field
+          %Flop.Filter{field: :full_name, op: :==, value: "George the Dog"}
+        ]
+      }
+
+      assert Flop.bindings(flop, Pet) == [:owner]
+    end
+
+    test "returns empty list if no join fields are used" do
+      flop = %Flop{
+        filters: [
+          # compound field
+          %Flop.Filter{field: :full_name, op: :==, value: "George the Dog"}
+        ],
+        # normal field
+        order_by: [:age]
+      }
+
+      assert Flop.bindings(flop, Pet) == []
+    end
+
+    test "returns empty list if there are no filters and order fields" do
+      assert Flop.bindings(%Flop{}, Pet) == []
+    end
+  end
+
   describe "__using__/1" do
     test "defines wrapper functions that pass default options" do
       insert_list(3, :pet)

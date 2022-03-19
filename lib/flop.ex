@@ -2051,6 +2051,93 @@ defmodule Flop do
     ArgumentError -> :==
   end
 
+  @doc """
+  Returns the names of the bindings that are required for the filters and order
+  clauses of the given Flop.
+
+  The second argument is the schema module that derives `Flop.Schema`.
+
+  For example, your schema module might define a join field called `:owner_age`.
+
+      @derive {
+        Flop.Schema,
+        filterable: [:name, :owner_age],
+        sortable: [:name, :owner_age],
+        join_fields: [owner_age: {:owner, :age}]
+      }
+
+  If you pass a Flop with a filter on the `:owner_age` field, the returned list
+  will include the `:owner` binding.
+
+      iex> bindings(
+      ...>   %Flop{
+      ...>     filters: [%Flop.Filter{field: :owner_age, op: :==, value: 5}]
+      ...>   },
+      ...>   Flop.Pet
+      ...> )
+      [:owner]
+
+  If on the other hand only normal fields or compound fields are used in the
+  filter and order options, an empty list will be returned.
+
+      iex> bindings(
+      ...>   %Flop{
+      ...>     filters: [%Flop.Filter{field: :name, op: :==, value: "George"}]
+      ...>   },
+      ...>   Flop.Pet
+      ...> )
+      []
+
+  You can use this to dynamically build the join clauses needed for the query.
+
+      def list_pets(params) do
+        with {:ok, flop} <- Flop.validate(params, for: Pet) do
+          bindings = Flop.bindings(flop, Pet)
+
+          Pet
+          |> join_pet_assocs(bindings)
+          |> Flop.run(flop, for: Pet)
+        end
+      end
+
+      defp join_pet_assocs(q, bindings) when is_list(bindings) do
+        Enum.reduce(bindings, q, fn
+          :owner, acc ->
+            join(acc, :left, [p], o in assoc(p, :owner), as: :owner)
+
+          :toys, acc ->
+            join(acc, :left, [p], t in assoc(p, :toys), as: :toys)
+        end)
+      end
+
+  For more information about join fields, refer to the module documentation of
+  `Flop.Schema`.
+  """
+  @doc since: "0.16.0"
+  @spec bindings(Flop.t(), module) :: [atom]
+  def bindings(%Flop{filters: filters, order_by: order_by}, module)
+      when is_atom(module) do
+    order_by = order_by || []
+    filters = filters || []
+
+    if order_by == [] && filters == [] do
+      []
+    else
+      schema_struct = struct(module)
+      filter_fields = Enum.map(filters, & &1.field)
+      fields = Enum.uniq(order_by ++ filter_fields)
+
+      fields
+      |> Stream.map(&Flop.Schema.field_type(schema_struct, &1))
+      |> Stream.filter(fn
+        {:join, _} -> true
+        _ -> false
+      end)
+      |> Stream.map(fn {:join, %{binding: binding}} -> binding end)
+      |> Enum.uniq()
+    end
+  end
+
   # coveralls-ignore-start
   defp no_repo_error(function_name),
     do: """
