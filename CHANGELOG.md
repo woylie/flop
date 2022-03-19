@@ -7,6 +7,9 @@
 - You can now define a configuration module with `use Flop` to set defaults
   instead of or in addition to the application configuration. This makes it
   easier to work with multiple Ecto repos.
+- The new function `Flop.bindings/2` returns the necessary bindings for a
+  given Flop query. You can use it in case you want to optimize your queries by
+  only joining tables that are actually needed.
 
 ### Changed
 
