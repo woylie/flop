@@ -49,6 +49,40 @@ defmodule Flop do
 
   See `t:Flop.option/0` for a description of all available options.
 
+  ## Config modules
+
+  Instead of setting global options in the application environment, you can also
+  create a Flop config module. This is especially useful in an umbrella
+  application, or if you have multiple Repos.
+
+  ```elixir
+  defmodule MyApp.Flop do
+    use Flop, repo: MyApp.Repo, default_limit: 25
+  end
+  ```
+
+  This will define wrapper functions around all `Flop` functions that take a
+  query, Flop parameters and options:
+
+  - `Flop.all/3`
+  - `Flop.count/3`
+  - `Flop.filter/3`
+  - `Flop.meta/3`
+  - `Flop.order_by/3`
+  - `Flop.paginate/3`
+  - `Flop.query/3`
+  - `Flop.run/3`
+  - `Flop.validate_and_run/3`
+  - `Flop.validate_and_run!/3`
+
+  So instead of using `Flop.validate_and_run/3`, you would call
+  `MyApp.Flop.validate_and_run/3`.
+
+  If you have both a config module and a global application config, Flop will
+  fall back to the application config if an option is not set.
+
+  See `t:Flop.option/0` for a description of all available options.
+
   ## Schema options
 
   You can set some options for a schema by deriving `Flop.Schema`. The options
@@ -251,6 +285,49 @@ defmodule Flop do
   require Ecto.Query
   require Logger
 
+  defmacro __using__(opts) do
+    known_options = [
+      :cursor_value_func,
+      :default_limit,
+      :default_pagination_type,
+      :filtering,
+      :max_limit,
+      :pagination,
+      :pagination_types,
+      :prefix,
+      :repo
+    ]
+
+    unknown_options = Keyword.keys(opts) -- known_options
+
+    if unknown_options != [] do
+      raise "unknown option(s) for Flop: #{inspect(unknown_options)}"
+    end
+
+    for func <- [
+          :all,
+          :count,
+          :filter,
+          :meta,
+          :order_by,
+          :paginate,
+          :query,
+          :run,
+          :validate_and_run,
+          :validate_and_run!
+        ] do
+      quote do
+        def unquote(func)(q, map_or_flop, opts \\ []) do
+          apply(Flop, unquote(func), [
+            q,
+            map_or_flop,
+            Keyword.merge(unquote(opts), opts)
+          ])
+        end
+      end
+    end
+  end
+
   @typedoc """
   Options that can be passed to most of the functions or that can be set via
   the application environment.
@@ -314,8 +391,10 @@ defmodule Flop do
   1. option passed to function
   2. option set for schema using `Flop.Schema` (only `:max_limit`,
      `:default_limit` and `:pagination_types`)
-  3. option set in global config (except `:for`)
-  4. default value (only `:cursor_value_func`)
+  3. option set in config module, if one is used (see section "Config modules"
+     in the module documentation)
+  4. option set in global config (except `:for`)
+  5. default value (only `:cursor_value_func`)
   """
   @type option ::
           {:cursor_value_func, (any, [atom] -> map)}
