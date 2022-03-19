@@ -9,6 +9,7 @@ defmodule FlopTest do
   import Flop.Generators
   import Flop.TestUtil
 
+  alias __MODULE__.TestProvider
   alias Ecto.Adapters.SQL.Sandbox
   alias Ecto.Query.QueryExpr
   alias Flop.Filter
@@ -20,6 +21,10 @@ defmodule FlopTest do
 
   setup do
     :ok = Sandbox.checkout(Repo)
+  end
+
+  defmodule TestProvider do
+    use Flop, repo: Flop.Repo, default_limit: 35
   end
 
   describe "ordering" do
@@ -1348,6 +1353,22 @@ defmodule FlopTest do
 
       assert [[], [op: [{"is invalid", _}]]] =
                Keyword.get(error.errors, :filters)
+    end
+  end
+
+  describe "__using__/1" do
+    test "defines wrapper functions that pass default options" do
+      insert_list(3, :pet)
+
+      assert {:ok, {_, %Meta{page_size: 35}}} =
+               TestProvider.validate_and_run(Pet, %{})
+    end
+
+    test "allows to override defaults" do
+      insert_list(3, :pet)
+
+      assert {:ok, {_, %Meta{page_size: 30}}} =
+               TestProvider.validate_and_run(Pet, %{page_size: 30})
     end
   end
 end

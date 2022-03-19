@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+
+- You can now define a configuration module with `use Flop` to set defaults
+  instead of or in addition to the application configuration. This makes it
+  easier to work with multiple Ecto repos.
+
 ### Changed
 
 - Allow passing page as string to `Flop.set_page/2`.
