@@ -460,6 +460,26 @@ defmodule FlopTest do
       assert Flop.count(Pet, %Flop{}) == 0
       assert Flop.count(Pet, %Flop{}, prefix: "other_schema") == 1
     end
+
+    test "allows overriding query" do
+      _matching_pets = insert_list(6, :pet, age: 5, name: "A")
+      _more_matching_pets = insert_list(5, :pet, age: 5, name: "B")
+      _non_matching_pets = insert_list(4, :pet, age: 6)
+
+      flop = %Flop{
+        limit: 2,
+        offset: 2,
+        order_by: [:age],
+        filters: [%Filter{field: :age, op: :<=, value: 5}]
+      }
+
+      # default query
+      assert Flop.count(Pet, flop) == 11
+
+      # custom count query
+      assert Flop.count(Pet, flop, count_query: where(Pet, name: "A")) == 6
+      assert Flop.count(Pet, flop, count_query: where(Pet, name: "B")) == 5
+    end
   end
 
   describe "meta/3" do
@@ -1356,7 +1376,7 @@ defmodule FlopTest do
     end
   end
 
-  describe "bindings/2" do
+  describe "bindings/3" do
     test "returns used binding names with order_by and filters" do
       flop = %Flop{
         filters: [
@@ -1371,6 +1391,12 @@ defmodule FlopTest do
       }
 
       assert Flop.bindings(flop, Pet) == [:owner]
+    end
+
+    test "allows disabling order fields" do
+      flop = %Flop{order_by: [:owner_name, :age]}
+      assert Flop.bindings(flop, Pet, order: false) == []
+      assert Flop.bindings(flop, Pet, order: true) == [:owner]
     end
 
     test "returns used binding names with order_by" do

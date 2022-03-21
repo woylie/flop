@@ -341,6 +341,9 @@ defmodule Flop do
   - `:default_limit` - Sets a global default limit for queries that is used if
     no default limit is set for a schema and no limit is set in the parameters.
     Can only be set in the application configuration.
+  - `:default_order` - Sets the default order for a query if none is passed in
+    the parameters or if ordering is disabled. Can be set in the schema or in
+    the options passed to the query functions.
   - `:default_pagination_type` - The pagination type to use when setting default
     parameters and the pagination type cannot be determined from the parameters.
     Parameters for other pagination types can still be passed when setting this
@@ -356,6 +359,9 @@ defmodule Flop do
   - `:max_limit` - Sets a global maximum limit for queries that is used if no
     maximum limit is set for a schema. Can only be set in the application
     configuration.
+  - `:order_query` - Allows you to set a separate base query for counting. Can
+    only be passed as an option to one of the query functions. See
+    `Flop.validate_and_run/3` and `Flop.count/3`.
   - `:pagination` (boolean) - Can be set to `false` to silently ignore
     pagination parameters.
   - `:pagination_types` - Defines which pagination types are allowed. Parameters
@@ -372,7 +378,8 @@ defmodule Flop do
   All options can be passed directly to the functions. Some of the options can
   be set on a schema level via `Flop.Schema`.
 
-  All options except `:for` can be set globally via the application environment.
+  All options except `:for`, `:default_order` and `:count_query` can be set
+  globally via the application environment.
 
       import Config
 
@@ -390,19 +397,27 @@ defmodule Flop do
 
   1. option passed to function
   2. option set for schema using `Flop.Schema` (only `:max_limit`,
-     `:default_limit` and `:pagination_types`)
-  3. option set in config module, if one is used (see section "Config modules"
+     `:default_limit`, `:default_order` and `:pagination_types`)
+  3. option set in config module, if one is used (except `:for`,
+     `:default_order` and `:count_query`; see section "Config modules"
      in the module documentation)
-  4. option set in global config (except `:for`)
+  4. option set in global config (except `:for`, `:default_order` and
+     `:count_query`)
   5. default value (only `:cursor_value_func`)
   """
   @type option ::
           {:cursor_value_func, (any, [atom] -> map)}
           | {:default_limit, pos_integer}
+          | {:default_order,
+             %{
+               required(:order_by) => [atom],
+               optional(:order_directions) => [atom]
+             }}
           | {:default_pagination_type, pagination_type()}
           | {:filtering, boolean}
           | {:for, module}
           | {:max_limit, pos_integer}
+          | {:order_query, Ecto.Queryable.t()}
           | {:ordering, boolean}
           | {:pagination, boolean}
           | {:pagination_types, [pagination_type()]}
@@ -563,6 +578,8 @@ defmodule Flop do
       true
       iex> match?(%Flop.Meta{}, meta)
       true
+
+  See the documentation for `Flop.validate_and_run/3` for supported options.
   """
   @doc since: "0.6.0"
   @spec run(Queryable.t(), Flop.t(), [option()]) :: {[any], Meta.t()}
@@ -629,6 +646,9 @@ defmodule Flop do
   - `cursor_value_func`: An arity-2 function to be used to retrieve an
     unencoded cursor value from a query result item and the `order_by` fields.
     Defaults to `Flop.Cursor.get_cursor_from_node/2`.
+  - `count_query`: Lets you override the base query for counting, e.g. if you
+    don't want to include unnecessary joins. The filter parameters are applied
+    to the given query. See also `Flop.count/3`.
   """
   @doc since: "0.6.0"
   @spec validate_and_run(Queryable.t(), map | Flop.t(), [option()]) ::
@@ -667,10 +687,22 @@ defmodule Flop do
 
       iex> Flop.count(Flop.Pet, %Flop{})
       0
+
+  You can override the default query by passing the `:count_query` option. This
+  doesn't make a lot of sense when you use `count/3` directly, but allows you to
+  optimize the count query when you use one of the `run/3`,
+  `validate_and_run/3` and `validate_and_run!/3` functions.
+
+      query = join(Pet, :left, [p], o in assoc(p, :owner))
+      count_query = Pet
+      count(query, %Flop{}, count_query: count_query)
+
+  The filter parameters of the given Flop are applied to the custom count query.
   """
   @doc since: "0.6.0"
   @spec count(Queryable.t(), Flop.t(), [option()]) :: non_neg_integer
   def count(q, %Flop{} = flop, opts \\ []) do
+    q = opts[:count_query] || q
     apply_on_repo(:aggregate, "count", [filter(q, flop, opts), :count], opts)
   end
 
@@ -2112,12 +2144,18 @@ defmodule Flop do
 
   For more information about join fields, refer to the module documentation of
   `Flop.Schema`.
+
+  ## Options
+
+  - `:order` - If `false`, only bindings needed for filtering are included.
+    Defaults to `true`.
   """
   @doc since: "0.16.0"
   @spec bindings(Flop.t(), module) :: [atom]
-  def bindings(%Flop{filters: filters, order_by: order_by}, module)
+  def bindings(%Flop{filters: filters, order_by: order_by}, module, opts \\ [])
       when is_atom(module) do
-    order_by = order_by || []
+    order = Keyword.get(opts, :order, true)
+    order_by = if order, do: order_by || [], else: []
     filters = filters || []
 
     if order_by == [] && filters == [] do
