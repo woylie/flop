@@ -12,10 +12,13 @@ defmodule Flop.SchemaTest do
              sortable: [],
              default_limit: 20,
              max_limit: 50,
-             default_order_by: [:name, :age],
-             default_order_directions: [:desc, :asc],
+             default_order: %{
+               order_by: [:name, :age],
+               order_directions: [:desc, :asc]
+             },
              compound_fields: [name_or_email: [:name, :email]],
              join_fields: [topping_name: {:toppings, :name}]}
+
     defstruct [:name, :email, :age]
   end
 
