@@ -411,7 +411,7 @@ defmodule Flop do
           | {:default_order,
              %{
                required(:order_by) => [atom],
-               optional(:order_directions) => [atom]
+               optional(:order_directions) => [order_direction()]
              }}
           | {:default_pagination_type, pagination_type()}
           | {:filtering, boolean}
