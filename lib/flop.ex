@@ -2112,12 +2112,18 @@ defmodule Flop do
 
   For more information about join fields, refer to the module documentation of
   `Flop.Schema`.
+
+  ## Options
+
+  - `:order` - If `false`, only bindings needed for filtering are included.
+    Defaults to `true`.
   """
   @doc since: "0.16.0"
   @spec bindings(Flop.t(), module) :: [atom]
-  def bindings(%Flop{filters: filters, order_by: order_by}, module)
+  def bindings(%Flop{filters: filters, order_by: order_by}, module, opts \\ [])
       when is_atom(module) do
-    order_by = order_by || []
+    order = Keyword.get(opts, :order, true)
+    order_by = if order, do: order_by || [], else: []
     filters = filters || []
 
     if order_by == [] && filters == [] do

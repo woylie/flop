@@ -1356,7 +1356,7 @@ defmodule FlopTest do
     end
   end
 
-  describe "bindings/2" do
+  describe "bindings/3" do
     test "returns used binding names with order_by and filters" do
       flop = %Flop{
         filters: [
@@ -1371,6 +1371,12 @@ defmodule FlopTest do
       }
 
       assert Flop.bindings(flop, Pet) == [:owner]
+    end
+
+    test "allows disabling order fields" do
+      flop = %Flop{order_by: [:owner_name, :age]}
+      assert Flop.bindings(flop, Pet, order: false) == []
+      assert Flop.bindings(flop, Pet, order: true) == [:owner]
     end
 
     test "returns used binding names with order_by" do
