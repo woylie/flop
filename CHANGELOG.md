@@ -18,6 +18,10 @@
 
 ### Changed
 
+- Breaking: The `:empty` and `:not_empty` filters now require a boolean value.
+  If no value is passed, the filter is ignored, just as it is handled for all
+  other filter operators. This change was necessary to make the integration
+  with filter forms (checkboxes) easier.
 - Breaking: The default order needs to be passed as a map now when deriving
   `Flop.Schema`. The previous implementation already converted the two separate
   configuration keys to a map. This meant that the configuration passed when

@@ -224,10 +224,60 @@ defmodule FlopTest do
                   ),
                 field <- member_of([:species, :owner_name]),
                 op <- member_of([:empty, :not_empty]) do
+        [opposite_op] = [:empty, :not_empty] -- [op]
         expected = filter_pets(pets, field, op)
+        opposite_expected = filter_pets(pets, field, opposite_op)
 
-        assert query_pets_with_owners(%{filters: [%{field: field, op: op}]}) ==
-                 expected
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: op, value: true}]
+               }) == expected
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: op, value: false}]
+               }) == opposite_expected
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: opposite_op, value: true}]
+               }) == opposite_expected
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: opposite_op, value: false}]
+               }) == expected
+
+        checkin_checkout()
+      end
+    end
+
+    test "applies empty and not_empty filter with string values" do
+      check all pet_count <- integer(@pet_count_range),
+                pets =
+                  insert_list_and_sort(pet_count, :pet,
+                    species: fn -> Enum.random([nil, "fox"]) end,
+                    owner: fn ->
+                      build(:owner, name: fn -> Enum.random([nil, "Carl"]) end)
+                    end
+                  ),
+                field <- member_of([:species, :owner_name]),
+                op <- member_of([:empty, :not_empty]) do
+        [opposite_op] = [:empty, :not_empty] -- [op]
+        expected = filter_pets(pets, field, op)
+        opposite_expected = filter_pets(pets, field, opposite_op)
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: op, value: "true"}]
+               }) == expected
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: op, value: "false"}]
+               }) == opposite_expected
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: opposite_op, value: "true"}]
+               }) == opposite_expected
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: opposite_op, value: "false"}]
+               }) == expected
 
         checkin_checkout()
       end
