@@ -211,8 +211,8 @@ defp scope(q, %User{id: user_id}), do: where(q, user_id: ^user_id)
 
 defp apply_filters(q, opts) do
   Enum.reduce(opts, q, fn
-    {:last_health_check, dt}, q -> where([p], p.last_health_check < ^dt)
-    {:reminder_service, bool}, q -> where([p], p.reminder_service == ^bool)
+    {:last_health_check, dt}, q -> where(q, [p], p.last_health_check < ^dt)
+    {:reminder_service, bool}, q -> where(q, [p], p.reminder_service == ^bool)
     _, q -> q
   end)
 end
