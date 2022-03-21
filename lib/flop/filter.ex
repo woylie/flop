@@ -36,8 +36,10 @@ defmodule Flop.Filter do
   | `:==`        | `"Salicaceae"`      | `WHERE column = 'Salicaceae'`        |
   | `:!=`        | `"Salicaceae"`      | `WHERE column != 'Salicaceae'`       |
   | `:=~`        | `"cyth"`            | `WHERE column ILIKE '%cyth%'`        |
-  | `:empty`     |                     | `WHERE column IS NULL`               |
-  | `:not_empty` |                     | `WHERE column IS NOT NULL`           |
+  | `:empty`     | `true`              | `WHERE (column IS NULL) = true`      |
+  | `:empty`     | `false`             | `WHERE (column IS NULL) = false`     |
+  | `:not_empty` | `true`              | `WHERE (column IS NOT NULL) = true`  |
+  | `:not_empty` | `false`             | `WHERE (column IS NOT NULL) = false` |
   | `:<=`        | `10`                | `WHERE column <= 10`                 |
   | `:<`         | `10`                | `WHERE column < 10`                  |
   | `:>=`        | `10`                | `WHERE column >= 10`                 |

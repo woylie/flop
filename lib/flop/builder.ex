@@ -10,10 +10,7 @@ defmodule Flop.Builder do
   require Logger
 
   def filter(_, %Filter{field: nil}, c), do: c
-
-  def filter(_, %Filter{op: op, value: nil}, c)
-      when op not in [:empty, :not_empty],
-      do: c
+  def filter(_, %Filter{value: nil}, c), do: c
 
   def filter(
         schema_struct,
@@ -31,8 +28,8 @@ defmodule Flop.Builder do
   operator_opts = [
     {:==, quote(do: field(r, ^var!(field)) == ^var!(value))},
     {:!=, quote(do: field(r, ^var!(field)) != ^var!(value))},
-    {:empty, quote(do: is_nil(field(r, ^var!(field))))},
-    {:not_empty, quote(do: not is_nil(field(r, ^var!(field))))},
+    {:empty, quote(do: is_nil(field(r, ^var!(field))) == ^var!(value))},
+    {:not_empty, quote(do: not is_nil(field(r, ^var!(field))) == ^var!(value))},
     {:>=, quote(do: field(r, ^var!(field)) >= ^var!(value))},
     {:<=, quote(do: field(r, ^var!(field)) <= ^var!(value))},
     {:>, quote(do: field(r, ^var!(field)) > ^var!(value))},
