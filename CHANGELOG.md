@@ -12,6 +12,9 @@
   only joining tables that are actually needed.
 - Added a `count_query` option to override the count query used by
   `Flop.run/3`, `Flop.validate_and_run/3` and `Flop.validate_and_run!/3`.
+- You can get a list of allowed operators for a given Ecto type or a given
+  schema field with `Flop.Filter.allowed_operators/1` and
+  `Flop.Filter.allowed_operators/2` now.
 
 ### Changed
 
