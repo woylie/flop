@@ -24,7 +24,8 @@ defmodule Flop.FilterTest do
         :naive_datetime,
         :naive_datetime_usec,
         :utc_datetime,
-        :utc_datetime_usec
+        :utc_datetime_usec,
+        {:parameterized, Ecto.Enum, type: :string}
       ]
 
       for type <- types do
