@@ -9,7 +9,7 @@ defmodule Flop.SchemaTest do
   defmodule Panini do
     @derive {Flop.Schema,
              filterable: [:name, :age],
-             sortable: [],
+             sortable: [:name, :age],
              default_limit: 20,
              max_limit: 50,
              default_order: %{
@@ -278,14 +278,14 @@ defmodule Flop.SchemaTest do
       assert error.message =~ "invalid default order"
     end
 
-    test "raises if default order field is not filterable" do
+    test "raises if default order field is not sortable" do
       error =
         assert_raise ArgumentError, fn ->
           defmodule Vegetable do
             @derive {
               Flop.Schema,
-              filterable: [:name],
-              sortable: [],
+              filterable: [],
+              sortable: [:name],
               default_order: %{order_by: [:age], order_directions: [:desc]}
             }
             defstruct [:name, :age]
@@ -293,7 +293,7 @@ defmodule Flop.SchemaTest do
         end
 
       assert error.message =~ "invalid default order"
-      assert error.message =~ "must be filterable"
+      assert error.message =~ "must be sortable"
     end
 
     test "raises if default order by is not a list" do
@@ -319,8 +319,8 @@ defmodule Flop.SchemaTest do
           defmodule Vegetable do
             @derive {
               Flop.Schema,
-              filterable: [:name],
-              sortable: [],
+              filterable: [],
+              sortable: [:name],
               default_order: %{order_by: [:name], order_directions: [:random]}
             }
             defstruct [:name]
