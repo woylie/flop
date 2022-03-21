@@ -413,15 +413,11 @@ defimpl Flop.Schema, for: Any do
 
   """
   # credo:disable-for-next-line
-  defmacro __deriving__(module, _struct, options) do
+  defmacro __deriving__(module, struct, options) do
+    validate_options!(options, struct)
+
     filterable_fields = Keyword.get(options, :filterable)
     sortable_fields = Keyword.get(options, :sortable)
-
-    if is_nil(filterable_fields) || is_nil(sortable_fields),
-      do: raise(ArgumentError, @instructions)
-
-    check_legacy_default_order(options)
-
     default_limit = Keyword.get(options, :default_limit)
     max_limit = Keyword.get(options, :max_limit)
     pagination_types = Keyword.get(options, :pagination_types)
@@ -485,9 +481,214 @@ defimpl Flop.Schema, for: Any do
     end
   end
 
-  defp check_legacy_default_order(options) do
-    if order_by = Keyword.get(options, :default_order_by) do
-      directions = Keyword.get(options, :default_order_directions)
+  defp validate_options!(opts, struct) do
+    if is_nil(opts[:filterable]) || is_nil(opts[:sortable]),
+      do: raise(ArgumentError, @instructions)
+
+    fields = fields(opts, struct)
+
+    validate_no_duplicate_fields!(fields)
+    validate_limit!(opts[:default_limit], "default")
+    validate_limit!(opts[:max_limit], "max")
+    validate_pagination_types!(opts[:pagination_types])
+    check_legacy_default_order(opts)
+    validate_no_unknown_options!(opts)
+    validate_no_unknown_field!(opts[:filterable], fields, "filterable")
+    validate_no_unknown_field!(opts[:sortable], fields, "sortable")
+    validate_default_order!(opts[:default_order], opts[:filterable])
+    validate_compound_fields!(opts[:compound_fields], fields)
+  end
+
+  defp fields(opts, struct) do
+    compound_fields =
+      opts |> Keyword.get(:compound_fields, []) |> Keyword.keys()
+
+    join_fields = opts |> Keyword.get(:join_fields, []) |> Keyword.keys()
+
+    schema_fields =
+      struct
+      |> Map.from_struct()
+      |> Enum.reject(fn
+        {_, %Ecto.Association.NotLoaded{}} -> true
+        {:__meta__, _} -> true
+        _ -> false
+      end)
+      |> Enum.map(fn {field, _} -> field end)
+
+    schema_fields ++ compound_fields ++ join_fields
+  end
+
+  defp validate_limit!(nil, _), do: :ok
+  defp validate_limit!(i, _) when is_integer(i) and i > 0, do: :ok
+
+  defp validate_limit!(i, type) do
+    raise ArgumentError, """
+    invalid #{type} limit
+
+    expected non-negative integer, got: #{inspect(i)}
+    """
+  end
+
+  defp validate_pagination_types!(nil), do: :ok
+
+  defp validate_pagination_types!(types) when is_list(types) do
+    valid_types = [:offset, :page, :first, :last]
+    unknown = types -- valid_types
+
+    if unknown != [] do
+      raise ArgumentError,
+            """
+            invalid pagination type
+
+            expected one of #{inspect(valid_types)}, got: #{inspect(unknown)}
+            """
+    end
+  end
+
+  defp validate_pagination_types!(types) do
+    raise ArgumentError, """
+    invalid pagination type
+
+    expected list of atoms, got: #{inspect(types)}
+    """
+  end
+
+  defp validate_no_unknown_options!(opts) do
+    known_keys = [
+      :compound_fields,
+      :default_limit,
+      :default_order,
+      :filterable,
+      :join_fields,
+      :max_limit,
+      :pagination_types,
+      :sortable
+    ]
+
+    unknown_keys = Keyword.keys(opts) -- known_keys
+
+    if unknown_keys != [] do
+      raise ArgumentError, "unknown option(s): #{inspect(unknown_keys)}"
+    end
+  end
+
+  defp validate_no_unknown_field!(fields, known_fields, type) do
+    unknown_fields = fields -- known_fields
+
+    if unknown_fields != [] do
+      raise ArgumentError,
+            "unknown #{type} field(s): #{inspect(unknown_fields)}"
+    end
+  end
+
+  defp validate_default_order!(nil, _), do: :ok
+
+  defp validate_default_order!(%{} = map, filterable_fields) do
+    if Map.keys(map) -- [:order_by, :order_directions] != [] do
+      raise ArgumentError, default_order_error(map)
+    end
+
+    order_by = Map.get(map, :order_by, [])
+    order_directions = Map.get(map, :order_directions, [])
+
+    if !is_list(order_by) || !is_list(order_directions) do
+      raise ArgumentError, default_order_error(map)
+    end
+
+    unfilterable_fields = order_by -- filterable_fields
+
+    if unfilterable_fields != [] do
+      raise ArgumentError, """
+      invalid default order
+
+      Default order fields must be filterable, but these fields are not:
+
+          #{inspect(unfilterable_fields)}
+      """
+    end
+
+    valid_directions = [
+      :asc,
+      :asc_nulls_first,
+      :asc_nulls_last,
+      :desc,
+      :desc_nulls_first,
+      :desc_nulls_last
+    ]
+
+    invalid_directions = order_directions -- valid_directions
+
+    if invalid_directions != [] do
+      raise ArgumentError, """
+      invalid default order
+
+      Invalid order direction(s):
+
+          #{inspect(invalid_directions)}
+      """
+    end
+  end
+
+  defp validate_default_order!(value, _) do
+    raise ArgumentError, default_order_error(value)
+  end
+
+  defp default_order_error(value) do
+    """
+    invalid default order
+
+    expected a map like this:
+
+        %{order_by: [:some_field], order_directions: [:asc]}
+
+    got:
+
+        #{inspect(value)}
+    """
+  end
+
+  defp validate_compound_fields!(nil, _), do: :ok
+
+  defp validate_compound_fields!(compound_fields, known_fields)
+       when is_list(compound_fields) do
+    Enum.each(compound_fields, fn {field, fields} ->
+      unknown_fields = fields -- known_fields
+
+      if unknown_fields != [] do
+        raise ArgumentError, """
+        compound field references unknown field(s)
+
+        Compound fields must reference existing fields, but #{inspect(field)}
+        references:
+
+            #{inspect(unknown_fields)}
+        """
+      end
+    end)
+  end
+
+  defp validate_no_duplicate_fields!(fields) do
+    duplicate_fields =
+      fields
+      |> Enum.frequencies()
+      |> Enum.filter(fn {_, count} -> count > 1 end)
+      |> Enum.map(fn {field, _} -> field end)
+
+    if duplicate_fields != [] do
+      raise ArgumentError, """
+      duplicate fields
+
+      Compound field and join field names must be unique and may not overlap
+      with schema field names. These field names were used multiple times:
+
+          #{inspect(duplicate_fields)}
+      """
+    end
+  end
+
+  defp check_legacy_default_order(opts) do
+    if order_by = Keyword.get(opts, :default_order_by) do
+      directions = Keyword.get(opts, :default_order_directions)
 
       raise """
       The default order needs to be updated.

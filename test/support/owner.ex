@@ -8,7 +8,7 @@ defmodule Flop.Owner do
 
   @derive {
     Flop.Schema,
-    filterable: [:name, :species],
+    filterable: [:name],
     sortable: [:name, :age],
     join_fields: [pet_age: {:pets, :age}],
     compound_fields: [age_and_pet_age: [:age, :pet_age]]

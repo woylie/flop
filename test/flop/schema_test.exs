@@ -8,7 +8,7 @@ defmodule Flop.SchemaTest do
 
   defmodule Panini do
     @derive {Flop.Schema,
-             filterable: [],
+             filterable: [:name, :age],
              sortable: [],
              default_limit: 20,
              max_limit: 50,
@@ -51,33 +51,6 @@ defmodule Flop.SchemaTest do
 
   test "max_limit/1 returns the max limit passed as option" do
     assert Schema.max_limit(%Panini{}) == 50
-  end
-
-  test "__deriving__/3 raises if no filterable fields are set" do
-    error =
-      assert_raise ArgumentError, fn ->
-        defmodule Vegetable do
-          @derive {Flop.Schema, sortable: [:name]}
-          defstruct [:name]
-        end
-      end
-
-    assert error.message =~
-             "have to set both the filterable and the sortable option"
-  end
-
-  test "__deriving__/3 raises if no sortable fields are set" do
-    error =
-      assert_raise ArgumentError, fn ->
-        defmodule Beverage do
-          use Ecto.Schema
-          @derive {Flop.Schema, filterable: [:name]}
-          defstruct [:name]
-        end
-      end
-
-    assert error.message =~
-             "have to set both the filterable and the sortable option"
   end
 
   test "calling apply_order_by/3 without deriving raises error" do
@@ -141,6 +114,254 @@ defmodule Flop.SchemaTest do
   test "calling pagination_types/1 without deriving raises error" do
     assert_raise Protocol.UndefinedError, fn ->
       Schema.pagination_types(%{})
+    end
+  end
+
+  describe "__deriving__/3" do
+    test "raises if no filterable fields are set" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {Flop.Schema, sortable: [:name]}
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~
+               "have to set both the filterable and the sortable option"
+    end
+
+    test "raises if no sortable fields are set" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Beverage do
+            use Ecto.Schema
+            @derive {Flop.Schema, filterable: [:name]}
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~
+               "have to set both the filterable and the sortable option"
+    end
+
+    test "raises if default limit is negative" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [], sortable: [], default_limit: -1
+            }
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "invalid default limit"
+    end
+
+    test "raises if default limit is not an integer" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [], sortable: [], default_limit: "a"
+            }
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "invalid default limit"
+    end
+
+    test "raises if max limit is negative" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {Flop.Schema, filterable: [], sortable: [], max_limit: -1}
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "invalid max limit"
+    end
+
+    test "raises if max limit is not an integer" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {Flop.Schema, filterable: [], sortable: [], max_limit: "a"}
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "invalid max limit"
+    end
+
+    test "raises if pagination_types has invalid value" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [], sortable: [], pagination_types: "a"
+            }
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "invalid pagination type"
+
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [], sortable: [], pagination_types: [:offset, :finger]
+            }
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "invalid pagination type"
+    end
+
+    test "raises if unknown option is passed" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {Flop.Schema, filterable: [], sortable: [], shakeable: "a"}
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "unknown option"
+    end
+
+    test "raises if filterable field is unknown" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {Flop.Schema, filterable: [:smell], sortable: []}
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "unknown filterable field"
+    end
+
+    test "raises if sortable field is unknown" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {Flop.Schema, filterable: [], sortable: [:smell]}
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "unknown sortable field"
+    end
+
+    test "raises if default order is invalid" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [:name], sortable: [], default_order: %{asc: :name}
+            }
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "invalid default order"
+    end
+
+    test "raises if default order field is not filterable" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [:name],
+              sortable: [],
+              default_order: %{order_by: [:age], order_directions: [:desc]}
+            }
+            defstruct [:name, :age]
+          end
+        end
+
+      assert error.message =~ "invalid default order"
+      assert error.message =~ "must be filterable"
+    end
+
+    test "raises if default order by is not a list" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [:name],
+              sortable: [],
+              default_order: %{order_by: :name}
+            }
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "invalid default order"
+    end
+
+    test "raises if order direction is invalid" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [:name],
+              sortable: [],
+              default_order: %{order_by: [:name], order_directions: [:random]}
+            }
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "Invalid order direction"
+    end
+
+    test "raises if compound field references unknown field" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [],
+              sortable: [],
+              compound_fields: [full_name: [:family_name, :given_name]]
+            }
+            defstruct [:family_name]
+          end
+        end
+
+      assert error.message =~ "unknown field"
+    end
+
+    test "raises if compound field uses existing field name" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [],
+              sortable: [],
+              compound_fields: [name: [:name, :nickname]]
+            }
+            defstruct [:name, :nickname]
+          end
+        end
+
+      assert error.message =~ "duplicate field"
     end
   end
 end

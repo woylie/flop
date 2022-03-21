@@ -27,6 +27,8 @@
   time exception is raised if you are still using the old format, guiding you in
   the update.
 - It is now validated that the filter operator matches the field type.
+- The compile time validation of the options passed when deriving `Flop.Schema`
+  has been improved.
 - Allow passing page as string to `Flop.set_page/2`.
 - Allow passing offset as string to `Flop.set_offset/2`.
 
