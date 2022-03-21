@@ -10,6 +10,8 @@
 - The new function `Flop.bindings/3` returns the necessary bindings for a
   given Flop query. You can use it in case you want to optimize your queries by
   only joining tables that are actually needed.
+- Added a `count_query` option to override the count query used by
+  `Flop.run/3`, `Flop.validate_and_run/3` and `Flop.validate_and_run!/3`.
 
 ### Changed
 

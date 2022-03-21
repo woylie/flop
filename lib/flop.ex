@@ -563,6 +563,8 @@ defmodule Flop do
       true
       iex> match?(%Flop.Meta{}, meta)
       true
+
+  See the documentation for `Flop.validate_and_run/3` for supported options.
   """
   @doc since: "0.6.0"
   @spec run(Queryable.t(), Flop.t(), [option()]) :: {[any], Meta.t()}
@@ -629,6 +631,9 @@ defmodule Flop do
   - `cursor_value_func`: An arity-2 function to be used to retrieve an
     unencoded cursor value from a query result item and the `order_by` fields.
     Defaults to `Flop.Cursor.get_cursor_from_node/2`.
+  - `count_query`: Lets you override the base query for counting, e.g. if you
+    don't want to include unnecessary joins. The filter parameters are applied
+    to the given query. See also `Flop.count/3`.
   """
   @doc since: "0.6.0"
   @spec validate_and_run(Queryable.t(), map | Flop.t(), [option()]) ::
@@ -667,10 +672,22 @@ defmodule Flop do
 
       iex> Flop.count(Flop.Pet, %Flop{})
       0
+
+  You can override the default query by passing the `:count_query` option. This
+  doesn't make a lot of sense when you use `count/3` directly, but allows you to
+  optimize the count query when you use one of the `run/3`,
+  `validate_and_run/3` and `validate_and_run!/3` functions.
+
+      query = join(Pet, :left, [p], o in assoc(p, :owner))
+      count_query = Pet
+      count(query, %Flop{}, count_query: count_query)
+
+  The filter parameters of the given Flop are applied to the custom count query.
   """
   @doc since: "0.6.0"
   @spec count(Queryable.t(), Flop.t(), [option()]) :: non_neg_integer
   def count(q, %Flop{} = flop, opts \\ []) do
+    q = opts[:count_query] || q
     apply_on_repo(:aggregate, "count", [filter(q, flop, opts), :count], opts)
   end
 
