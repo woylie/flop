@@ -106,17 +106,139 @@ defmodule Flop.Filter do
     |> cast(params, [:field, :op, :value])
     |> validate_required([:field, :op])
     |> validate_filterable(opts[:for])
+    |> validate_op(opts[:for])
   end
 
   @spec validate_filterable(Changeset.t(), module | nil) :: Changeset.t()
   defp validate_filterable(changeset, nil), do: changeset
 
-  defp validate_filterable(changeset, module) do
+  defp validate_filterable(changeset, module) when is_atom(module) do
     filterable_fields =
       module
       |> struct()
       |> filterable()
 
     validate_inclusion(changeset, :field, filterable_fields)
+  end
+
+  defp validate_op(changeset, nil), do: changeset
+
+  defp validate_op(%Changeset{valid?: true} = changeset, module)
+       when is_atom(module) do
+    field = Changeset.get_field(changeset, :field)
+    op = Changeset.get_field(changeset, :op)
+    allowed_operators = allowed_operators(module, field)
+
+    if op in allowed_operators do
+      changeset
+    else
+      add_error(changeset, :op, "is invalid")
+    end
+  end
+
+  defp validate_op(%Changeset{valid?: false} = changeset, module)
+       when is_atom(module) do
+    changeset
+  end
+
+  @doc """
+  Returns the allowed operators for the given schema module and field.
+
+  If the given value is not a native Ecto type, a list with all operators is
+  returned.
+
+      iex> allowed_operators(Pet, :age)
+      [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in]
+  """
+  @spec allowed_operators(atom, atom) :: [op]
+  def allowed_operators(module, field)
+      when is_atom(module) and is_atom(field) do
+    :type |> module.__schema__(field) |> allowed_operators()
+  end
+
+  @doc """
+  Returns the allowed operators for the given Ecto type.
+
+  If the given value is not a native Ecto type, a list with all operators is
+  returned.
+
+      iex> allowed_operators(:integer)
+      [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in]
+  """
+  @spec allowed_operators(atom) :: [op]
+  def allowed_operators(type) when type in [:decimal, :float, :id, :integer] do
+    [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in]
+  end
+
+  def allowed_operators(type) when type in [:binary_id, :string] do
+    [
+      :==,
+      :!=,
+      :=~,
+      :empty,
+      :not_empty,
+      :<=,
+      :<,
+      :>=,
+      :>,
+      :in,
+      :like,
+      :like_and,
+      :like_or,
+      :ilike,
+      :ilike_and,
+      :ilike_or
+    ]
+  end
+
+  def allowed_operators(:boolean) do
+    [:==, :!=, :=~, :empty, :not_empty]
+  end
+
+  def allowed_operators({:array, _}) do
+    [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :contains]
+  end
+
+  def allowed_operators({:map, _}) do
+    [:==, :!=, :empty, :not_empty, :in]
+  end
+
+  def allowed_operators(:map) do
+    [:==, :!=, :empty, :not_empty, :in]
+  end
+
+  def allowed_operators(type)
+      when type in [
+             :date,
+             :time,
+             :time_usec,
+             :naive_datetime,
+             :naive_datetime_usec,
+             :utc_datetime,
+             :utc_datetime_usec
+           ] do
+    [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in]
+  end
+
+  def allowed_operators(type) when is_atom(type) do
+    [
+      :==,
+      :!=,
+      :=~,
+      :empty,
+      :not_empty,
+      :<=,
+      :<,
+      :>=,
+      :>,
+      :in,
+      :contains,
+      :like,
+      :like_and,
+      :like_or,
+      :ilike,
+      :ilike_and,
+      :ilike_or
+    ]
   end
 end
