@@ -76,8 +76,10 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [:name, :species],
         sortable: [:name, :age],
-        default_order_by: [:name, :age],
-        default_order_directions: [:asc, :desc]
+        default_order: %{
+          order_by: [:name, :age],
+          order_directions: [:asc, :desc]
+        }
       }
 
   ## Restricting pagination types
@@ -409,15 +411,12 @@ defimpl Flop.Schema, for: Any do
     if is_nil(filterable_fields) || is_nil(sortable_fields),
       do: raise(ArgumentError, @instructions)
 
+    check_legacy_default_order(options)
+
     default_limit = Keyword.get(options, :default_limit)
     max_limit = Keyword.get(options, :max_limit)
     pagination_types = Keyword.get(options, :pagination_types)
-
-    default_order = %{
-      order_by: Keyword.get(options, :default_order_by),
-      order_directions: Keyword.get(options, :default_order_directions)
-    }
-
+    default_order = Keyword.get(options, :default_order)
     compound_fields = Keyword.get(options, :compound_fields, [])
 
     join_fields =
@@ -474,6 +473,27 @@ defimpl Flop.Schema, for: Any do
         unquote(cursor_dynamic_func_join)
         unquote(cursor_dynamic_func_normal)
       end
+    end
+  end
+
+  defp check_legacy_default_order(options) do
+    if order_by = Keyword.get(options, :default_order_by) do
+      directions = Keyword.get(options, :default_order_directions)
+
+      raise """
+      The default order needs to be updated.
+
+      Please change your schema config to:
+
+          @derive {
+            Flop.Schema,
+            # ...
+            default_order: %{
+              order_by: #{inspect(order_by)},
+              order_directions: #{inspect(directions)}
+            }
+          }
+      """
     end
   end
 

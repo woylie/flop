@@ -13,6 +13,14 @@
 
 ### Changed
 
+- Breaking: The default order needs to be passed as a map now when deriving
+  `Flop.Schema`. The previous implementation already converted the two separate
+  configuration keys to a map. This meant that the configuration passed when
+  deriving `Flop.Schema` had a different format from the one you had to pass
+  when overriding the default order with the `opts`.
+  With this change, the configuration format is the same everywhere. A compile
+  time exception is raised if you are still using the old format, guiding you in
+  the update.
 - Allow passing page as string to `Flop.set_page/2`.
 - Allow passing offset as string to `Flop.set_offset/2`.
 

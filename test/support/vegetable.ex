@@ -8,8 +8,10 @@ defmodule Flop.Vegetable do
            filterable: [:name, :family],
            sortable: [:name],
            default_limit: 50,
-           default_order_by: [:name],
-           default_order_directions: [:asc],
+           default_order: %{
+             order_by: [:name],
+             order_directions: [:asc]
+           },
            pagination_types: [:page]}
 
   schema "vegetables" do
