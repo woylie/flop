@@ -495,7 +495,7 @@ defimpl Flop.Schema, for: Any do
     validate_no_unknown_options!(opts)
     validate_no_unknown_field!(opts[:filterable], fields, "filterable")
     validate_no_unknown_field!(opts[:sortable], fields, "sortable")
-    validate_default_order!(opts[:default_order], opts[:filterable])
+    validate_default_order!(opts[:default_order], opts[:sortable])
     validate_compound_fields!(opts[:compound_fields], fields)
   end
 
@@ -583,7 +583,7 @@ defimpl Flop.Schema, for: Any do
 
   defp validate_default_order!(nil, _), do: :ok
 
-  defp validate_default_order!(%{} = map, filterable_fields) do
+  defp validate_default_order!(%{} = map, sortable_fields) do
     if Map.keys(map) -- [:order_by, :order_directions] != [] do
       raise ArgumentError, default_order_error(map)
     end
@@ -595,15 +595,15 @@ defimpl Flop.Schema, for: Any do
       raise ArgumentError, default_order_error(map)
     end
 
-    unfilterable_fields = order_by -- filterable_fields
+    unsortable_fields = order_by -- sortable_fields
 
-    if unfilterable_fields != [] do
+    if unsortable_fields != [] do
       raise ArgumentError, """
       invalid default order
 
-      Default order fields must be filterable, but these fields are not:
+      Default order fields must be sortable, but these fields are not:
 
-          #{inspect(unfilterable_fields)}
+          #{inspect(unsortable_fields)}
       """
     end
 
