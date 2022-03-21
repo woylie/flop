@@ -121,6 +121,26 @@ defmodule Flop.Filter do
     validate_inclusion(changeset, :field, filterable_fields)
   end
 
+  defp validate_op(changeset, nil), do: changeset
+
+  defp validate_op(%Changeset{valid?: true} = changeset, module)
+       when is_atom(module) do
+    field = Changeset.get_field(changeset, :field)
+    op = Changeset.get_field(changeset, :op)
+    allowed_operators = allowed_operators(module, field)
+
+    if op in allowed_operators do
+      changeset
+    else
+      add_error(changeset, :op, "is invalid")
+    end
+  end
+
+  defp validate_op(%Changeset{valid?: false} = changeset, module)
+       when is_atom(module) do
+    changeset
+  end
+
   @doc """
   Returns the allowed operators for the given schema module and field.
 

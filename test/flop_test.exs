@@ -1321,6 +1321,23 @@ defmodule FlopTest do
                Keyword.get(meta.errors, :filters)
     end
 
+    test "returns error if operator is not allowed for field" do
+      assert {:error, %Meta{} = meta} =
+               Flop.validate(
+                 %{filters: [%{field: :age, op: "=~", value: 20}]},
+                 for: Pet
+               )
+
+      assert meta.flop == %Flop{}
+      assert meta.schema == Pet
+
+      assert meta.params == %{
+               "filters" => [%{"field" => :age, "op" => "=~", "value" => 20}]
+             }
+
+      assert [[op: [{"is invalid", _}]]] = Keyword.get(meta.errors, :filters)
+    end
+
     test "returns filter params as list if passed as a map" do
       assert {:error, %Meta{} = meta} =
                Flop.validate(

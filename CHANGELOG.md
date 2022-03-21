@@ -26,6 +26,7 @@
   With this change, the configuration format is the same everywhere. A compile
   time exception is raised if you are still using the old format, guiding you in
   the update.
+- It is now validated that the filter operator matches the field type.
 - Allow passing page as string to `Flop.set_page/2`.
 - Allow passing offset as string to `Flop.set_offset/2`.
 
