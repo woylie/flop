@@ -208,6 +208,15 @@ defprotocol Flop.Schema do
   the named binding you set with the `:as` option in the join statement of your
   query. `:field` is the field name on that binding.
 
+  You can also use the short syntax:
+
+      @derive {
+        Flop.Schema,
+        filterable: [:pet_species],
+        sortable: [:pet_species],
+        join_fields: [pet_species: {:pets, :species}]
+      }
+
   In order to retrieve the pagination cursor value for a join field, Flop needs
   to know how to get the field value from the struct that is returned from the
   database. `Flop.Schema.get_field/2` is used for that. By default, Flop assumes
