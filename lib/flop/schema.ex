@@ -533,7 +533,7 @@ defimpl Flop.Schema, for: Any do
 
   defp validate_pagination_types!(types) when is_list(types) do
     valid_types = [:offset, :page, :first, :last]
-    unknown = types -- valid_types
+    unknown = Enum.uniq(types) -- valid_types
 
     if unknown != [] do
       raise ArgumentError,
@@ -595,7 +595,7 @@ defimpl Flop.Schema, for: Any do
       raise ArgumentError, default_order_error(map)
     end
 
-    unsortable_fields = order_by -- sortable_fields
+    unsortable_fields = Enum.uniq(order_by) -- sortable_fields
 
     if unsortable_fields != [] do
       raise ArgumentError, """
@@ -616,7 +616,7 @@ defimpl Flop.Schema, for: Any do
       :desc_nulls_last
     ]
 
-    invalid_directions = order_directions -- valid_directions
+    invalid_directions = Enum.uniq(order_directions) -- valid_directions
 
     if invalid_directions != [] do
       raise ArgumentError, """
