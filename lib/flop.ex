@@ -341,6 +341,9 @@ defmodule Flop do
   - `:default_limit` - Sets a global default limit for queries that is used if
     no default limit is set for a schema and no limit is set in the parameters.
     Can only be set in the application configuration.
+  - `:default_order` - Sets the default order for a query if none is passed in
+    the parameters or if ordering is disabled. Can be set in the schema or in
+    the options passed to the query functions.
   - `:default_pagination_type` - The pagination type to use when setting default
     parameters and the pagination type cannot be determined from the parameters.
     Parameters for other pagination types can still be passed when setting this
@@ -356,6 +359,9 @@ defmodule Flop do
   - `:max_limit` - Sets a global maximum limit for queries that is used if no
     maximum limit is set for a schema. Can only be set in the application
     configuration.
+  - `:order_query` - Allows you to set a separate base query for counting. Can
+    only be passed as an option to one of the query functions. See
+    `Flop.validate_and_run/3` and `Flop.count/3`.
   - `:pagination` (boolean) - Can be set to `false` to silently ignore
     pagination parameters.
   - `:pagination_types` - Defines which pagination types are allowed. Parameters
@@ -372,7 +378,8 @@ defmodule Flop do
   All options can be passed directly to the functions. Some of the options can
   be set on a schema level via `Flop.Schema`.
 
-  All options except `:for` can be set globally via the application environment.
+  All options except `:for`, `:default_order` and `:count_query` can be set
+  globally via the application environment.
 
       import Config
 
@@ -390,19 +397,27 @@ defmodule Flop do
 
   1. option passed to function
   2. option set for schema using `Flop.Schema` (only `:max_limit`,
-     `:default_limit` and `:pagination_types`)
-  3. option set in config module, if one is used (see section "Config modules"
+     `:default_limit`, `:default_order` and `:pagination_types`)
+  3. option set in config module, if one is used (except `:for`,
+     `:default_order` and `:count_query`; see section "Config modules"
      in the module documentation)
-  4. option set in global config (except `:for`)
+  4. option set in global config (except `:for`, `:default_order` and
+     `:count_query`)
   5. default value (only `:cursor_value_func`)
   """
   @type option ::
           {:cursor_value_func, (any, [atom] -> map)}
           | {:default_limit, pos_integer}
+          | {:default_order,
+             %{
+               required(:order_by) => [atom],
+               optional(:order_directions) => [atom]
+             }}
           | {:default_pagination_type, pagination_type()}
           | {:filtering, boolean}
           | {:for, module}
           | {:max_limit, pos_integer}
+          | {:order_query, Ecto.Queryable.t()}
           | {:ordering, boolean}
           | {:pagination, boolean}
           | {:pagination_types, [pagination_type()]}
