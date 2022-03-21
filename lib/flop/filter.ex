@@ -222,7 +222,21 @@ defmodule Flop.Filter do
     [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in]
   end
 
-  def allowed_operators(type) when is_atom(type) do
+  def allowed_operators({:parameterized, Ecto.Enum, _}) do
+    [
+      :==,
+      :!=,
+      :empty,
+      :not_empty,
+      :<=,
+      :<,
+      :>=,
+      :>,
+      :in
+    ]
+  end
+
+  def allowed_operators(_) do
     [
       :==,
       :!=,
