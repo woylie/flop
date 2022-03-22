@@ -42,6 +42,9 @@ If you want to configure a default repo, add this to your config file:
 config :flop, repo: MyApp.Repo
 ```
 
+Alternatively, you can add a configuration module. For more information, refer
+to the Flop module documentation.
+
 ## Usage
 
 ### Define sortable and filterable fields
