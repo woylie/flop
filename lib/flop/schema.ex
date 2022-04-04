@@ -375,10 +375,12 @@ defprotocol Flop.Schema do
       %{order_by: [:name], order_directions: [:asc]}
   """
   @doc since: "0.7.0"
-  @spec default_order(any) :: %{
-          order_by: [atom] | nil,
-          order_directions: [Flop.order_direction()] | nil
-        }
+  @spec default_order(any) ::
+          %{
+            order_by: [atom] | nil,
+            order_directions: [Flop.order_direction()] | nil
+          }
+          | nil
   def default_order(data)
 
   @doc """
