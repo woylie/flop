@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- Wrong type spec for `Flop.Schema.default_order/1` callback.
+
 ## [0.16.0] - 2022-03-22
 
 ### Added
