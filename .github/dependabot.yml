@@ -3,9 +3,7 @@ updates:
 - package-ecosystem: mix
   directory: "/"
   schedule:
-    interval: daily
-    time: "04:00"
-  open-pull-requests-limit: 10
+    interval: weekly
   ignore:
   - dependency-name: ecto
     versions:
