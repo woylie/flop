@@ -424,6 +424,25 @@ defmodule FlopTest do
       end
     end
 
+    property "applies :not_in operator" do
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- member_of([:age, :name, :owner_age]),
+                values = Enum.map(pets, &Map.get(&1, field)),
+                query_value <-
+                  list_of(one_of([member_of(values), value_by_field(field)]),
+                    max_length: 5
+                  ) do
+        expected = filter_pets(pets, field, :not_in, query_value)
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :not_in, value: query_value}]
+               }) == expected
+
+        checkin_checkout()
+      end
+    end
+
     property "applies :contains operator" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
