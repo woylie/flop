@@ -31,28 +31,29 @@ defmodule Flop.Filter do
   @typedoc """
   Represents valid filter operators.
 
-  | Operator     | Value               | WHERE clause                         |
-  | :----------- | :------------------ | ------------------------------------ |
-  | `:==`        | `"Salicaceae"`      | `WHERE column = 'Salicaceae'`        |
-  | `:!=`        | `"Salicaceae"`      | `WHERE column != 'Salicaceae'`       |
-  | `:=~`        | `"cyth"`            | `WHERE column ILIKE '%cyth%'`        |
-  | `:empty`     | `true`              | `WHERE (column IS NULL) = true`      |
-  | `:empty`     | `false`             | `WHERE (column IS NULL) = false`     |
-  | `:not_empty` | `true`              | `WHERE (column IS NOT NULL) = true`  |
-  | `:not_empty` | `false`             | `WHERE (column IS NOT NULL) = false` |
-  | `:<=`        | `10`                | `WHERE column <= 10`                 |
-  | `:<`         | `10`                | `WHERE column < 10`                  |
-  | `:>=`        | `10`                | `WHERE column >= 10`                 |
-  | `:>`         | `10`                | `WHERE column > 10`                  |
-  | `:in`        | `["pear", "plum"]`  | `WHERE column = ANY('pear', 'plum')` |
-  | `:not_in`    | `["pear", "plum"]`  | `WHERE column = NOT IN('pear', 'plum')` |
-  | `:contains`  | `"pear"`            | `WHERE 'pear' = ANY(column)`         |
-  | `:like`      | `"cyth"`            | `WHERE column LIKE '%cyth%'`         |
-  | `:like_and`  | `"Rubi Rosa"`       | `WHERE column LIKE '%Rubi%' AND column LIKE '%Rosa%'`   |
-  | `:like_or`   | `"Rubi Rosa"`       | `WHERE column LIKE '%Rubi%' OR column LIKE '%Rosa%'`    |
-  | `:ilike`     | `"cyth"`            | `WHERE column ILIKE '%cyth%'`        |
-  | `:ilike_and` | `"Rubi Rosa"`       | `WHERE column ILIKE '%Rubi%' AND column ILIKE '%Rosa%'` |
-  | `:ilike_or`  | `"Rubi Rosa"`       | `WHERE column ILIKE '%Rubi%' OR column ILIKE '%Rosa%'`  |
+  | Operator        | Value               | WHERE clause                                            |
+  | :-------------- | :------------------ | ------------------------------------------------------- |
+  | `:==`           | `"Salicaceae"`      | `WHERE column = 'Salicaceae'`                           |
+  | `:!=`           | `"Salicaceae"`      | `WHERE column != 'Salicaceae'`                          |
+  | `:=~`           | `"cyth"`            | `WHERE column ILIKE '%cyth%'`                           |
+  | `:empty`        | `true`              | `WHERE (column IS NULL) = true`                         |
+  | `:empty`        | `false`             | `WHERE (column IS NULL) = false`                        |
+  | `:not_empty`    | `true`              | `WHERE (column IS NOT NULL) = true`                     |
+  | `:not_empty`    | `false`             | `WHERE (column IS NOT NULL) = false`                    |
+  | `:<=`           | `10`                | `WHERE column <= 10`                                    |
+  | `:<`            | `10`                | `WHERE column < 10`                                     |
+  | `:>=`           | `10`                | `WHERE column >= 10`                                    |
+  | `:>`            | `10`                | `WHERE column > 10`                                     |
+  | `:in`           | `["pear", "plum"]`  | `WHERE column = ANY('pear', 'plum')`                    |
+  | `:not_in`       | `["pear", "plum"]`  | `WHERE column = NOT IN('pear', 'plum')`                 |
+  | `:contains`     | `"pear"`            | `WHERE 'pear' = ANY(column)`                            |
+  | `:not_contains` | `"pear"`            | `WHERE 'pear' = NOT IN(column)`                         |
+  | `:like`         | `"cyth"`            | `WHERE column LIKE '%cyth%'`                            |
+  | `:like_and`     | `"Rubi Rosa"`       | `WHERE column LIKE '%Rubi%' AND column LIKE '%Rosa%'`   |
+  | `:like_or`      | `"Rubi Rosa"`       | `WHERE column LIKE '%Rubi%' OR column LIKE '%Rosa%'`    |
+  | `:ilike`        | `"cyth"`            | `WHERE column ILIKE '%cyth%'`                           |
+  | `:ilike_and`    | `"Rubi Rosa"`       | `WHERE column ILIKE '%Rubi%' AND column ILIKE '%Rosa%'` |
+  | `:ilike_or`     | `"Rubi Rosa"`       | `WHERE column ILIKE '%Rubi%' OR column ILIKE '%Rosa%'`  |
   """
   @type op ::
           :==
@@ -67,6 +68,7 @@ defmodule Flop.Filter do
           | :in
           | :not_in
           | :contains
+          | :not_contains
           | :like
           | :like_and
           | :like_or
@@ -93,6 +95,7 @@ defmodule Flop.Filter do
         :in,
         :not_in,
         :contains,
+        :not_contains,
         :like,
         :like_and,
         :like_or,
@@ -153,7 +156,7 @@ defmodule Flop.Filter do
   returned.
 
       iex> allowed_operators(Pet, :age)
-      [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in]
+      [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
   """
   @spec allowed_operators(atom, atom) :: [op]
   def allowed_operators(module, field)
@@ -168,7 +171,7 @@ defmodule Flop.Filter do
   returned.
 
       iex> allowed_operators(:integer)
-      [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in]
+      [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
   """
   @spec allowed_operators(atom) :: [op]
   def allowed_operators(type) when type in [:decimal, :float, :id, :integer] do
@@ -202,7 +205,20 @@ defmodule Flop.Filter do
   end
 
   def allowed_operators({:array, _}) do
-    [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in, :contains]
+    [
+      :==,
+      :!=,
+      :empty,
+      :not_empty,
+      :<=,
+      :<,
+      :>=,
+      :>,
+      :in,
+      :not_in,
+      :contains,
+      :not_contains
+    ]
   end
 
   def allowed_operators({:map, _}) do
@@ -255,6 +271,7 @@ defmodule Flop.Filter do
       :in,
       :not_in,
       :contains,
+      :not_contains,
       :like,
       :like_and,
       :like_or,

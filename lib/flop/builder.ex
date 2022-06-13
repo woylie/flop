@@ -37,6 +37,7 @@ defmodule Flop.Builder do
     {:in, quote(do: field(r, ^var!(field)) in ^var!(value))},
     {:not_in, quote(do: field(r, ^var!(field)) not in ^var!(value))},
     {:contains, quote(do: ^var!(value) in field(r, ^var!(field)))},
+    {:not_contains, quote(do: ^var!(value) not in field(r, ^var!(field)))},
     {:like, quote(do: like(field(r, ^var!(field)), ^var!(value))),
      :add_wildcard},
     {:=~, quote(do: ilike(field(r, ^var!(field)), ^var!(value))),
@@ -122,7 +123,18 @@ defmodule Flop.Builder do
          {:compound, _fields},
          %Filter{op: op, value: _value} = _filter
        )
-       when op in [:==, :!=, :<=, :<, :>=, :>, :in, :not_in, :contains] do
+       when op in [
+              :==,
+              :!=,
+              :<=,
+              :<,
+              :>=,
+              :>,
+              :in,
+              :not_in,
+              :contains,
+              :not_contains
+            ] do
     # value = value |> String.split() |> Enum.join(" ")
     # filter = %{filter | value: value}
     # compare value with concatenated fields

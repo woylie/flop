@@ -459,6 +459,24 @@ defmodule FlopTest do
       end
     end
 
+    property "applies :not_contains operator" do
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- member_of([:tags, :owner_tags]),
+                values = Enum.flat_map(pets, &Pet.get_field(&1, field)),
+                query_value <- member_of(values) do
+        expected = filter_pets(pets, field, :not_contains, query_value)
+
+        assert query_pets_with_owners(%{
+                 filters: [
+                   %{field: field, op: :not_contains, value: query_value}
+                 ]
+               }) == expected
+
+        checkin_checkout()
+      end
+    end
+
     test "silently ignores nil values for field and value" do
       flop = %Flop{filters: [%Filter{op: :>=, value: 4}]}
       assert Flop.query(Pet, flop) == Pet
