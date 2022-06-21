@@ -97,11 +97,18 @@ defmodule Flop.TestUtil do
   defp matches?(:>, v), do: &(&1 > v)
   defp matches?(:>=, v), do: &(&1 >= v)
   defp matches?(:in, v), do: &(&1 in v)
-  defp matches?(:not_in, v), do: &(&1 not in v)
   defp matches?(:contains, v), do: &(v in &1)
   defp matches?(:not_contains, v), do: &(v not in &1)
   defp matches?(:like, v), do: &(&1 =~ v)
   defp matches?(:=~, v), do: matches?(:ilike, v)
+
+  defp matches?(:not_in, v) do
+    if nil in v do
+      &(false && &1)
+    else
+      &(&1 not in v)
+    end
+  end
 
   defp matches?(:ilike, v) do
     v = String.downcase(v)
