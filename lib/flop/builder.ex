@@ -35,7 +35,6 @@ defmodule Flop.Builder do
     {:>, quote(do: field(r, ^var!(field)) > ^var!(value))},
     {:<, quote(do: field(r, ^var!(field)) < ^var!(value))},
     {:in, quote(do: field(r, ^var!(field)) in ^var!(value))},
-    {:not_in, quote(do: field(r, ^var!(field)) not in ^var!(value))},
     {:contains, quote(do: ^var!(value) in field(r, ^var!(field)))},
     {:not_contains, quote(do: ^var!(value) not in field(r, ^var!(field)))},
     {:like, quote(do: like(field(r, ^var!(field)), ^var!(value))),
@@ -44,6 +43,16 @@ defmodule Flop.Builder do
      :add_wildcard},
     {:ilike, quote(do: ilike(field(r, ^var!(field)), ^var!(value))),
      :add_wildcard},
+    {:not_in, quote(do: ^var!(d)), nil,
+     """
+     d =
+       if nil in value do
+        filtered_value = Enum.filter(value, &(not is_nil(&1)))
+        dynamic(<<<binding>>>, field(r, ^field) not in ^filtered_value and not is_nil(field(r, ^field)))
+       else
+        dynamic(<<<binding>>>, field(r, ^field) not in ^value)
+       end
+     """},
     {:like_and, quote(do: ^var!(d)), :split_search_text,
      """
      d =
