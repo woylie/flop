@@ -294,7 +294,7 @@ defmodule Flop do
       :max_limit,
       :pagination,
       :pagination_types,
-      :prefix,
+      :query_opts,
       :repo
     ]
 
@@ -367,9 +367,9 @@ defmodule Flop do
   - `:pagination_types` - Defines which pagination types are allowed. Parameters
     for other pagination types will not be cast. By default, all pagination
     types are allowed. See also `t:Flop.pagination_type/0`.
-  - `:prefix` - Configures the query to be executed with the given query prefix.
+  - `:query_opts` - Configures the query to be executed with the given query options.
     See the Ecto documentation on
-    ["Query prefix"](https://hexdocs.pm/ecto/Ecto.Query.html#module-query-prefix).
+    ["Query Api"](https://hexdocs.pm/ecto/Ecto.Repo.html#query-api).
   - `:ordering` (boolean) - Can be set to `false` to silently ignore order
     parameters. Default orders are still applied.
   - `:repo` - The Ecto Repo module to use for the database query. Used by all
@@ -391,7 +391,7 @@ defmodule Flop do
         ordering: false,
         pagination_types: [:first, :last, :page],
         repo: MyApp.Repo,
-        prefix: "some-prefix"
+        query_opts: [prefix: "some-prefix"]
 
   The look up order is:
 
@@ -421,8 +421,8 @@ defmodule Flop do
           | {:ordering, boolean}
           | {:pagination, boolean}
           | {:pagination_types, [pagination_type()]}
-          | {:prefix, binary}
           | {:repo, module}
+          | {:query_opts, Keyword.t()}
 
   @typedoc """
   Represents the supported order direction values.
@@ -1901,19 +1901,18 @@ defmodule Flop do
 
   defp apply_on_repo(repo_fn, flop_fn, args, opts) do
     repo = option_or_default(opts, :repo) || raise no_repo_error(flop_fn)
-
-    opts =
-      if prefix = option_or_default(opts, :prefix) do
-        [prefix: prefix]
-      else
-        []
-      end
+    opts = query_opts(opts)
 
     apply(repo, repo_fn, args ++ [opts])
   end
 
   defp option_or_default(opts, key) do
     opts[key] || Application.get_env(:flop, key)
+  end
+
+  defp query_opts(opts) do
+    default_opts = Application.get_env(:flop, :query_opts, [])
+    Keyword.merge(default_opts, Keyword.get(opts, :query_opts, []))
   end
 
   @doc """

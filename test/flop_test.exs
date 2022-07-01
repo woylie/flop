@@ -485,7 +485,7 @@ defmodule FlopTest do
       insert(:pet, %{}, prefix: "other_schema")
 
       assert Flop.all(Pet, %Flop{}) == []
-      refute Flop.all(Pet, %Flop{}, prefix: "other_schema") == []
+      refute Flop.all(Pet, %Flop{}, query_opts: [prefix: "other_schema"]) == []
     end
   end
 
@@ -508,7 +508,7 @@ defmodule FlopTest do
       insert(:pet, %{}, prefix: "other_schema")
 
       assert Flop.count(Pet, %Flop{}) == 0
-      assert Flop.count(Pet, %Flop{}, prefix: "other_schema") == 1
+      assert Flop.count(Pet, %Flop{}, query_opts: [prefix: "other_schema"]) == 1
     end
 
     test "allows overriding query" do
@@ -680,7 +680,9 @@ defmodule FlopTest do
       insert(:pet, %{}, prefix: "other_schema")
 
       assert Flop.meta(Pet, %Flop{}).total_count == 0
-      assert Flop.meta(Pet, %Flop{}, prefix: "other_schema").total_count == 1
+
+      assert Flop.meta(Pet, %Flop{}, query_opts: [prefix: "other_schema"]).total_count ==
+               1
     end
 
     test "sets the schema if :for option is passed" do
