@@ -36,12 +36,23 @@ defmodule Flop.Builder do
     {:<, quote(do: field(r, ^var!(field)) < ^var!(value))},
     {:in, quote(do: field(r, ^var!(field)) in ^var!(value))},
     {:contains, quote(do: ^var!(value) in field(r, ^var!(field)))},
+    {:not_contains, quote(do: ^var!(value) not in field(r, ^var!(field)))},
     {:like, quote(do: like(field(r, ^var!(field)), ^var!(value))),
      :add_wildcard},
     {:=~, quote(do: ilike(field(r, ^var!(field)), ^var!(value))),
      :add_wildcard},
     {:ilike, quote(do: ilike(field(r, ^var!(field)), ^var!(value))),
      :add_wildcard},
+    {:not_in, quote(do: ^var!(d)), nil,
+     """
+     d =
+       if nil in value do
+        filtered_value = Enum.filter(value, &(not is_nil(&1)))
+        dynamic(<<<binding>>>, field(r, ^field) not in ^filtered_value and not is_nil(field(r, ^field)))
+       else
+        dynamic(<<<binding>>>, field(r, ^field) not in ^value)
+       end
+     """},
     {:like_and, quote(do: ^var!(d)), :split_search_text,
      """
      d =
@@ -121,7 +132,18 @@ defmodule Flop.Builder do
          {:compound, _fields},
          %Filter{op: op, value: _value} = _filter
        )
-       when op in [:==, :!=, :<=, :<, :>=, :>, :in, :contains] do
+       when op in [
+              :==,
+              :!=,
+              :<=,
+              :<,
+              :>=,
+              :>,
+              :in,
+              :not_in,
+              :contains,
+              :not_contains
+            ] do
     # value = value |> String.split() |> Enum.join(" ")
     # filter = %{filter | value: value}
     # compare value with concatenated fields
