@@ -2,9 +2,30 @@
 
 ## Unreleased
 
+### Added
+
+- Added the filter operators `not_in` and `not_contains`.
+
+### Changed
+
 - Added the `:query_opts` option to Flop callbacks to pass on options to the
   Ecto repo on query execution. If you are already using the `:prefix` option
   you now have to pass this through `:query_opts`.
+
+If you configured the Repo `:prefix` in the application config:
+
+```diff
+config :flop,
+-  prefix: "some-prefix"
++  query_opts: [prefix: "some-prefix"]
+```
+
+If you configured set the `:prefix` when calling the Flop functions:
+
+```diff
+- Flop.validate_and_run(Pet, params, prefix: "some-prefix")
++ Flop.validate_and_run(Pet, params, query_opts: [prefix: "some-prefix"])
+```
 
 ## [0.16.1] - 2022-04-05
 
