@@ -367,9 +367,11 @@ defmodule Flop do
   - `:pagination_types` - Defines which pagination types are allowed. Parameters
     for other pagination types will not be cast. By default, all pagination
     types are allowed. See also `t:Flop.pagination_type/0`.
-  - `:query_opts` - Configures the query to be executed with the given query options.
-    See the Ecto documentation on
-    ["Query Api"](https://hexdocs.pm/ecto/Ecto.Repo.html#query-api).
+  - `:query_opts` - These options are passed to the `Ecto.Repo` query functions.
+    See the Ecto documentation for `c:Ecto.Repo.all/2`,
+    `c:Ecto.Repo.aggregate/3`, and the
+    ["Shared Options"](https://hexdocs.pm/ecto/3.8.4/Ecto.Repo.html#module-shared-options)
+    section of `Ecto.Repo`.
   - `:ordering` (boolean) - Can be set to `false` to silently ignore order
     parameters. Default orders are still applied.
   - `:repo` - The Ecto Repo module to use for the database query. Used by all
