@@ -51,7 +51,8 @@ defmodule Flop.FilterTest do
                :<,
                :>=,
                :>,
-               :in
+               :in,
+               :not_in
              ]
     end
   end

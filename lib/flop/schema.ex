@@ -152,9 +152,9 @@ defprotocol Flop.Schema do
     The filter matches for a value if it matches for any of the fields.
   - `:empty` - Matches if all fields of the compound field are `nil`.
   - `:not_empty` - Matches if any field of the compound field is not `nil`.
-  - `:==`, `:!=`, `:<=`, `:<`, `:>=`, `:>`, `:in`, `:contains` - The filter
-    value is normalized by splitting the string at whitespaces and joining it
-    with a space. The values of all fields of the compound field are split by
+  - `:==`, `:!=`, `:<=`, `:<`, `:>=`, `:>`, `:in`, `:not_in`, `:contains` `:not_contains`
+    - The filter value is normalized by splitting the string at whitespaces and joining
+    it with a space. The values of all fields of the compound field are split by
     whitespace character and joined with a space, and the resulting values are
     joined with a space again. **This will be added in a future version. These
     filter operators are ignored for compound fields at the moment.**

@@ -40,7 +40,18 @@ defmodule Flop.TestUtil do
   end
 
   defp apply_filter_to_compound_fields(_pet, _fields, op, _value)
-       when op in [:==, :=~, :<=, :<, :>=, :>, :in, :contains] do
+       when op in [
+              :==,
+              :=~,
+              :<=,
+              :<,
+              :>=,
+              :>,
+              :in,
+              :not_in,
+              :contains,
+              :not_contains
+            ] do
     # joined_field_value =
     #   fields
     #   |> Enum.map(&Flop.Schema.field_type(%Pet{}, &1))
@@ -86,7 +97,9 @@ defmodule Flop.TestUtil do
   defp matches?(:>, v), do: &(&1 > v)
   defp matches?(:>=, v), do: &(&1 >= v)
   defp matches?(:in, v), do: &(&1 in v)
+  defp matches?(:not_in, v), do: &(&1 not in v)
   defp matches?(:contains, v), do: &(v in &1)
+  defp matches?(:not_contains, v), do: &(v not in &1)
   defp matches?(:like, v), do: &(&1 =~ v)
   defp matches?(:=~, v), do: matches?(:ilike, v)
 
