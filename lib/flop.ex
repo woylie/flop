@@ -516,6 +516,10 @@ defmodule Flop do
   The parameters are represented by the `t:Flop.t/0` type. Any `nil` values
   will be ignored.
 
+  This function does _not_ validate the given Flop struct. Be sure to validate
+  any user-generated parameters with `validate/2` or `validate!/2` before
+  passing them to this function.
+
   ## Examples
 
       iex> flop = %Flop{limit: 10, offset: 19}
@@ -559,6 +563,10 @@ defmodule Flop do
   Note that when using cursor-based pagination, the applied limit will be
   `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`, but
   not by this function.
+
+  This function does _not_ validate the given Flop struct. Be sure to validate
+  any user-generated parameters with `validate/2` or `validate!/2` before
+  passing them to this function.
   """
   @doc since: "0.6.0"
   @spec all(Queryable.t(), Flop.t(), [option()]) :: [any]
@@ -700,6 +708,10 @@ defmodule Flop do
       count(query, %Flop{}, count_query: count_query)
 
   The filter parameters of the given Flop are applied to the custom count query.
+
+  This function does _not_ validate the given Flop struct. Be sure to validate
+  any user-generated parameters with `validate/2` or `validate!/2` before
+  passing them to this function.
   """
   @doc since: "0.6.0"
   @spec count(Queryable.t(), Flop.t(), [option()]) :: non_neg_integer
@@ -740,6 +752,10 @@ defmodule Flop do
 
   Unless cursor-based pagination is used, this function will run a query to
   figure get the total count of matching records.
+
+  This function does _not_ validate the given Flop struct. Be sure to validate
+  any user-generated parameters with `validate/2` or `validate!/2` before
+  passing them to this function.
   """
   @doc since: "0.6.0"
   @spec meta(Queryable.t() | [any], Flop.t(), [option()]) :: Meta.t()
@@ -884,6 +900,10 @@ defmodule Flop do
   to an `t:Ecto.Queryable.t/0`.
 
   Used by `Flop.query/2`.
+
+  This function does _not_ validate the given Flop struct. Be sure to validate
+  any user-generated parameters with `validate/2` or `validate!/2` before
+  passing them to this function.
   """
   @spec order_by(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def order_by(q, flop, opts \\ [])
@@ -974,6 +994,10 @@ defmodule Flop do
   will arbitrarily only apply one of the pagination methods.
 
   Used by `Flop.query/2`.
+
+  This function does _not_ validate the given Flop struct. Be sure to validate
+  any user-generated parameters with `validate/2` or `validate!/2` before
+  passing them to this function.
   """
   @spec paginate(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def paginate(q, flop, opts \\ [])
@@ -1154,6 +1178,10 @@ defmodule Flop do
   Applies the `filter` parameter of a `t:Flop.t/0` to an `t:Ecto.Queryable.t/0`.
 
   Used by `Flop.query/2`.
+
+  This function does _not_ validate the given Flop struct. Be sure to validate
+  any user-generated parameters with `validate/2` or `validate!/2` before
+  passing them to this function.
   """
   @spec filter(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def filter(q, flop, opt \\ [])

@@ -151,7 +151,10 @@ end
 ```
 
 If you only need the data, or if you only need the meta data, you can also
-call `Flop.all/3`, `Flop.meta/3` or `Flop.count/3` directly.
+call `Flop.all/3`, `Flop.meta/3` or `Flop.count/3` directly. Note that these
+functions do not apply parameter validation. If the parameters are generated
+through a user action, always use `Flop.validate/2` or `Flop.validate!/2`
+first.
 
 If you didn't configure a default repo as described above or if you want to
 override the default repo, you can pass it as an option to any function that
