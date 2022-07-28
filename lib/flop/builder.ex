@@ -213,7 +213,7 @@ defmodule Flop.Builder do
 
   defp get_field_type(nil, field), do: {:normal, field}
 
-  defp get_field_type(struct, field) when is_atom(field) do
+  defp get_field_type(struct, field) when is_atom(field) or is_binary(field) do
     Flop.Schema.field_type(struct, field)
   end
 end
