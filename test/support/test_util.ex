@@ -90,8 +90,8 @@ defmodule Flop.TestUtil do
 
   defp matches?(:==, v), do: &(&1 == v)
   defp matches?(:!=, v), do: &(&1 != v)
-  defp matches?(:empty, _), do: &is_nil(&1)
-  defp matches?(:not_empty, _), do: &(!is_nil(&1))
+  defp matches?(:empty, _), do: &empty?(&1)
+  defp matches?(:not_empty, _), do: &(!empty?(&1))
   defp matches?(:<=, v), do: &(&1 <= v)
   defp matches?(:<, v), do: &(&1 < v)
   defp matches?(:>, v), do: &(&1 > v)
@@ -127,6 +127,9 @@ defmodule Flop.TestUtil do
     values = v |> String.downcase() |> String.split()
     &Enum.any?(values, fn v -> String.downcase(&1) =~ v end)
   end
+
+  defp empty?(nil), do: true
+  defp empty?(_), do: false
 
   @doc """
   Inserts a list of items using `Flop.Factory` and sorts the list by `:id`
