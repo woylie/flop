@@ -476,6 +476,7 @@ defimpl Flop.Schema, for: Any do
         end
 
         def cursor_dynamic(_, [], _), do: true
+
         unquote(cursor_dynamic_func_compound)
         unquote(cursor_dynamic_func_join)
         unquote(cursor_dynamic_func_normal)
@@ -755,7 +756,11 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
-    [compound_field_funcs, join_field_funcs, default_funcs]
+    quote do
+      unquote(compound_field_funcs)
+      unquote(join_field_funcs)
+      unquote(default_funcs)
+    end
   end
 
   def build_cursor_dynamic_func_compound(compound_fields) do
@@ -936,7 +941,11 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
-    [compound_field_funcs, join_field_funcs, normal_field_func]
+    quote do
+      unquote(compound_field_funcs)
+      unquote(join_field_funcs)
+      unquote(normal_field_func)
+    end
   end
 
   def build_get_field_func(compound_fields, join_fields) do
@@ -975,7 +984,11 @@ defimpl Flop.Schema, for: Any do
         def get_field(struct, field), do: Map.get(struct, field)
       end
 
-    [compound_field_funcs, join_field_funcs, fallback_func]
+    quote do
+      unquote(compound_field_funcs)
+      unquote(join_field_funcs)
+      unquote(fallback_func)
+    end
   end
 
   function_names = [

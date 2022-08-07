@@ -301,7 +301,9 @@ defmodule Flop do
     unknown_options = Keyword.keys(opts) -- known_options
 
     if unknown_options != [] do
+      # coveralls-ignore-start
       raise "unknown option(s) for Flop: #{inspect(unknown_options)}"
+      # coveralls-ignore-stop
     end
 
     for func <- [
@@ -1529,6 +1531,9 @@ defmodule Flop do
       %Flop{offset: 10, limit: 10}
 
       iex> to_previous_offset(%Flop{offset: 5, limit: 10})
+      %Flop{offset: 0, limit: 10}
+
+      iex> to_previous_offset(%Flop{offset: 0, limit: 10})
       %Flop{offset: 0, limit: 10}
 
       iex> to_previous_offset(%Flop{offset: -2, limit: 10})

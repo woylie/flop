@@ -1,24 +1,28 @@
 version: 2
 updates:
-- package-ecosystem: mix
-  directory: "/"
-  schedule:
-    interval: weekly
-  ignore:
-  - dependency-name: ecto
-    versions:
-    - 3.5.6
-    - 3.5.7
-    - 3.5.8
-  - dependency-name: dialyxir
-    versions:
-    - 1.1.0
-  - dependency-name: excoveralls
-    versions:
-    - 0.14.0
-  - dependency-name: ex_machina
-    versions:
-    - 2.6.0
-  - dependency-name: postgrex
-    versions:
-    - 0.15.8
+  - package-ecosystem: mix
+    directory: "/"
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: ecto
+        versions:
+          - 3.5.6
+          - 3.5.7
+          - 3.5.8
+      - dependency-name: dialyxir
+        versions:
+          - 1.1.0
+      - dependency-name: excoveralls
+        versions:
+          - 0.14.0
+      - dependency-name: ex_machina
+        versions:
+          - 2.6.0
+      - dependency-name: postgrex
+        versions:
+          - 0.15.8
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
