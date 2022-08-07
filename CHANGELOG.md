@@ -5,6 +5,8 @@
 ### Added
 
 - Added the filter operators `not_in` and `not_contains`.
+- Added examples for integration with Relay to the documentation.
+- Added examples for the parameter format to the documentation.
 
 ### Changed
 
