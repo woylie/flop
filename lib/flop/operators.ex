@@ -3,59 +3,49 @@ defmodule Flop.Operators do
 
   import Ecto.Query
 
-  defmacro build_dynamic(fragment, _binding? = false, _combinator = nil) do
+  defmacro build_dynamic(fragment, binding?, _combinator = nil) do
+    binding_arg = binding_arg(binding?)
+
     quote do
-      dynamic([r], ^var!(c) and unquote(fragment))
+      dynamic(unquote(binding_arg), ^var!(c) and unquote(fragment))
     end
   end
 
-  defmacro build_dynamic(fragment, _binding? = true, _combinator = nil) do
-    quote do
-      dynamic([{^var!(binding), r}], ^var!(c) and unquote(fragment))
-    end
-  end
+  defmacro build_dynamic(fragment, binding?, :and) do
+    binding_arg = binding_arg(binding?)
 
-  defmacro build_dynamic(fragment, _binding? = false, :and) do
     quote do
       filter_condition =
         Enum.reduce(var!(value), true, fn substring, dynamic ->
-          dynamic([r], ^dynamic and unquote(fragment))
+          dynamic(unquote(binding_arg), ^dynamic and unquote(fragment))
         end)
 
-      dynamic([r], ^var!(c) and ^filter_condition)
+      dynamic(unquote(binding_arg), ^var!(c) and ^filter_condition)
     end
   end
 
-  defmacro build_dynamic(fragment, _binding? = true, :and) do
-    quote do
-      filter_condition =
-        Enum.reduce(var!(value), true, fn substring, dynamic ->
-          dynamic([{^var!(binding), r}], ^dynamic and unquote(fragment))
-        end)
+  defmacro build_dynamic(fragment, binding?, :or) do
+    binding_arg = binding_arg(binding?)
 
-      dynamic([r], ^var!(c) and ^filter_condition)
-    end
-  end
-
-  defmacro build_dynamic(fragment, _binding? = false, :or) do
     quote do
       filter_condition =
         Enum.reduce(var!(value), false, fn substring, dynamic ->
-          dynamic([r], ^dynamic or unquote(fragment))
+          dynamic(unquote(binding_arg), ^dynamic or unquote(fragment))
         end)
 
-      dynamic([r], ^var!(c) and ^filter_condition)
+      dynamic(unquote(binding_arg), ^var!(c) and ^filter_condition)
     end
   end
 
-  defmacro build_dynamic(fragment, _binding? = true, :or) do
+  defp binding_arg(true) do
     quote do
-      filter_condition =
-        Enum.reduce(var!(value), false, fn substring, dynamic ->
-          dynamic([{^var!(binding), r}], ^dynamic or unquote(fragment))
-        end)
+      [{^var!(binding), r}]
+    end
+  end
 
-      dynamic([r], ^var!(c) and ^filter_condition)
+  defp binding_arg(false) do
+    quote do
+      [r]
     end
   end
 
