@@ -19,11 +19,6 @@ parameters to your Ecto queries.
 - Relay connection formatter (edges, nodes and page info)
 - UI helpers and URL builders through [Flop Phoenix](https://hex.pm/packages/flop_phoenix).
 
-## Status
-
-This library has been used in production for a while now. Nevertheless, there
-may still be API changes on the way to a more complete feature set.
-
 ## Installation
 
 Add `flop` to your list of dependencies in `mix.exs`:
@@ -89,13 +84,12 @@ defmodule MyApp.Pets do
   import Ecto.Query, warn: false
 
   alias Ecto.Changeset
-  alias Flop
   alias MyApp.{Pet, Repo}
 
-  @spec list_pets(Flop.t()) ::
-          {:ok, {[Pet.t()], Flop.Meta.t}} | {:error, Changeset.t()}
-  def list_pets(flop \\ %Flop{}) do
-    Flop.validate_and_run(Pet, flop, for: Pet)
+  @spec list_pets(map) ::
+          {:ok, {[Pet.t()], Flop.Meta.t()}} | {:error, Flop.Meta.t()}
+  def list_pets(params \\ %{}) do
+    Flop.validate_and_run(Pet, params, for: Pet)
   end
 end
 ```
@@ -181,10 +175,10 @@ For example, if you need to scope a query depending on the current user, it is
 preferred to add a separate function that adds the necessary `WHERE` clauses:
 
 ```elixir
-def list_pets(%{} = args, %User{} = current_user) do
+def list_pets(%{} = params, %User{} = current_user) do
   Pet
   |> scope(current_user)
-  |> Flop.validate_and_run(flop, for: Pet)
+  |> Flop.validate_and_run(params, for: Pet)
 end
 
 defp scope(q, %User{role: :admin}), do: q
@@ -222,6 +216,120 @@ defp apply_filters(q, opts) do
     _, q -> q
   end)
 end
+```
+
+## Relay and Absinthe
+
+If you are serving a GraphQL API using
+[absinthe](https://hex.pm/packages/absinthe) and
+[absinthe_relay](https://hex.pm/packages/absinthe_relay) (or even if you just
+need to support the Relay cursor specification), you can use the
+functions in the `Flop.Relay` module to turn the query responses into the format
+that is expected by Relay.
+
+Let's say you defined node objects for owners and pets, and a connection field
+for pets on the owner node object.
+
+```elixir
+node object(:owner) do
+  field :name, non_null(:string)
+  field :email, non_null(:string)
+
+  connection field :pets, node_type: :pet do
+    resolve &MyAppWeb.Resolvers.Pet.list_pets/2
+  end
+end
+
+node object(:pet) do
+  field :name, non_null(:string)
+  field :age, non_null(:integer)
+  field :species, non_null(:string)
+end
+
+connection(node_type: :pet)
+```
+
+Absinthe Relay will define the arguments `after`, `before`, `first` and `last`
+on the `pets` field. These are the same argument names that Flop uses, so it
+will already know how to apply them.
+
+We're going to define a `list_pets_by_owner/2` function in the `Pets` context.
+
+```elixir
+defmodule MyApp.Pets do
+  import Ecto.Query
+
+  alias MyApp.{Owner, Pet, Repo}
+
+  @spec list_pets_by_owner(Owner.t(), map) ::
+          {:ok, {[Pet.t()], Flop.Meta.t()}} | {:error, Flop.Meta.t()}
+  def list_pets_by_owner(%Owner{id: owner_id}, params \\ %{}) do
+    Pet
+    |> where(owner_id: ^owner_id)
+    |> Flop.validate_and_run(params, for: Pet)
+  end
+end
+```
+
+Now all you need to do in your resolver is to call that function and to call
+`Flop.Relay.connection_from_result/1`, which turns the result into a tuple
+consisting of the edges and the `page_info`, as expected by `absinthe_relay`.
+
+```elixir
+defmodule MyAppWeb.Resolvers.Pet do
+  alias MyApp.{Owner, Pet}
+
+  def list_pets(args, %{source: %Owner{} = owner} = resolution) do
+    with {:ok, result} <- Pets.list_pets_by_owner(owner, args) do
+      {:ok, Flop.Relay.connection_from_result(result)}
+    end
+  end
+end
+```
+
+If you want to add additional filter arguments, you can use
+`Flop.nest_filters/3` to convert simple filter arguments into Flop filters
+without requiring users of your API to know about the Flop filter format.
+
+Let's add `name` and `species` filter arguments to the `pets` connection field.
+
+```elixir
+node object(:owner) do
+  field :name, non_null(:string)
+  field :email, non_null(:string)
+
+  connection field :pets, node_type: :pet do
+    arg :name, :string
+    arg :species, :string
+
+    resolve &MyAppWeb.Resolvers.Pet.list_pets/2
+  end
+end
+```
+
+Assuming that these fields were already configured as filterable with
+`Flop.Schema`, we can use `Flop.nest_filters/3` to take the filter arguments and
+convert them into a list of Flop filters.
+
+```elixir
+defmodule MyAppWeb.Resolvers.Pet do
+  alias MyApp.{Owner, Pet}
+
+  def list_pets(args, %{source: %Owner{} = owner} = resolution) do
+    args = nest_filters(args, [:name, :species])
+
+    with {:ok, result} <- Pets.list_pets_by_owner(owner, args) do
+      {:ok, Flop.Relay.connection_from_result(result)}
+    end
+  end
+end
+```
+
+`Flop.nest_filters/3` uses the the equality operator `:==` by default.
+You can override the default operator per field.
+
+```elixir
+args = nest_filters(args, [:name, :species], operators: %{name: :ilike_and})
 ```
 
 ## Flop Phoenix
