@@ -301,7 +301,9 @@ defmodule Flop do
     unknown_options = Keyword.keys(opts) -- known_options
 
     if unknown_options != [] do
+      # coveralls-ignore-start
       raise "unknown option(s) for Flop: #{inspect(unknown_options)}"
+      # coveralls-ignore-stop
     end
 
     for func <- [
