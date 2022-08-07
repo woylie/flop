@@ -20,7 +20,7 @@ config :flop,
 +  query_opts: [prefix: "some-prefix"]
 ```
 
-If you configured set the `:prefix` when calling the Flop functions:
+If you set the `:prefix` when calling the Flop functions:
 
 ```diff
 - Flop.validate_and_run(Pet, params, prefix: "some-prefix")
