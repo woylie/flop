@@ -1533,6 +1533,9 @@ defmodule Flop do
       iex> to_previous_offset(%Flop{offset: 5, limit: 10})
       %Flop{offset: 0, limit: 10}
 
+      iex> to_previous_offset(%Flop{offset: 0, limit: 10})
+      %Flop{offset: 0, limit: 10}
+
       iex> to_previous_offset(%Flop{offset: -2, limit: 10})
       %Flop{offset: 0, limit: 10}
   """
