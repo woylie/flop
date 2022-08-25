@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.17.0] - 2022-08-26
+
 ### Added
 
 - Added the filter operators `not_in` and `not_contains`.
