@@ -84,7 +84,7 @@ defmodule Flop.MixProject do
     [
       main: "readme",
       extras: ["README.md", "CHANGELOG.md"],
-      source_ref: "main",
+      source_ref: @version,
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
     ]
   end
