@@ -12,6 +12,9 @@
 
 ### Changed
 
+- Refactored the query builder. This does not affect users of the library, but
+  makes the code base more readable and lays the groundwork for upcoming
+  features.
 - Added the `:query_opts` option to Flop callbacks to pass on options to the
   Ecto repo on query execution. If you are already using the `:prefix` option
   you now have to pass this through `:query_opts`.
