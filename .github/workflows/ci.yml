@@ -8,16 +8,16 @@ jobs:
     name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
     strategy:
       matrix:
-        otp: ["22.3", "23.3", "24.3", "25.0"]
+        otp: ["22.3", "23.3", "24.3", "25.1"]
         elixir: ["1.11", "1.12", "1.13", "1.14"]
         exclude:
           - otp: "24.3"
             elixir: "1.11"
-          - otp: "25.0"
+          - otp: "25.1"
             elixir: "1.11"
-          - otp: "25.0"
+          - otp: "25.1"
             elixir: "1.12"
-          - otp: "25.0"
+          - otp: "25.1"
             elixir: "1.13"
           - otp: "22.3"
             elixir: "1.14"
