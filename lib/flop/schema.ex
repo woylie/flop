@@ -249,7 +249,7 @@ defprotocol Flop.Schema do
 
       Owner
       |> join(:left, [o], p in assoc(o, :pets), as: :pets)
-      |> preload([pets: p], [pets: p])
+      |> preload([pets: p])
       |> Flop.validate_and_run!(params, for: Owner)
 
   If your query returns data in a different format, you don't need to set the
