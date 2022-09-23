@@ -518,9 +518,9 @@ defmodule Flop do
   The parameters are represented by the `t:Flop.t/0` type. Any `nil` values
   will be ignored.
 
-  This function does _not_ validate the given Flop struct. Be sure to validate
-  any user-generated parameters with `validate/2` or `validate!/2` before
-  passing them to this function.
+  This function does _not_ validate or apply default parameters to the given
+  Flop struct. Be sure to validate any user-generated parameters with
+  `validate/2` or `validate!/2` before passing them to this function.
 
   ## Examples
 
@@ -566,9 +566,9 @@ defmodule Flop do
   `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`, but
   not by this function.
 
-  This function does _not_ validate the given Flop struct. Be sure to validate
-  any user-generated parameters with `validate/2` or `validate!/2` before
-  passing them to this function.
+  This function does _not_ validate or apply default parameters to the given
+  Flop struct. Be sure to validate any user-generated parameters with
+  `validate/2` or `validate!/2` before passing them to this function.
   """
   @doc since: "0.6.0"
   @spec all(Queryable.t(), Flop.t(), [option()]) :: [any]
@@ -580,10 +580,10 @@ defmodule Flop do
   Applies the given Flop to the given queryable, retrieves the data and the
   meta data.
 
-  This function does not validate the given flop parameters. You can validate
-  the parameters with `Flop.validate/2` or `Flop.validate!/2`, or you can use
-  `Flop.validate_and_run/3` or `Flop.validate_and_run!/3` instead of this
-  function.
+  This function does _not_ validate or apply default parameters to the given
+  flop parameters. You can validate the parameters with `Flop.validate/2` or
+  `Flop.validate!/2`, or you can use `Flop.validate_and_run/3` or
+  `Flop.validate_and_run!/3` instead of this function.
 
       iex> {data, meta} = Flop.run(Flop.Pet, %Flop{})
       iex> data == []
@@ -711,9 +711,9 @@ defmodule Flop do
 
   The filter parameters of the given Flop are applied to the custom count query.
 
-  This function does _not_ validate the given Flop struct. Be sure to validate
-  any user-generated parameters with `validate/2` or `validate!/2` before
-  passing them to this function.
+  This function does _not_ validate or apply default parameters to the given
+  Flop struct. Be sure to validate any user-generated parameters with
+  `validate/2` or `validate!/2` before passing them to this function.
   """
   @doc since: "0.6.0"
   @spec count(Queryable.t(), Flop.t(), [option()]) :: non_neg_integer
@@ -755,9 +755,9 @@ defmodule Flop do
   Unless cursor-based pagination is used, this function will run a query to
   figure get the total count of matching records.
 
-  This function does _not_ validate the given Flop struct. Be sure to validate
-  any user-generated parameters with `validate/2` or `validate!/2` before
-  passing them to this function.
+  This function does _not_ validate or apply default parameters to the given
+  Flop struct. Be sure to validate any user-generated parameters with
+  `validate/2` or `validate!/2` before passing them to this function.
   """
   @doc since: "0.6.0"
   @spec meta(Queryable.t() | [any], Flop.t(), [option()]) :: Meta.t()
@@ -903,9 +903,9 @@ defmodule Flop do
 
   Used by `Flop.query/2`.
 
-  This function does _not_ validate the given Flop struct. Be sure to validate
-  any user-generated parameters with `validate/2` or `validate!/2` before
-  passing them to this function.
+  This function does _not_ validate or apply default parameters to the given
+  Flop struct. Be sure to validate any user-generated parameters with
+  `validate/2` or `validate!/2` before passing them to this function.
   """
   @spec order_by(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def order_by(q, flop, opts \\ [])
@@ -997,9 +997,9 @@ defmodule Flop do
 
   Used by `Flop.query/2`.
 
-  This function does _not_ validate the given Flop struct. Be sure to validate
-  any user-generated parameters with `validate/2` or `validate!/2` before
-  passing them to this function.
+  This function does _not_ validate or apply default parameters to the given
+  Flop struct. Be sure to validate any user-generated parameters with
+  `validate/2` or `validate!/2` before passing them to this function.
   """
   @spec paginate(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def paginate(q, flop, opts \\ [])
@@ -1181,9 +1181,9 @@ defmodule Flop do
 
   Used by `Flop.query/2`.
 
-  This function does _not_ validate the given Flop struct. Be sure to validate
-  any user-generated parameters with `validate/2` or `validate!/2` before
-  passing them to this function.
+  This function does _not_ validate or apply default parameters to the given
+  Flop struct. Be sure to validate any user-generated parameters with
+  `validate/2` or `validate!/2` before passing them to this function.
   """
   @spec filter(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def filter(q, flop, opt \\ [])
