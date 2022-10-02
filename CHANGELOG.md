@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-### Changed
+## [0.17.1] - 2022-10-02
+
+### Added
 
 - Added a `backend` field to the `Flop.Meta` struct.
 
