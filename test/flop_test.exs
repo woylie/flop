@@ -1560,5 +1560,10 @@ defmodule FlopTest do
       assert {:ok, {_, %Meta{page_size: 30}}} =
                TestProvider.validate_and_run(Pet, %{page_size: 30})
     end
+
+    test "passes backend module" do
+      assert {:ok, {_, %Meta{backend: TestProvider}}} =
+               TestProvider.validate_and_run(Pet, %{})
+    end
   end
 end

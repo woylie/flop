@@ -7,6 +7,9 @@ defmodule Flop.Meta do
   Meta information for a query result.
 
   - `:flop` - The `Flop` struct used in the query.
+  - `:schema` - The schema module passed as `for` option.
+  - `:backend` - The backend module if the query was made using a module with
+    `use Flop`.
   - `:current_offset` - The `:offset` value used in the query when using
     offset-based pagination or a derived value when using page-based pagination.
     Always `nil` when using cursor-based pagination.
@@ -37,6 +40,7 @@ defmodule Flop.Meta do
     the page size. Always `nil` when using cursor-based pagination.
   """
   @type t :: %__MODULE__{
+          backend: module | nil,
           current_offset: non_neg_integer | nil,
           current_page: pos_integer | nil,
           end_cursor: String.t() | nil,
@@ -57,6 +61,7 @@ defmodule Flop.Meta do
         }
 
   defstruct [
+    :backend,
     :current_offset,
     :current_page,
     :end_cursor,
