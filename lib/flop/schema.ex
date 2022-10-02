@@ -515,6 +515,7 @@ defimpl Flop.Schema, for: Any do
     validate_no_unknown_field!(opts[:sortable], all_fields, "sortable")
     validate_default_order!(opts[:default_order], opts[:sortable])
     validate_compound_fields!(opts[:compound_fields], all_fields)
+    validate_alias_fields!(alias_fields, opts[:filterable])
   end
 
   defp get_compound_fields(opts) do
@@ -685,6 +686,22 @@ defimpl Flop.Schema, for: Any do
         """
       end
     end)
+  end
+
+  defp validate_alias_fields!(alias_fields, filterable)
+       when is_list(alias_fields) do
+    illegal_fields = Enum.filter(alias_fields, &(&1 in filterable))
+
+    if illegal_fields != [] do
+      raise ArgumentError, """
+      cannot filter by alias fields
+
+      Alias fields are not allowed to be filterable. These fields were
+      configured as filterable:
+
+          #{inspect(illegal_fields)}
+      """
+    end
   end
 
   defp validate_no_duplicate_fields!(fields) do

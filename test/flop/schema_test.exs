@@ -8,7 +8,7 @@ defmodule Flop.SchemaTest do
 
   defmodule Panini do
     @derive {Flop.Schema,
-             filterable: [:name, :age, :topping_count],
+             filterable: [:name, :age],
              sortable: [:name, :age, :topping_count],
              default_limit: 20,
              max_limit: 50,
@@ -410,6 +410,21 @@ defmodule Flop.SchemaTest do
         }
         defstruct [:name, :nickname]
       end
+    end
+
+    test "raises error if alias field is added to filterable list" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Bejitaburu do
+            @derive {
+              Flop.Schema,
+              filterable: [:count], sortable: [], alias_fields: [:count]
+            }
+            defstruct [:id]
+          end
+        end
+
+      assert error.message =~ "cannot filter by alias field"
     end
   end
 end
