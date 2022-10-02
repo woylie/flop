@@ -306,8 +306,15 @@ defmodule Flop do
       # coveralls-ignore-stop
     end
 
-    opts = Keyword.put(opts, :backend, __CALLER__.module)
+    quote do
+      @doc false
+      def __flop_options__, do: unquote(opts)
 
+      unquote(backend_functions(__CALLER__.module))
+    end
+  end
+
+  defp backend_functions(backend_module) do
     for func <- [
           :all,
           :count,
@@ -325,7 +332,7 @@ defmodule Flop do
           apply(Flop, unquote(func), [
             q,
             map_or_flop,
-            Keyword.merge(unquote(opts), opts)
+            Keyword.put(opts, :backend, unquote(backend_module))
           ])
         end
       end
@@ -1966,21 +1973,17 @@ defmodule Flop do
   1. the keyword list passed as the second argument
   2. the schema module that derives `Flop.Schema`, if the passed list includes
      the `:for` option
-  3. the application environment
-  4. the default passed as the last argument
+  3. the backend module with `use Flop`
+  4. the application environment
+  5. the default passed as the last argument
   """
   @doc since: "0.11.0"
   @spec get_option(atom, [option()], any) :: any
   def get_option(key, opts, default \\ nil) do
-    case opts[key] do
-      nil ->
-        case schema_option(opts[:for], key) do
-          nil -> global_option(key, default)
-          v -> v
-        end
-
-      v ->
-        v
+    with nil <- opts[key],
+         nil <- schema_option(opts[:for], key),
+         nil <- backend_option(opts[:backend], key) do
+      global_option(key, default)
     end
   end
 
@@ -1998,6 +2001,13 @@ defmodule Flop do
   end
 
   defp schema_option(_, _), do: nil
+
+  defp backend_option(module, key)
+       when is_atom(module) and module != nil do
+    module.__flop_options__()[key]
+  end
+
+  defp backend_option(_, _), do: nil
 
   defp global_option(key, default) when is_atom(key) do
     Application.get_env(:flop, key, default)

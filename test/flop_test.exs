@@ -13,6 +13,7 @@ defmodule FlopTest do
   alias Ecto.Adapters.SQL.Sandbox
   alias Ecto.Query.QueryExpr
   alias Flop.Filter
+  alias Flop.Fruit
   alias Flop.Meta
   alias Flop.Pet
   alias Flop.Repo
@@ -1564,6 +1565,54 @@ defmodule FlopTest do
     test "passes backend module" do
       assert {:ok, {_, %Meta{backend: TestProvider}}} =
                TestProvider.validate_and_run(Pet, %{})
+    end
+  end
+
+  describe "get_option/3" do
+    test "returns value from option list" do
+      # sanity check
+      default_limit = Flop.Schema.default_limit(%Fruit{})
+      assert default_limit && default_limit != 40
+
+      assert Flop.get_option(
+               :default_limit,
+               [default_limit: 40, backend: TestProvider, for: Fruit],
+               1
+             ) == 40
+    end
+
+    test "falls back to schema option" do
+      # sanity check
+      assert default_limit = Flop.Schema.default_limit(%Fruit{})
+
+      assert Flop.get_option(
+               :default_limit,
+               [backend: TestProvider, for: Fruit],
+               1
+             ) == default_limit
+    end
+
+    test "falls back to backend config if schema option is not set" do
+      # sanity check
+      assert Flop.Schema.default_limit(%Pet{}) == nil
+
+      assert Flop.get_option(
+               :default_limit,
+               [backend: TestProvider, for: Pet],
+               1
+             ) == 35
+    end
+
+    test "falls back to backend config if :for option is not set" do
+      assert Flop.get_option(:default_limit, [backend: TestProvider], 1) == 35
+    end
+
+    test "falls back to default value passed to function" do
+      assert Flop.get_option(:default_limit, [], 2) == 2
+    end
+
+    test "falls back to nil" do
+      assert Flop.get_option(:default_limit, []) == nil
     end
   end
 end
