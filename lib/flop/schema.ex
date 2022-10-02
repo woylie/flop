@@ -493,39 +493,46 @@ defimpl Flop.Schema, for: Any do
     if is_nil(opts[:filterable]) || is_nil(opts[:sortable]),
       do: raise(ArgumentError, @instructions)
 
-    fields = fields(opts, struct)
+    compound_fields = get_compound_fields(opts)
+    join_fields = get_join_fields(opts)
+    schema_fields = get_schema_fields(struct)
+    alias_fields = Keyword.get(opts, :alias_fields, [])
 
-    validate_no_duplicate_fields!(fields)
+    all_fields = compound_fields ++ join_fields ++ schema_fields ++ alias_fields
+
+    validate_no_duplicate_fields!(
+      compound_fields ++ join_fields ++ alias_fields
+    )
+
     validate_limit!(opts[:default_limit], "default")
     validate_limit!(opts[:max_limit], "max")
     validate_pagination_types!(opts[:pagination_types])
     check_legacy_default_order(opts)
     validate_no_unknown_options!(opts)
-    validate_no_unknown_field!(opts[:filterable], fields, "filterable")
-    validate_no_unknown_field!(opts[:sortable], fields, "sortable")
+    validate_no_unknown_field!(opts[:filterable], all_fields, "filterable")
+    validate_no_unknown_field!(opts[:sortable], all_fields, "sortable")
     validate_default_order!(opts[:default_order], opts[:sortable])
-    validate_compound_fields!(opts[:compound_fields], fields)
+    validate_compound_fields!(opts[:compound_fields], all_fields)
   end
 
-  defp fields(opts, struct) do
-    compound_fields =
-      opts |> Keyword.get(:compound_fields, []) |> Keyword.keys()
+  defp get_compound_fields(opts) do
+    opts |> Keyword.get(:compound_fields, []) |> Keyword.keys()
+  end
 
-    join_fields = opts |> Keyword.get(:join_fields, []) |> Keyword.keys()
+  defp get_join_fields(opts) do
+    opts |> Keyword.get(:join_fields, []) |> Keyword.keys()
+  end
 
-    schema_fields =
-      struct
-      |> Map.from_struct()
-      |> Enum.reject(fn
-        {_, %Ecto.Association.NotLoaded{}} -> true
-        {:__meta__, _} -> true
-        _ -> false
-      end)
-      |> Enum.map(fn {field, _} -> field end)
-
-    alias_fields = Keyword.get(opts, :alias_fields, [])
-
-    schema_fields ++ compound_fields ++ join_fields ++ alias_fields
+  defp get_schema_fields(struct) do
+    # reflection functions are not available during compilation
+    struct
+    |> Map.from_struct()
+    |> Enum.reject(fn
+      {_, %Ecto.Association.NotLoaded{}} -> true
+      {:__meta__, _} -> true
+      _ -> false
+    end)
+    |> Enum.map(fn {field, _} -> field end)
   end
 
   defp validate_limit!(nil, _), do: :ok
@@ -679,23 +686,26 @@ defimpl Flop.Schema, for: Any do
   end
 
   defp validate_no_duplicate_fields!(fields) do
-    duplicate_fields =
-      fields
-      |> Enum.frequencies()
-      |> Enum.filter(fn {_, count} -> count > 1 end)
-      |> Enum.map(fn {field, _} -> field end)
+    duplicates = duplicate_fields(fields)
 
-    if duplicate_fields != [] do
+    if duplicates != [] do
       raise ArgumentError, """
       duplicate fields
 
-      Compound field, join field and alias field names must be unique and may
+      Alias field, compound field and join field names must be unique and may
       not overlap with schema field names. These field names were used multiple
       times:
 
-          #{inspect(duplicate_fields)}
+          #{inspect(duplicates)}
       """
     end
+  end
+
+  defp duplicate_fields(fields) do
+    fields
+    |> Enum.frequencies()
+    |> Enum.filter(fn {_, count} -> count > 1 end)
+    |> Enum.map(fn {field, _} -> field end)
   end
 
   defp check_legacy_default_order(opts) do

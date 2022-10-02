@@ -20,6 +20,7 @@ defmodule Flop.Owner do
     field :email, :string
     field :name, :string
     field :tags, {:array, :string}, default: []
+    field :pet_count, :integer, virtual: true
 
     has_many :pets, Pet
   end

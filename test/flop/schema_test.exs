@@ -348,7 +348,7 @@ defmodule Flop.SchemaTest do
       assert error.message =~ "unknown field"
     end
 
-    test "raises if compound field uses existing field name" do
+    test "raises if compound field uses existing join field name" do
       error =
         assert_raise ArgumentError, fn ->
           defmodule Vegetable do
@@ -356,6 +356,7 @@ defmodule Flop.SchemaTest do
               Flop.Schema,
               filterable: [],
               sortable: [],
+              join_fields: [name: {:eater, :name}],
               compound_fields: [name: [:name, :nickname]]
             }
             defstruct [:name, :nickname]
@@ -363,6 +364,52 @@ defmodule Flop.SchemaTest do
         end
 
       assert error.message =~ "duplicate field"
+    end
+
+    test "raises if alias field uses existing compound field name" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [],
+              sortable: [],
+              compound_fields: [name: [:name, :nickname]],
+              alias_fields: [:name]
+            }
+            defstruct [:id]
+          end
+        end
+
+      assert error.message =~ "duplicate field"
+    end
+
+    test "raises if alias field uses existing join field name" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [],
+              sortable: [],
+              join_fields: [owner_name: {:owner, :name}],
+              alias_fields: [:owner_name]
+            }
+            defstruct [:id]
+          end
+        end
+
+      assert error.message =~ "duplicate field"
+    end
+
+    test "does not raise if alias field uses existing schema field name" do
+      defmodule Vegetaburu do
+        @derive {
+          Flop.Schema,
+          filterable: [], sortable: [], alias_fields: [:nickname]
+        }
+        defstruct [:name, :nickname]
+      end
     end
   end
 end
