@@ -285,7 +285,7 @@ defprotocol Flop.Schema do
   """
   @doc since: "0.11.0"
   @spec field_type(any, atom) ::
-          {:normal, atom} | {:compound, [atom]} | {:join, map}
+          {:normal, atom} | {:compound, [atom]} | {:join, map} | {:alias, atom}
   def field_type(data, field)
 
   @doc """
@@ -425,13 +425,16 @@ defimpl Flop.Schema, for: Any do
     pagination_types = Keyword.get(options, :pagination_types)
     default_order = Keyword.get(options, :default_order)
     compound_fields = Keyword.get(options, :compound_fields, [])
+    alias_fields = Keyword.get(options, :alias_fields, [])
 
     join_fields =
       options
       |> Keyword.get(:join_fields, [])
       |> Enum.map(&normalize_join_opts/1)
 
-    field_type_func = build_field_type_func(compound_fields, join_fields)
+    field_type_func =
+      build_field_type_func(compound_fields, join_fields, alias_fields)
+
     order_by_func = build_order_by_func(compound_fields, join_fields)
     get_field_func = build_get_field_func(compound_fields, join_fields)
 
@@ -518,7 +521,9 @@ defimpl Flop.Schema, for: Any do
       end)
       |> Enum.map(fn {field, _} -> field end)
 
-    schema_fields ++ compound_fields ++ join_fields
+    alias_fields = Keyword.get(opts, :alias_fields, [])
+
+    schema_fields ++ compound_fields ++ join_fields ++ alias_fields
   end
 
   defp validate_limit!(nil, _), do: :ok
@@ -558,6 +563,7 @@ defimpl Flop.Schema, for: Any do
 
   defp validate_no_unknown_options!(opts) do
     known_keys = [
+      :alias_fields,
       :compound_fields,
       :default_limit,
       :default_order,
@@ -681,8 +687,9 @@ defimpl Flop.Schema, for: Any do
       raise ArgumentError, """
       duplicate fields
 
-      Compound field and join field names must be unique and may not overlap
-      with schema field names. These field names were used multiple times:
+      Compound field, join field and alias field names must be unique and may
+      not overlap with schema field names. These field names were used multiple
+      times:
 
           #{inspect(duplicate_fields)}
       """
@@ -730,7 +737,7 @@ defimpl Flop.Schema, for: Any do
     {name, opts}
   end
 
-  def build_field_type_func(compound_fields, join_fields) do
+  def build_field_type_func(compound_fields, join_fields, alias_fields) do
     compound_field_funcs =
       for {name, fields} <- compound_fields do
         quote do
@@ -749,6 +756,15 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
+    alias_field_funcs =
+      for name <- alias_fields do
+        quote do
+          def field_type(_, unquote(name)) do
+            {:alias, unquote(name)}
+          end
+        end
+      end
+
     default_funcs =
       quote do
         def field_type(_, name) do
@@ -759,6 +775,7 @@ defimpl Flop.Schema, for: Any do
     quote do
       unquote(compound_field_funcs)
       unquote(join_field_funcs)
+      unquote(alias_field_funcs)
       unquote(default_funcs)
     end
   end
