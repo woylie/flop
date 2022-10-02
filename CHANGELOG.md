@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Added
+
+- Added `alias_fields` option to `Flop.Schema`, which allows you to sort by
+  field aliases defined with `Ecto.Query.selected_as/2`.
+- Added documentation example for filtering by calculated values.
+
+### Changed
+
+- Require `ecto ~> 3.9.0`.
+- `Flop.Schema` does not raise an error anymore if a compound or join field is
+  defined with the name as a regular Ecto schema field. This was done so that
+  you can add virtual fields with the same name. It is not possible to
+  differentiate between non-virtual and virtual fields at compile time (at least
+  I don't know how), so we cannot differentiate in the validation step.
+
 ## [0.17.1] - 2022-10-02
 
 ### Added
