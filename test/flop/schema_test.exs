@@ -8,8 +8,8 @@ defmodule Flop.SchemaTest do
 
   defmodule Panini do
     @derive {Flop.Schema,
-             filterable: [:name, :age],
-             sortable: [:name, :age],
+             filterable: [:name, :age, :topping_count],
+             sortable: [:name, :age, :topping_count],
              default_limit: 20,
              max_limit: 50,
              default_order: %{
@@ -17,7 +17,8 @@ defmodule Flop.SchemaTest do
                order_directions: [:desc, :asc]
              },
              compound_fields: [name_or_email: [:name, :email]],
-             join_fields: [topping_name: {:toppings, :name}]}
+             join_fields: [topping_name: {:toppings, :name}],
+             alias_fields: [:topping_count]}
 
     defstruct [:name, :email, :age]
   end
