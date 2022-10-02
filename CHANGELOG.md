@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Changed
+
+- Added a `backend` field to the `Flop.Meta` struct.
+
+### Fixed
+
+- Fixed an issue where the schema options were overridden by the backend module
+  options.
+
 ## [0.17.0] - 2022-08-26
 
 ### Added
