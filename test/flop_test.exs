@@ -15,6 +15,7 @@ defmodule FlopTest do
   alias Flop.Filter
   alias Flop.Fruit
   alias Flop.Meta
+  alias Flop.Owner
   alias Flop.Pet
   alias Flop.Repo
 
@@ -131,6 +132,37 @@ defmodule FlopTest do
                  order_directions: [:desc, :desc]
                },
                for: Pet
+             ) == Enum.reverse(expected)
+    end
+
+    test "orders by alias fields" do
+      owner_1 = insert(:owner, pets: build_list(2, :pet))
+      owner_2 = insert(:owner, pets: build_list(1, :pet))
+      owner_3 = insert(:owner, pets: build_list(4, :pet))
+      owner_4 = insert(:owner, pets: build_list(3, :pet))
+
+      expected = [
+        {owner_2.id, 1},
+        {owner_1.id, 2},
+        {owner_4.id, 3},
+        {owner_3.id, 4}
+      ]
+
+      q =
+        Owner
+        |> join(:left, [o], p in assoc(o, :pets), as: :pets)
+        |> group_by([o], o.id)
+        |> select(
+          [o, pets: p],
+          {o.id, p.id |> count() |> selected_as(:pet_count)}
+        )
+
+      assert Flop.all(q, %Flop{order_by: [:pet_count]}, for: Owner) == expected
+
+      assert Flop.all(
+               q,
+               %Flop{order_by: [:pet_count], order_directions: [:desc]},
+               for: Owner
              ) == Enum.reverse(expected)
     end
   end

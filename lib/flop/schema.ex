@@ -435,7 +435,9 @@ defimpl Flop.Schema, for: Any do
     field_type_func =
       build_field_type_func(compound_fields, join_fields, alias_fields)
 
-    order_by_func = build_order_by_func(compound_fields, join_fields)
+    order_by_func =
+      build_order_by_func(compound_fields, join_fields, alias_fields)
+
     get_field_func = build_get_field_func(compound_fields, join_fields)
 
     cursor_dynamic_func_compound =
@@ -924,7 +926,7 @@ defimpl Flop.Schema, for: Any do
     end
   end
 
-  def build_order_by_func(compound_fields, join_fields) do
+  def build_order_by_func(compound_fields, join_fields, alias_fields) do
     compound_field_funcs =
       for {name, fields} <- compound_fields do
         quote do
@@ -951,6 +953,15 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
+    alias_field_func =
+      for name <- alias_fields do
+        quote do
+          def apply_order_by(_struct, q, {direction, unquote(name)}) do
+            order_by(q, [{^direction, selected_as(unquote(name))}])
+          end
+        end
+      end
+
     normal_field_func =
       quote do
         def apply_order_by(_struct, q, direction) do
@@ -961,6 +972,7 @@ defimpl Flop.Schema, for: Any do
     quote do
       unquote(compound_field_funcs)
       unquote(join_field_funcs)
+      unquote(alias_field_func)
       unquote(normal_field_func)
     end
   end

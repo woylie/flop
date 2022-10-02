@@ -11,7 +11,8 @@ defmodule Flop.Owner do
     filterable: [:name],
     sortable: [:name, :age],
     join_fields: [pet_age: {:pets, :age}],
-    compound_fields: [age_and_pet_age: [:age, :pet_age]]
+    compound_fields: [age_and_pet_age: [:age, :pet_age]],
+    alias_fields: [:pet_count]
   }
 
   schema "owners" do
