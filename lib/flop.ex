@@ -306,6 +306,8 @@ defmodule Flop do
       # coveralls-ignore-stop
     end
 
+    opts = Keyword.put(opts, :backend, __CALLER__.module)
+
     for func <- [
           :all,
           :count,
@@ -427,6 +429,9 @@ defmodule Flop do
           | {:pagination_types, [pagination_type()]}
           | {:repo, module}
           | {:query_opts, Keyword.t()}
+          | private_option()
+
+  @typep private_option :: {:backend, module}
 
   @typedoc """
   Represents the supported order direction values.
@@ -780,6 +785,7 @@ defmodule Flop do
       |> Cursor.get_cursors(order_by, opts)
 
     %Meta{
+      backend: opts[:backend],
       flop: flop,
       start_cursor: start_cursor,
       end_cursor: end_cursor,
@@ -808,6 +814,7 @@ defmodule Flop do
       |> Cursor.get_cursors(order_by, opts)
 
     %Meta{
+      backend: opts[:backend],
       flop: flop,
       start_cursor: start_cursor,
       end_cursor: end_cursor,
@@ -841,6 +848,7 @@ defmodule Flop do
       )
 
     %Meta{
+      backend: opts[:backend],
       current_offset: current_offset,
       current_page: current_page,
       flop: flop,
