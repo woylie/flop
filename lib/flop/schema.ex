@@ -99,6 +99,36 @@ defprotocol Flop.Schema do
   See also `t:Flop.option/0` and `t:Flop.pagination_type/0`. Setting the value
   to `nil` allows all pagination types.
 
+  ## Alias fields
+
+  To sort by calculated values, you can use `Ecto.Query.selected_as/2` in your
+  query, define an alias field in your schema, and add the alias field to the
+  list of sortable fields.
+
+  Schema:
+
+      @derive {
+        Flop.Schema,
+        filterable: [],
+        sortable: [:pet_count],
+        alias_fields: [:pet_count]
+      }
+
+  Query:
+
+      Owner
+      |> join(:left, [o], p in assoc(o, :pets), as: :pets)
+      |> group_by([o], o.id)
+      |> select(
+        [o, pets: p],
+        {o.id, p.id |> count() |> selected_as(:pet_count)}
+      )
+      |> Flop.validate_and_run(params, for: Owner)
+
+  Note that it is not possible to use field aliases in `WHERE` clauses, which
+  means you cannot add alias fields to the list of filterable fields, and you
+  cannot sort by an alias field if you are using cursor-based pagination.
+
   ## Compound fields
 
   Sometimes you might need to apply a search term to multiple fields at once,
@@ -257,7 +287,41 @@ defprotocol Flop.Schema do
   options. See `Flop.Cursor.get_cursors/2` and `t:Flop.option/0`.
 
   Note that Flop doesn't create the join clauses for you. The named bindings
-  already have to be present in the query you pass to the Flop functions.
+  already have to be present in the query you pass to the Flop functions. You
+  can use `Flop.bindings/3` to get the binding names needed to execute a query
+  in order to build the join clauses dynamically and avoid adding unnecessary
+  joins.
+
+  ## Filtering by calculated values
+
+  Flop currently does not have a way to define filters on calculated values. You
+  can however join on a subquery with a named binding and add a join field as
+  described above.
+
+  Schema:
+
+      @derive {
+        Flop.Schema,
+        filterable: [:pet_count],
+        sortable: [:pet_count],
+        join_fields: [pet_count: [{:pet_count, :count}]}
+
+  Query:
+
+      params = %{filters: [%{field: :pet_count, op: :>, value: 2}]}
+
+      pet_count_query =
+        Pet
+        |> where([p], parent_as(:owner).id == p.owner_id)
+        |> select([p], %{count: count(p)})
+
+      q =
+        (o in Owner)
+        |> from(as: :owner)
+        |> join(:inner_lateral, [owner: o], p in subquery(pet_count_query),
+          as: :pet_count
+        )
+        |> Flop.validate_and_run(params, for: Owner)
   """
 
   @fallback_to_any true
