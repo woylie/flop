@@ -760,7 +760,7 @@ defimpl Flop.Schema, for: Any do
       raise ArgumentError, """
       cannot filter by alias fields
 
-      Alias fields are not allowed to be filterable. These fields were
+      Alias fields are not allowed to be filterable. These alias fields were
       configured as filterable:
 
           #{inspect(illegal_fields)}
@@ -775,9 +775,8 @@ defimpl Flop.Schema, for: Any do
       raise ArgumentError, """
       duplicate fields
 
-      Alias field, compound field and join field names must be unique and may
-      not overlap with schema field names. These field names were used multiple
-      times:
+      Alias field, compound field and join field names must be unique. These
+      field names were used multiple times:
 
           #{inspect(duplicates)}
       """
