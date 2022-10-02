@@ -444,6 +444,7 @@ defimpl Flop.Schema, for: Any do
       build_cursor_dynamic_func_compound(compound_fields)
 
     cursor_dynamic_func_join = build_cursor_dynamic_func_join(join_fields)
+    cursor_dynamic_func_alias = build_cursor_dynamic_func_alias(alias_fields)
     cursor_dynamic_func_normal = build_cursor_dynamic_func_normal()
 
     quote do
@@ -484,6 +485,7 @@ defimpl Flop.Schema, for: Any do
 
         unquote(cursor_dynamic_func_compound)
         unquote(cursor_dynamic_func_join)
+        unquote(cursor_dynamic_func_alias)
         unquote(cursor_dynamic_func_normal)
       end
     end
@@ -813,6 +815,16 @@ defimpl Flop.Schema, for: Any do
           )
 
           cursor_dynamic(struct, tail, cursor)
+        end
+      end
+    end
+  end
+
+  def build_cursor_dynamic_func_alias(alias_fields) do
+    for name <- alias_fields do
+      quote do
+        def cursor_dynamic(_, [{_, unquote(name)} | _], _) do
+          raise "alias fields are not supported in cursor pagination"
         end
       end
     end

@@ -1374,6 +1374,43 @@ defmodule FlopTest do
       end
     end
 
+    test "raises if alias field is used" do
+      q =
+        Owner
+        |> join(:left, [o], p in assoc(o, :pets), as: :pets)
+        |> group_by([o], o.id)
+        |> select(
+          [o, pets: p],
+          %{o | pet_count: p.id |> count() |> selected_as(:pet_count)}
+        )
+
+      insert(:owner)
+
+      assert {_, %Meta{end_cursor: end_cursor}} =
+               Flop.run(
+                 q,
+                 %Flop{first: 1, order_by: [:pet_count, :id]},
+                 for: Owner
+               )
+
+      error =
+        assert_raise RuntimeError,
+                     fn ->
+                       Flop.run(
+                         q,
+                         %Flop{
+                           first: 1,
+                           after: end_cursor,
+                           order_by: [:pet_count, :id]
+                         },
+                         for: Owner
+                       )
+                     end
+
+      assert error.message =~
+               "alias fields are not supported in cursor pagination"
+    end
+
     test "nil values for cursors are ignored when not using for option" do
       check all pets <- uniq_list_of_pets(length: 2..2),
                 directions <- order_directions(%Pet{}) do
