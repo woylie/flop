@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.17.2] - 2022-10-03
+
+### Fixed
+
+- Fixed an issue where the `repo` option was not read from a backend module.
+
 ## [0.17.1] - 2022-10-02
 
 ### Added
