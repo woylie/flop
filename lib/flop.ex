@@ -2029,6 +2029,7 @@ defmodule Flop do
       %{filters: [%{field: :name, op: :!=, value: "Peter"}]}
   """
   @doc since: "0.15.0"
+  @spec nest_filters(map, [atom | String.t()], keyword) :: map
   def nest_filters(%{} = args, fields, opts \\ []) when is_list(fields) do
     fields = fields ++ Enum.map(fields, &Atom.to_string/1)
 
