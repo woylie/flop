@@ -2019,14 +2019,38 @@ defmodule Flop do
 
   ## Examples
 
+  Map with atom keys
+
       iex> nest_filters(%{name: "Peter", page_size: 10}, [:name])
       %{filters: [%{field: :name, op: :==, value: "Peter"}], page_size: 10}
+
+  Map with string keys
 
       iex> nest_filters(%{"name" => "Peter"}, [:name])
       %{"filters" => [%{"field" => "name", "op" => :==, "value" =>  "Peter"}]}
 
+  Specifying operators
+
       iex> nest_filters(%{name: "Peter"}, [:name], operators: %{name: :!=})
       %{filters: [%{field: :name, op: :!=, value: "Peter"}]}
+
+  Renaming fields
+
+      iex> nest_filters(%{nombre: "Peter", page_size: 10}, [:nombre],
+      ...>   rename: %{nombre: :name}
+      ...> )
+      %{filters: [%{field: :name, op: :==, value: "Peter"}], page_size: 10}
+
+      iex> nest_filters(%{"nombre" => "Peter"}, [:nombre],
+      ...>   rename: %{nombre: :name}
+      ...> )
+      %{"filters" => [%{"field" => "name", "op" => :==, "value" =>  "Peter"}]}
+
+      iex> nest_filters(%{"nombre" => "Peter"}, [:nombre],
+      ...>   rename: %{nombre: :name},
+      ...>   operators: %{name: :like}
+      ...> )
+      %{"filters" => [%{"field" => "name", "op" => :like, "value" =>  "Peter"}]}
   """
   @doc since: "0.15.0"
   @spec nest_filters(map, [atom | String.t()], keyword) :: map
@@ -2091,11 +2115,42 @@ defmodule Flop do
         %{"field" => "cat", "op" => :==, "value" => true},
         %{"field" => "name", "op" => :ilike_and, "value" => "George"}
       ]
+
+  You can also pass a map to rename fields.
+
+      iex> map_to_filter_params(
+      ...>   %{s: "George", age: 8, species: nil},
+      ...>   rename: %{s: :name}
+      ...> )
+      [
+        %{field: :age, op: :==, value: 8},
+        %{field: :name, op: :==, value: "George"}
+      ]
+
+      iex> map_to_filter_params(
+      ...>   %{"s" => "George", "cat" => true},
+      ...>   rename: %{s: :name, cat: :dog}
+      ...> )
+      [
+        %{"field" => "dog", "op" => :==, "value" => true},
+        %{"field" => "name", "op" => :==, "value" => "George"}
+      ]
+
+  If both a rename option and an operator are set for a field, the operator
+  option needs to use the new field name.
+
+      iex> map_to_filter_params(
+      ...>   %{n: "George"},
+      ...>   rename: %{n: :name},
+      ...>   operators: %{name: :ilike_or}
+      ...> )
+      [%{field: :name, op: :ilike_or, value: "George"}]
   """
   @doc since: "0.14.0"
   @spec map_to_filter_params(map, keyword) :: [map]
   def map_to_filter_params(%{} = map, opts \\ []) do
     operators = opts[:operators]
+    renamings = opts[:rename]
 
     map
     |> Stream.reject(fn
@@ -2104,6 +2159,8 @@ defmodule Flop do
     end)
     |> Enum.map(fn
       {field, value} when is_atom(field) ->
+        field = rename_field(field, renamings)
+
         %{
           field: field,
           op: op_from_mapping(field, operators),
@@ -2111,6 +2168,8 @@ defmodule Flop do
         }
 
       {field, value} when is_binary(field) ->
+        field = field |> rename_field(renamings) |> to_string()
+
         %{
           "field" => field,
           "op" => op_from_mapping(field, operators),
@@ -2130,6 +2189,19 @@ defmodule Flop do
     Map.get(operators, atom_key, :==)
   rescue
     ArgumentError -> :==
+  end
+
+  defp rename_field(field, nil), do: field
+
+  defp rename_field(field, %{} = renamings) when is_atom(field) do
+    Map.get(renamings, field, field)
+  end
+
+  defp rename_field(field, %{} = renamings) when is_binary(field) do
+    atom_key = String.to_existing_atom(field)
+    Map.get(renamings, atom_key, field)
+  rescue
+    ArgumentError -> field
   end
 
   @doc """
