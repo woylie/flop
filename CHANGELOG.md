@@ -17,6 +17,12 @@
   differentiate between non-virtual and virtual fields at compile time (at least
   I don't know how), so we cannot differentiate in the validation step.
 
+## [0.17.2] - 2022-10-03
+
+### Fixed
+
+- Fixed an issue where the `repo` option was not read from a backend module.
+
 ## [0.17.1] - 2022-10-02
 
 ### Added

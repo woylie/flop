@@ -833,7 +833,7 @@ defmodule Flop do
   end
 
   def meta(q, %Flop{} = flop, opts) do
-    repo = option_or_default(opts, :repo) || raise no_repo_error("meta")
+    repo = get_option(:repo, opts) || raise no_repo_error("meta")
     opts = Keyword.put(opts, :repo, repo)
 
     total_count = count(q, flop, opts)
@@ -1950,14 +1950,10 @@ defmodule Flop do
   end
 
   defp apply_on_repo(repo_fn, flop_fn, args, opts) do
-    repo = option_or_default(opts, :repo) || raise no_repo_error(flop_fn)
+    repo = get_option(:repo, opts) || raise no_repo_error(flop_fn)
     opts = query_opts(opts)
 
     apply(repo, repo_fn, args ++ [opts])
-  end
-
-  defp option_or_default(opts, key) do
-    opts[key] || Application.get_env(:flop, key)
   end
 
   defp query_opts(opts) do
@@ -2236,9 +2232,15 @@ defmodule Flop do
 
         Flop.#{function_name}(MyApp.Item, %Flop{}, repo: MyApp.Repo)
 
-    Or you can configure a default repo in your config:
+    Or configure a default repo in your config:
 
-    config :flop, repo: MyApp.Repo
+        config :flop, repo: MyApp.Repo
+
+    Or configure a repo with a backend module:
+
+        defmodule MyApp.Flop do
+          use Flop, repo: MyApp.Repo
+        end
     """
 
   # coveralls-ignore-end
