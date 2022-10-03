@@ -2272,7 +2272,7 @@ defmodule Flop do
     Defaults to `true`.
   """
   @doc since: "0.16.0"
-  @spec bindings(Flop.t(), module) :: [atom]
+  @spec bindings(Flop.t(), module, keyword) :: [atom]
   def bindings(%Flop{filters: filters, order_by: order_by}, module, opts \\ [])
       when is_atom(module) do
     order = Keyword.get(opts, :order, true)
@@ -2293,6 +2293,58 @@ defmodule Flop do
         _ -> false
       end)
       |> Stream.map(fn {:join, %{binding: binding}} -> binding end)
+      |> Enum.uniq()
+    end
+  end
+
+  @doc """
+  Returns the names of the alias fields that are required for the order clause
+  of the given Flop.
+
+  The second argument is the schema module that derives `Flop.Schema`.
+
+  For example, your schema module might define an alias field called
+  `:pet_count`.
+
+      @derive {
+        Flop.Schema,
+        filterable: [],
+        sortable: [:name, :pet_count],
+        alias_fields: [:pet_count]
+      }
+
+  If you pass a Flop that orders by the `:pet_count` field, the returned list
+  will include the `:pet_count` alias.
+
+      iex> aliases(%Flop{order_by: [:name, :pet_count]}, Flop.Owner)
+      [:pet_count]
+
+  If on the other hand only normal fields are used in the `order_by` parameter,
+  an empty list will be returned.
+
+      iex> aliases(%Flop{order_by: [:name]}, Flop.Owner)
+      []
+
+  You can use this to dynamically build the select clause needed for the query.
+
+  For more information about alias fields, refer to the module documentation of
+  `Flop.Schema`.
+  """
+  @doc since: "0.18.0"
+  @spec aliases(Flop.t(), module) :: [atom]
+  def aliases(%Flop{order_by: order_by}, module) when is_atom(module) do
+    if order_by == [] do
+      []
+    else
+      schema_struct = struct(module)
+
+      order_by
+      |> Stream.map(&Flop.Schema.field_type(schema_struct, &1))
+      |> Stream.filter(fn
+        {:alias, _} -> true
+        _ -> false
+      end)
+      |> Stream.map(fn {:alias, field} -> field end)
       |> Enum.uniq()
     end
   end
