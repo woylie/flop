@@ -7,9 +7,6 @@ defmodule Flop.Validation do
   alias Flop.Cursor
   alias Flop.Filter
 
-  # todo: set global default limit and max limit
-  # todo: make limit required for every pagination type
-
   @spec changeset(map, [Flop.option()]) :: Changeset.t()
   def changeset(%{} = params, opts) do
     replace_invalid_values? = Keyword.get(opts, :replace_invalid_values, false)
@@ -172,6 +169,7 @@ defmodule Flop.Validation do
       replace_invalid_values?
     )
     |> put_default_limit(:limit, opts)
+    |> validate_required([:limit])
     |> validate_and_maybe_delete(
       :offset,
       &validate_offset/3,

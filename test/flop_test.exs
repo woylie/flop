@@ -1448,8 +1448,8 @@ defmodule FlopTest do
 
   describe "validate/1" do
     test "returns Flop struct" do
-      assert Flop.validate(%Flop{}) == {:ok, %Flop{}}
-      assert Flop.validate(%{}) == {:ok, %Flop{}}
+      assert Flop.validate(%Flop{}) == {:ok, %Flop{limit: 50}}
+      assert Flop.validate(%{}) == {:ok, %Flop{limit: 50}}
     end
 
     test "returns error if parameters are invalid" do
@@ -1522,8 +1522,8 @@ defmodule FlopTest do
 
   describe "validate!/1" do
     test "returns a flop struct" do
-      assert Flop.validate!(%Flop{}) == %Flop{}
-      assert Flop.validate!(%{}) == %Flop{}
+      assert Flop.validate!(%Flop{}) == %Flop{limit: 50}
+      assert Flop.validate!(%{}) == %Flop{limit: 50}
     end
 
     test "raises if params are invalid" do
@@ -1676,12 +1676,16 @@ defmodule FlopTest do
       assert Flop.get_option(:default_limit, [backend: TestProvider], 1) == 35
     end
 
+    test "falls back to default value" do
+      assert Flop.get_option(:default_limit, []) == 50
+    end
+
     test "falls back to default value passed to function" do
-      assert Flop.get_option(:default_limit, [], 2) == 2
+      assert Flop.get_option(:some_option, [], 2) == 2
     end
 
     test "falls back to nil" do
-      assert Flop.get_option(:default_limit, []) == nil
+      assert Flop.get_option(:some_option, []) == nil
     end
   end
 end

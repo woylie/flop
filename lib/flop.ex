@@ -285,6 +285,8 @@ defmodule Flop do
   require Ecto.Query
   require Logger
 
+  @default_opts [default_limit: 50, max_limit: 1000]
+
   defmacro __using__(opts) do
     known_options = [
       :cursor_value_func,
@@ -305,6 +307,8 @@ defmodule Flop do
       raise "unknown option(s) for Flop: #{inspect(unknown_options)}"
       # coveralls-ignore-stop
     end
+
+    opts = Keyword.merge(@default_opts, opts)
 
     quote do
       @doc false
@@ -1978,8 +1982,9 @@ defmodule Flop do
   def get_option(key, opts, default \\ nil) do
     with nil <- opts[key],
          nil <- schema_option(opts[:for], key),
-         nil <- backend_option(opts[:backend], key) do
-      global_option(key, default)
+         nil <- backend_option(opts[:backend], key),
+         nil <- global_option(key) do
+      Keyword.get(@default_opts, key, default)
     end
   end
 
@@ -2005,8 +2010,8 @@ defmodule Flop do
 
   defp backend_option(_, _), do: nil
 
-  defp global_option(key, default) when is_atom(key) do
-    Application.get_env(:flop, key, default)
+  defp global_option(key) when is_atom(key) do
+    Application.get_env(:flop, key)
   end
 
   @doc """

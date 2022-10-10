@@ -152,7 +152,13 @@ defmodule Flop.TestUtil do
   Queries all pets using `Flop.all`. Preloads the owners and sorts by Pet ID.
   """
   def query_pets_with_owners(params, opts \\ []) do
-    flop = Flop.validate!(params, for: Pet)
+    flop =
+      Flop.validate!(params,
+        for: Pet,
+        max_limit: 999_999_999,
+        default_limit: 999_999_999
+      )
+
     sort? = opts[:sort] || true
 
     q =
@@ -161,6 +167,7 @@ defmodule Flop.TestUtil do
       |> preload(:owner)
 
     q = if sort?, do: order_by(q, [p], p.id), else: q
+
     Flop.all(q, flop, for: Pet)
   end
 

@@ -30,7 +30,7 @@ defprotocol Flop.Schema do
       {:ok,
        %Flop{
          filters: [],
-         limit: nil,
+         limit: 50,
          offset: nil,
          order_by: [:name],
          order_directions: nil,
@@ -426,7 +426,7 @@ defprotocol Flop.Schema do
   Returns the default limit of a schema.
 
       iex> Flop.Schema.default_limit(%Flop.Fruit{})
-      50
+      60
   """
   @doc since: "0.3.0"
   @spec default_limit(any) :: pos_integer | nil
