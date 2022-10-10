@@ -359,7 +359,7 @@ defmodule Flop.ValidationTest do
       assert {:error, changeset} = validate(params)
 
       assert errors_on(changeset)[:order_by] == [
-               "should have at least 1 item(s)"
+               "can't be blank"
              ]
     end
 
@@ -512,7 +512,7 @@ defmodule Flop.ValidationTest do
       assert {:error, changeset} = validate(params)
 
       assert errors_on(changeset)[:order_by] == [
-               "should have at least 1 item(s)"
+               "can't be blank"
              ]
     end
 

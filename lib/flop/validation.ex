@@ -312,7 +312,9 @@ defmodule Flop.Validation do
   end
 
   defp put_default_order(changeset, opts) do
-    if is_nil(get_field(changeset, :order_by)) do
+    order_by = get_field(changeset, :order_by)
+
+    if is_nil(order_by) || order_by == [] do
       default_order = Flop.get_option(:default_order, opts)
 
       changeset
