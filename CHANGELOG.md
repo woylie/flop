@@ -10,6 +10,11 @@
 - Added documentation example for filtering by calculated values.
 - New option `rename` for `Flop.map_to_filter_params/2` and
   `Flop.nest_filters/3`.
+- New option `:replace_invalid_values`. This option can be passed `validate`
+  and `validate_and_run` functions or set in the global configuration or in a
+  config module. Setting the value to `true` will cause Flop to replace invalid
+  parameters with default values where possible or remove the parameter
+  otherwise.
 
 ### Changed
 
@@ -19,6 +24,11 @@
   you can add virtual fields with the same name. It is not possible to
   differentiate between non-virtual and virtual fields at compile time (at least
   I don't know how), so we cannot differentiate in the validation step.
+- Flop applies a default limit of `50` and a max limit of `1000` now, unless
+  other values are set.
+- In offset/limit based pagination, the `limit` parameter is now required, in
+  line with the other pagination types. If not set, it will fall back to a
+  default limit.
 
 ## [0.17.2] - 2022-10-03
 
