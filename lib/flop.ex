@@ -355,7 +355,7 @@ defmodule Flop do
     `Flop.Cursor.get_cursor_from_node/2`.
   - `:default_limit` - Sets a global default limit for queries that is used if
     no default limit is set for a schema and no limit is set in the parameters.
-    Can only be set in the application configuration.
+    Defaults to `50`.
   - `:default_order` - Sets the default order for a query if none is passed in
     the parameters or if ordering is disabled. Can be set in the schema or in
     the options passed to the query functions.
@@ -372,8 +372,7 @@ defmodule Flop do
     by the validation functions. It is also used to determine which fields are
     join and compound fields.
   - `:max_limit` - Sets a global maximum limit for queries that is used if no
-    maximum limit is set for a schema. Can only be set in the application
-    configuration.
+    maximum limit is set for a schema. Defaults to `1000`.
   - `:order_query` - Allows you to set a separate base query for counting. Can
     only be passed as an option to one of the query functions. See
     `Flop.validate_and_run/3` and `Flop.count/3`.
@@ -391,6 +390,8 @@ defmodule Flop do
     parameters. Default orders are still applied.
   - `:repo` - The Ecto Repo module to use for the database query. Used by all
     functions that execute a database query.
+  - `:replace_invalid_values` - If `true`, invalid parameters will be replaced
+    with default values if possible or removed. Defaults to `false`.
 
   All options can be passed directly to the functions. Some of the options can
   be set on a schema level via `Flop.Schema`.
@@ -438,6 +439,7 @@ defmodule Flop do
           | {:ordering, boolean}
           | {:pagination, boolean}
           | {:pagination_types, [pagination_type()]}
+          | {:replace_invalid_values, boolean}
           | {:repo, module}
           | {:query_opts, Keyword.t()}
           | private_option()
