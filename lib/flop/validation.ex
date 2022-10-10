@@ -252,25 +252,25 @@ defmodule Flop.Validation do
         order_by = get_field(changeset, :order_by) || []
         order_directions = get_field(changeset, :order_directions) || []
 
-        {order_by, order_directions} =
+        {new_order_by, new_order_directions} =
           Enum.reduce(
             order_by,
             {order_by, order_directions},
-            fn field, {order_by, order_directions} ->
+            fn field, {acc_order_by, acc_order_directions} ->
               if field in sortable_fields do
-                {order_by, order_directions}
+                {acc_order_by, acc_order_directions}
               else
-                index = Enum.find_index(order_by, &(&1 == field))
+                index = Enum.find_index(acc_order_by, &(&1 == field))
 
-                {List.delete_at(order_by, index),
-                 List.delete_at(order_directions, index)}
+                {List.delete_at(acc_order_by, index),
+                 List.delete_at(acc_order_directions, index)}
               end
             end
           )
 
         changeset
-        |> put_change(:order_by, order_by)
-        |> put_change(:order_directions, order_directions)
+        |> put_change(:order_by, new_order_by)
+        |> put_change(:order_directions, new_order_directions)
       else
         validate_subset(changeset, :order_by, sortable_fields)
       end
