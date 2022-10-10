@@ -20,7 +20,7 @@
 
 - Require `ecto ~> 3.9.0`.
 - `Flop.Schema` does not raise an error anymore if a compound or join field is
-  defined with the name as a regular Ecto schema field. This was done so that
+  defined with the same name as a regular Ecto schema field. This was done so that
   you can add virtual fields with the same name. It is not possible to
   differentiate between non-virtual and virtual fields at compile time (at least
   I don't know how), so we cannot differentiate in the validation step.
