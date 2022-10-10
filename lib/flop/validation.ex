@@ -26,8 +26,8 @@ defmodule Flop.Validation do
       message: "cannot combine multiple pagination types",
       replace_invalid_params: replace_invalid_params?
     )
-    |> put_default_order(opts)
     |> validate_sortable(opts)
+    |> put_default_order(opts)
     |> validate_pagination(opts)
     |> maybe_remove_invalid_filters(replace_invalid_params?)
   end
