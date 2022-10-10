@@ -101,9 +101,9 @@ defprotocol Flop.Schema do
 
   ## Alias fields
 
-  To sort by calculated values, you can use `Ecto.Query.selected_as/2` in your
-  query, define an alias field in your schema, and add the alias field to the
-  list of sortable fields.
+  To sort by calculated values, you can use `Ecto.Query.API.selected_as/2` in
+  your query, define an alias field in your schema, and add the alias field to
+  the list of sortable fields.
 
   Schema:
 

@@ -7,7 +7,7 @@
 ### Added
 
 - Added `alias_fields` option to `Flop.Schema`, which allows you to sort by
-  field aliases defined with `Ecto.Query.selected_as/2`.
+  field aliases defined with `Ecto.Query.API.selected_as/2`.
 - Added `aliases/2` for getting the alias fields needed for a query.
 - Added documentation example for filtering by calculated values.
 - New option `rename` for `Flop.map_to_filter_params/2` and
