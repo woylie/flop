@@ -10,11 +10,11 @@
 - Added documentation example for filtering by calculated values.
 - New option `rename` for `Flop.map_to_filter_params/2` and
   `Flop.nest_filters/3`.
-- New option `:replace_invalid_values`. This option can be passed `validate`
-  and `validate_and_run` functions or set in the global configuration or in a
-  config module. Setting the value to `true` will cause Flop to replace invalid
-  parameters with default values where possible or remove the parameter
-  otherwise.
+- New option `:replace_invalid_params`. This option can be passed to the
+  `validate` and `validate_and_run` functions or set in the global configuration
+  or in a config module. Setting the value to `true` will cause Flop to replace
+  invalid parameters with default values where possible or remove the parameter
+  otherwise during the validation step, instead of returning validation errors.
 
 ### Changed
 
