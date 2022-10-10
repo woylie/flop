@@ -9,7 +9,7 @@ defmodule Flop.Validation do
 
   @spec changeset(map, [Flop.option()]) :: Changeset.t()
   def changeset(%{} = params, opts) do
-    replace_invalid_values? = Keyword.get(opts, :replace_invalid_values, false)
+    replace_invalid_params? = Keyword.get(opts, :replace_invalid_params, false)
 
     %Flop{}
     |> cast(params, [])
@@ -24,12 +24,12 @@ defmodule Flop.Validation do
         [:page, :page_size]
       ],
       message: "cannot combine multiple pagination types",
-      replace_invalid_values: replace_invalid_values?
+      replace_invalid_params: replace_invalid_params?
     )
     |> put_default_order(opts)
     |> validate_sortable(opts)
     |> validate_pagination(opts)
-    |> maybe_remove_invalid_filters(replace_invalid_values?)
+    |> maybe_remove_invalid_filters(replace_invalid_params?)
   end
 
   defp maybe_remove_invalid_filters(changeset, true) do
@@ -93,7 +93,7 @@ defmodule Flop.Validation do
         |> Enum.reject(&is_nil(get_field(changeset, &1)))
         |> List.first()
 
-      if opts[:replace_invalid_values] do
+      if opts[:replace_invalid_params] do
         field_groups
         |> List.flatten()
         |> Enum.reduce(changeset, fn field, acc ->
@@ -117,14 +117,14 @@ defmodule Flop.Validation do
   end
 
   defp validate_by_pagination_type(changeset, :first, opts) do
-    replace_invalid_values? = opts[:replace_invalid_values]
+    replace_invalid_params? = opts[:replace_invalid_params]
 
     changeset
     |> validate_and_maybe_delete(
       :first,
       &validate_limit/3,
       opts,
-      replace_invalid_values?
+      replace_invalid_params?
     )
     |> put_default_limit(:first, opts)
     |> validate_required([:first, :order_by])
@@ -133,19 +133,19 @@ defmodule Flop.Validation do
       :after,
       &validate_cursor/3,
       opts,
-      replace_invalid_values?
+      replace_invalid_params?
     )
   end
 
   defp validate_by_pagination_type(changeset, :last, opts) do
-    replace_invalid_values? = opts[:replace_invalid_values]
+    replace_invalid_params? = opts[:replace_invalid_params]
 
     changeset
     |> validate_and_maybe_delete(
       :last,
       &validate_limit/3,
       opts,
-      replace_invalid_values?
+      replace_invalid_params?
     )
     |> put_default_limit(:last, opts)
     |> validate_required([:last, :order_by])
@@ -154,19 +154,19 @@ defmodule Flop.Validation do
       :before,
       &validate_cursor/3,
       opts,
-      replace_invalid_values?
+      replace_invalid_params?
     )
   end
 
   defp validate_by_pagination_type(changeset, :offset, opts) do
-    replace_invalid_values? = opts[:replace_invalid_values]
+    replace_invalid_params? = opts[:replace_invalid_params]
 
     changeset
     |> validate_and_maybe_delete(
       :limit,
       &validate_limit/3,
       opts,
-      replace_invalid_values?
+      replace_invalid_params?
     )
     |> put_default_limit(:limit, opts)
     |> validate_required([:limit])
@@ -174,20 +174,20 @@ defmodule Flop.Validation do
       :offset,
       &validate_offset/3,
       opts,
-      replace_invalid_values?
+      replace_invalid_params?
     )
     |> put_default_value(:offset, 0)
   end
 
   defp validate_by_pagination_type(changeset, :page, opts) do
-    replace_invalid_values? = opts[:replace_invalid_values]
+    replace_invalid_params? = opts[:replace_invalid_params]
 
     changeset
     |> validate_and_maybe_delete(
       :page_size,
       &validate_limit/3,
       opts,
-      replace_invalid_values?
+      replace_invalid_params?
     )
     |> put_default_limit(:page_size, opts)
     |> validate_required([:page_size])
@@ -195,7 +195,7 @@ defmodule Flop.Validation do
       :page,
       &validate_page/3,
       opts,
-      replace_invalid_values?
+      replace_invalid_params?
     )
     |> put_default_value(:page, 1)
   end
@@ -248,7 +248,7 @@ defmodule Flop.Validation do
     sortable_fields = Flop.get_option(:sortable, opts)
 
     if sortable_fields do
-      if opts[:replace_invalid_values] do
+      if opts[:replace_invalid_params] do
         order_by = get_field(changeset, :order_by) || []
         order_directions = get_field(changeset, :order_directions) || []
 

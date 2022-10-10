@@ -390,7 +390,7 @@ defmodule Flop do
     parameters. Default orders are still applied.
   - `:repo` - The Ecto Repo module to use for the database query. Used by all
     functions that execute a database query.
-  - `:replace_invalid_values` - If `true`, invalid parameters will be replaced
+  - `:replace_invalid_params` - If `true`, invalid parameters will be replaced
     with default values if possible or removed. Defaults to `false`.
 
   All options can be passed directly to the functions. Some of the options can
@@ -439,7 +439,7 @@ defmodule Flop do
           | {:ordering, boolean}
           | {:pagination, boolean}
           | {:pagination_types, [pagination_type()]}
-          | {:replace_invalid_values, boolean}
+          | {:replace_invalid_params, boolean}
           | {:repo, module}
           | {:query_opts, Keyword.t()}
           | private_option()
