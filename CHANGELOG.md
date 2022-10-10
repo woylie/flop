@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.18.0] - 2022-10-10
+
 ### Added
 
 - Added `alias_fields` option to `Flop.Schema`, which allows you to sort by

@@ -2,7 +2,7 @@ defmodule Flop.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/woylie/flop"
-  @version "0.17.1"
+  @version "0.18.0"
 
   def project do
     [
@@ -66,7 +66,7 @@ defmodule Flop.MixProject do
   end
 
   defp description do
-    "Flop is a library for filtering, ordering and pagination with Ecto."
+    "Filtering, ordering and pagination with Ecto."
   end
 
   defp package do
