@@ -7,8 +7,13 @@ defmodule Flop.Validation do
   alias Flop.Cursor
   alias Flop.Filter
 
+  # todo: set global default limit and max limit
+  # todo: make limit required for every pagination type
+
   @spec changeset(map, [Flop.option()]) :: Changeset.t()
   def changeset(%{} = params, opts) do
+    replace_invalid_values? = Keyword.get(opts, :replace_invalid_values, false)
+
     %Flop{}
     |> cast(params, [])
     |> cast_pagination(params, opts)
@@ -21,12 +26,29 @@ defmodule Flop.Validation do
         [:limit, :offset],
         [:page, :page_size]
       ],
-      message: "cannot combine multiple pagination types"
+      message: "cannot combine multiple pagination types",
+      replace_invalid_values: replace_invalid_values?
     )
     |> put_default_order(opts)
     |> validate_sortable(opts)
     |> validate_pagination(opts)
+    |> maybe_remove_invalid_filters(replace_invalid_values?)
   end
+
+  defp maybe_remove_invalid_filters(changeset, true) do
+    changeset =
+      update_change(changeset, :filters, fn
+        nil ->
+          nil
+
+        changesets when is_list(changesets) ->
+          Enum.filter(changesets, fn %Changeset{valid?: valid?} -> valid? end)
+      end)
+
+    if changeset.errors == [], do: %{changeset | valid?: true}, else: changeset
+  end
+
+  defp maybe_remove_invalid_filters(changeset, _), do: changeset
 
   defp cast_pagination(changeset, params, opts) do
     if Flop.get_option(:pagination, opts, true) do
@@ -74,11 +96,19 @@ defmodule Flop.Validation do
         |> Enum.reject(&is_nil(get_field(changeset, &1)))
         |> List.first()
 
-      add_error(
-        changeset,
-        key,
-        opts[:message] || "invalid combination of field groups"
-      )
+      if opts[:replace_invalid_values] do
+        field_groups
+        |> List.flatten()
+        |> Enum.reduce(changeset, fn field, acc ->
+          delete_change(acc, field)
+        end)
+      else
+        add_error(
+          changeset,
+          key,
+          opts[:message] || "invalid combination of field groups"
+        )
+      end
     else
       changeset
     end
@@ -90,54 +120,165 @@ defmodule Flop.Validation do
   end
 
   defp validate_by_pagination_type(changeset, :first, opts) do
+    replace_invalid_values? = opts[:replace_invalid_values]
+
     changeset
+    |> validate_and_maybe_delete(
+      :first,
+      &validate_limit/3,
+      opts,
+      replace_invalid_values?
+    )
     |> put_default_limit(:first, opts)
     |> validate_required([:first, :order_by])
-    |> validate_number(:first, greater_than: 0)
-    |> validate_within_max_limit(:first, opts)
     |> validate_length(:order_by, min: 1)
-    |> validate_cursor(:after)
+    |> validate_and_maybe_delete(
+      :after,
+      &validate_cursor/3,
+      opts,
+      replace_invalid_values?
+    )
   end
 
   defp validate_by_pagination_type(changeset, :last, opts) do
+    replace_invalid_values? = opts[:replace_invalid_values]
+
     changeset
+    |> validate_and_maybe_delete(
+      :last,
+      &validate_limit/3,
+      opts,
+      replace_invalid_values?
+    )
     |> put_default_limit(:last, opts)
     |> validate_required([:last, :order_by])
-    |> validate_number(:last, greater_than: 0)
-    |> validate_within_max_limit(:last, opts)
     |> validate_length(:order_by, min: 1)
-    |> validate_cursor(:before)
+    |> validate_and_maybe_delete(
+      :before,
+      &validate_cursor/3,
+      opts,
+      replace_invalid_values?
+    )
   end
 
   defp validate_by_pagination_type(changeset, :offset, opts) do
+    replace_invalid_values? = opts[:replace_invalid_values]
+
     changeset
+    |> validate_and_maybe_delete(
+      :limit,
+      &validate_limit/3,
+      opts,
+      replace_invalid_values?
+    )
     |> put_default_limit(:limit, opts)
+    |> validate_and_maybe_delete(
+      :offset,
+      &validate_offset/3,
+      opts,
+      replace_invalid_values?
+    )
     |> put_default_value(:offset, 0)
-    |> validate_number(:limit, greater_than: 0)
-    |> validate_number(:offset, greater_than_or_equal_to: 0)
-    |> validate_within_max_limit(:limit, opts)
   end
 
   defp validate_by_pagination_type(changeset, :page, opts) do
+    replace_invalid_values? = opts[:replace_invalid_values]
+
     changeset
+    |> validate_and_maybe_delete(
+      :page_size,
+      &validate_limit/3,
+      opts,
+      replace_invalid_values?
+    )
     |> put_default_limit(:page_size, opts)
-    |> put_default_value(:page, 1)
     |> validate_required([:page_size])
-    |> validate_number(:page, greater_than: 0)
-    |> validate_number(:page_size, greater_than: 0)
-    |> validate_within_max_limit(:page_size, opts)
+    |> validate_and_maybe_delete(
+      :page,
+      &validate_page/3,
+      opts,
+      replace_invalid_values?
+    )
+    |> put_default_value(:page, 1)
   end
 
   defp validate_by_pagination_type(changeset, nil, opts) do
     put_default_limit(changeset, :limit, opts)
   end
 
+  defp validate_and_maybe_delete(
+         changeset,
+         field,
+         validate_func,
+         opts,
+         true
+       ) do
+    validated_changeset = validate_func.(changeset, field, opts)
+
+    if validated_changeset.errors[field] do
+      delete_change(changeset, field)
+    else
+      validated_changeset
+    end
+  end
+
+  defp validate_and_maybe_delete(
+         changeset,
+         field,
+         validate_func,
+         opts,
+         _
+       ) do
+    validate_func.(changeset, field, opts)
+  end
+
+  defp validate_offset(changeset, field, _opts) do
+    validate_number(changeset, field, greater_than_or_equal_to: 0)
+  end
+
+  defp validate_limit(changeset, field, opts) do
+    changeset
+    |> validate_number(field, greater_than: 0)
+    |> validate_within_max_limit(field, opts)
+  end
+
+  defp validate_page(changeset, field, _opts) do
+    validate_number(changeset, field, greater_than: 0)
+  end
+
   defp validate_sortable(changeset, opts) do
     sortable_fields = Flop.get_option(:sortable, opts)
 
-    if sortable_fields,
-      do: validate_subset(changeset, :order_by, sortable_fields),
-      else: changeset
+    if sortable_fields do
+      if opts[:replace_invalid_values] do
+        order_by = get_field(changeset, :order_by) || []
+        order_directions = get_field(changeset, :order_directions) || []
+
+        {order_by, order_directions} =
+          Enum.reduce(
+            order_by,
+            {order_by, order_directions},
+            fn field, {order_by, order_directions} ->
+              if field in sortable_fields do
+                {order_by, order_directions}
+              else
+                index = Enum.find_index(order_by, &(&1 == field))
+
+                {List.delete_at(order_by, index),
+                 List.delete_at(order_directions, index)}
+              end
+            end
+          )
+
+        changeset
+        |> put_change(:order_by, order_by)
+        |> put_change(:order_directions, order_directions)
+      else
+        validate_subset(changeset, :order_by, sortable_fields)
+      end
+    else
+      changeset
+    end
   end
 
   defp validate_within_max_limit(changeset, field, opts) do
@@ -148,7 +289,7 @@ defmodule Flop.Validation do
       else: validate_number(changeset, field, less_than_or_equal_to: max_limit)
   end
 
-  defp validate_cursor(changeset, field) do
+  defp validate_cursor(changeset, field, _opts) do
     encoded_cursor = get_field(changeset, field)
     order_fields = get_field(changeset, :order_by)
 

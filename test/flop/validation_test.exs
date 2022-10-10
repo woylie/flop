@@ -32,6 +32,19 @@ defmodule Flop.ValidationTest do
     end
   end
 
+  property "optionally removes pagination params for mixed methods" do
+    pagination_types = [:offset, :page, :first, :last]
+
+    check all type_1 <- member_of(pagination_types),
+              type_2 <- member_of(pagination_types -- [type_1]),
+              params_1 <- pagination_parameters(type_1),
+              params_2 <- pagination_parameters(type_2) do
+      params = Map.merge(params_1, params_2)
+      assert {:ok, flop} = validate(params, replace_invalid_values: true)
+      assert flop == %Flop{}
+    end
+  end
+
   test "returns empty Flop if everything is disabled" do
     assert validate(%{page: 1},
              ordering: false,
@@ -91,6 +104,24 @@ defmodule Flop.ValidationTest do
       assert errors_on(changeset)[:limit] == ["must be greater than 0"]
     end
 
+    test "resets invalid limit with replace_invalid_values" do
+      params = %{limit: 0}
+
+      # struct without configured default limit
+
+      assert {:ok, %Flop{} = flop} =
+               validate(params, replace_invalid_values: true, for: Pet)
+
+      assert flop.limit == nil
+
+      # struct with configured default limit
+
+      assert {:ok, %Flop{} = flop} =
+               validate(params, replace_invalid_values: true, for: Fruit)
+
+      assert flop.limit == 50
+    end
+
     test "offset must be a non-negative integer" do
       params = %{offset: -1}
       assert {:error, changeset} = validate(params)
@@ -100,6 +131,15 @@ defmodule Flop.ValidationTest do
              ]
     end
 
+    test "replaces invalid offset with replace_invalid_values" do
+      params = %{offset: -1}
+
+      assert {:ok, %Flop{} = flop} =
+               validate(params, replace_invalid_values: true)
+
+      assert flop.offset == 0
+    end
+
     test "validates max limit if set with Flop.Schema" do
       params = %{limit: 1001}
       assert {:error, changeset} = validate(params, for: Pet)
@@ -107,6 +147,28 @@ defmodule Flop.ValidationTest do
       assert errors_on(changeset)[:limit] == [
                "must be less than or equal to 1000"
              ]
+    end
+
+    test "replaces invalid max limit with replace_invalid_values" do
+      params = %{limit: 1001}
+
+      # struct without configured default limit
+
+      assert {:ok, %Flop{} = flop} =
+               validate(params, replace_invalid_values: true, for: Pet)
+
+      assert flop.limit == nil
+
+      # struct with configured default limit
+
+      assert {:ok, %Flop{} = flop} =
+               validate(params,
+                 replace_invalid_values: true,
+                 for: Fruit,
+                 max_limit: 100
+               )
+
+      assert flop.limit == 50
     end
 
     test "applies default limit" do
@@ -159,15 +221,41 @@ defmodule Flop.ValidationTest do
       assert errors_on(changeset)[:page] == ["must be greater than 0"]
     end
 
+    test "replaces invalid page with replace_invalid_values" do
+      params = %{page: 0, page_size: 10}
+
+      assert {:ok, %Flop{page: 1}} =
+               validate(params, replace_invalid_values: true)
+    end
+
     test "page size must be a positive integer" do
       params = %{page_size: 0}
       assert {:error, changeset} = validate(params)
       assert errors_on(changeset)[:page_size] == ["must be greater than 0"]
     end
 
+    test "resets invalid page size with replace_invalid_values" do
+      params = %{page_size: 0}
+
+      assert {:ok, %Flop{} = flop} =
+               validate(params,
+                 replace_invalid_values: true,
+                 for: Pet,
+                 default_limit: 50
+               )
+
+      assert flop.page_size == 50
+    end
+
     test "requires page size" do
       params = %{page: 1}
       assert {:error, changeset} = validate(params)
+      assert errors_on(changeset)[:page_size] == ["can't be blank"]
+
+      # invalid page size without default limit should still result in error
+      assert {:error, changeset} =
+               validate(params, replace_invalid_values: true)
+
       assert errors_on(changeset)[:page_size] == ["can't be blank"]
     end
 
@@ -183,6 +271,18 @@ defmodule Flop.ValidationTest do
       assert errors_on(changeset)[:page_size] == [
                "must be less than or equal to 1000"
              ]
+    end
+
+    test "replaces invalid max limit with replace_invalid_values" do
+      params = %{page: 1, page_size: 1001}
+
+      assert {:ok, %Flop{page_size: 50}} =
+               validate(params,
+                 replace_invalid_values: true,
+                 for: Pet,
+                 default_limit: 50,
+                 max_size: 1000
+               )
     end
 
     test "does not set default limit for other pagination types" do
@@ -203,9 +303,23 @@ defmodule Flop.ValidationTest do
       assert errors_on(changeset)[:first] == ["must be greater than 0"]
     end
 
+    test "resets invalid first with replace_invalid_values" do
+      params = %{first: 0}
+
+      assert {:ok, %Flop{} = flop} =
+               validate(params, replace_invalid_values: true, for: Fruit)
+
+      assert flop.first == 50
+    end
+
     test "requires first" do
       params = %{after: "a"}
       assert {:error, changeset} = validate(params)
+      assert errors_on(changeset)[:first] == ["can't be blank"]
+
+      assert {:error, changeset} =
+               validate(params, replace_invalid_values: true)
+
       assert errors_on(changeset)[:first] == ["can't be blank"]
     end
 
@@ -228,6 +342,17 @@ defmodule Flop.ValidationTest do
       assert errors_on(changeset)[:first] == [
                "must be less than or equal to 1000"
              ]
+    end
+
+    test "replaces invalid max limit with replace_invalid_values" do
+      params = %{first: 1001, order_by: [:name]}
+
+      assert {:ok, %Flop{first: 50}} =
+               validate(params,
+                 replace_invalid_values: true,
+                 for: Pet,
+                 default_limit: 50
+               )
     end
 
     test "requires order_by parameter" do
@@ -267,6 +392,28 @@ defmodule Flop.ValidationTest do
       assert errors_on(changeset)[:after] == ["is invalid"]
     end
 
+    test "replaces invalid after cursor with replace_invalid_values" do
+      # malformed cursor
+      params = %{first: 2, after: "a", order_by: [:name]}
+
+      assert {:ok, %Flop{after: nil}} =
+               validate(params, replace_invalid_values: true)
+
+      # not a map
+      cursor = Cursor.encode(["a", "b"])
+      params = %{first: 2, after: cursor, order_by: [:name]}
+
+      assert {:ok, %Flop{after: nil}} =
+               validate(params, replace_invalid_values: true)
+
+      # includes atoms that weren't in use before
+      cursor = "g3QAAAABZAAGYmFybmV5ZAAGcnViYmxl"
+      params = %{first: 2, after: cursor, order_by: [:name]}
+
+      assert {:ok, %Flop{after: nil}} =
+               validate(params, replace_invalid_values: true)
+    end
+
     test "validates after cursor params match order params" do
       # valid cursor
       cursor = Cursor.encode(%{name: "a"})
@@ -285,6 +432,22 @@ defmodule Flop.ValidationTest do
       assert {:error, changeset} = validate(params)
       assert errors_on(changeset)[:after] == ["does not match order fields"]
     end
+
+    test "replaces cursor if it does not match order params" do
+      # too many cursor fields
+      cursor = Cursor.encode(%{name: "a", id: "b"})
+      params = %{first: 2, after: cursor, order_by: [:name]}
+
+      assert {:ok, %Flop{after: nil}} =
+               validate(params, replace_invalid_values: true)
+
+      # missing cursor fields
+      cursor = Cursor.encode(%{name: "a"})
+      params = %{first: 2, after: cursor, order_by: [:name, :id]}
+
+      assert {:ok, %Flop{after: nil}} =
+               validate(params, replace_invalid_values: true)
+    end
   end
 
   describe "last/before parameters" do
@@ -294,9 +457,23 @@ defmodule Flop.ValidationTest do
       assert errors_on(changeset)[:last] == ["must be greater than 0"]
     end
 
+    test "resets invalid last with replace_invalid_values" do
+      params = %{last: 0}
+
+      assert {:ok, %Flop{} = flop} =
+               validate(params, replace_invalid_values: true, for: Fruit)
+
+      assert flop.last == 50
+    end
+
     test "requires last" do
       params = %{before: "a"}
       assert {:error, changeset} = validate(params)
+      assert errors_on(changeset)[:last] == ["can't be blank"]
+
+      assert {:error, changeset} =
+               validate(params, replace_invalid_values: true)
+
       assert errors_on(changeset)[:last] == ["can't be blank"]
     end
 
@@ -319,6 +496,17 @@ defmodule Flop.ValidationTest do
       assert errors_on(changeset)[:last] == [
                "must be less than or equal to 1000"
              ]
+    end
+
+    test "replaces invalid max limit with replace_invalid_values" do
+      params = %{last: 1001, order_by: [:name]}
+
+      assert {:ok, %Flop{last: 50}} =
+               validate(params,
+                 replace_invalid_values: true,
+                 for: Pet,
+                 default_limit: 50
+               )
     end
 
     test "requires order_by parameter" do
@@ -358,6 +546,28 @@ defmodule Flop.ValidationTest do
       assert errors_on(changeset)[:before] == ["is invalid"]
     end
 
+    test "replaces invalid before cursor with replace_invalid_values" do
+      # malformed cursor
+      params = %{last: 2, before: "a", order_by: [:name]}
+
+      assert {:ok, %Flop{before: nil}} =
+               validate(params, replace_invalid_values: true)
+
+      # not a map
+      cursor = Cursor.encode(["a", "b"])
+      params = %{last: 2, before: cursor, order_by: [:name]}
+
+      assert {:ok, %Flop{before: nil}} =
+               validate(params, replace_invalid_values: true)
+
+      # includes atoms that weren't in use before
+      cursor = "g3QAAAABZAAGYmFybmV5ZAAGcnViYmxl"
+      params = %{last: 2, before: cursor, order_by: [:name]}
+
+      assert {:ok, %Flop{before: nil}} =
+               validate(params, replace_invalid_values: true)
+    end
+
     test "validates before cursor params match order params" do
       # valid cursor
       cursor = Cursor.encode(%{name: "a"})
@@ -375,6 +585,22 @@ defmodule Flop.ValidationTest do
       params = %{last: 2, before: cursor, order_by: [:name, :id]}
       assert {:error, changeset} = validate(params)
       assert errors_on(changeset)[:before] == ["does not match order fields"]
+    end
+
+    test "replace before cursor params match order params" do
+      # too many cursor fields
+      cursor = Cursor.encode(%{name: "a", id: "b"})
+      params = %{last: 2, before: cursor, order_by: [:name]}
+
+      assert {:ok, %Flop{before: nil}} =
+               validate(params, replace_invalid_values: true)
+
+      # missing cursor fields
+      cursor = Cursor.encode(%{name: "a"})
+      params = %{last: 2, before: cursor, order_by: [:name, :id]}
+
+      assert {:ok, %Flop{before: nil}} =
+               validate(params, replace_invalid_values: true)
     end
   end
 
@@ -419,6 +645,17 @@ defmodule Flop.ValidationTest do
 
       params = %{order_by: ["name"]}
       assert {:ok, %Flop{order_by: [:name]}} = validate(params, for: Pet)
+    end
+
+    test "replaces invalid order fields with replace_invalid_values" do
+      params = %{
+        order_by: [:social_security_number, :name, :halloween_costume],
+        order_directions: [:desc, :desc_nulls_first, :asc]
+      }
+
+      assert {:ok,
+              %Flop{order_by: [:name], order_directions: [:desc_nulls_first]}} =
+               validate(params, for: Pet, replace_invalid_values: true)
     end
 
     test "validates order directions" do
@@ -496,6 +733,19 @@ defmodule Flop.ValidationTest do
 
       assert {:ok, %Flop{filters: [%{field: :species}]}} =
                validate(params, for: Pet)
+    end
+
+    test "removes invalid filters with replace_invalid_values" do
+      params = %{
+        filters: [
+          %{field: :given_name, op: :==, value: "a"},
+          %{field: :species, value: "dog"},
+          %{field: :halloween_costume, value: "Pirate"}
+        ]
+      }
+
+      assert {:ok, %Flop{filters: [%{field: :species}]}} =
+               validate(params, for: Pet, replace_invalid_values: true)
     end
 
     test "validates filter operator" do
