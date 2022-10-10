@@ -7,7 +7,7 @@ defmodule Flop.Vegetable do
   @derive {Flop.Schema,
            filterable: [:name, :family],
            sortable: [:name],
-           default_limit: 50,
+           default_limit: 60,
            default_order: %{
              order_by: [:name],
              order_directions: [:asc]

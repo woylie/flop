@@ -41,7 +41,7 @@ defmodule Flop.ValidationTest do
               params_2 <- pagination_parameters(type_2) do
       params = Map.merge(params_1, params_2)
       assert {:ok, flop} = validate(params, replace_invalid_values: true)
-      assert flop == %Flop{}
+      assert flop == %Flop{limit: 50}
     end
   end
 
@@ -50,7 +50,7 @@ defmodule Flop.ValidationTest do
              ordering: false,
              filtering: false,
              pagination: false
-           ) == {:ok, %Flop{}}
+           ) == {:ok, %Flop{limit: 50}}
   end
 
   test "does not raise if only filtering is enabled" do
@@ -112,14 +112,14 @@ defmodule Flop.ValidationTest do
       assert {:ok, %Flop{} = flop} =
                validate(params, replace_invalid_values: true, for: Pet)
 
-      assert flop.limit == nil
+      assert flop.limit == 50
 
       # struct with configured default limit
 
       assert {:ok, %Flop{} = flop} =
                validate(params, replace_invalid_values: true, for: Fruit)
 
-      assert flop.limit == 50
+      assert flop.limit == 60
     end
 
     test "offset must be a non-negative integer" do
@@ -157,7 +157,7 @@ defmodule Flop.ValidationTest do
       assert {:ok, %Flop{} = flop} =
                validate(params, replace_invalid_values: true, for: Pet)
 
-      assert flop.limit == nil
+      assert flop.limit == 50
 
       # struct with configured default limit
 
@@ -168,35 +168,35 @@ defmodule Flop.ValidationTest do
                  max_limit: 100
                )
 
-      assert flop.limit == 50
+      assert flop.limit == 60
     end
 
     test "applies default limit" do
       # struct without configured default limit
-      assert {:ok, %Flop{limit: nil}} = validate(%{}, for: Pet)
-      assert {:ok, %Flop{limit: nil}} = validate(%{offset: 10}, for: Pet)
+      assert {:ok, %Flop{limit: 50}} = validate(%{}, for: Pet)
+      assert {:ok, %Flop{limit: 50}} = validate(%{offset: 10}, for: Pet)
       assert {:ok, %Flop{limit: 1}} = validate(%{limit: 1, offset: 2}, for: Pet)
 
       # struct with configured default limit
-      assert {:ok, %Flop{limit: 50}} = validate(%{offset: 10}, for: Fruit)
+      assert {:ok, %Flop{limit: 60}} = validate(%{offset: 10}, for: Fruit)
       assert {:ok, %Flop{limit: 1}} = validate(%{limit: 1}, for: Fruit)
     end
 
     test "sets default limit if no pagination parameters are set" do
-      assert {:ok, %Flop{limit: 50}} = validate(%{}, for: Fruit)
+      assert {:ok, %Flop{limit: 60}} = validate(%{}, for: Fruit)
     end
 
     test "sets default limit with default pagination type" do
-      assert {:ok, %Flop{limit: 50}} =
+      assert {:ok, %Flop{limit: 60}} =
                validate(%{}, for: Fruit, default_pagination_type: :offset)
 
-      assert {:ok, %Flop{page_size: 50}} =
+      assert {:ok, %Flop{page_size: 60}} =
                validate(%{}, for: Vegetable, default_pagination_type: :page)
 
-      assert {:ok, %Flop{first: 50}} =
+      assert {:ok, %Flop{first: 60}} =
                validate(%{}, for: Fruit, default_pagination_type: :first)
 
-      assert {:ok, %Flop{last: 50}} =
+      assert {:ok, %Flop{last: 60}} =
                validate(%{}, for: Fruit, default_pagination_type: :last)
     end
 
@@ -247,20 +247,16 @@ defmodule Flop.ValidationTest do
       assert flop.page_size == 50
     end
 
-    test "requires page size" do
+    test "falls back to default page size" do
       params = %{page: 1}
-      assert {:error, changeset} = validate(params)
-      assert errors_on(changeset)[:page_size] == ["can't be blank"]
+      assert {:ok, %Flop{page_size: 50}} = validate(params)
 
-      # invalid page size without default limit should still result in error
-      assert {:error, changeset} =
+      assert {:ok, %Flop{page_size: 50}} =
                validate(params, replace_invalid_values: true)
-
-      assert errors_on(changeset)[:page_size] == ["can't be blank"]
     end
 
     test "uses default limit if page size is not set" do
-      assert {:ok, %Flop{page: 2, page_size: 50}} =
+      assert {:ok, %Flop{page: 2, page_size: 60}} =
                validate(%{page: 2}, for: Vegetable)
     end
 
@@ -309,24 +305,23 @@ defmodule Flop.ValidationTest do
       assert {:ok, %Flop{} = flop} =
                validate(params, replace_invalid_values: true, for: Fruit)
 
-      assert flop.first == 50
+      assert flop.first == 60
     end
 
-    test "requires first" do
-      params = %{after: "a"}
+    test "first falls back to default" do
+      params = %{after: "a", order_by: [:name]}
       assert {:error, changeset} = validate(params)
-      assert errors_on(changeset)[:first] == ["can't be blank"]
+      assert errors_on(changeset)[:first] == nil
+      assert changeset.changes.first == 50
 
-      assert {:error, changeset} =
+      assert {:ok, %Flop{first: 50}} =
                validate(params, replace_invalid_values: true)
-
-      assert errors_on(changeset)[:first] == ["can't be blank"]
     end
 
     test "uses default limit if first is not set" do
       cursor = Cursor.encode(%{name: "a"})
 
-      assert {:ok, %Flop{first: 50, after: ^cursor}} =
+      assert {:ok, %Flop{first: 60, after: ^cursor}} =
                validate(%{after: cursor, order_by: [:name]}, for: Fruit)
     end
 
@@ -463,24 +458,23 @@ defmodule Flop.ValidationTest do
       assert {:ok, %Flop{} = flop} =
                validate(params, replace_invalid_values: true, for: Fruit)
 
-      assert flop.last == 50
+      assert flop.last == 60
     end
 
-    test "requires last" do
-      params = %{before: "a"}
+    test "last falls back to default" do
+      params = %{before: "a", order_by: [:name]}
       assert {:error, changeset} = validate(params)
-      assert errors_on(changeset)[:last] == ["can't be blank"]
+      assert errors_on(changeset)[:last] == nil
+      assert changeset.changes.last == 50
 
-      assert {:error, changeset} =
+      assert {:ok, %Flop{last: 50}} =
                validate(params, replace_invalid_values: true)
-
-      assert errors_on(changeset)[:last] == ["can't be blank"]
     end
 
     test "uses default limit if last is not set" do
       cursor = Cursor.encode(%{name: "a"})
 
-      assert {:ok, %Flop{last: 50, before: ^cursor}} =
+      assert {:ok, %Flop{last: 60, before: ^cursor}} =
                validate(%{before: cursor, order_by: [:name]}, for: Fruit)
     end
 
@@ -671,17 +665,25 @@ defmodule Flop.ValidationTest do
 
       assert validate(params) ==
                {:ok,
-                %Flop{order_by: [:name, :age], order_directions: [:desc, :asc]}}
+                %Flop{
+                  limit: 50,
+                  order_by: [:name, :age],
+                  order_directions: [:desc, :asc]
+                }}
 
       params = %{order_by: [:name, :age], order_directions: ["desc", "asc"]}
 
       assert validate(params) ==
                {:ok,
-                %Flop{order_by: [:name, :age], order_directions: [:desc, :asc]}}
+                %Flop{
+                  limit: 50,
+                  order_by: [:name, :age],
+                  order_directions: [:desc, :asc]
+                }}
 
       # order directions without order fields get removed
       assert validate(%{order_directions: [:desc]}) ==
-               {:ok, %Flop{order_by: nil, order_directions: nil}}
+               {:ok, %Flop{limit: 50, order_by: nil, order_directions: nil}}
     end
 
     test "does not cast order fields if ordering is disabled" do
