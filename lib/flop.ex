@@ -2020,9 +2020,23 @@ defmodule Flop do
   Converts key/value filter parameters at the root of a map, converts them into
   a list of filter parameter maps and nests them under the `:filters` key.
 
+  This is useful in cases where you get some or all filter parameters as
+  key/value pairs instead of a full map with operators, for example when you
+  expose certain filters with fixed operators on an API, or if you want to
+  reflect some or all filters in the URL as path parameters or simple query
+  parameters (e.g. `/posts/{tag}` or `/posts?s=searchterm`).
+
+  The given map should have either string keys or atom keys. Passing a map with
+  mixed keys will lead to unexpected results and will cause an Ecto error when
+  the return value is passed to one of the validation functions.
+
   The second argument is a list of fields as atoms.
 
   The `opts` argument is passed to `map_to_filter_params/2`.
+
+  The function returns a map that eventually needs to be passed to one of the
+  Flop validation functions (any `Flop.validate*` function) before it can be
+  used to make a query.
 
   ## Examples
 
@@ -2058,6 +2072,24 @@ defmodule Flop do
       ...>   operators: %{name: :like}
       ...> )
       %{"filters" => [%{"field" => "name", "op" => :like, "value" =>  "Peter"}]}
+
+  If the map already has a `filters` key, the extracted filters are added to
+  the existing filters.
+
+      iex> nest_filters(%{name: "Peter", filters: [%{field: "age", op: ">", value: 25}]}, [:name])
+      %{filters: [%{field: "age", op: ">", value: 25}, %{field: :name, op: :==, value: "Peter"}]}
+
+      iex> nest_filters(%{"name" => "Peter", "filters" => [%{"field" => "age", "op" => ">", "value" => 25}]}, [:name])
+      %{"filters" => [%{"field" => "age", "op" => ">", "value" => 25}, %{"field" => "name", "op" => :==, "value" => "Peter"}]}
+
+  If the existing filters are formatted as a map with integer indexes as keys as
+  produced by a form, the map is converted to a list first.
+
+      iex> nest_filters(%{name: "Peter", filters: %{"0" => %{field: "age", op: ">", value: 25}}}, [:name])
+      %{filters: [%{field: "age", op: ">", value: 25}, %{field: :name, op: :==, value: "Peter"}]}
+
+      iex> nest_filters(%{"name" => "Peter", "filters" => %{"0" => %{"field" => "age", "op" => ">", "value" => 25}}}, [:name])
+      %{"filters" => [%{"field" => "age", "op" => ">", "value" => 25}, %{"field" => "name", "op" => :==, "value" => "Peter"}]}
   """
   @doc since: "0.15.0"
   @spec nest_filters(map, [atom | String.t()], keyword) :: map
@@ -2072,7 +2104,8 @@ defmodule Flop do
     key = if has_atom_keys?(args), do: :filters, else: "filters"
 
     args
-    |> Map.put(key, filters)
+    |> Map.update(key, [], &map_to_list/1)
+    |> Map.update!(key, &(&1 ++ filters))
     |> Map.drop(fields)
   end
 
@@ -2082,6 +2115,10 @@ defmodule Flop do
     |> List.first()
     |> is_atom()
   end
+
+  defp map_to_list(%{} = map), do: Map.values(map)
+  defp map_to_list(nil), do: []
+  defp map_to_list(list) when is_list(list), do: list
 
   @doc """
   Converts a map of filter conditions into a list of Flop filter params.
