@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Changed
+
+- If the given map already has a `:filters` / `"filters"` key,
+  `Flop.nest_filters/3` will now merge the derived filters into the existing
+  filters. If the existing filters are formatted as a map (as produced by an
+  HTML form), they are converted to a list first.
+
 ## [0.18.0] - 2022-10-10
 
 ### Added
