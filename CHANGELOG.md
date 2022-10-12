@@ -8,6 +8,8 @@
   `Flop.nest_filters/3` will now merge the derived filters into the existing
   filters. If the existing filters are formatted as a map (as produced by an
   HTML form), they are converted to a list first.
+- `use Flop` will now also compile `validate/2` and `validate!/2` functions that
+  apply the options of your config module.
 
 ## [0.18.0] - 2022-10-10
 
