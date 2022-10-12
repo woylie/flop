@@ -94,7 +94,8 @@ defmodule Flop.ValidationTest do
       before: "B"
     }
 
-    assert {:ok, %Flop{}} = validate(params, pagination: false)
+    # still applies default limit
+    assert validate(params, pagination: false) == {:ok, %Flop{limit: 50}}
   end
 
   describe "offset/limit parameters" do
