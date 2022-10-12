@@ -315,6 +315,7 @@ defmodule Flop do
       def __flop_options__, do: unquote(opts)
 
       unquote(backend_functions(__CALLER__.module))
+      unquote(validate_functions(__CALLER__.module))
     end
   end
 
@@ -335,6 +336,19 @@ defmodule Flop do
         def unquote(func)(q, map_or_flop, opts \\ []) do
           apply(Flop, unquote(func), [
             q,
+            map_or_flop,
+            Keyword.put(opts, :backend, unquote(backend_module))
+          ])
+        end
+      end
+    end
+  end
+
+  defp validate_functions(backend_module) do
+    for func <- [:validate, :validate!] do
+      quote do
+        def unquote(func)(map_or_flop, opts \\ []) do
+          apply(Flop, unquote(func), [
             map_or_flop,
             Keyword.put(opts, :backend, unquote(backend_module))
           ])
