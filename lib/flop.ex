@@ -440,7 +440,7 @@ defmodule Flop do
   """
   @type option ::
           {:cursor_value_func, (any, [atom] -> map)}
-          | {:default_limit, pos_integer}
+          | {:default_limit, pos_integer | false}
           | {:default_order,
              %{
                required(:order_by) => [atom],
@@ -449,7 +449,7 @@ defmodule Flop do
           | {:default_pagination_type, pagination_type()}
           | {:filtering, boolean}
           | {:for, module}
-          | {:max_limit, pos_integer}
+          | {:max_limit, pos_integer | false}
           | {:order_query, Ecto.Queryable.t()}
           | {:ordering, boolean}
           | {:pagination, boolean}
