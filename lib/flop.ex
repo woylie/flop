@@ -571,6 +571,7 @@ defmodule Flop do
   Note that when using cursor-based pagination, the applied limit will be
   `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`.
   """
+  @doc group: :queries
   @spec query(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def query(q, %Flop{} = flop, opts \\ []) do
     q
@@ -604,6 +605,7 @@ defmodule Flop do
   `validate/2` or `validate!/2` before passing them to this function.
   """
   @doc since: "0.6.0"
+  @doc group: :queries
   @spec all(Queryable.t(), Flop.t(), [option()]) :: [any]
   def all(q, %Flop{} = flop, opts \\ []) do
     apply_on_repo(:all, "all", [query(q, flop, opts)], opts)
@@ -627,6 +629,7 @@ defmodule Flop do
   See the documentation for `Flop.validate_and_run/3` for supported options.
   """
   @doc since: "0.6.0"
+  @doc group: :queries
   @spec run(Queryable.t(), Flop.t(), [option()]) :: {[any], Meta.t()}
   def run(q, flop, opts \\ [])
 
@@ -696,6 +699,7 @@ defmodule Flop do
     to the given query. See also `Flop.count/3`.
   """
   @doc since: "0.6.0"
+  @doc group: :queries
   @spec validate_and_run(Queryable.t(), map | Flop.t(), [option()]) ::
           {:ok, {[any], Meta.t()}} | {:error, Meta.t()}
   def validate_and_run(q, map_or_flop, opts \\ []) do
@@ -708,6 +712,7 @@ defmodule Flop do
   Same as `Flop.validate_and_run/3`, but raises on error.
   """
   @doc since: "0.6.0"
+  @doc group: :queries
   @spec validate_and_run!(Queryable.t(), map | Flop.t(), [option()]) ::
           {[any], Meta.t()}
   def validate_and_run!(q, map_or_flop, opts \\ []) do
@@ -749,6 +754,7 @@ defmodule Flop do
   `validate/2` or `validate!/2` before passing them to this function.
   """
   @doc since: "0.6.0"
+  @doc group: :queries
   @spec count(Queryable.t(), Flop.t(), [option()]) :: non_neg_integer
   def count(q, %Flop{} = flop, opts \\ []) do
     q = opts[:count_query] || q
@@ -793,6 +799,7 @@ defmodule Flop do
   `validate/2` or `validate!/2` before passing them to this function.
   """
   @doc since: "0.6.0"
+  @doc group: :queries
   @spec meta(Queryable.t() | [any], Flop.t(), [option()]) :: Meta.t()
   def meta(query_or_results, flop, opts \\ [])
 
@@ -943,6 +950,7 @@ defmodule Flop do
   Flop struct. Be sure to validate any user-generated parameters with
   `validate/2` or `validate!/2` before passing them to this function.
   """
+  @doc group: :queries
   @spec order_by(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def order_by(q, flop, opts \\ [])
 
@@ -1037,6 +1045,7 @@ defmodule Flop do
   Flop struct. Be sure to validate any user-generated parameters with
   `validate/2` or `validate!/2` before passing them to this function.
   """
+  @doc group: :queries
   @spec paginate(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def paginate(q, flop, opts \\ [])
 
@@ -1221,6 +1230,7 @@ defmodule Flop do
   Flop struct. Be sure to validate any user-generated parameters with
   `validate/2` or `validate!/2` before passing them to this function.
   """
+  @doc group: :queries
   @spec filter(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def filter(q, flop, opt \\ [])
 
@@ -1296,6 +1306,7 @@ defmodule Flop do
   precisely: a field name that doesn't exist as an atom) will result in
   the error message `is invalid`. This might change in the future.
   """
+  @doc group: :queries
   @spec validate(Flop.t() | map, [option()]) ::
           {:ok, Flop.t()} | {:error, Meta.t()}
   def validate(flop_or_map, opts \\ [])
@@ -1403,6 +1414,7 @@ defmodule Flop do
   Same as `Flop.validate/2`, but raises an `Ecto.InvalidChangesetError` if the
   parameters are invalid.
   """
+  @doc group: :queries
   @doc since: "0.5.0"
   @spec validate!(Flop.t() | map, [option()]) :: Flop.t()
   def validate!(flop_or_map, opts \\ []) do
@@ -1434,6 +1446,7 @@ defmodule Flop do
       %Flop{page: 1}
   """
   @doc since: "0.12.0"
+  @doc group: :parameters
   @spec set_page(Flop.t(), pos_integer | binary) :: Flop.t()
   def set_page(%Flop{} = flop, page) when is_integer(page) do
     %{
@@ -1468,6 +1481,7 @@ defmodule Flop do
       %Flop{page: 1}
   """
   @doc since: "0.15.0"
+  @doc group: :parameters
   @spec to_previous_page(Flop.t()) :: Flop.t()
   def to_previous_page(%Flop{page: 1} = flop), do: flop
 
@@ -1503,6 +1517,7 @@ defmodule Flop do
       %Flop{page: 1}
   """
   @doc since: "0.15.0"
+  @doc group: :parameters
   @spec to_next_page(Flop.t(), non_neg_integer | nil) :: Flop.t()
   def to_next_page(flop, total_pages \\ nil)
 
@@ -1539,6 +1554,7 @@ defmodule Flop do
       %Flop{offset: 0}
   """
   @doc since: "0.15.0"
+  @doc group: :parameters
   @spec set_offset(Flop.t(), non_neg_integer | binary) :: Flop.t()
   def set_offset(%Flop{} = flop, offset) when is_integer(offset) do
     %{
@@ -1576,6 +1592,7 @@ defmodule Flop do
       %Flop{offset: 0, limit: 10}
   """
   @doc since: "0.15.0"
+  @doc group: :parameters
   @spec to_previous_offset(Flop.t()) :: Flop.t()
   def to_previous_offset(%Flop{offset: 0} = flop), do: flop
 
@@ -1609,6 +1626,7 @@ defmodule Flop do
       %Flop{offset: 0, limit: 20}
   """
   @doc since: "0.15.0"
+  @doc group: :parameters
   @spec to_next_offset(Flop.t(), non_neg_integer | nil) :: Flop.t()
   def to_next_offset(flop, total_count \\ nil)
 
@@ -1664,6 +1682,7 @@ defmodule Flop do
       %Flop{first: 5, after: "b"}
   """
   @doc since: "0.15.0"
+  @doc group: :parameters
   @spec set_cursor(Meta.t(), :previous | :next) :: Flop.t()
   def set_cursor(%Meta{} = meta, :previous), do: to_previous_cursor(meta)
   def set_cursor(%Meta{} = meta, :next), do: to_next_cursor(meta)
@@ -1701,6 +1720,7 @@ defmodule Flop do
       %Flop{first: 5, after: "b"}
   """
   @doc since: "0.15.0"
+  @doc group: :parameters
   @spec to_previous_cursor(Meta.t()) :: Flop.t()
   def to_previous_cursor(%Meta{flop: flop, has_previous_page?: false}), do: flop
 
@@ -1756,6 +1776,7 @@ defmodule Flop do
       %Flop{first: 5, after: "a"}
   """
   @doc since: "0.15.0"
+  @doc group: :parameters
   @spec to_next_cursor(Meta.t()) :: Flop.t()
   def to_next_cursor(%Meta{flop: flop, has_next_page?: false}), do: flop
 
@@ -1790,6 +1811,7 @@ defmodule Flop do
       %Flop{}
   """
   @doc since: "0.15.0"
+  @doc group: :parameters
   @spec reset_cursors(Flop.t()) :: Flop.t()
   def reset_cursors(%Flop{} = flop), do: %{flop | after: nil, before: nil}
 
@@ -1804,6 +1826,7 @@ defmodule Flop do
       %Flop{filters: []}
   """
   @doc since: "0.15.0"
+  @doc group: :parameters
   @spec reset_filters(Flop.t()) :: Flop.t()
   def reset_filters(%Flop{} = flop), do: %{flop | filters: []}
 
@@ -1821,6 +1844,7 @@ defmodule Flop do
       nil
   """
   @doc since: "0.15.0"
+  @doc group: :parameters
   @spec current_order(Flop.t(), atom) :: order_direction() | nil
   def current_order(
         %Flop{order_by: order_by, order_directions: order_directions},
@@ -1839,6 +1863,7 @@ defmodule Flop do
       %Flop{order_by: nil, order_directions: nil}
   """
   @doc since: "0.15.0"
+  @doc group: :parameters
   @spec reset_order(Flop.t()) :: Flop.t()
   def reset_order(%Flop{} = flop),
     do: %{flop | order_by: nil, order_directions: nil}
@@ -1902,6 +1927,7 @@ defmodule Flop do
   """
   @spec push_order(Flop.t(), atom | String.t()) :: Flop.t()
   @doc since: "0.10.0"
+  @doc group: :parameters
   def push_order(
         %Flop{order_by: order_by, order_directions: order_directions} = flop,
         field
@@ -1995,6 +2021,7 @@ defmodule Flop do
   5. the default passed as the last argument
   """
   @doc since: "0.11.0"
+  @doc group: :miscellaneous
   @spec get_option(atom, [option()], any) :: any
   def get_option(key, opts, default \\ nil) do
     with nil <- opts[key],
@@ -2107,6 +2134,7 @@ defmodule Flop do
       %{"filters" => [%{"field" => "age", "op" => ">", "value" => 25}, %{"field" => "name", "op" => :==, "value" => "Peter"}]}
   """
   @doc since: "0.15.0"
+  @doc group: :parameters
   @spec nest_filters(map, [atom | String.t()], keyword) :: map
   def nest_filters(%{} = args, fields, opts \\ []) when is_list(fields) do
     fields = fields ++ Enum.map(fields, &Atom.to_string/1)
@@ -2206,6 +2234,7 @@ defmodule Flop do
       [%{field: :name, op: :ilike_or, value: "George"}]
   """
   @doc since: "0.14.0"
+  @doc group: :parameters
   @spec map_to_filter_params(map, keyword) :: [map]
   def map_to_filter_params(%{} = map, opts \\ []) do
     operators = opts[:operators]
@@ -2335,6 +2364,7 @@ defmodule Flop do
     Defaults to `true`.
   """
   @doc since: "0.16.0"
+  @doc group: :queries
   @spec bindings(Flop.t(), module, keyword) :: [atom]
   def bindings(%Flop{filters: filters, order_by: order_by}, module, opts \\ [])
       when is_atom(module) do
@@ -2397,6 +2427,7 @@ defmodule Flop do
   `Flop.Schema`.
   """
   @doc since: "0.18.0"
+  @doc group: :queries
   @spec aliases(Flop.t(), module) :: [atom]
   def aliases(%Flop{order_by: order_by}, module) when is_atom(module) do
     if order_by == [] do
