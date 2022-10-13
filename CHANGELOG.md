@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.18.1] - 2022-10-14
+
 ### Changed
 
 - If the given map already has a `:filters` / `"filters"` key,
