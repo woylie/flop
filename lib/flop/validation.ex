@@ -280,11 +280,11 @@ defmodule Flop.Validation do
   end
 
   defp validate_within_max_limit(changeset, field, opts) do
-    max_limit = Flop.get_option(:max_limit, opts)
-
-    if is_nil(max_limit),
-      do: changeset,
-      else: validate_number(changeset, field, less_than_or_equal_to: max_limit)
+    if max_limit = Flop.get_option(:max_limit, opts) do
+      validate_number(changeset, field, less_than_or_equal_to: max_limit)
+    else
+      changeset
+    end
   end
 
   defp validate_cursor(changeset, field, _opts) do

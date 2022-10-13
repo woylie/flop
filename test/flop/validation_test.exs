@@ -277,6 +277,11 @@ defmodule Flop.ValidationTest do
              ]
     end
 
+    test "does not set max limit if set to false" do
+      params = %{page: 1, page_size: 1001}
+      assert {:ok, _} = validate(params, for: Pet, max_limit: false)
+    end
+
     test "replaces invalid max limit with replace_invalid_params" do
       params = %{page: 1, page_size: 1001}
 
