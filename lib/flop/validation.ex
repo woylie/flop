@@ -325,8 +325,11 @@ defmodule Flop.Validation do
     end
   end
 
+  defp put_default_value(changeset, _, nil), do: changeset
+  defp put_default_value(changeset, _, false), do: changeset
+
   defp put_default_value(changeset, field, default) do
-    if !is_nil(default) && is_nil(get_field(changeset, field)),
+    if is_nil(get_field(changeset, field)),
       do: put_change(changeset, field, default),
       else: changeset
   end

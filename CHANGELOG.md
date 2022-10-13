@@ -10,6 +10,8 @@
   HTML form), they are converted to a list first.
 - `use Flop` will now also compile `validate/2` and `validate!/2` functions that
   apply the options of your config module.
+- Allow setting `default_limit` and `max_limit` to `false`, which removes the
+  default/max limit without falling back to global options.
 
 ### Fixed
 

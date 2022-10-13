@@ -369,7 +369,7 @@ defmodule Flop do
     `Flop.Cursor.get_cursor_from_node/2`.
   - `:default_limit` - Sets a global default limit for queries that is used if
     no default limit is set for a schema and no limit is set in the parameters.
-    Defaults to `50`.
+    Set to `false` to not set any default limit. Defaults to `50`.
   - `:default_order` - Sets the default order for a query if none is passed in
     the parameters or if ordering is disabled. Can be set in the schema or in
     the options passed to the query functions.
@@ -386,7 +386,8 @@ defmodule Flop do
     by the validation functions. It is also used to determine which fields are
     join and compound fields.
   - `:max_limit` - Sets a global maximum limit for queries that is used if no
-    maximum limit is set for a schema. Defaults to `1000`.
+    maximum limit is set for a schema. Set to `false` to not set any max limit.
+    Defaults to `1000`.
   - `:order_query` - Allows you to set a separate base query for counting. Can
     only be passed as an option to one of the query functions. See
     `Flop.validate_and_run/3` and `Flop.count/3`.
