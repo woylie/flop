@@ -2289,11 +2289,15 @@ defmodule Flop do
       [:owner]
 
   If on the other hand only normal fields or compound fields are used in the
-  filter and order options, an empty list will be returned.
+  filter and order options, or if the filter values are nil, an empty list will
+  be returned.
 
       iex> bindings(
       ...>   %Flop{
-      ...>     filters: [%Flop.Filter{field: :name, op: :==, value: "George"}]
+      ...>     filters: [
+      ...>       %Flop.Filter{field: :name, op: :==, value: "George"},
+      ...>       %Flop.Filter{field: :owner_age, op: :==, value: nil}
+      ...>     ]
       ...>   },
       ...>   Flop.Pet
       ...> )
@@ -2341,7 +2345,10 @@ defmodule Flop do
       []
     else
       schema_struct = struct(module)
-      filter_fields = Enum.map(filters, & &1.field)
+
+      filter_fields =
+        filters |> Enum.reject(&is_nil(&1.value)) |> Enum.map(& &1.field)
+
       fields = Enum.uniq(order_by ++ filter_fields)
 
       fields

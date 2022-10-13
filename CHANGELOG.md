@@ -11,6 +11,10 @@
 - `use Flop` will now also compile `validate/2` and `validate!/2` functions that
   apply the options of your config module.
 
+### Fixed
+
+- `Flop.bindings/1` was returning bindings for filters with `nil` values.
+
 ## [0.18.0] - 2022-10-10
 
 ### Added
