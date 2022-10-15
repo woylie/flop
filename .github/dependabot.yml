@@ -4,6 +4,7 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+      day: saturday
     ignore:
       - dependency-name: ecto
         versions:
@@ -26,3 +27,4 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+      day: saturday
