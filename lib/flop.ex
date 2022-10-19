@@ -2333,6 +2333,18 @@ defmodule Flop do
       ...> )
       []
 
+  If a join field is part of a compound field, it will be returned.
+
+      iex> bindings(
+      ...>   %Flop{
+      ...>     filters: [
+      ...>       %Flop.Filter{field: :pet_and_owner_name, op: :==, value: "Mae"}
+      ...>     ]
+      ...>   },
+      ...>   Flop.Pet
+      ...> )
+      [:owner]
+
   You can use this to dynamically build the join clauses needed for the query.
 
       def list_pets(params) do
@@ -2383,15 +2395,24 @@ defmodule Flop do
       fields = Enum.uniq(order_by ++ filter_fields)
 
       fields
-      |> Stream.map(&Flop.Schema.field_type(schema_struct, &1))
-      |> Stream.filter(fn
-        {:join, _} -> true
-        _ -> false
-      end)
-      |> Stream.map(fn {:join, %{binding: binding}} -> binding end)
+      |> Enum.map(&get_binding(schema_struct, &1))
+      |> List.flatten()
       |> Enum.uniq()
     end
   end
+
+  defp get_binding(schema_struct, field) when is_atom(field) do
+    field_type = Flop.Schema.field_type(schema_struct, field)
+    get_binding(schema_struct, field_type)
+  end
+
+  defp get_binding(_, {:join, %{binding: binding}}), do: binding
+
+  defp get_binding(schema_struct, {:compound, fields}) do
+    Enum.map(fields, &get_binding(schema_struct, &1))
+  end
+
+  defp get_binding(_, _), do: []
 
   @doc """
   Returns the names of the alias fields that are required for the order clause
