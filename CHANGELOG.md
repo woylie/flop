@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [0.18.2] - 2022-10-19
+
+### Fixed
+
+- `Flop.bindings/3` did not consider join fields that are used as part of a
+  compound field.
+
 ## [0.18.1] - 2022-10-14
 
 ### Changed
@@ -17,7 +24,7 @@
 
 ### Fixed
 
-- `Flop.bindings/1` was returning bindings for filters with `nil` values.
+- `Flop.bindings/3` was returning bindings for filters with `nil` values.
 
 ## [0.18.0] - 2022-10-10
 
