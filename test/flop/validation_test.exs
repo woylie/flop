@@ -209,14 +209,12 @@ defmodule Flop.ValidationTest do
     end
 
     test "can override default pagination type" do
-      assert {:ok, %Flop{limit: 60}} =
-               validate(%{}, for: Fruit, default_pagination_type: :offset)
-
-      TestProviderWithDefaultPaginationType.validate(%Flop{},
-        default_limit: false,
-        pagination: false,
-        default_pagination_type: false
-      )
+      assert {:ok, %Flop{limit: nil}} =
+               TestProviderWithDefaultPaginationType.validate(%Flop{},
+                 default_limit: false,
+                 pagination: false,
+                 default_pagination_type: false
+               )
     end
 
     test "does not set default limit if false" do
