@@ -12,6 +12,13 @@ defmodule Flop.ValidationTest do
   alias Flop.Validation
   alias Flop.Vegetable
 
+  defmodule TestProviderWithDefaultPaginationType do
+    use Flop,
+      repo: Flop.Repo,
+      default_pagination_type: :first,
+      pagination_types: [:first, :last]
+  end
+
   defp validate(params, opts \\ []) do
     params
     |> Validation.changeset(opts)
@@ -199,6 +206,17 @@ defmodule Flop.ValidationTest do
 
       assert {:ok, %Flop{last: 60}} =
                validate(%{}, for: Fruit, default_pagination_type: :last)
+    end
+
+    test "can override default pagination type" do
+      assert {:ok, %Flop{limit: 60}} =
+               validate(%{}, for: Fruit, default_pagination_type: :offset)
+
+      TestProviderWithDefaultPaginationType.validate(%Flop{},
+        default_limit: false,
+        pagination: false,
+        default_pagination_type: false
+      )
     end
 
     test "does not set default limit if false" do

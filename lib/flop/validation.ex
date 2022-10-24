@@ -200,7 +200,8 @@ defmodule Flop.Validation do
     |> put_default_value(:page, 1)
   end
 
-  defp validate_by_pagination_type(changeset, nil, opts) do
+  defp validate_by_pagination_type(changeset, pagination_type, opts)
+       when pagination_type in [nil, false] do
     put_default_limit(changeset, :limit, opts)
   end
 
