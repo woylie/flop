@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- `default_pagination_type` can be overridden by passing `false` now.
+
 ## [0.18.2] - 2022-10-19
 
 ### Fixed
