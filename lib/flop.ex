@@ -377,7 +377,7 @@ defmodule Flop do
     parameters and the pagination type cannot be determined from the parameters.
     Parameters for other pagination types can still be passed when setting this
     option. To restrict which pagination types can be used, set the
-    `:pagination_types` option.
+    `:pagination_types` option. Set to `false` to override a default.
   - `:filtering` (boolean) - Can be set to `false` to silently ignore filter
     parameters.
   - `:for` - The schema module to be used for validation. `Flop.Schema` must be
@@ -446,7 +446,7 @@ defmodule Flop do
                required(:order_by) => [atom],
                optional(:order_directions) => [order_direction()]
              }}
-          | {:default_pagination_type, pagination_type()}
+          | {:default_pagination_type, pagination_type() | false}
           | {:filtering, boolean}
           | {:for, module}
           | {:max_limit, pos_integer | false}
