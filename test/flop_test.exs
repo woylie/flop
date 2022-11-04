@@ -357,7 +357,7 @@ defmodule FlopTest do
                 field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
-                search_text <- search_text(value) do
+                search_text <- search_text_list(value) do
         expected = filter_pets(pets, field, :like_and, search_text)
 
         assert query_pets_with_owners(%{
@@ -374,7 +374,7 @@ defmodule FlopTest do
                 field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
-                search_text <- search_text(value) do
+                search_text <- search_text_list(value) do
         expected = filter_pets(pets, field, :like_or, search_text)
 
         assert query_pets_with_owners(%{
@@ -391,7 +391,7 @@ defmodule FlopTest do
                 field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
-                search_text <- search_text(value) do
+                search_text <- search_text_list(value) do
         expected = filter_pets(pets, field, :ilike_and, search_text)
 
         assert query_pets_with_owners(%{
@@ -408,7 +408,7 @@ defmodule FlopTest do
                 field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
-                search_text <- search_text(value) do
+                search_text <- search_text_list(value) do
         expected = filter_pets(pets, field, :ilike_or, search_text)
 
         assert query_pets_with_owners(%{

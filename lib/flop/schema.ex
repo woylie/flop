@@ -159,14 +159,14 @@ defprotocol Flop.Schema do
 
       WHERE family_name='margo' OR given_name ='margo'
 
-  Partial matches and splitting of the search term can be achieved with one of
+  Partial matches of the search term can be achieved with one of
   the ilike operators.
 
       params = %{
         filters: [%{
           field: :full_name,
           op: :ilike_and,
-          value: "margo martindale"
+          value: ["margo", "martindale"]
         }]
       }
 
@@ -178,7 +178,7 @@ defprotocol Flop.Schema do
   ### Filter operator rules
 
   - `:=~`, `:like`, `:like_and`, `:like_or`, `:ilike`, `:ilike_and`,
-    `:ilike_or` - The filter value is split at whitespace characters as usual.
+    `:ilike_or` - To match multiple values a list should be passed.
     The filter matches for a value if it matches for any of the fields.
   - `:empty` - Matches if all fields of the compound field are `nil`.
   - `:not_empty` - Matches if any field of the compound field is not `nil`.

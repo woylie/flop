@@ -200,8 +200,8 @@ defmodule Flop.Operators do
         like(field(r, ^var!(field)), ^substring)
       end
 
-    prelude = prelude(:split_search_text)
     combinator = :and
+    prelude = prelude(:add_wildcards)
 
     {fragment, prelude, combinator}
   end
@@ -212,8 +212,8 @@ defmodule Flop.Operators do
         like(field(r, ^var!(field)), ^substring)
       end
 
-    prelude = prelude(:split_search_text)
     combinator = :or
+    prelude = prelude(:add_wildcards)
 
     {fragment, prelude, combinator}
   end
@@ -224,8 +224,8 @@ defmodule Flop.Operators do
         ilike(field(r, ^var!(field)), ^substring)
       end
 
-    prelude = prelude(:split_search_text)
     combinator = :and
+    prelude = prelude(:add_wildcards)
 
     {fragment, prelude, combinator}
   end
@@ -236,8 +236,8 @@ defmodule Flop.Operators do
         ilike(field(r, ^var!(field)), ^substring)
       end
 
-    prelude = prelude(:split_search_text)
     combinator = :or
+    prelude = prelude(:add_wildcards)
 
     {fragment, prelude, combinator}
   end
@@ -254,9 +254,9 @@ defmodule Flop.Operators do
     end
   end
 
-  defp prelude(:split_search_text) do
+  defp prelude(:add_wildcards) do
     quote do
-      var!(value) = Flop.Misc.split_search_text(var!(value))
+      var!(value) = var!(value) |> Enum.map(&Flop.Misc.add_wildcard/1)
     end
   end
 end
