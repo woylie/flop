@@ -180,10 +180,10 @@ defmodule Flop.Generators do
   end
 
   @doc """
-  Generates a search string consisting of two random substrings from the given
+  Generates a list of search strings consisting of two random substrings from the given
   string.
   """
-  def search_text(s) when is_binary(s) do
+  def search_text_list(s) when is_binary(s) do
     str_length = String.length(s)
 
     gen all start_at_a <- integer(0..(str_length - 2)),
@@ -201,9 +201,8 @@ defmodule Flop.Generators do
               |> String.slice(start_at_b..end_at_b)
               |> String.trim()
               |> constant(),
-            query_value_b != "",
-            whitespace_character <- member_of(@whitespace) do
-      Enum.join([query_value_a, query_value_b], whitespace_character)
+            query_value_b != "" do
+      [query_value_a, query_value_b]
     end
   end
 end
