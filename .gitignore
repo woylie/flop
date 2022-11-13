@@ -23,5 +23,4 @@ erl_crash.dump
 flop-*.tar
 
 # Ignore dialyzer PLT
-/priv/plts/*.plt
-/priv/plts/*.plt.hash
+.plts

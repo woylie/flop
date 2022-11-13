@@ -27,7 +27,7 @@ defmodule Flop.MixProject do
       dialyzer: [
         ignore_warnings: ".dialyzer_ignore.exs",
         list_unused_filters: true,
-        plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
+        plt_file: {:no_warn, ".plts/dialyzer.plt"}
       ],
       name: "Flop",
       source_url: @source_url,
