@@ -4,7 +4,13 @@ env:
   ELIXIR_VERSION: "1.14"
   OTP_VERSION: "25.1"
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   test:
