@@ -25,10 +25,20 @@ defmodule Flop.TestUtil do
   def filter_pets(pets, field, op, value) when is_atom(field) do
     case Flop.Schema.field_type(%Pet{}, field) do
       {type, _field} = field_type when type in [:normal, :join] ->
+        ecto_field_type = Pet.__schema__(:type, field)
+
+        array_match =
+          case ecto_field_type do
+            {:array, _} -> fn value -> value == [] end
+            _ -> fn _ -> false end
+          end
+
         filter_func = matches?(op, value)
 
         Enum.filter(pets, fn pet ->
-          pet |> get_field(field_type) |> filter_func.()
+          field_value = get_field(pet, field_type)
+
+          filter_func.(field_value) or array_match.(field_value)
         end)
 
       {:compound, fields} ->

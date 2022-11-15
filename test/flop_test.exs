@@ -292,6 +292,38 @@ defmodule FlopTest do
       end
     end
 
+    test "applies empty and not_empty filter to array fields" do
+      check all pet_count <- integer(@pet_count_range),
+                pets =
+                  insert_list_and_sort(pet_count, :pet_with_owner,
+                    tags: fn -> Enum.random([[], ["Carl"]]) end
+                  ),
+                op <- member_of([:empty, :not_empty]) do
+        field = :tags
+        [opposite_op] = [:empty, :not_empty] -- [op]
+        expected = filter_pets(pets, field, op)
+        opposite_expected = filter_pets(pets, field, opposite_op)
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: op, value: true}]
+               }) == expected
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: op, value: false}]
+               }) == opposite_expected
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: opposite_op, value: true}]
+               }) == opposite_expected
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: opposite_op, value: false}]
+               }) == expected
+
+        checkin_checkout()
+      end
+    end
+
     property "applies like filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
