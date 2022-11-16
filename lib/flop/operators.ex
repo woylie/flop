@@ -201,7 +201,7 @@ defmodule Flop.Operators do
       end
 
     combinator = :and
-    prelude = prelude(:try_split_search_text)
+    prelude = prelude(:maybe_split_search_text)
 
     {fragment, prelude, combinator}
   end
@@ -213,7 +213,7 @@ defmodule Flop.Operators do
       end
 
     combinator = :or
-    prelude = prelude(:try_split_search_text)
+    prelude = prelude(:maybe_split_search_text)
 
     {fragment, prelude, combinator}
   end
@@ -225,7 +225,7 @@ defmodule Flop.Operators do
       end
 
     combinator = :and
-    prelude = prelude(:try_split_search_text)
+    prelude = prelude(:maybe_split_search_text)
 
     {fragment, prelude, combinator}
   end
@@ -237,7 +237,7 @@ defmodule Flop.Operators do
       end
 
     combinator = :or
-    prelude = prelude(:try_split_search_text)
+    prelude = prelude(:maybe_split_search_text)
 
     {fragment, prelude, combinator}
   end
@@ -254,10 +254,10 @@ defmodule Flop.Operators do
     end
   end
 
-  defp prelude(:try_split_search_text) do
+  defp prelude(:maybe_split_search_text) do
     quote do
       var!(value) =
-        if is_bitstring(var!(value)) do
+        if is_binary(var!(value)) do
           Flop.Misc.split_search_text(var!(value))
         else
           Enum.map(var!(value), &Flop.Misc.add_wildcard/1)
