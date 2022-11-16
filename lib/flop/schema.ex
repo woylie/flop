@@ -185,7 +185,7 @@ defprotocol Flop.Schema do
   ### Filter operator rules
 
   - `:=~`, `:like`, `:like_and`, `:like_or`, `:ilike`, `:ilike_and`,
-    `:ilike_or` - If a string value is passed it will be split at whitespace characters as usual,
+    `:ilike_or` - If a string value is passed, it will be split at whitespace characters as usual,
                   otherwise a list of strings can be passed.
     The filter matches for a value if it matches for any of the fields.
   - `:empty` - Matches if all fields of the compound field are `nil`.
