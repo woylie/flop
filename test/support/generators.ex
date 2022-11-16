@@ -180,10 +180,17 @@ defmodule Flop.Generators do
   end
 
   @doc """
-  Generates a list of search strings consisting of two random substrings from the given
+  Generates a search string consisting of two random substrings
+  or a list of search strings consisting of two random substrings from the given
   string.
   """
-  def search_text_list(s) when is_binary(s) do
+  def search_text_or_list(s) when is_binary(s) do
+    gen all string_or_list <- one_of([search_text(s), search_text_list(s)]) do
+      string_or_list
+    end
+  end
+
+  defp search_text_list(s) when is_binary(s) do
     str_length = String.length(s)
 
     gen all start_at_a <- integer(0..(str_length - 2)),
@@ -203,6 +210,13 @@ defmodule Flop.Generators do
               |> constant(),
             query_value_b != "" do
       [query_value_a, query_value_b]
+    end
+  end
+
+  defp search_text(s) when is_binary(s) do
+    gen all whitespace_character <- member_of(@whitespace),
+            text_list <- search_text_list(s) do
+      Enum.join(text_list, whitespace_character)
     end
   end
 end

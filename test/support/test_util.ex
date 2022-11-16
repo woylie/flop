@@ -108,13 +108,33 @@ defmodule Flop.TestUtil do
     &(String.downcase(&1) =~ v)
   end
 
+  defp matches?(:like_and, v) when is_bitstring(v) do
+    values = String.split(v)
+    &Enum.all?(values, fn v -> &1 =~ v end)
+  end
+
   defp matches?(:like_and, v), do: &Enum.all?(v, fn v -> &1 =~ v end)
 
+  defp matches?(:like_or, v) when is_bitstring(v) do
+    values = String.split(v)
+    &Enum.any?(values, fn v -> &1 =~ v end)
+  end
+
   defp matches?(:like_or, v), do: &Enum.any?(v, fn v -> &1 =~ v end)
+
+  defp matches?(:ilike_and, v) when is_bitstring(v) do
+    values = v |> String.downcase() |> String.split()
+    &Enum.all?(values, fn v -> String.downcase(&1) =~ v end)
+  end
 
   defp matches?(:ilike_and, v) do
     values = Enum.map(v, &String.downcase/1)
     &Enum.all?(values, fn v -> String.downcase(&1) =~ v end)
+  end
+
+  defp matches?(:ilike_or, v) when is_bitstring(v) do
+    values = v |> String.downcase() |> String.split()
+    &Enum.any?(values, fn v -> String.downcase(&1) =~ v end)
   end
 
   defp matches?(:ilike_or, v) do

@@ -169,7 +169,14 @@ defprotocol Flop.Schema do
           value: ["margo", "martindale"]
         }]
       }
-
+  or
+      params = %{
+        filters: [%{
+          field: :full_name,
+          op: :ilike_and,
+          value: "margo martindale""
+        }]
+      }
   This would translate to:
 
       WHERE (family_name ilike '%margo%' OR given_name ='%margo%')
@@ -178,7 +185,8 @@ defprotocol Flop.Schema do
   ### Filter operator rules
 
   - `:=~`, `:like`, `:like_and`, `:like_or`, `:ilike`, `:ilike_and`,
-    `:ilike_or` - To match multiple values a list should be passed.
+    `:ilike_or` - If a string value is passed it will be split at whitespace characters as usual,
+                  otherwise a list of strings can be passed.
     The filter matches for a value if it matches for any of the fields.
   - `:empty` - Matches if all fields of the compound field are `nil`.
   - `:not_empty` - Matches if any field of the compound field is not `nil`.
