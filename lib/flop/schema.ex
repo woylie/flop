@@ -185,17 +185,20 @@ defprotocol Flop.Schema do
   ### Filter operator rules
 
   - `:=~`, `:like`, `:like_and`, `:like_or`, `:ilike`, `:ilike_and`,
-    `:ilike_or` - If a string value is passed, it will be split at whitespace characters as usual,
-                  otherwise a list of strings can be passed.
-    The filter matches for a value if it matches for any of the fields.
+    `:ilike_or` - If a string value is passed, it will be split at whitespace
+    characters and each segment will be checked for. If a list of strings is
+    passed, the individual strings are not split. The filter matches for a value
+    if it matches for any of the fields.
   - `:empty` - Matches if all fields of the compound field are `nil`.
   - `:not_empty` - Matches if any field of the compound field is not `nil`.
-  - `:==`, `:!=`, `:<=`, `:<`, `:>=`, `:>`, `:in`, `:not_in`, `:contains` `:not_contains`
-    - The filter value is normalized by splitting the string at whitespaces and joining
-    it with a space. The values of all fields of the compound field are split by
-    whitespace character and joined with a space, and the resulting values are
-    joined with a space again. **This will be added in a future version. These
-    filter operators are ignored for compound fields at the moment.**
+  - `:==`, `:!=`, `:<=`, `:<`, `:>=`, `:>`, `:in`, `:not_in`, `:contains`
+    `:not_contains`
+  - The filter value is normalized by splitting the string at whitespaces and
+    joining it with a space. The values of all fields of the compound field are
+    split by whitespace character and joined with a space, and the resulting
+    values are joined with a space again. **This will be added in a future
+    version. These filter operators are ignored for compound fields at the
+    moment.**
 
   ### Sorting
 

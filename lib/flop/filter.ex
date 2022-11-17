@@ -58,6 +58,14 @@ defmodule Flop.Filter do
   | `:ilike_and`    | `"Rubi Rosa"`       | `WHERE column ILIKE '%Rubi%' AND column ILIKE '%Rosa%'` |
   | `:ilike_or`     | `["Rubi", "Rosa"]`  | `WHERE column ILIKE '%Rubi%' OR column ILIKE '%Rosa%'`  |
   | `:ilike_or`     | `"Rubi Rosa"`       | `WHERE column ILIKE '%Rubi%' OR column ILIKE '%Rosa%'`  |
+
+  The filter operators `:ilike_and`, `:ilike_or`, `:like_and` and `:like_or`
+  accept both strings and list of strings.
+
+  - If the filter value is a string, it will be split at whitespace characters
+    and the segments are combined with `and` or `or`.
+  - If a list of strings is passed, the individual strings are not split, and
+    the list items are combined with `and` or `or`.
   """
   @type op ::
           :==
