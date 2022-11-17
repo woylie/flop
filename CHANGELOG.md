@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [0.18.4] - 2022-11-17
+
+### Changed
+
+- The `:ilike_and`, `:ilike_or`, `:like_and` and `:like_or` filter operators can
+  now also be used with a list of strings as filter value.
+
 ## [0.18.3] - 2022-10-27
 
 ### Fixed
