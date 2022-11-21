@@ -518,6 +518,44 @@ defmodule FlopTest do
       end
     end
 
+    test "filtering with custom fields" do
+      pets = insert_list_and_sort(1, :pet_with_owner)
+
+      assert [] =
+               query_pets_with_owners(%{
+                 filters: [
+                   %{field: :custom, op: :==, value: "some_value"}
+                 ]
+               })
+
+      receive do
+        {:filter, filter} ->
+          assert filter ==
+                   {%Flop.Filter{field: :custom, op: :==, value: "some_value"},
+                    [some: :options]}
+      end
+
+      assert ^pets =
+               query_pets_with_owners(
+                 %{
+                   filters: [
+                     %{field: :custom, op: :>=, value: "some_other_value"}
+                   ]
+                 },
+                 extra_opts: [other: :options]
+               )
+
+      receive do
+        {:filter, filter} ->
+          assert filter ==
+                   {%Flop.Filter{
+                      field: :custom,
+                      op: :>=,
+                      value: "some_other_value"
+                    }, [other: :options, some: :options]}
+      end
+    end
+
     test "silently ignores nil values for field and value" do
       flop = %Flop{filters: [%Filter{op: :>=, value: 4}]}
       assert Flop.query(Pet, flop) == Pet

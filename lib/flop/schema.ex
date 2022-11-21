@@ -303,10 +303,9 @@ defprotocol Flop.Schema do
   in order to build the join clauses dynamically and avoid adding unnecessary
   joins.
 
-  ## Filtering by calculated values
+  ## Filtering by calculated values with subqueries
 
-  Flop currently does not have a way to define filters on calculated values. You
-  can however join on a subquery with a named binding and add a join field as
+  You can join on a subquery with a named binding and add a join field as
   described above.
 
   Schema:
@@ -333,6 +332,56 @@ defprotocol Flop.Schema do
           as: :pet_count
         )
         |> Flop.validate_and_run(params, for: Owner)
+
+  ## Custom fields
+
+  If you need more control over the queries produced by the filters you can define
+  custom fields that reference a function, which implements the filter logic.
+  Custom fields filters are referenced by `{mod :: module(), function :: atom(), opts :: keyword()}`.
+  The function will receive the Ecto query, the flop filter and the option keyword list.
+
+  If you need to pass in options at runtime (e.g. the timezone of the request, the user id of the current user etc)
+  you can do so by passing in the `extra_opts` option to the flop functions.
+  Currently custom fields only support filtering and can not be used for sorting.
+
+  Schema:
+
+      @derive {
+        Flop.Schema,
+        filterable: [:inserted_at_date],
+        custom_fields: [inserted_at_date: [filter: {CustomFilters, :date_filter, [source: :inserted_at]}]]
+      }
+
+  Filter module:
+
+      defmodule CustomFilters do
+        def date_filter(query, %Flop.Filter{value: value, op: op}, opts) do
+          source = opts[:source]
+          timezone = opts[:timezone]
+
+          expr = dynamic([r], fragment("((? AT TIME ZONE 'utc') AT TIME ZONE ?)::date", field(r, source), ^timezone)
+
+          case Ecto.Type.cast(:date, value) do
+            {:ok, date} ->
+              conditions =
+                case op do
+                  :>= -> dynamic([r], ^expr >= ^date)
+                  :<= -> dynamic([r], ^expr <= ^date)
+                end
+
+              where(query, ^conditions)
+
+            :error ->
+              query
+          end
+
+        end
+      end
+
+  Query:
+
+      Flop.validate_and_run(Flop.Pet, params, for: Flop.Pet, extra_opts: [timezone: timezone])
+
   """
 
   @fallback_to_any true
@@ -376,7 +425,8 @@ defprotocol Flop.Schema do
         :owner_tags,
         :pet_and_owner_name,
         :species,
-        :tags
+        :tags,
+        :custom
       ]
   """
   @spec filterable(any) :: [atom]
@@ -501,6 +551,7 @@ defimpl Flop.Schema, for: Any do
     default_order = Keyword.get(options, :default_order)
     compound_fields = Keyword.get(options, :compound_fields, [])
     alias_fields = Keyword.get(options, :alias_fields, [])
+    custom_fields = Keyword.get(options, :custom_fields, [])
 
     join_fields =
       options
@@ -508,7 +559,12 @@ defimpl Flop.Schema, for: Any do
       |> Enum.map(&normalize_join_opts/1)
 
     field_type_func =
-      build_field_type_func(compound_fields, join_fields, alias_fields)
+      build_field_type_func(
+        compound_fields,
+        join_fields,
+        alias_fields,
+        custom_fields
+      )
 
     order_by_func =
       build_order_by_func(compound_fields, join_fields, alias_fields)
@@ -574,11 +630,14 @@ defimpl Flop.Schema, for: Any do
     join_fields = get_join_fields(opts)
     schema_fields = get_schema_fields(struct)
     alias_fields = Keyword.get(opts, :alias_fields, [])
+    custom_fields = get_custom_fields(opts)
 
-    all_fields = compound_fields ++ join_fields ++ schema_fields ++ alias_fields
+    all_fields =
+      compound_fields ++
+        join_fields ++ schema_fields ++ alias_fields ++ custom_fields
 
     validate_no_duplicate_fields!(
-      compound_fields ++ join_fields ++ alias_fields
+      compound_fields ++ join_fields ++ alias_fields ++ custom_fields
     )
 
     validate_limit!(opts[:default_limit], "default")
@@ -591,6 +650,7 @@ defimpl Flop.Schema, for: Any do
     validate_default_order!(opts[:default_order], opts[:sortable])
     validate_compound_fields!(opts[:compound_fields], all_fields)
     validate_alias_fields!(alias_fields, opts[:filterable])
+    validate_custom_fields!(opts[:custom_fields], opts[:sortable])
   end
 
   defp get_compound_fields(opts) do
@@ -599,6 +659,10 @@ defimpl Flop.Schema, for: Any do
 
   defp get_join_fields(opts) do
     opts |> Keyword.get(:join_fields, []) |> Keyword.keys()
+  end
+
+  defp get_custom_fields(opts) do
+    opts |> Keyword.get(:custom_fields, []) |> Keyword.keys()
   end
 
   defp get_schema_fields(struct) do
@@ -652,6 +716,7 @@ defimpl Flop.Schema, for: Any do
     known_keys = [
       :alias_fields,
       :compound_fields,
+      :custom_fields,
       :default_limit,
       :default_order,
       :filterable,
@@ -775,6 +840,29 @@ defimpl Flop.Schema, for: Any do
       configured as filterable:
 
           #{inspect(illegal_fields)}
+
+      Use custom fields if you want to implement custom filtering.
+      """
+    end
+  end
+
+  defp validate_custom_fields!(nil, _), do: :ok
+
+  defp validate_custom_fields!(custom_fields, sortable)
+       when is_list(custom_fields) do
+    illegal_fields =
+      Enum.filter(custom_fields, fn {field, _} -> field in sortable end)
+
+    if illegal_fields != [] do
+      raise ArgumentError, """
+      cannot sort by custom fields
+
+      Custom fields are not allowed to be sortable. These custom fields were
+      configured as sortable:
+
+          #{inspect(illegal_fields)}
+
+      Use alias fields if you want to implement custom sorting.
       """
     end
   end
@@ -842,7 +930,12 @@ defimpl Flop.Schema, for: Any do
     {name, opts}
   end
 
-  def build_field_type_func(compound_fields, join_fields, alias_fields) do
+  def build_field_type_func(
+        compound_fields,
+        join_fields,
+        alias_fields,
+        custom_fields
+      ) do
     compound_field_funcs =
       for {name, fields} <- compound_fields do
         quote do
@@ -870,6 +963,15 @@ defimpl Flop.Schema, for: Any do
         end
       end
 
+    custom_field_funcs =
+      for {name, opts} <- custom_fields do
+        quote do
+          def field_type(_, unquote(name)) do
+            {:custom, unquote(Macro.escape(opts))}
+          end
+        end
+      end
+
     default_funcs =
       quote do
         def field_type(_, name) do
@@ -881,6 +983,7 @@ defimpl Flop.Schema, for: Any do
       unquote(compound_field_funcs)
       unquote(join_field_funcs)
       unquote(alias_field_funcs)
+      unquote(custom_field_funcs)
       unquote(default_funcs)
     end
   end

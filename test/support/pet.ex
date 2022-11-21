@@ -3,6 +3,7 @@ defmodule Flop.Pet do
   Defines an Ecto schema for testing.
   """
   use Ecto.Schema
+  import Ecto.Query
 
   alias Flop.Owner
 
@@ -17,7 +18,8 @@ defmodule Flop.Pet do
       :owner_tags,
       :pet_and_owner_name,
       :species,
-      :tags
+      :tags,
+      :custom
     ],
     sortable: [:name, :age, :owner_name, :owner_age],
     max_limit: 1000,
@@ -29,6 +31,11 @@ defmodule Flop.Pet do
       owner_age: {:owner, :age},
       owner_name: [binding: :owner, field: :name, path: [:owner, :name]],
       owner_tags: {:owner, :tags}
+    ],
+    custom_fields: [
+      custom: [
+        filter: {__MODULE__, :test_custom, [some: :options]}
+      ]
     ]
   }
 
@@ -41,6 +48,17 @@ defmodule Flop.Pet do
     field :tags, {:array, :string}, default: []
 
     belongs_to :owner, Owner
+  end
+
+  def test_custom(query, %Flop.Filter{value: value} = filter, opts) do
+    :options = Keyword.fetch!(opts, :some)
+    send(self(), {:filter, {filter, opts}})
+
+    if value == "some_value" do
+      where(query, false)
+    else
+      query
+    end
   end
 
   def get_field(%__MODULE__{owner: %Owner{age: age}}, :owner_age), do: age

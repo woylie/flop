@@ -30,20 +30,28 @@ defmodule Flop.Builder do
     :ilike_or
   ]
 
-  def filter(_, %Filter{field: nil}, c), do: c
-  def filter(_, %Filter{value: nil}, c), do: c
+  def filter(query, schema_struct, filters, extra_opts) do
+    {query, conditions} =
+      filters
+      |> Enum.reduce({query, true}, fn
+        %Filter{field: nil}, acc ->
+          acc
 
-  def filter(
-        schema_struct,
-        %Filter{field: field} = filter,
-        conditions
-      ) do
-    build_op(
-      conditions,
-      schema_struct,
-      get_field_type(schema_struct, field),
-      filter
-    )
+        %Filter{value: nil}, acc ->
+          acc
+
+        %Filter{field: field} = filter, {q, c} ->
+          case get_field_type(schema_struct, field) do
+            {:custom, custom_opts} ->
+              {mod, fun, opts} = custom_opts[:filter]
+              {apply(mod, fun, [q, filter, Keyword.merge(extra_opts, opts)]), c}
+
+            field_type ->
+              {q, build_op(c, schema_struct, field_type, filter)}
+          end
+      end)
+
+    where(query, ^conditions)
   end
 
   defp build_op(c, schema_struct, {:compound, fields}, %Filter{op: op} = filter)
