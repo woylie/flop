@@ -18,7 +18,10 @@ defmodule Flop.SchemaTest do
              },
              compound_fields: [name_or_email: [:name, :email]],
              join_fields: [topping_name: {:toppings, :name}],
-             alias_fields: [:topping_count]}
+             alias_fields: [:topping_count],
+             custom_fields: [
+               inserted_at: {__MODULE__, :date_filter, [some: "option"]}
+             ]}
 
     defstruct [:name, :email, :age]
   end
@@ -48,6 +51,11 @@ defmodule Flop.SchemaTest do
     assert Schema.field_type(%Panini{}, :topping_name) ==
              {:join,
               %{binding: :toppings, field: :name, path: [:toppings, :name]}}
+  end
+
+  test "field_type/2 returns config for custom fields" do
+    assert Schema.field_type(%Panini{}, :inserted_at) ==
+             {:custom, {Panini, :date_filter, [some: "option"]}}
   end
 
   test "max_limit/1 returns the max limit passed as option" do
@@ -402,6 +410,60 @@ defmodule Flop.SchemaTest do
       assert error.message =~ "duplicate field"
     end
 
+    test "raises if custom field uses existing compound field name" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [],
+              sortable: [],
+              compound_fields: [name: [:name, :nickname]],
+              custom_fields: [name: {__MODULE__, :some_function, []}]
+            }
+            defstruct [:id]
+          end
+        end
+
+      assert error.message =~ "duplicate field"
+    end
+
+    test "raises if custom field uses existing join field name" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [],
+              sortable: [],
+              join_fields: [owner_name: {:owner, :name}],
+              custom_fields: [owner_name: {__MODULE__, :some_function, []}]
+            }
+            defstruct [:id]
+          end
+        end
+
+      assert error.message =~ "duplicate field"
+    end
+
+    test "raises if custom field uses existing alias field name" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [],
+              sortable: [],
+              alias_fields: [:name],
+              custom_fields: [name: {__MODULE__, :some_function, []}]
+            }
+            defstruct [:id]
+          end
+        end
+
+      assert error.message =~ "duplicate field"
+    end
+
     test "does not raise if alias field uses existing schema field name" do
       defmodule Vegetaburu do
         @derive {
@@ -426,5 +488,22 @@ defmodule Flop.SchemaTest do
 
       assert error.message =~ "cannot filter by alias field"
     end
+  end
+
+  test "raises error if custom field is added to sortable list" do
+    error =
+      assert_raise ArgumentError, fn ->
+        defmodule Vegetable do
+          @derive {
+            Flop.Schema,
+            filterable: [],
+            sortable: [:inserted_at],
+            custom_fields: [inserted_at: {__MODULE__, :some_function, []}]
+          }
+          defstruct [:id, :inserted_at]
+        end
+      end
+
+    assert error.message =~ "cannot sort by custom field"
   end
 end

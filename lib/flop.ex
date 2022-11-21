@@ -407,6 +407,7 @@ defmodule Flop do
     functions that execute a database query.
   - `:replace_invalid_params` - If `true`, invalid parameters will be replaced
     with default values if possible or removed. Defaults to `false`.
+  - `extra_opts` (keyword list) - Additional options passed through to custom fields
 
   All options can be passed directly to the functions. Some of the options can
   be set on a schema level via `Flop.Schema`.
@@ -457,6 +458,7 @@ defmodule Flop do
           | {:replace_invalid_params, boolean}
           | {:repo, module}
           | {:query_opts, Keyword.t()}
+          | {:extra_opts, Keyword.t()}
           | private_option()
 
   @typep private_option :: {:backend, module}
@@ -1244,10 +1246,12 @@ defmodule Flop do
         module -> struct(module)
       end
 
-    conditions =
-      Enum.reduce(filters, true, &Builder.filter(schema_struct, &1, &2))
-
-    Query.where(q, ^conditions)
+    Builder.filter(
+      q,
+      schema_struct,
+      filters,
+      Keyword.get(opts, :extra_opts, [])
+    )
   end
 
   ## Validation
