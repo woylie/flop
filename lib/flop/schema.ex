@@ -335,14 +335,14 @@ defprotocol Flop.Schema do
 
   ## Custom fields
 
-  If you need more control over the queries produced by the filters you can define
-  custom fields that reference a function, which implements the filter logic.
-  Custom fields filters are referenced by `{mod :: module(), function :: atom(), opts :: keyword()}`.
-  The function will receive the Ecto query, the flop filter and the option keyword list.
+  If you need more control over the queries produced by the filters, you can define
+  custom fields that reference a function which implements the filter logic.
+  Custom field filters are referenced by `{mod :: module(), function :: atom(), opts :: keyword()}`.
+  The function will receive the Ecto query, the flop filter, and the option keyword list.
 
-  If you need to pass in options at runtime (e.g. the timezone of the request, the user id of the current user etc)
+  If you need to pass in options at runtime (e.g. the timezone of the request, the user ID of the current user etc.),
   you can do so by passing in the `extra_opts` option to the flop functions.
-  Currently custom fields only support filtering and can not be used for sorting.
+  Currently, custom fields only support filtering and can not be used for sorting.
 
   Schema:
 
@@ -356,8 +356,8 @@ defprotocol Flop.Schema do
 
       defmodule CustomFilters do
         def date_filter(query, %Flop.Filter{value: value, op: op}, opts) do
-          source = opts[:source]
-          timezone = opts[:timezone]
+          source = Keyword.fetch!(opts, :source)
+          timezone = Keyword.fetch!(opts, :timezone)
 
           expr = dynamic([r], fragment("((? AT TIME ZONE 'utc') AT TIME ZONE ?)::date", field(r, source), ^timezone)
 
