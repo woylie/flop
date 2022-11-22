@@ -32,25 +32,34 @@ defmodule Flop.Builder do
 
   def filter(query, schema_struct, filters, extra_opts) do
     {query, conditions} =
-      Enum.reduce(filters, {query, true}, fn
-        %Filter{field: nil}, acc ->
-          acc
-
-        %Filter{value: nil}, acc ->
-          acc
-
-        %Filter{field: field} = filter, {q, c} ->
-          case get_field_type(schema_struct, field) do
-            {:custom, custom_opts} ->
-              {mod, fun, opts} = custom_opts[:filter]
-              {apply(mod, fun, [q, filter, Keyword.merge(extra_opts, opts)]), c}
-
-            field_type ->
-              {q, build_op(c, schema_struct, field_type, filter)}
-          end
-      end)
+      Enum.reduce(
+        filters,
+        {query, true},
+        &apply_filter(&1, schema_struct, extra_opts, &2)
+      )
 
     where(query, ^conditions)
+  end
+
+  defp apply_filter(%Filter{field: nil}, _, _, result), do: result
+  defp apply_filter(%Filter{value: nil}, _, _, result), do: result
+
+  defp apply_filter(
+         %Filter{field: field} = filter,
+         schema_struct,
+         extra_opts,
+         {query, conditions}
+       ) do
+    case get_field_type(schema_struct, field) do
+      {:custom, custom_opts} ->
+        {mod, fun, opts} = custom_opts[:filter]
+        opts = Keyword.merge(extra_opts, opts)
+
+        {apply(mod, fun, [query, filter, opts]), conditions}
+
+      field_type ->
+        {query, build_op(conditions, schema_struct, field_type, filter)}
+    end
   end
 
   defp build_op(c, schema_struct, {:compound, fields}, %Filter{op: op} = filter)
