@@ -19,7 +19,8 @@ defmodule Flop.Pet do
       :pet_and_owner_name,
       :species,
       :tags,
-      :custom
+      :custom,
+      :reverse_name
     ],
     sortable: [:name, :age, :owner_name, :owner_age],
     max_limit: 1000,
@@ -34,7 +35,10 @@ defmodule Flop.Pet do
     ],
     custom_fields: [
       custom: [
-        filter: {__MODULE__, :test_custom, [some: :options]}
+        filter: {__MODULE__, :test_custom_filter, [some: :options]}
+      ],
+      reverse_name: [
+        filter: {__MODULE__, :reverse_name_filter, []}
       ]
     ]
   }
@@ -50,7 +54,7 @@ defmodule Flop.Pet do
     belongs_to :owner, Owner
   end
 
-  def test_custom(query, %Flop.Filter{value: value} = filter, opts) do
+  def test_custom_filter(query, %Flop.Filter{value: value} = filter, opts) do
     :options = Keyword.fetch!(opts, :some)
     send(self(), {:filter, {filter, opts}})
 
@@ -59,6 +63,11 @@ defmodule Flop.Pet do
     else
       query
     end
+  end
+
+  def reverse_name_filter(query, %Flop.Filter{value: value}, _) do
+    reversed = value
+    where(query, [p], p.name == ^reversed)
   end
 
   def get_field(%__MODULE__{owner: %Owner{age: age}}, :owner_age), do: age
