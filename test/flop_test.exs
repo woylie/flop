@@ -518,6 +518,23 @@ defmodule FlopTest do
       end
     end
 
+    property "custom field filter" do
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                values = Enum.map(pets, &String.reverse(&1.name)),
+                query_value <- member_of(values) do
+        expected = filter_pets(pets, :name, :==, query_value)
+
+        assert query_pets_with_owners(%{
+                 filters: [
+                   %{field: :reverse_name, op: :==, value: query_value}
+                 ]
+               }) == expected
+
+        checkin_checkout()
+      end
+    end
+
     test "filtering with custom fields" do
       pets = insert_list_and_sort(1, :pet_with_owner)
 

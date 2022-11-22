@@ -426,7 +426,8 @@ defprotocol Flop.Schema do
         :pet_and_owner_name,
         :species,
         :tags,
-        :custom
+        :custom,
+        :reverse_name
       ]
   """
   @spec filterable(any) :: [atom]
