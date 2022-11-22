@@ -936,41 +936,10 @@ defimpl Flop.Schema, for: Any do
         alias_fields,
         custom_fields
       ) do
-    compound_field_funcs =
-      for {name, fields} <- compound_fields do
-        quote do
-          def field_type(_, unquote(name)) do
-            {:compound, unquote(fields)}
-          end
-        end
-      end
-
-    join_field_funcs =
-      for {name, opts} <- join_fields do
-        quote do
-          def field_type(_, unquote(name)) do
-            {:join, unquote(Macro.escape(opts))}
-          end
-        end
-      end
-
-    alias_field_funcs =
-      for name <- alias_fields do
-        quote do
-          def field_type(_, unquote(name)) do
-            {:alias, unquote(name)}
-          end
-        end
-      end
-
-    custom_field_funcs =
-      for {name, opts} <- custom_fields do
-        quote do
-          def field_type(_, unquote(name)) do
-            {:custom, unquote(Macro.escape(opts))}
-          end
-        end
-      end
+    compound_field_funcs = field_type_funcs(:compound, compound_fields)
+    join_field_funcs = field_type_funcs(:join, join_fields)
+    alias_field_funcs = field_type_funcs(:alias, alias_fields)
+    custom_field_funcs = field_type_funcs(:custom, custom_fields)
 
     default_funcs =
       quote do
@@ -985,6 +954,27 @@ defimpl Flop.Schema, for: Any do
       unquote(alias_field_funcs)
       unquote(custom_field_funcs)
       unquote(default_funcs)
+    end
+  end
+
+  defp field_type_funcs(type, fields)
+       when type in [:compound, :join, :custom] do
+    for {name, value} <- fields do
+      quote do
+        def field_type(_, unquote(name)) do
+          {unquote(type), unquote(Macro.escape(value))}
+        end
+      end
+    end
+  end
+
+  defp field_type_funcs(:alias, fields) do
+    for name <- fields do
+      quote do
+        def field_type(_, unquote(name)) do
+          {:alias, unquote(name)}
+        end
+      end
     end
   end
 

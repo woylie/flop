@@ -182,7 +182,7 @@ defmodule Flop.TestUtil do
 
     q = if sort?, do: order_by(q, [p], p.id), else: q
 
-    opts = Keyword.take(opts, [:extra_opts]) |> Keyword.put(:for, Pet)
+    opts = opts |> Keyword.take([:extra_opts]) |> Keyword.put(:for, Pet)
 
     Flop.all(q, flop, opts)
   end

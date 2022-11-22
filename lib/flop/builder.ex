@@ -32,8 +32,7 @@ defmodule Flop.Builder do
 
   def filter(query, schema_struct, filters, extra_opts) do
     {query, conditions} =
-      filters
-      |> Enum.reduce({query, true}, fn
+      Enum.reduce(filters, {query, true}, fn
         %Filter{field: nil}, acc ->
           acc
 
