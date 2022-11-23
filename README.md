@@ -1,6 +1,6 @@
 # Flop
 
-![CI](https://github.com/woylie/flop/workflows/CI/badge.svg) [![Hex](https://img.shields.io/hexpm/v/flop)](https://hex.pm/packages/flop) [![Coverage Status](https://coveralls.io/repos/github/woylie/flop/badge.svg)](https://coveralls.io/github/woylie/flop)
+![CI](https://github.com/woylie/flop/workflows/CI/badge.svg) [![Hex](https://img.shields.io/hexpm/v/flop)](https://hex.pm/packages/flop) [![codecov](https://codecov.io/gh/woylie/flop/branch/main/graph/badge.svg?token=32BSY8O2LI)](https://codecov.io/gh/woylie/flop)
 
 Flop is an Elixir library that applies filtering, ordering and pagination
 parameters to your Ecto queries.
