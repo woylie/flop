@@ -355,4 +355,37 @@ defmodule Flop.Filter do
       _ -> false
     end)
   end
+
+  @doc """
+  Returns the all filters for the given field.
+
+      iex> get_all([], :name)
+      []
+
+      iex> get_all([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :name)
+      [%Flop.Filter{field: :name, op: :==, value: "Joe"}]
+
+      iex> get_all([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :age)
+      []
+
+      iex> get_all(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   :name
+      ...> )
+      [
+        %Flop.Filter{field: :name, op: :==, value: "Joe"},
+        %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ]
+  """
+  @spec get_all([t()], atom) :: [t()]
+  def get_all(filters, field) when is_list(filters) and is_atom(field) do
+    Enum.filter(filters, fn
+      %{field: ^field} -> true
+      _ -> false
+    end)
+  end
 end
