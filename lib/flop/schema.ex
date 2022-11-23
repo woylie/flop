@@ -406,10 +406,16 @@ defprotocol Flop.Schema do
       {:compound, [:family_name, :given_name]}
       iex> field_type(%Flop.Pet{}, :owner_name)
       {:join, %{binding: :owner, field: :name, path: [:owner, :name]}}
+      iex> field_type(%Flop.Pet{}, :reverse_name)
+      {:custom, [filter: {Flop.Pet, :reverse_name_filter, []}]}
   """
   @doc since: "0.11.0"
   @spec field_type(any, atom) ::
-          {:normal, atom} | {:compound, [atom]} | {:join, map} | {:alias, atom}
+          {:normal, atom}
+          | {:compound, [atom]}
+          | {:join, map}
+          | {:alias, atom}
+          | {:custom, keyword()}
   def field_type(data, field)
 
   @doc """
