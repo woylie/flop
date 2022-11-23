@@ -19,6 +19,7 @@ defmodule Flop.MixProject do
         "coveralls.post": :test,
         "coveralls.html": :test,
         "coveralls.github": :test,
+        "coveralls.json": :test,
         "ecto.create": :test,
         "ecto.drop": :test,
         "ecto.migrate": :test,
