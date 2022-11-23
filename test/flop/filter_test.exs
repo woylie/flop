@@ -4,6 +4,8 @@ defmodule Flop.FilterTest do
   alias Flop.Filter
   alias Flop.Pet
 
+  doctest Flop.Filter, import: true
+
   describe "allowed_operators/1" do
     test "returns a list of operators for each native Ecto type" do
       types = [
