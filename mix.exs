@@ -86,7 +86,7 @@ defmodule Flop.MixProject do
       extras: ["README.md", "CHANGELOG.md"],
       source_ref: @version,
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
-      groups_for_functions: [
+      groups_for_docs: [
         "Query Functions": &(&1[:group] == :queries),
         "Parameter Manipulation": &(&1[:group] == :parameters),
         Miscellaneous: &(&1[:group] == :miscellaneous)
