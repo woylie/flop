@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## Added
+
+- Support for custom fields. These fields allow you to run custom filter
+  functions for anything that cannot be expressed with Flop filters.
+- Added `fetch`, `get` and `get_all` functions to `Flop.Filter`.
+
 ## [0.18.4] - 2022-11-17
 
 ### Changed
