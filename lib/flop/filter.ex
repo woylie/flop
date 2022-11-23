@@ -296,6 +296,8 @@ defmodule Flop.Filter do
   @doc """
   Fetches the first filter for the given field and returns it in a tuple.
 
+  ## Examples
+
       iex> fetch([], :name)
       :error
 
@@ -330,6 +332,8 @@ defmodule Flop.Filter do
   @doc """
   Returns the first filter for the given field.
 
+  ## Examples
+
       iex> get([], :name)
       nil
 
@@ -359,6 +363,8 @@ defmodule Flop.Filter do
   @doc """
   Returns the all filters for the given field.
 
+  ## Examples
+
       iex> get_all([], :name)
       []
 
@@ -386,6 +392,115 @@ defmodule Flop.Filter do
     Enum.filter(filters, fn
       %{field: ^field} -> true
       _ -> false
+    end)
+  end
+
+  @doc """
+  Deletes the filters for the given field from a list of filters.
+
+  ## Examples
+
+      iex> delete(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8}
+      ...>   ],
+      ...>   :name
+      ...> )
+      [%Flop.Filter{field: :age, op: :>, value: 8}]
+
+      iex> delete(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   :name
+      ...> )
+      [%Flop.Filter{field: :age, op: :>, value: 8}]
+
+      iex> delete([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :age)
+      [%Flop.Filter{field: :name, op: :==, value: "Joe"}]
+  """
+  @spec delete([t], atom) :: [t]
+  def delete(filters, field) when is_list(filters) and is_atom(field) do
+    Enum.reject(filters, fn
+      %{field: ^field} -> true
+      _ -> false
+    end)
+  end
+
+  @doc """
+  Deletes the first filter in list of filters for the given field.
+
+  ## Examples
+
+      iex> delete_first(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   :name
+      ...> )
+      [
+        %Flop.Filter{field: :age, op: :>, value: 8},
+        %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ]
+
+      iex> delete_first([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :age)
+      [%Flop.Filter{field: :name, op: :==, value: "Joe"}]
+  """
+  @spec delete_first([t], atom) :: [t]
+  def delete_first(filters, field) when is_list(filters) and is_atom(field) do
+    delete_first_filter(filters, field)
+  end
+
+  defp delete_first_filter([%{field: field} | tail], field) do
+    tail
+  end
+
+  defp delete_first_filter([%{} = filter | tail], field) do
+    [filter | delete_first_filter(tail, field)]
+  end
+
+  defp delete_first_filter([], _field) do
+    []
+  end
+
+  @doc """
+  Removes the filters for the given fields from a list of filters.
+
+  ## Examples
+
+      iex> drop(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8},
+      ...>     %Flop.Filter{field: :color, op: :==, value: "blue"}
+      ...>   ],
+      ...>   [:name, :color]
+      ...> )
+      [%Flop.Filter{field: :age, op: :>, value: 8}]
+
+      iex> drop(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8},
+      ...>     %Flop.Filter{field: :color, op: :==, value: "blue"},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   [:name, :species]
+      ...> )
+      [
+        %Flop.Filter{field: :age, op: :>, value: 8},
+        %Flop.Filter{field: :color, op: :==, value: "blue"}
+      ]
+  """
+  @spec drop([t], [atom]) :: [t]
+  def drop(filters, fields) when is_list(filters) and is_list(fields) do
+    Enum.reject(filters, fn
+      %{field: field} -> field in fields
     end)
   end
 end
