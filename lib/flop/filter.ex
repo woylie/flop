@@ -292,4 +292,67 @@ defmodule Flop.Filter do
       :ilike_or
     ]
   end
+
+  @doc """
+  Fetches the first filter for the given field and returns it in a tuple.
+
+      iex> fetch([], :name)
+      :error
+
+      iex> fetch([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :name)
+      {:ok, %Flop.Filter{field: :name, op: :==, value: "Joe"}}
+
+      iex> fetch([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :age)
+      :error
+
+      iex> fetch(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   :name
+      ...> )
+      {:ok, %Flop.Filter{field: :name, op: :==, value: "Joe"}}
+  """
+  @spec fetch([t()], atom) :: {:ok, t()} | :error
+  def fetch(filters, field) when is_list(filters) and is_atom(field) do
+    filters
+    |> Enum.find(fn
+      %{field: ^field} -> true
+      _ -> false
+    end)
+    |> case do
+      nil -> :error
+      filter -> {:ok, filter}
+    end
+  end
+
+  @doc """
+  Returns the first filter for the given field.
+
+      iex> get([], :name)
+      nil
+
+      iex> get([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :name)
+      %Flop.Filter{field: :name, op: :==, value: "Joe"}
+
+      iex> get([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :age)
+      nil
+
+      iex> get(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   :name
+      ...> )
+      %Flop.Filter{field: :name, op: :==, value: "Joe"}
+  """
+  @spec get([t()], atom) :: t() | nil
+  def get(filters, field) when is_list(filters) and is_atom(field) do
+    Enum.find(filters, fn
+      %{field: ^field} -> true
+      _ -> false
+    end)
+  end
 end
