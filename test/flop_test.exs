@@ -301,8 +301,8 @@ defmodule FlopTest do
                 op <- member_of([:empty, :not_empty]) do
         field = :tags
         [opposite_op] = [:empty, :not_empty] -- [op]
-        expected = filter_pets(pets, field, op)
-        opposite_expected = filter_pets(pets, field, opposite_op)
+        expected = filter_pets(pets, field, op, true)
+        opposite_expected = filter_pets(pets, field, opposite_op, true)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: op, value: true}]

@@ -27,18 +27,10 @@ defmodule Flop.TestUtil do
       {type, _field} = field_type when type in [:normal, :join] ->
         ecto_field_type = Pet.__schema__(:type, field)
 
-        array_match =
-          case ecto_field_type do
-            {:array, _} -> fn value -> value == [] end
-            _ -> fn _ -> false end
-          end
-
-        filter_func = matches?(op, value)
+        filter_func = matches?(op, value, ecto_field_type)
 
         Enum.filter(pets, fn pet ->
-          field_value = get_field(pet, field_type)
-
-          filter_func.(field_value) or array_match.(field_value)
+          pet |> get_field(field_type) |> filter_func.()
         end)
 
       {:compound, fields} ->
@@ -98,6 +90,9 @@ defmodule Flop.TestUtil do
   defp get_field(pet, {:join, %{path: [a, b]}}),
     do: pet |> Map.fetch!(a) |> Map.fetch!(b)
 
+  defp matches?(:empty, v, {:array, _}), do: &(v == Enum.empty?(&1))
+  defp matches?(:not_empty, v, {:array, _}), do: &(v == !Enum.empty?(&1))
+  defp matches?(op, v, _), do: matches?(op, v)
   defp matches?(:==, v), do: &(&1 == v)
   defp matches?(:!=, v), do: &(&1 != v)
   defp matches?(:empty, _), do: &empty?(&1)

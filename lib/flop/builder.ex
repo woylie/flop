@@ -140,12 +140,21 @@ defmodule Flop.Builder do
   for op <- @operators do
     {fragment, prelude, combinator} = op_config(op)
 
-    defp build_op(c, _schema_struct, {:normal, field}, %Filter{
-           op: unquote(op),
-           value: value
-         }) do
+    defp build_op(
+           c,
+           schema_struct,
+           {:normal, field},
+           %Filter{
+             op: unquote(op),
+             value: value
+           } = filter
+         ) do
       unquote(prelude)
-      build_dynamic(unquote(fragment), false, unquote(combinator))
+
+      case runtime_dynamic(c, schema_struct, field, filter) do
+        nil -> build_dynamic(unquote(fragment), false, unquote(combinator))
+        dynamic -> dynamic
+      end
     end
 
     defp build_op(
@@ -161,6 +170,30 @@ defmodule Flop.Builder do
       build_dynamic(unquote(fragment), true, unquote(combinator))
     end
   end
+
+  defp runtime_dynamic(c, %module{}, field, %Filter{op: op, value: value})
+       when op in [:empty, :not_empty] do
+    field_type = module.__schema__(:type, field)
+
+    case {field_type, op, value} do
+      {{:array, _}, :empty, true} ->
+        dynamic([r], ^c and fragment("? = '{}'", field(r, ^field)))
+
+      {{:array, _}, :empty, false} ->
+        dynamic([r], ^c and fragment("? <> '{}'", field(r, ^field)))
+
+      {{:array, _}, :not_empty, true} ->
+        dynamic([r], ^c and fragment("? <> '{}'", field(r, ^field)))
+
+      {{:array, _}, :not_empty, false} ->
+        dynamic([r], ^c and fragment("? = '{}'", field(r, ^field)))
+
+      _ ->
+        nil
+    end
+  end
+
+  defp runtime_dynamic(_, _, _, _), do: nil
 
   defp get_field_type(nil, field), do: {:normal, field}
 
