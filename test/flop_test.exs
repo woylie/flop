@@ -296,7 +296,7 @@ defmodule FlopTest do
       check all pet_count <- integer(@pet_count_range),
                 pets =
                   insert_list_and_sort(pet_count, :pet_with_owner,
-                    tags: fn -> Enum.random([[], ["Carl"]]) end
+                    tags: fn -> Enum.random([nil, [], ["Carl"]]) end
                   ),
                 op <- member_of([:empty, :not_empty]) do
         field = :tags

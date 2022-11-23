@@ -90,8 +90,12 @@ defmodule Flop.TestUtil do
   defp get_field(pet, {:join, %{path: [a, b]}}),
     do: pet |> Map.fetch!(a) |> Map.fetch!(b)
 
-  defp matches?(:empty, v, {:array, _}), do: &(v == Enum.empty?(&1))
-  defp matches?(:not_empty, v, {:array, _}), do: &(v == !Enum.empty?(&1))
+  defp matches?(:empty, v, {:array, _}),
+    do: &(is_nil(&1) or v == Enum.empty?(&1))
+
+  defp matches?(:not_empty, v, {:array, _}),
+    do: &(not is_nil(&1) and v == !Enum.empty?(&1))
+
   defp matches?(op, v, _), do: matches?(op, v)
   defp matches?(:==, v), do: &(&1 == v)
   defp matches?(:!=, v), do: &(&1 != v)

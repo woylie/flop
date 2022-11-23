@@ -171,22 +171,55 @@ defmodule Flop.Builder do
     end
   end
 
+  # credo:disable-for-next-line
   defp runtime_dynamic(c, %module{}, field, %Filter{op: op, value: value})
        when op in [:empty, :not_empty] do
     field_type = module.__schema__(:type, field)
 
     case {field_type, op, value} do
       {{:array, _}, :empty, true} ->
-        dynamic([r], ^c and fragment("? = '{}'", field(r, ^field)))
+        dynamic(
+          [r],
+          ^c and
+            fragment(
+              "? = '{}' OR ? IS NULL",
+              field(r, ^field),
+              field(r, ^field)
+            )
+        )
 
       {{:array, _}, :empty, false} ->
-        dynamic([r], ^c and fragment("? <> '{}'", field(r, ^field)))
+        dynamic(
+          [r],
+          ^c and
+            fragment(
+              "? <> '{}' AND ? IS NOT NULL",
+              field(r, ^field),
+              field(r, ^field)
+            )
+        )
 
       {{:array, _}, :not_empty, true} ->
-        dynamic([r], ^c and fragment("? <> '{}'", field(r, ^field)))
+        dynamic(
+          [r],
+          ^c and
+            fragment(
+              "? <> '{}' AND ? IS NOT NULL",
+              field(r, ^field),
+              field(r, ^field)
+            )
+        )
 
       {{:array, _}, :not_empty, false} ->
-        dynamic([r], ^c and fragment("? = '{}'", field(r, ^field)))
+        dynamic(
+          [r],
+          ^c and
+            fragment(
+              "? = '{}' OR ? IS NULL",
+              field(r, ^field),
+              field(r, ^field)
+            )
+        )
 
       _ ->
         nil
