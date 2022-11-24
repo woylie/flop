@@ -2236,6 +2236,8 @@ defmodule Flop do
       ...>   operators: %{name: :ilike_or}
       ...> )
       [%{field: :name, op: :ilike_or, value: "George"}]
+
+  See also `Flop.Filter.new/2`.
   """
   @doc since: "0.14.0"
   @doc group: :parameters

@@ -316,6 +316,7 @@ defmodule Flop.Filter do
       ...> )
       {:ok, %Flop.Filter{field: :name, op: :==, value: "Joe"}}
   """
+  @doc since: "0.19.0"
   @spec fetch([t()], atom) :: {:ok, t()} | :error
   def fetch(filters, field) when is_list(filters) and is_atom(field) do
     filters
@@ -352,6 +353,7 @@ defmodule Flop.Filter do
       ...> )
       %Flop.Filter{field: :name, op: :==, value: "Joe"}
   """
+  @doc since: "0.19.0"
   @spec get([t()], atom) :: t() | nil
   def get(filters, field) when is_list(filters) and is_atom(field) do
     Enum.find(filters, fn
@@ -387,6 +389,7 @@ defmodule Flop.Filter do
         %Flop.Filter{field: :name, op: :==, value: "Jim"}
       ]
   """
+  @doc since: "0.19.0"
   @spec get_all([t()], atom) :: [t()]
   def get_all(filters, field) when is_list(filters) and is_atom(field) do
     Enum.filter(filters, fn
@@ -422,6 +425,7 @@ defmodule Flop.Filter do
       iex> delete([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :age)
       [%Flop.Filter{field: :name, op: :==, value: "Joe"}]
   """
+  @doc since: "0.19.0"
   @spec delete([t], atom) :: [t]
   def delete(filters, field) when is_list(filters) and is_atom(field) do
     Enum.reject(filters, fn
@@ -451,6 +455,7 @@ defmodule Flop.Filter do
       iex> delete_first([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :age)
       [%Flop.Filter{field: :name, op: :==, value: "Joe"}]
   """
+  @doc since: "0.19.0"
   @spec delete_first([t], atom) :: [t]
   def delete_first(filters, field) when is_list(filters) and is_atom(field) do
     delete_first_filter(filters, field)
@@ -497,10 +502,137 @@ defmodule Flop.Filter do
         %Flop.Filter{field: :color, op: :==, value: "blue"}
       ]
   """
+  @doc since: "0.19.0"
   @spec drop([t], [atom]) :: [t]
   def drop(filters, fields) when is_list(filters) and is_list(fields) do
     Enum.reject(filters, fn
       %{field: field} -> field in fields
     end)
+  end
+
+  @doc """
+  Creates a list of filters from an enumerable.
+
+  The default operator is `:==`.
+
+      iex> new(%{name: "George", age: 8})
+      [
+        %Flop.Filter{field: :age, op: :==, value: 8},
+        %Flop.Filter{field: :name, op: :==, value: "George"}
+      ]
+
+      iex> new([name: "George", age: 8])
+      [
+        %Flop.Filter{field: :name, op: :==, value: "George"},
+        %Flop.Filter{field: :age, op: :==, value: 8},
+      ]
+
+  You can optionally pass a mapping from field names to operators as a map
+  with atom keys.
+
+      iex> new(
+      ...>   %{name: "George", age: 8},
+      ...>   operators: %{name: :ilike_and}
+      ...> )
+      [
+        %Flop.Filter{field: :age, op: :==, value: 8},
+        %Flop.Filter{field: :name, op: :ilike_and, value: "George"}
+      ]
+
+  You can also pass a map to rename fields.
+
+      iex> new(
+      ...>   %{s: "George", age: 8},
+      ...>   rename: %{s: :name}
+      ...> )
+      [
+        %Flop.Filter{field: :age, op: :==, value: 8},
+        %Flop.Filter{field: :name, op: :==, value: "George"}
+      ]
+
+      iex> new(
+      ...>   %{s: "George", cat: true},
+      ...>   rename: %{s: :name, cat: :dog}
+      ...> )
+      [
+        %Flop.Filter{field: :dog, op: :==, value: true},
+        %Flop.Filter{field: :name, op: :==, value: "George"}
+      ]
+
+  If both a rename option and an operator are set for a field, the operator
+  option needs to use the new field name.
+
+      iex> new(
+      ...>   %{n: "George"},
+      ...>   rename: %{n: :name},
+      ...>   operators: %{name: :ilike_or}
+      ...> )
+      [%Flop.Filter{field: :name, op: :ilike_or, value: "George"}]
+
+  If the enumerable uses string keys as field names, the function attempts to
+  convert them to existing atoms. If the atom does not exist, the filter is
+  removed from the list.
+
+      iex> new(%{"name" => "George", "age" => 8})
+      [
+        %Flop.Filter{field: :age, op: :==, value: 8},
+        %Flop.Filter{field: :name, op: :==, value: "George"}
+      ]
+
+      iex> new(%{"name" => "George", "doesnotexist" => 8})
+      [
+        %Flop.Filter{field: :name, op: :==, value: "George"}
+      ]
+  """
+  @doc since: "0.19.0"
+  @spec new(Enumerable.t(), keyword) :: [t]
+  def new(enum, opts \\ []) do
+    operators = opts[:operators]
+    renamings = opts[:rename]
+
+    enum
+    |> Enum.map(fn
+      {field, value} when is_atom(field) or is_binary(field) ->
+        field = rename_field(field, renamings)
+
+        %Flop.Filter{
+          field: field,
+          op: op_from_mapping(field, operators),
+          value: value
+        }
+    end)
+    |> Enum.reject(&is_nil(&1.field))
+  end
+
+  defp op_from_mapping(_field, nil), do: :==
+
+  defp op_from_mapping(field, %{} = operators) when is_atom(field) do
+    Map.get(operators, field, :==)
+  end
+
+  defp op_from_mapping(field, %{} = operators) when is_binary(field) do
+    atom_key = String.to_existing_atom(field)
+    Map.get(operators, atom_key, :==)
+  rescue
+    ArgumentError -> :==
+  end
+
+  defp rename_field(field, nil) when is_atom(field), do: field
+
+  defp rename_field(field, nil) when is_binary(field) do
+    String.to_existing_atom(field)
+  rescue
+    ArgumentError -> nil
+  end
+
+  defp rename_field(field, %{} = renamings) when is_atom(field) do
+    Map.get(renamings, field, field)
+  end
+
+  defp rename_field(field, %{} = renamings) when is_binary(field) do
+    atom_key = String.to_existing_atom(field)
+    Map.get(renamings, atom_key, field)
+  rescue
+    ArgumentError -> nil
   end
 end
