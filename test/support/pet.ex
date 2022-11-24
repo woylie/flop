@@ -43,7 +43,8 @@ defmodule Flop.Pet do
         filter: {__MODULE__, :test_custom_filter, [some: :options]}
       ],
       reverse_name: [
-        filter: {__MODULE__, :reverse_name_filter, []}
+        filter: {__MODULE__, :reverse_name_filter, []},
+        ecto_type: :string
       ]
     ]
   }

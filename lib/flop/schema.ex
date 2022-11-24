@@ -354,21 +354,28 @@ defprotocol Flop.Schema do
 
   ## Custom fields
 
-  If you need more control over the queries produced by the filters, you can define
-  custom fields that reference a function which implements the filter logic.
-  Custom field filters are referenced by `{mod :: module(), function :: atom(), opts :: keyword()}`.
-  The function will receive the Ecto query, the flop filter, and the option keyword list.
+  If you need more control over the queries produced by the filters, you can
+  define custom fields that reference a function which implements the filter
+  logic. Custom field filters are referenced by
+  `{mod :: module(), function :: atom(), opts :: keyword()}`. The function will
+  receive the Ecto query, the flop filter, and the option keyword list.
 
-  If you need to pass in options at runtime (e.g. the timezone of the request, the user ID of the current user etc.),
-  you can do so by passing in the `extra_opts` option to the flop functions.
-  Currently, custom fields only support filtering and can not be used for sorting.
+  If you need to pass in options at runtime (e.g. the timezone of the request,
+  the user ID of the current user etc.), you can do so by passing in the
+  `extra_opts` option to the flop functions. Currently, custom fields only
+  support filtering and can not be used for sorting.
 
   Schema:
 
       @derive {
         Flop.Schema,
         filterable: [:inserted_at_date],
-        custom_fields: [inserted_at_date: [filter: {CustomFilters, :date_filter, [source: :inserted_at]}]]
+        custom_fields: [
+          inserted_at_date: [
+            filter: {CustomFilters, :date_filter, [source: :inserted_at]},
+            ecto_type: :date
+          ]
+        ]
       }
 
   Filter module:
@@ -435,7 +442,13 @@ defprotocol Flop.Schema do
         }
       }
       iex> field_type(%Flop.Pet{}, :reverse_name)
-      {:custom, [filter: {Flop.Pet, :reverse_name_filter, []}]}
+      {
+        :custom,
+        [
+          filter: {Flop.Pet, :reverse_name_filter, []},
+          ecto_type: :string
+        ]
+      }
   """
   @doc since: "0.11.0"
   @spec field_type(any, atom) ::
