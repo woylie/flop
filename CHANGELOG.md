@@ -6,8 +6,8 @@
 
 - Support for custom fields. These fields allow you to run custom filter
   functions for anything that cannot be expressed with Flop filters.
-- Added `fetch`, `get`, `get_all`, `delete`, `delete_first`, `drop` and `new`
-  functions to `Flop.Filter`.
+- Added `fetch`, `get`, `get_all`, `delete`, `delete_first`, `drop`, `new`,
+  `take`, `pop` and `pop_first` functions to `Flop.Filter`.
 
 ## [0.18.4] - 2022-11-17
 

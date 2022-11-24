@@ -645,4 +645,135 @@ defmodule Flop.Filter do
   rescue
     ArgumentError -> nil
   end
+
+  @doc """
+  Takes all filters for the given fields from a filter list.
+
+  ## Examples
+
+      iex> take(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8},
+      ...>     %Flop.Filter{field: :color, op: :==, value: "blue"},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   [:name, :color]
+      ...> )
+      [
+        %Flop.Filter{field: :name, op: :==, value: "Joe"},
+        %Flop.Filter{field: :color, op: :==, value: "blue"},
+        %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ]
+  """
+  @doc since: "0.19.0"
+  @spec take([t], [atom]) :: [t]
+  def take(filters, fields) when is_list(filters) and is_list(fields) do
+    Enum.filter(filters, &(&1.field in fields))
+  end
+
+  @doc """
+  Returns the first filter for the given field and removes all other filters for
+  the same field from the filter list.
+
+  Returns a tuple with the first matching filter first value for `key` and the
+  remaining filter list. If there is no filter for the field in the list, the
+  default value is returned as the first tuple element.
+
+  See also `Flop.Filter.pop_first/3`.
+
+  ## Examples
+
+      iex> pop([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :name)
+      {%Flop.Filter{field: :name, op: :==, value: "Joe"}, []}
+
+      iex> pop([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :age)
+      {nil, [%Flop.Filter{field: :name, op: :==, value: "Joe"}]}
+
+      iex> pop(
+      ...>   [%Flop.Filter{field: :name, op: :==, value: "Joe"}],
+      ...>   :age,
+      ...>   %Flop.Filter{field: :age, op: :>, value: 8}
+      ...> )
+      {
+        %Flop.Filter{field: :age, op: :>, value: 8},
+        [%Flop.Filter{field: :name, op: :==, value: "Joe"}]
+      }
+
+      iex> pop(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"},
+      ...>   ],
+      ...>   :name
+      ...> )
+      {
+        %Flop.Filter{field: :name, op: :==, value: "Joe"},
+        [%Flop.Filter{field: :age, op: :>, value: 8}]
+      }
+  """
+  @doc since: "0.19.0"
+  @spec pop([t], atom, any) :: {t, [t]}
+  def pop(filters, field, default \\ nil)
+      when is_list(filters) and is_atom(field) do
+    case fetch(filters, field) do
+      {:ok, value} -> {value, delete(filters, field)}
+      :error -> {default, filters}
+    end
+  end
+
+  @doc """
+  Returns the first filter for the given field and a filter list with all
+  remaining filters.
+
+  Returns a tuple with the first matching filter first value for `key` and the
+  remaining filter list. If there is no filter for the field in the list, the
+  default value is returned as the first tuple element.
+
+  See also `Flop.Filter.pop/3`.
+
+  ## Examples
+
+      iex> pop_first([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :name)
+      {%Flop.Filter{field: :name, op: :==, value: "Joe"}, []}
+
+      iex> pop_first([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :age)
+      {nil, [%Flop.Filter{field: :name, op: :==, value: "Joe"}]}
+
+      iex> pop_first(
+      ...>   [%Flop.Filter{field: :name, op: :==, value: "Joe"}],
+      ...>   :age,
+      ...>   %Flop.Filter{field: :age, op: :>, value: 8}
+      ...> )
+      {
+        %Flop.Filter{field: :age, op: :>, value: 8},
+        [%Flop.Filter{field: :name, op: :==, value: "Joe"}]
+      }
+
+      iex> pop_first(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"},
+      ...>   ],
+      ...>   :name
+      ...> )
+      {
+        %Flop.Filter{field: :name, op: :==, value: "Joe"},
+        [
+          %Flop.Filter{field: :age, op: :>, value: 8},
+          %Flop.Filter{field: :name, op: :==, value: "Jim"}
+        ]
+      }
+  """
+  @doc since: "0.19.0"
+  @spec pop_first([t], atom, any) :: {t, [t]}
+  def pop_first(filters, field, default \\ nil)
+      when is_list(filters) and is_atom(field) do
+    case fetch(filters, field) do
+      {:ok, value} -> {value, delete_first(filters, field)}
+      :error -> {default, filters}
+    end
+  end
 end
