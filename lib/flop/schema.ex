@@ -249,7 +249,26 @@ defprotocol Flop.Schema do
   the named binding you set with the `:as` option in the join statement of your
   query. `:field` is the field name on that binding.
 
-  You can also use the short syntax:
+  You can also set the `ecto_type` option, which allows Flop to determine which
+  filter operators can be used on the field during the validation. This is also
+  important if the field is a map or array field, so that Flop can check for
+  empty arrays and empty maps when a `empty` or `not_empty` filter is used.
+
+  @derive {
+        Flop.Schema,
+        filterable: [:pet_species],
+        sortable: [:pet_species],
+        join_fields: [
+          pet_species: [
+            binding: :pets,
+            field: :species,
+            ecto_type: :string
+          ]
+        ]
+      }
+
+  There is also a short syntax which you can use if you only want to specify
+  the binding and the field:
 
       @derive {
         Flop.Schema,
@@ -397,6 +416,7 @@ defprotocol Flop.Schema do
   - `{:join, map}` - A field from a named binding as defined with the
     `join_fields` option. The map has keys for the `:binding`, `:field` and
     `:path`.
+  - `{:custom, keyword}` - A filter field that uses a custom filter function.
 
   ## Examples
 
@@ -405,7 +425,15 @@ defprotocol Flop.Schema do
       iex> field_type(%Flop.Pet{}, :full_name)
       {:compound, [:family_name, :given_name]}
       iex> field_type(%Flop.Pet{}, :owner_name)
-      {:join, %{binding: :owner, field: :name, path: [:owner, :name]}}
+      {
+        :join,
+        %{
+          binding: :owner,
+          field: :name,
+          path: [:owner, :name],
+          ecto_type: :string
+        }
+      }
       iex> field_type(%Flop.Pet{}, :reverse_name)
       {:custom, [filter: {Flop.Pet, :reverse_name_filter, []}]}
   """
@@ -921,7 +949,12 @@ defimpl Flop.Schema, for: Any do
     opts =
       case opts do
         {binding, field} ->
-          %{binding: binding, field: field, path: [binding, field]}
+          %{
+            binding: binding,
+            field: field,
+            path: [binding, field],
+            ecto_type: nil
+          }
 
         opts when is_list(opts) ->
           binding = Keyword.fetch!(opts, :binding)
@@ -930,7 +963,8 @@ defimpl Flop.Schema, for: Any do
           %{
             binding: binding,
             field: field,
-            path: opts[:path] || [binding, field]
+            path: opts[:path] || [binding, field],
+            ecto_type: Keyword.get(opts, :ecto_type)
           }
       end
 

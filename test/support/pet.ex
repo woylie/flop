@@ -30,7 +30,12 @@ defmodule Flop.Pet do
     ],
     join_fields: [
       owner_age: {:owner, :age},
-      owner_name: [binding: :owner, field: :name, path: [:owner, :name]],
+      owner_name: [
+        binding: :owner,
+        field: :name,
+        path: [:owner, :name],
+        ecto_type: :string
+      ],
       owner_tags: {:owner, :tags}
     ],
     custom_fields: [

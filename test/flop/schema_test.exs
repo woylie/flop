@@ -50,7 +50,12 @@ defmodule Flop.SchemaTest do
   test "field_type/2 returns config for join fields" do
     assert Schema.field_type(%Panini{}, :topping_name) ==
              {:join,
-              %{binding: :toppings, field: :name, path: [:toppings, :name]}}
+              %{
+                binding: :toppings,
+                field: :name,
+                path: [:toppings, :name],
+                ecto_type: nil
+              }}
   end
 
   test "field_type/2 returns config for custom fields" do
