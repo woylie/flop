@@ -51,8 +51,8 @@ defmodule Flop.Builder do
          {query, conditions}
        ) do
     case get_field_type(schema_struct, field) do
-      {:custom, custom_opts} ->
-        {mod, fun, opts} = custom_opts[:filter]
+      {:custom, %{} = custom_opts} ->
+        {mod, fun, opts} = Map.fetch!(custom_opts, :filter)
         opts = Keyword.merge(extra_opts, opts)
 
         {apply(mod, fun, [query, filter, opts]), conditions}

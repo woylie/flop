@@ -20,7 +20,10 @@ defmodule Flop.SchemaTest do
              join_fields: [topping_name: {:toppings, :name}],
              alias_fields: [:topping_count],
              custom_fields: [
-               inserted_at: {__MODULE__, :date_filter, [some: "option"]}
+               inserted_at: [
+                 filter: {__MODULE__, :date_filter, [some: "option"]},
+                 ecto_type: :date
+               ]
              ]}
 
     defstruct [:name, :email, :age]
@@ -60,7 +63,11 @@ defmodule Flop.SchemaTest do
 
   test "field_type/2 returns config for custom fields" do
     assert Schema.field_type(%Panini{}, :inserted_at) ==
-             {:custom, {Panini, :date_filter, [some: "option"]}}
+             {:custom,
+              %{
+                filter: {Panini, :date_filter, [some: "option"]},
+                ecto_type: :date
+              }}
   end
 
   test "max_limit/1 returns the max limit passed as option" do
