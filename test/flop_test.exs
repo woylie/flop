@@ -187,6 +187,7 @@ defmodule FlopTest do
       end
     end
 
+    @tag :capture_log
     property "applies equality filter to compound fields" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
@@ -227,6 +228,7 @@ defmodule FlopTest do
       end
     end
 
+    @tag :capture_log
     property "applies inequality filter to compound fields" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
