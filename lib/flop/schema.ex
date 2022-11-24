@@ -357,7 +357,7 @@ defprotocol Flop.Schema do
   If you need more control over the queries produced by the filters, you can
   define custom fields that reference a function which implements the filter
   logic. Custom field filters are referenced by
-  `{mod :: module(), function :: atom(), opts :: keyword()}`. The function will
+  `{mod :: module, function :: atom, opts :: keyword}`. The function will
   receive the Ecto query, the flop filter, and the option keyword list.
 
   If you need to pass in options at runtime (e.g. the timezone of the request,
@@ -444,10 +444,10 @@ defprotocol Flop.Schema do
       iex> field_type(%Flop.Pet{}, :reverse_name)
       {
         :custom,
-        [
+        %{
           filter: {Flop.Pet, :reverse_name_filter, []},
           ecto_type: :string
-        ]
+        }
       }
   """
   @doc since: "0.11.0"
@@ -456,7 +456,7 @@ defprotocol Flop.Schema do
           | {:compound, [atom]}
           | {:join, map}
           | {:alias, atom}
-          | {:custom, keyword()}
+          | {:custom, map}
   def field_type(data, field)
 
   @doc """
@@ -599,7 +599,11 @@ defimpl Flop.Schema, for: Any do
     default_order = Keyword.get(options, :default_order)
     compound_fields = Keyword.get(options, :compound_fields, [])
     alias_fields = Keyword.get(options, :alias_fields, [])
-    custom_fields = Keyword.get(options, :custom_fields, [])
+
+    custom_fields =
+      options
+      |> Keyword.get(:custom_fields, [])
+      |> Enum.map(&normalize_custom_opts/1)
 
     join_fields =
       options
@@ -956,6 +960,15 @@ defimpl Flop.Schema, for: Any do
           }
       """
     end
+  end
+
+  def normalize_custom_opts({name, opts}) when is_list(opts) do
+    opts = %{
+      filter: Keyword.fetch!(opts, :filter),
+      ecto_type: Keyword.get(opts, :ecto_type)
+    }
+
+    {name, opts}
   end
 
   def normalize_join_opts({name, opts}) do
