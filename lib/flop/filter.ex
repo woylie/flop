@@ -776,4 +776,76 @@ defmodule Flop.Filter do
       :error -> {default, filters}
     end
   end
+
+  @doc """
+  Adds the given filter to the filter list and removes all existing filters for
+  the same field from the list.
+
+  ## Examples
+
+      iex> put(
+      ...>   [%Flop.Filter{field: :name, op: :==, value: "Joe"}],
+      ...>   %Flop.Filter{field: :age, op: :>, value: 8}
+      ...> )
+      [
+        %Flop.Filter{field: :age, op: :>, value: 8},
+        %Flop.Filter{field: :name, op: :==, value: "Joe"}
+      ]
+
+      iex> put(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   %Flop.Filter{field: :name, op: :==, value: "Jane"}
+      ...> )
+      [
+        %Flop.Filter{field: :name, op: :==, value: "Jane"},
+        %Flop.Filter{field: :age, op: :>, value: 8}
+      ]
+  """
+  @doc since: "0.19.0"
+  @spec put([t], t) :: [t]
+  def put(filters, %Flop.Filter{field: field} = filter)
+      when is_list(filters) and is_atom(field) do
+    [filter | delete(filters, field)]
+  end
+
+  @doc """
+  Adds the given filter to the filter list only if no filter for the field
+  exists yet.
+
+  ## Examples
+
+      iex> put_new(
+      ...>   [%Flop.Filter{field: :name, op: :==, value: "Joe"}],
+      ...>   %Flop.Filter{field: :age, op: :>, value: 8}
+      ...> )
+      [
+        %Flop.Filter{field: :age, op: :>, value: 8},
+        %Flop.Filter{field: :name, op: :==, value: "Joe"}
+      ]
+
+      iex> put_new(
+      ...>   [
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   %Flop.Filter{field: :name, op: :==, value: "Jane"}
+      ...> )
+      [
+        %Flop.Filter{field: :age, op: :>, value: 8},
+        %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ]
+  """
+  @doc since: "0.19.0"
+  @spec put_new([t], t) :: [t]
+  def put_new(filters, %Flop.Filter{field: field} = filter)
+      when is_list(filters) and is_atom(field) do
+    case fetch(filters, field) do
+      {:ok, _} -> filters
+      :error -> [filter | filters]
+    end
+  end
 end
