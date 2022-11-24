@@ -164,8 +164,14 @@ defmodule Flop.Filter do
   @doc """
   Returns the allowed operators for the given schema module and field.
 
-  If the given value is not a native Ecto type, a list with all operators is
-  returned.
+  For regular Ecto schema fields, the type is derived via schema reflection.
+
+  If the given schema module derives `Flop.Schema`, the type of join and
+  custom fields is determined via the `ecto_type` option. Compound files are
+  always handled as string fields, minus unsupported operators.
+
+  If the type cannot be determined or if the type is not a native Ecto type, a
+  list with all operators is returned.
 
       iex> allowed_operators(Pet, :age)
       [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
@@ -173,7 +179,34 @@ defmodule Flop.Filter do
   @spec allowed_operators(atom, atom) :: [op]
   def allowed_operators(module, field)
       when is_atom(module) and is_atom(field) do
-    :type |> module.__schema__(field) |> allowed_operators()
+    struct = struct!(module)
+
+    if Flop.Schema.impl_for(struct) != Flop.Schema.Any do
+      module
+      |> field_type_from_flop_schema(struct, field)
+      |> allowed_operators()
+    else
+      :type |> module.__schema__(field) |> allowed_operators()
+    end
+  end
+
+  defp field_type_from_flop_schema(module, struct, field) do
+    case Flop.Schema.field_type(struct, field) do
+      {:normal, _} ->
+        module.__schema__(:type, field)
+
+      {:join, %{ecto_type: type}} ->
+        type
+
+      {:custom, %{ecto_type: type}} ->
+        type
+
+      {:compound, _} ->
+        :flop_compound
+
+      _ ->
+        nil
+    end
   end
 
   @doc """
@@ -266,6 +299,20 @@ defmodule Flop.Filter do
       :>,
       :in,
       :not_in
+    ]
+  end
+
+  def allowed_operators(:flop_compound) do
+    [
+      :=~,
+      :like,
+      :like_and,
+      :like_or,
+      :ilike,
+      :ilike_and,
+      :ilike_or,
+      :empty,
+      :not_empty
     ]
   end
 
