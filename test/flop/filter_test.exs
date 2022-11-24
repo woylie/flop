@@ -57,5 +57,39 @@ defmodule Flop.FilterTest do
                :not_in
              ]
     end
+
+    test "returns a list of operators for a join field with ecto_type" do
+      assert Filter.allowed_operators(Pet, :owner_name) ==
+               Filter.allowed_operators(:string)
+    end
+
+    test "returns a list of operators for a join field without ecto_type" do
+      assert Filter.allowed_operators(Pet, :owner_age) ==
+               Filter.allowed_operators(:unknown)
+    end
+
+    test "returns a list of operators for a custom field with ecto_type" do
+      assert Filter.allowed_operators(Pet, :reverse_name) ==
+               Filter.allowed_operators(:string)
+    end
+
+    test "returns a list of operators for a custom field without ecto_type" do
+      assert Filter.allowed_operators(Pet, :custom) ==
+               Filter.allowed_operators(:unknown)
+    end
+
+    test "returns a list of operators for a compound field" do
+      assert Filter.allowed_operators(Pet, :full_name) == [
+               :=~,
+               :like,
+               :like_and,
+               :like_or,
+               :ilike,
+               :ilike_and,
+               :ilike_or,
+               :empty,
+               :not_empty
+             ]
+    end
   end
 end
