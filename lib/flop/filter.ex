@@ -583,6 +583,13 @@ defmodule Flop.Filter do
       [
         %Flop.Filter{field: :name, op: :==, value: "George"}
       ]
+
+  Other key types are also removed.
+
+      iex> new(%{"name" => "George", 2 => 8})
+      [
+        %Flop.Filter{field: :name, op: :==, value: "George"}
+      ]
   """
   @doc since: "0.19.0"
   @spec new(Enumerable.t(), keyword) :: [t]
@@ -593,15 +600,18 @@ defmodule Flop.Filter do
     enum
     |> Enum.map(fn
       {field, value} when is_atom(field) or is_binary(field) ->
-        field = rename_field(field, renamings)
+        if field = rename_field(field, renamings) do
+          %Flop.Filter{
+            field: field,
+            op: op_from_mapping(field, operators),
+            value: value
+          }
+        end
 
-        %Flop.Filter{
-          field: field,
-          op: op_from_mapping(field, operators),
-          value: value
-        }
+      {_, _} ->
+        nil
     end)
-    |> Enum.reject(&is_nil(&1.field))
+    |> Enum.reject(&is_nil/1)
   end
 
   defp op_from_mapping(_field, nil), do: :==
