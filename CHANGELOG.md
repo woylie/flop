@@ -19,6 +19,7 @@
   new `ecto_type` option. If the option is not set, the function returns all
   operators as before. For compound fields, only the supported operators are
   returned.
+- Added `opts` field to `Flop.Meta` struct.
 
 ## [0.18.4] - 2022-11-17
 
