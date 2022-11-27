@@ -798,6 +798,11 @@ defmodule FlopTest do
       assert Flop.meta(Pet, %Flop{}).schema == nil
       assert Flop.meta(Pet, %Flop{}, for: Pet).schema == Pet
     end
+
+    test "sets options" do
+      opts = Flop.meta(Pet, %Flop{}, for: Pet).opts
+      assert opts[:for] == Pet
+    end
   end
 
   describe "run/3" do
@@ -1671,8 +1676,10 @@ defmodule FlopTest do
     end
 
     test "passes backend module" do
-      assert {:ok, {_, %Meta{backend: TestProvider}}} =
+      assert {:ok, {_, %Meta{backend: TestProvider, opts: opts}}} =
                TestProvider.validate_and_run(Pet, %{})
+
+      assert Keyword.get(opts, :backend) == TestProvider
     end
   end
 

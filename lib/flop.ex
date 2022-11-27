@@ -777,6 +777,7 @@ defmodule Flop do
         has_previous_page?: false,
         next_offset: nil,
         next_page: nil,
+        opts: [repo: Flop.Repo],
         page_size: 10,
         previous_offset: nil,
         previous_page: nil,
@@ -828,6 +829,7 @@ defmodule Flop do
       end_cursor: end_cursor,
       has_next_page?: length(results) > first,
       has_previous_page?: !is_nil(flop.after),
+      opts: opts,
       page_size: first,
       schema: opts[:for]
     }
@@ -857,6 +859,7 @@ defmodule Flop do
       end_cursor: end_cursor,
       has_next_page?: !is_nil(flop.before),
       has_previous_page?: length(results) > last,
+      opts: opts,
       page_size: last,
       schema: opts[:for]
     }
@@ -864,9 +867,9 @@ defmodule Flop do
 
   def meta(q, %Flop{} = flop, opts) do
     repo = get_option(:repo, opts) || raise no_repo_error("meta")
-    opts = Keyword.put(opts, :repo, repo)
+    opts_with_repo = Keyword.put(opts, :repo, repo)
 
-    total_count = count(q, flop, opts)
+    total_count = count(q, flop, opts_with_repo)
     page_size = flop.page_size || flop.limit
     total_pages = get_total_pages(total_count, page_size)
     current_offset = get_current_offset(flop)
@@ -893,6 +896,7 @@ defmodule Flop do
       has_previous_page?: has_previous_page?,
       next_offset: next_offset,
       next_page: next_page,
+      opts: opts,
       page_size: page_size,
       previous_offset: previous_offset,
       previous_page: previous_page,
@@ -1336,7 +1340,9 @@ defmodule Flop do
 
         {:error,
          %Meta{
+           backend: opts[:backend],
            errors: convert_errors(changeset),
+           opts: opts,
            params: convert_params(params),
            schema: opts[:for]
          }}

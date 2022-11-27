@@ -50,6 +50,7 @@ defmodule Flop.Meta do
           has_previous_page?: boolean,
           next_offset: non_neg_integer | nil,
           next_page: pos_integer | nil,
+          opts: keyword,
           page_size: pos_integer | nil,
           params: %{optional(String.t()) => term()},
           previous_offset: non_neg_integer | nil,
@@ -78,6 +79,7 @@ defmodule Flop.Meta do
     flop: %Flop{},
     has_next_page?: false,
     has_previous_page?: false,
+    opts: [],
     params: %{}
   ]
 end
