@@ -8,6 +8,7 @@
   functions for anything that cannot be expressed with Flop filters.
 - Added `fetch`, `get`, `get_all`, `delete`, `delete_first`, `drop`, `new`,
   `take`, `pop`, `pop_first`, `put` and `put_new` functions to `Flop.Filter`.
+- Added `Flop.Meta.with_errors/3`.
 - Added `ecto_type` option to join fields.
 
 ### Changed

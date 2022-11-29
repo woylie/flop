@@ -82,4 +82,89 @@ defmodule Flop.Meta do
     opts: [],
     params: %{}
   ]
+
+  @doc """
+  Returns a `Flop.Meta` struct with the given params, errors, and opts.
+
+  This function is used internally to build error responses in case of
+  validation errors. You can use it to add additional parameter validation.
+
+  The errors have to be passed as a keyword list.
+
+  ## Example
+
+  In this list function, the given parameters are first validated with
+  `Flop.validate/2`, which returns a `Flop` struct on success. You can then pass
+  that struct to a custom validation function, along with the original
+  parameters and the opts, which both are needed to call this function.
+
+      def list_pets(%{} = params) do
+        opts = [for: Pet]
+
+        with {:ok, %Flop{} = flop} <- Flop.validate(params, opts),
+             {:ok, %Flop{} = flop} <- custom_validation(flop, params, opts) do
+          Flop.run(Pet, flop, for: Pet)
+        end
+      end
+
+  In your custom validation function, you can retrieve and manipulate the filter
+  values in the `Flop` struct with the functions defined in the `Flop.Filter`
+  module.
+
+      defp custom_validation(%Flop{} = flop, %{} = params, opts) do
+        %{value: date} = Flop.Filter.get(flop.filters, :date)
+
+        if date && Date.compare(date, Date.utc_today()) != :lt do
+          errors = [filters: ["date must be in the past"]]
+          Flop.Meta.with_errors(params, errors, opts)
+        else
+          {:ok, flop}
+        end
+      end
+  """
+  @doc since: "0.19.0"
+  @spec with_errors(map, keyword, keyword) :: t()
+  def with_errors(%{} = params, errors, opts)
+      when is_list(errors) and is_list(opts) do
+    %__MODULE__{
+      backend: opts[:backend],
+      errors: errors,
+      opts: opts,
+      params: convert_params(params),
+      schema: opts[:for]
+    }
+  end
+
+  defp convert_params(params) do
+    params
+    |> map_to_string_keys()
+    |> filters_to_list()
+  end
+
+  defp filters_to_list(%{"filters" => filters} = params) when is_map(filters) do
+    filters =
+      filters
+      |> Enum.map(fn {index, filter} -> {String.to_integer(index), filter} end)
+      |> Enum.sort_by(fn {index, _} -> index end)
+      |> Enum.map(fn {_, filter} -> filter end)
+
+    Map.put(params, "filters", filters)
+  end
+
+  defp filters_to_list(params), do: params
+
+  defp map_to_string_keys(%{} = params) do
+    Enum.into(params, %{}, fn
+      {key, value} when is_atom(key) ->
+        {Atom.to_string(key), map_to_string_keys(value)}
+
+      {key, value} when is_binary(key) ->
+        {key, map_to_string_keys(value)}
+    end)
+  end
+
+  defp map_to_string_keys(values) when is_list(values),
+    do: Enum.map(values, &map_to_string_keys/1)
+
+  defp map_to_string_keys(value), do: value
 end
