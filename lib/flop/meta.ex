@@ -90,7 +90,8 @@ defmodule Flop.Meta do
   validation errors. You can use it to add additional parameter validation.
 
   The given parameters parameters are normalized before being added to the
-  struct. The errors have to be passed as a keyword list.
+  struct. The errors have to be passed as a keyword list (same format as the
+  result of `Ecto.Changeset.traverse_errors(changeset, & &1)`).
 
   ## Example
 
@@ -116,12 +117,44 @@ defmodule Flop.Meta do
         %{value: date} = Flop.Filter.get(flop.filters, :date)
 
         if date && Date.compare(date, Date.utc_today()) != :lt do
-          errors = [filters: ["date must be in the past"]]
-          Flop.Meta.with_errors(params, errors, opts)
+          errors = [filters: [{"date must be in the past", []}]]
+          {:error, Flop.Meta.with_errors(params, errors, opts)}
         else
           {:ok, flop}
         end
       end
+
+  Note that in this example, `Flop.Filter.get/2` is used, which only returns the
+  first filter in the given filter list. Depending on how you use Flop, the
+  filter list may have multiple entries for the same field. In that case, you
+  may need to either use `Flop.Filter.get_all/2` and apply the validation on all
+  returned filters, or reduce over the whole filter list. The latter has the
+  advantage that you can attach the error to the actual list entry.
+
+      def custom_validation(%Flop{} = flop, %{} = params, opts) do
+        filter_errors =
+          flop.filters
+          |> Enum.reduce([], &validate_filter/2)
+          |> Enum.reverse()
+
+        if Enum.any?(filter_errors, &(&1 != [])) do
+          errors = [filters: filter_errors]
+          {:error, Flop.Meta.with_errors(params, errors, opts)}
+        else
+          {:ok, flop}
+        end
+      end
+
+      defp validate_filter(%Flop.Filter{field: :date, value: date}, acc)
+           when is_binary(date) do
+        date = Date.from_iso8601!(date)
+
+        if Date.compare(date, Date.utc_today()) != :lt,
+          do: [[value: [{"date must be in the past", []}]] | acc],
+          else: [[] | acc]
+      end
+
+      defp validate_filter(%Flop.Filter{}, acc), do: [[] | acc]
   """
   @doc since: "0.19.0"
   @spec with_errors(map, keyword, keyword) :: t()
