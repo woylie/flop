@@ -89,7 +89,8 @@ defmodule Flop.Meta do
   This function is used internally to build error responses in case of
   validation errors. You can use it to add additional parameter validation.
 
-  The errors have to be passed as a keyword list.
+  The given parameters parameters are normalized before being added to the
+  struct. The errors have to be passed as a keyword list.
 
   ## Example
 
