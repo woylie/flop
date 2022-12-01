@@ -348,7 +348,7 @@ defmodule FlopTest do
       check all pet_count <- integer(@pet_count_range),
             pets = insert_list_and_sort(pet_count, :pet_with_owner),
             field <- filterable_pet_field(:string),
-            op <- member_of([:=~, :not_ilike]),
+            op <- member_of([:not_ilike]),
             pet <- member_of(pets),
             value = Pet.get_field(pet, field),
             query_value <- substring(value) do
