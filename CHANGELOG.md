@@ -10,6 +10,7 @@
   `take`, `pop`, `pop_first`, `put` and `put_new` functions to `Flop.Filter`.
 - Added `Flop.Meta.with_errors/3`.
 - Added `ecto_type` option to join fields.
+- Added `not_like` and `not_ilike` filter operators.
 
 ### Changed
 
