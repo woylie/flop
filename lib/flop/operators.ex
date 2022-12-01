@@ -154,6 +154,16 @@ defmodule Flop.Operators do
     {fragment, prelude, nil}
   end
 
+  def op_config(:not_like) do
+    fragment =
+      quote do
+        not like(field(r, ^var!(field)), ^var!(value))
+      end
+
+    prelude = prelude(:add_wildcard)
+    {fragment, prelude, nil}
+  end
+
   def op_config(:=~) do
     fragment =
       quote do
@@ -168,6 +178,16 @@ defmodule Flop.Operators do
     fragment =
       quote do
         ilike(field(r, ^var!(field)), ^var!(value))
+      end
+
+    prelude = prelude(:add_wildcard)
+    {fragment, prelude, nil}
+  end
+
+  def op_config(:not_ilike) do
+    fragment =
+      quote do
+        not ilike(field(r, ^var!(field)), ^var!(value))
       end
 
     prelude = prelude(:add_wildcard)

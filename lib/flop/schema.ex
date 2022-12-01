@@ -184,7 +184,7 @@ defprotocol Flop.Schema do
 
   ### Filter operator rules
 
-  - `:=~`, `:like`, `:like_and`, `:like_or`, `:ilike`, `:ilike_and`,
+  - `:=~`, `:like`, `:not_like`, `:like_and`, `:like_or`, `:ilike`, `:not_ilike`, `:ilike_and`,
     `:ilike_or` - If a string value is passed, it will be split at whitespace
     characters and each segment will be checked for. If a list of strings is
     passed, the individual strings are not split. The filter matches for a value
