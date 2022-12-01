@@ -136,9 +136,11 @@ defmodule Flop.Generators do
         :>=,
         :>,
         :like,
+        :not_like,
         :like_and,
         :like_or,
         :ilike,
+        :not_ilike,
         :ilike_and,
         :ilike_or
       ])

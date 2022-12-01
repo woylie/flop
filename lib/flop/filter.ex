@@ -49,11 +49,13 @@ defmodule Flop.Filter do
   | `:contains`     | `"pear"`            | `WHERE 'pear' = ANY(column)`                            |
   | `:not_contains` | `"pear"`            | `WHERE 'pear' = NOT IN(column)`                         |
   | `:like`         | `"cyth"`            | `WHERE column LIKE '%cyth%'`                            |
+  | `:not_like`     | `"cyth"`            | `WHERE column NOT LIKE '%cyth%'`                        |
   | `:like_and`     | `["Rubi", "Rosa"]`  | `WHERE column LIKE '%Rubi%' AND column LIKE '%Rosa%'`   |
   | `:like_and`     | `"Rubi Rosa"`       | `WHERE column LIKE '%Rubi%' AND column LIKE '%Rosa%'`   |
   | `:like_or`      | `["Rubi", "Rosa"]`  | `WHERE column LIKE '%Rubi%' OR column LIKE '%Rosa%'`    |
   | `:like_or`      | `"Rubi Rosa"`       | `WHERE column LIKE '%Rubi%' OR column LIKE '%Rosa%'`    |
   | `:ilike`        | `"cyth"`            | `WHERE column ILIKE '%cyth%'`                           |
+  | `:not_ilike`    | `"cyth"`            | `WHERE column NOT ILIKE '%cyth%'`                       |
   | `:ilike_and`    | `["Rubi", "Rosa"]`  | `WHERE column ILIKE '%Rubi%' AND column ILIKE '%Rosa%'` |
   | `:ilike_and`    | `"Rubi Rosa"`       | `WHERE column ILIKE '%Rubi%' AND column ILIKE '%Rosa%'` |
   | `:ilike_or`     | `["Rubi", "Rosa"]`  | `WHERE column ILIKE '%Rubi%' OR column ILIKE '%Rosa%'`  |
@@ -82,9 +84,11 @@ defmodule Flop.Filter do
           | :contains
           | :not_contains
           | :like
+          | :not_like
           | :like_and
           | :like_or
           | :ilike
+          | :not_ilike
           | :ilike_and
           | :ilike_or
 
@@ -109,9 +113,11 @@ defmodule Flop.Filter do
         :contains,
         :not_contains,
         :like,
+        :not_like,
         :like_and,
         :like_or,
         :ilike,
+        :not_ilike,
         :ilike_and,
         :ilike_or
       ]
@@ -237,9 +243,11 @@ defmodule Flop.Filter do
       :in,
       :not_in,
       :like,
+      :not_like,
       :like_and,
       :like_or,
       :ilike,
+      :not_ilike,
       :ilike_and,
       :ilike_or
     ]
@@ -306,9 +314,11 @@ defmodule Flop.Filter do
     [
       :=~,
       :like,
+      :not_like,
       :like_and,
       :like_or,
       :ilike,
+      :not_ilike,
       :ilike_and,
       :ilike_or,
       :empty,
@@ -332,9 +342,11 @@ defmodule Flop.Filter do
       :contains,
       :not_contains,
       :like,
+      :not_like,
       :like_and,
       :like_or,
       :ilike,
+      :not_ilike,
       :ilike_and,
       :ilike_or
     ]

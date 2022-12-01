@@ -21,8 +21,10 @@ defmodule Flop.Builder do
     :contains,
     :not_contains,
     :like,
+    :not_like,
     :=~,
     :ilike,
+    :not_ilike,
     :not_in,
     :like_and,
     :like_or,
@@ -66,9 +68,11 @@ defmodule Flop.Builder do
        when op in [
               :=~,
               :like,
+              :not_like,
               :like_and,
               :like_or,
               :ilike,
+              :not_ilike,
               :ilike_and,
               :ilike_or,
               :not_empty
