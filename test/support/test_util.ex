@@ -101,7 +101,7 @@ defmodule Flop.TestUtil do
   defp matches?(:contains, v), do: &(v in &1)
   defp matches?(:not_contains, v), do: &(v not in &1)
   defp matches?(:like, v), do: &(&1 =~ v)
-  defp matches?(:not_like, v), do: &(not &1 =~ v)
+  defp matches?(:not_like, v), do: &(&1 =~ v == false)
   defp matches?(:=~, v), do: matches?(:ilike, v)
 
   defp matches?(:ilike, v) do
@@ -111,7 +111,7 @@ defmodule Flop.TestUtil do
 
   defp matches?(:not_ilike, v) do
     v = String.downcase(v)
-    &(not String.downcase(&1) =~ v)
+    &(String.downcase(&1) =~ v == false)
   end
 
   defp matches?(:like_and, v) when is_binary(v) do
