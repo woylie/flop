@@ -311,11 +311,11 @@ defmodule FlopTest do
 
     property "applies not like filter" do
       check all pet_count <- integer(@pet_count_range),
-            pets = insert_list_and_sort(pet_count, :pet_with_owner),
-            field <- filterable_pet_field(:string),
-            pet <- member_of(pets),
-            value = Pet.get_field(pet, field),
-            query_value <- substring(value) do
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
+                pet <- member_of(pets),
+                value = Pet.get_field(pet, field),
+                query_value <- substring(value) do
         expected = filter_pets(pets, field, :not_like, query_value)
 
         assert query_pets_with_owners(%{
@@ -346,12 +346,12 @@ defmodule FlopTest do
 
     property "applies not ilike filter" do
       check all pet_count <- integer(@pet_count_range),
-            pets = insert_list_and_sort(pet_count, :pet_with_owner),
-            field <- filterable_pet_field(:string),
-            op <- member_of([:not_ilike]),
-            pet <- member_of(pets),
-            value = Pet.get_field(pet, field),
-            query_value <- substring(value) do
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
+                op <- member_of([:not_ilike]),
+                pet <- member_of(pets),
+                value = Pet.get_field(pet, field),
+                query_value <- substring(value) do
         expected = filter_pets(pets, field, :not_ilike, query_value)
 
         assert query_pets_with_owners(%{
