@@ -348,14 +348,13 @@ defmodule FlopTest do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
                 field <- filterable_pet_field(:string),
-                op <- member_of([:not_ilike]),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 query_value <- substring(value) do
         expected = filter_pets(pets, field, :not_ilike, query_value)
 
         assert query_pets_with_owners(%{
-                 filters: [%{field: field, op: op, value: query_value}]
+                 filters: [%{field: field, op: :not_ilike, value: query_value}]
                }) == expected
 
         checkin_checkout()
