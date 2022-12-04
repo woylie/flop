@@ -177,48 +177,36 @@ defmodule Flop.Builder do
     field_type = module.__schema__(:type, field)
 
     case {field_type, op, value} do
-      {{:array, _}, :empty, true} ->
+      {{:array, _} = ecto_type, :empty, true} ->
         dynamic(
           [r],
           ^c and
-            fragment(
-              "? = '{}' OR ? IS NULL",
-              field(r, ^field),
-              field(r, ^field)
-            )
+            (is_nil(field(r, ^field)) or
+               field(r, ^field) == type(^[], ^ecto_type))
         )
 
-      {{:array, _}, :empty, false} ->
+      {{:array, _} = ecto_type, :empty, false} ->
         dynamic(
           [r],
           ^c and
-            fragment(
-              "? <> '{}' AND ? IS NOT NULL",
-              field(r, ^field),
-              field(r, ^field)
-            )
+            (not is_nil(field(r, ^field)) and
+               field(r, ^field) != type(^[], ^ecto_type))
         )
 
-      {{:array, _}, :not_empty, true} ->
+      {{:array, _} = ecto_type, :not_empty, true} ->
         dynamic(
           [r],
           ^c and
-            fragment(
-              "? <> '{}' AND ? IS NOT NULL",
-              field(r, ^field),
-              field(r, ^field)
-            )
+            (not is_nil(field(r, ^field)) and
+               field(r, ^field) != type(^[], ^ecto_type))
         )
 
-      {{:array, _}, :not_empty, false} ->
+      {{:array, _} = ecto_type, :not_empty, false} ->
         dynamic(
           [r],
           ^c and
-            fragment(
-              "? = '{}' OR ? IS NULL",
-              field(r, ^field),
-              field(r, ^field)
-            )
+            (is_nil(field(r, ^field)) or
+               field(r, ^field) == type(^[], ^ecto_type))
         )
 
       _ ->
