@@ -296,10 +296,16 @@ defmodule FlopTest do
       check all pet_count <- integer(@pet_count_range),
                 pets =
                   insert_list_and_sort(pet_count, :pet_with_owner,
-                    tags: fn -> Enum.random([nil, [], ["Carl"]]) end
+                    tags: fn -> Enum.random([nil, [], ["catdog"]]) end,
+                    owner: fn ->
+                      build(:owner,
+                        age: fn -> Enum.random([nil, :rand.uniform(100)]) end,
+                        name: fn -> Enum.random([nil, "Carl"]) end
+                      )
+                    end
                   ),
+                field <- member_of([:tags, :owner_name, :owner_age]),
                 op <- member_of([:empty, :not_empty]) do
-        field = :tags
         [opposite_op] = [:empty, :not_empty] -- [op]
         expected = filter_pets(pets, field, op, true)
         opposite_expected = filter_pets(pets, field, opposite_op, true)
