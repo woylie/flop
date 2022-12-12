@@ -299,12 +299,11 @@ defmodule FlopTest do
                     tags: fn -> Enum.random([nil, [], ["catdog"]]) end,
                     owner: fn ->
                       build(:owner,
-                        age: fn -> Enum.random([nil, :rand.uniform(100)]) end,
-                        name: fn -> Enum.random([nil, "Carl"]) end
+                        tags: fn -> Enum.random([nil, [], ["catlover"]]) end
                       )
                     end
                   ),
-                field <- member_of([:tags, :owner_name, :owner_age]),
+                field <- member_of([:tags, :owner_tags]),
                 op <- member_of([:empty, :not_empty]) do
         [opposite_op] = [:empty, :not_empty] -- [op]
         expected = filter_pets(pets, field, op, true)
