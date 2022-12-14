@@ -13,7 +13,7 @@ on:
       - main
 
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-20.04
     name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
     strategy:
@@ -74,9 +74,24 @@ jobs:
         with:
           files: ./cover/excoveralls.json
 
-  lint:
+  matrix-results:
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    name: Tests
+    needs:
+      - tests
+    steps:
+      - run: |
+          result="${{ needs.tests.result }}"
+          if [[ $result == "success" ]]; then
+            exit 0
+          else
+            exit 1
+          fi
+
+  code-quality:
     runs-on: ubuntu-20.04
-    name: Lint
+    name: Code Quality
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
