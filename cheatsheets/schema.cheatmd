@@ -1,0 +1,406 @@
+# Schema configuration
+
+## Basics
+{: .col-2}
+
+### Minimal configuration
+
+```elixir
+defmodule Pet do
+  use Ecto.Schema
+
+  @derive {
+    Flop.Schema,
+    filterable: [:name, :species],
+    sortable: [:name, :age]
+  }
+
+  schema "pets" do
+    field :name, :string
+    field :age, :integer
+    field :species, :string
+  end
+end
+```
+
+### Options
+
+#### Limit
+
+```elixir
+@derive {
+  Flop.Schema,
+  filterable: [:name, :species],
+  sortable: [:name, :age],
+  max_limit: 100,
+  default_limit: 50
+}
+```
+
+#### Order
+
+```elixir
+@derive {
+  Flop.Schema,
+  filterable: [:name, :species],
+  sortable: [:name, :age],
+  default_order: %{
+    order_by: [:name, :age],
+    order_directions: [:asc, :desc]
+  }
+}
+```
+
+#### Pagination types
+
+```elixir
+@derive {
+  Flop.Schema,
+  filterable: [:name, :species],
+  sortable: [:name, :age],
+  pagination_types: [:first, :last],
+  default_pagination_type: :first
+}
+```
+
+## Alias fields
+{: .col-2}
+
+### Schema
+
+```elixir
+defmodule Owner do
+  use Ecto.Schema
+
+  @derive {
+    Flop.Schema,
+    filterable: [:name],
+    sortable: [:name, :pet_count],
+    alias_fields: [:pet_count]
+  }
+
+  schema "owners" do
+    field :name, :string
+    has_many :pets, Pet
+  end
+end
+```
+
+### Query
+
+```elixir
+params = %{order_by: [:pet_count]}
+
+Owner
+|> join(:left, [o], p in assoc(o, :pets), as: :pets)
+|> group_by([o], o.id)
+|> select(
+  [o, pets: p],
+  {o.id, p.id |> count() |> selected_as(:pet_count)}
+)
+|> Flop.validate_and_run(params, for: Owner)
+```
+
+## Compound fields
+{: .col-2}
+
+### Schema
+
+```elixir
+defmodule User do
+  use Ecto.Schema
+
+  @derive {
+    Flop.Schema,
+    filterable: [:name, :species],
+    sortable: [:name, :age],
+    compound_fields: [
+      full_name: [:family_name, :given_name]
+    ]
+  }
+
+  schema "users" do
+    field :family_name, :string
+    field :given_name, :string
+  end
+end
+```
+
+### Query
+
+```elixir
+params = %{
+  filters: [
+    %{field: :full_name, op: :ilike_and, value: "pea"}
+  ]
+}
+
+Flop.validate_and_run(User, params, for: Owner)
+```
+
+## Join fields
+{: .col-2}
+
+### Schema
+
+#### Owner
+
+```elixir
+defmodule Owner do
+  use Ecto.Schema
+
+  @derive {
+    Flop.Schema,
+    filterable: [:name, :pet_age],
+    sortable: [:name],
+    join_fields: [
+      pet_age: [
+        binding: :pets,
+        field: :age,
+        ecto_type: :integer
+      ]
+    ]
+  }
+
+  schema "owners" do
+    field :name, :string
+    has_many :pets, Pet
+  end
+end
+```
+
+#### Pet
+
+```elixir
+defmodule Pet do
+  use Ecto.Schema
+
+  schema "pets" do
+    field :age, :integer
+  end
+end
+```
+
+### Query
+
+#### Only filtering or sorting
+
+```elixir
+params = %{
+  filters: [
+    %{field: :pet_age, op: :==, value: 8}
+  ]
+}
+
+Owner
+|> join([o], p in assoc(o, :pets), as: :pets)
+|> Flop.validate_and_run(params, for: Pet)
+```
+
+#### With preload
+
+```elixir
+Owner
+|> join([o], p in assoc(o, :pets), as: :pets)
+|> preload([pets: p], pets: p)
+|> Flop.validate_and_run(params, for: Pet)
+```
+
+## Join field for nested association
+{: .col-2}
+
+### Schema
+
+#### Owner
+
+```elixir
+defmodule Owner do
+  use Ecto.Schema
+
+  @derive {
+    Flop.Schema,
+    filterable: [:name, :toy_description],
+    sortable: [:name],
+    join_fields: [
+      pet_age: [
+        binding: :toys,
+        field: :description,
+        ecto_type: :string,
+        # only needed with cursor pagination when sorting
+        # by the join field, so that Flop can find the
+        # cursor value
+        path: [:pets, :toys]
+      ]
+    ]
+  }
+
+  schema "owners" do
+    field :name, :string
+    has_many :pets, Pet
+  end
+end
+```
+
+#### Pet
+
+```elixir
+defmodule Pet do
+  use Ecto.Schema
+
+  schema "pets" do
+    field :age, :integer
+    has_many :toys, Toy
+  end
+end
+```
+
+#### Toy
+
+```elixir
+defmodule Toy do
+  use Ecto.Schema
+
+  schema "toys" do
+    field :description, :string
+  end
+end
+```
+
+### Query with preload
+
+```elixir
+params = %{order_by: [:toy_description]}
+
+Owner
+|> join([o], p in assoc(o, :pets), as: :pets)
+|> join([pets: p], t in assoc(p, :toys), as: :toys)
+|> preload([pets: p, toys: t], pets: {p, toys: t})
+|> Flop.validate_and_run(params, for: Owner)
+```
+
+## Join field for subquery
+{: .col-2}
+
+### Schema
+
+#### Owner
+
+```elixir
+defmodule Owner do
+  use Ecto.Schema
+
+  @derive {
+    Flop.Schema,
+    filterable: [:name],
+    sortable: [:name, :pet_count],
+    join_fields: [
+      pet_count: [
+        binding: :pet_count,
+        field: :count
+      ]
+    ]
+  }
+
+  schema "owners" do
+    field :name, :string
+    has_many :pets, Pet
+  end
+end
+```
+
+#### Pet
+
+```elixir
+defmodule Pet do
+  use Ecto.Schema
+
+  schema "pets" do
+    field :age, :integer
+  end
+end
+```
+
+### Query
+
+```elixir
+params = %{filters: [%{field: :pet_count, op: :>, value: 2}]}
+
+pet_count_query =
+  Pet
+  |> where([p], parent_as(:owner).id == p.owner_id)
+  |> select([p], %{count: count(p)})
+
+q =
+  Owner
+  |> from(as: :owner)
+  |> join(:inner_lateral, [o], p in subquery(pet_count_query),
+    as: :pet_count
+  )
+  |> Flop.validate_and_run(params, for: Owner)
+```
+
+## Custom fields
+{: .col-2}
+
+### Schema
+
+```elixir
+defmodule Pet do
+  use Ecto.Schema
+
+  @derive {
+    Flop.Schema,
+    filterable: [:name, :human_age],
+    sortable: [:name],
+    custom_fields: [
+      human_age: [
+        filter: {CustomFilters, :human_age, []},
+        ecto_type: :integer
+      ]
+    ]
+  }
+
+  schema "pets" do
+    field :name, :string
+    field :age, :integer
+  end
+end
+```
+
+### Custom filter function
+
+```elixir
+defmodule CustomFilters do
+  def human_age(q, %Flop.Filter{value: value, op: op}, _) do
+    case Ecto.Type.cast(:integer, value) do
+      {:ok, human_years} ->
+        value_in_dog_years = round(human_years / 7)
+
+        case op do
+          :== -> where(q, [p], p == ^value_in_dog_years)
+          :!= -> where(q, [p], p != ^value_in_dog_years)
+          :> -> where(q, [p], p > ^value_in_dog_years)
+          :< -> where(q, [p], p < ^value_in_dog_years)
+          :>= -> where(q, [p], p >= ^value_in_dog_years)
+          :<= -> where(q, [p], p <= ^value_in_dog_years)
+        end
+
+      :error ->
+        # cannot cast filter value, ignore
+        query
+    end
+  end
+end
+```
+
+### Query
+
+```elixir
+params = %{
+  filters: [
+    %{field: :human_age, op: :==, value: 30}
+  ]
+}
+
+Flop.validate_and_run(Pet, params, for: Pet)
+```

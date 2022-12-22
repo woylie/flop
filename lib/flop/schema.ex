@@ -254,7 +254,7 @@ defprotocol Flop.Schema do
   important if the field is a map or array field, so that Flop can check for
   empty arrays and empty maps when a `empty` or `not_empty` filter is used.
 
-  @derive {
+      @derive {
         Flop.Schema,
         filterable: [:pet_species],
         sortable: [:pet_species],

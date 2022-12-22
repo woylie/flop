@@ -84,9 +84,12 @@ defmodule Flop.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md", "CHANGELOG.md"],
+      extras: ["cheatsheets/schema.cheatmd", "README.md", "CHANGELOG.md"],
       source_ref: @version,
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
+      groups_for_extras: [
+        Cheatsheets: ~r/cheatsheets\/.?/
+      ],
       groups_for_docs: [
         "Query Functions": &(&1[:group] == :queries),
         "Parameter Manipulation": &(&1[:group] == :parameters),
