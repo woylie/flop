@@ -11,6 +11,7 @@
 - Added `Flop.Meta.with_errors/3`.
 - Added `ecto_type` option to join fields.
 - Added `not_like` and `not_ilike` filter operators.
+- Added a cheatsheet for schema configuration.
 
 ### Changed
 
