@@ -1630,7 +1630,7 @@ defmodule FlopTest do
     end
   end
 
-  describe "bindings/3" do
+  describe "named_bindings/3" do
     test "returns used binding names with order_by and filters" do
       flop = %Flop{
         filters: [
@@ -1644,13 +1644,13 @@ defmodule FlopTest do
         order_by: [:owner_name, :age]
       }
 
-      assert Flop.bindings(flop, Pet) == [:owner]
+      assert Flop.named_bindings(flop, Pet) == [:owner]
     end
 
     test "allows disabling order fields" do
       flop = %Flop{order_by: [:owner_name, :age]}
-      assert Flop.bindings(flop, Pet, order: false) == []
-      assert Flop.bindings(flop, Pet, order: true) == [:owner]
+      assert Flop.named_bindings(flop, Pet, order: false) == []
+      assert Flop.named_bindings(flop, Pet, order: true) == [:owner]
     end
 
     test "returns used binding names with order_by" do
@@ -1659,7 +1659,7 @@ defmodule FlopTest do
         order_by: [:owner_name, :age]
       }
 
-      assert Flop.bindings(flop, Pet) == [:owner]
+      assert Flop.named_bindings(flop, Pet) == [:owner]
     end
 
     test "returns used binding names with filters" do
@@ -1673,7 +1673,7 @@ defmodule FlopTest do
         ]
       }
 
-      assert Flop.bindings(flop, Pet) == [:owner]
+      assert Flop.named_bindings(flop, Pet) == [:owner]
     end
 
     test "returns empty list if no join fields are used" do
@@ -1686,11 +1686,66 @@ defmodule FlopTest do
         order_by: [:age]
       }
 
-      assert Flop.bindings(flop, Pet) == []
+      assert Flop.named_bindings(flop, Pet) == []
     end
 
     test "returns empty list if there are no filters and order fields" do
-      assert Flop.bindings(%Flop{}, Pet) == []
+      assert Flop.named_bindings(%Flop{}, Pet) == []
+    end
+  end
+
+  describe "with_named_bindings/3" do
+    test "adds necessary bindings to query" do
+      query = Pet
+      opts = [for: Pet]
+
+      flop = %Flop{
+        filters: [
+          # join fields
+          %Flop.Filter{field: :owner_age, op: :==, value: 5},
+          %Flop.Filter{field: :owner_name, op: :==, value: "George"},
+          # compound field
+          %Flop.Filter{field: :full_name, op: :==, value: "George the Dog"}
+        ],
+        # join field and normal field
+        order_by: [:owner_name, :age]
+      }
+
+      fun = fn q, :owner ->
+        join(q, :left, [p], o in assoc(p, :owner), as: :owner)
+      end
+
+      new_query = Flop.with_named_bindings(query, flop, fun, opts)
+      assert Ecto.Query.has_named_binding?(new_query, :owner)
+    end
+
+    test "allows disabling order fields" do
+      query = Pet
+      flop = %Flop{order_by: [:owner_name, :age]}
+
+      fun = fn q, :owner ->
+        join(q, :left, [p], o in assoc(p, :owner), as: :owner)
+      end
+
+      opts = [for: Pet, order: false]
+      new_query = Flop.with_named_bindings(query, flop, fun, opts)
+      assert new_query == query
+
+      opts = [for: Pet, order: true]
+      new_query = Flop.with_named_bindings(query, flop, fun, opts)
+      assert Ecto.Query.has_named_binding?(new_query, :owner)
+    end
+
+    test "returns query unchanged if no bindings are required" do
+      query = Pet
+      opts = [for: Pet]
+
+      assert Flop.with_named_bindings(
+               query,
+               %Flop{},
+               fn _, _ -> nil end,
+               opts
+             ) == query
     end
   end
 

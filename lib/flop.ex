@@ -2281,7 +2281,7 @@ defmodule Flop do
   If you pass a Flop with a filter on the `:owner_age` field, the returned list
   will include the `:owner` binding.
 
-      iex> bindings(
+      iex> named_bindings(
       ...>   %Flop{
       ...>     filters: [%Flop.Filter{field: :owner_age, op: :==, value: 5}]
       ...>   },
@@ -2293,7 +2293,7 @@ defmodule Flop do
   filter and order options, or if the filter values are nil, an empty list will
   be returned.
 
-      iex> bindings(
+      iex> named_bindings(
       ...>   %Flop{
       ...>     filters: [
       ...>       %Flop.Filter{field: :name, op: :==, value: "George"},
@@ -2306,7 +2306,7 @@ defmodule Flop do
 
   If a join field is part of a compound field, it will be returned.
 
-      iex> bindings(
+      iex> named_bindings(
       ...>   %Flop{
       ...>     filters: [
       ...>       %Flop.Filter{field: :pet_and_owner_name, op: :==, value: "Mae"}
@@ -2317,26 +2317,7 @@ defmodule Flop do
       [:owner]
 
   You can use this to dynamically build the join clauses needed for the query.
-
-      def list_pets(params) do
-        with {:ok, flop} <- Flop.validate(params, for: Pet) do
-          bindings = Flop.bindings(flop, Pet)
-
-          Pet
-          |> join_pet_assocs(bindings)
-          |> Flop.run(flop, for: Pet)
-        end
-      end
-
-      defp join_pet_assocs(q, bindings) when is_list(bindings) do
-        Enum.reduce(bindings, q, fn
-          :owner, acc ->
-            join(acc, :left, [p], o in assoc(p, :owner), as: :owner)
-
-          :toys, acc ->
-            join(acc, :left, [p], t in assoc(p, :toys), as: :toys)
-        end)
-      end
+  See also `Flop.with_named_bindings/3`.
 
   For more information about join fields, refer to the module documentation of
   `Flop.Schema`.
@@ -2348,8 +2329,12 @@ defmodule Flop do
   """
   @doc since: "0.16.0"
   @doc group: :queries
-  @spec bindings(Flop.t(), module, keyword) :: [atom]
-  def bindings(%Flop{filters: filters, order_by: order_by}, module, opts \\ [])
+  @spec named_bindings(Flop.t(), module, keyword) :: [atom]
+  def named_bindings(
+        %Flop{filters: filters, order_by: order_by},
+        module,
+        opts \\ []
+      )
       when is_atom(module) do
     order = Keyword.get(opts, :order, true)
     order_by = if order, do: order_by || [], else: []
@@ -2384,6 +2369,87 @@ defmodule Flop do
   end
 
   defp get_binding(_, _), do: []
+
+  @doc """
+  Applies a callback function to a query for all named bindings that are
+  necessary for the given `Flop` parameters.
+
+  The callback function must accept a queryable the name of the binding and
+  return a query that includes the given binding. This is the same as
+  `Ecto.Query.with_named_binding/3`, except that the callback function _must_
+  take the second argument.
+
+  ## Options
+
+  - `:for` (required) - The schema module that derives `Flop.Schema`.
+  - `:order` - If `false`, only bindings needed for filtering are included.
+    Defaults to `true`.
+
+  ## Example
+
+      def list_pets(params) do
+        opts = [for: Pet]
+
+        with {:ok, flop} <- Flop.validate(params, opts) do
+          Pet
+          |> Flop.with_named_bindings(flop, &join_pet_assocs/2, opts)
+          |> Flop.run(flop, opts)
+        end
+      end
+
+      defp join_pet_assocs(query, :owner) do
+        join(query, [p], o in assoc(p, :owner), as: :owner)
+      end
+
+      defp join_pet_assocs(query, :toys) do
+        join(query, [p], t in assoc(p, :toys), as: :toys)
+      end
+
+  Since the callback function has the same arguments and return value as the one
+  passed to `Ecto.Query.with_named_binding/3`, you can reuse the function to add
+  any other bindings you may need for the query besides the ones for Flop
+  filters.
+
+  This also means you can use `Ecto.Query.with_named_bindings/3` to recursively
+  add bindings in case you need intermediate joins to get to a nested
+  association.
+
+      def list_owners(params) do
+        opts = [for: Owner]
+
+        with {:ok, flop} <- Flop.validate(params, opts) do
+          Pet
+          |> Flop.with_named_bindings(flop, &join_owner_assocs/2, opts)
+          |> Flop.run(flop, opts)
+        end
+      end
+
+      defp join_owner_assocs(query, :pets) do
+        join(query, [o], p in assoc(o, :pets), as: :pets)
+      end
+
+      defp join_owner_assocs(query, :toys) do
+        query
+        |> Ecto.Query.with_named_binding(:pets, &join_owner_assocs/2)
+        |> join(query, [pets: p], t in assoc(p, :toys), as: :toys)
+      end
+  """
+  @doc since: "0.19.0"
+  @doc group: :queries
+  @spec with_named_bindings(
+          Ecto.Queryable.t(),
+          Flop.t(),
+          (Ecto.Queryable.t(), atom -> Ecto.Queryable.t()),
+          keyword
+        ) :: Ecto.Queryable.t()
+  def with_named_bindings(query, %Flop{} = flop, fun, opts) do
+    module = Keyword.fetch!(opts, :for)
+    bindings = named_bindings(flop, module, opts)
+
+    Enum.reduce(bindings, query, fn binding, acc_query ->
+      Ecto.Query.with_named_binding(acc_query, binding, fun)
+    end)
+  end
 
   @doc """
   Returns the names of the alias fields that are required for the order clause
