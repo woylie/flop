@@ -6,6 +6,8 @@
 
 - Support for custom fields. These fields allow you to run custom filter
   functions for anything that cannot be expressed with Flop filters.
+- Added `Flop.with_named_bindings/3` for dynamically adding bindings needed for
+  a Flop query.
 - Added `fetch`, `get`, `get_all`, `delete`, `delete_first`, `drop`, `new`,
   `take`, `pop`, `pop_first`, `put` and `put_new` functions to `Flop.Filter`.
 - Added `Flop.Meta.with_errors/3`.
@@ -15,6 +17,7 @@
 
 ### Changed
 
+- Renamed `Flop.bindings/3` to `Flop.named_bindings/3`.
 - `Flop.Filter.allowed_operators/2` now tries to determine the Ecto type by
   reading the Flop field type from the schema module. This function is used
   during parameter validation, which means the validation step will be a bit
