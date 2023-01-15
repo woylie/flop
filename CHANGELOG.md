@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.19.0] - 2023-01-15
+
 ### Added
 
 - Support for custom fields. These fields allow you to run custom filter
