@@ -1630,7 +1630,7 @@ defmodule FlopTest do
     end
   end
 
-  describe "bindings/3" do
+  describe "named_bindings/3" do
     test "returns used binding names with order_by and filters" do
       flop = %Flop{
         filters: [
@@ -1644,13 +1644,13 @@ defmodule FlopTest do
         order_by: [:owner_name, :age]
       }
 
-      assert Flop.bindings(flop, Pet) == [:owner]
+      assert Flop.named_bindings(flop, Pet) == [:owner]
     end
 
     test "allows disabling order fields" do
       flop = %Flop{order_by: [:owner_name, :age]}
-      assert Flop.bindings(flop, Pet, order: false) == []
-      assert Flop.bindings(flop, Pet, order: true) == [:owner]
+      assert Flop.named_bindings(flop, Pet, order: false) == []
+      assert Flop.named_bindings(flop, Pet, order: true) == [:owner]
     end
 
     test "returns used binding names with order_by" do
@@ -1659,7 +1659,7 @@ defmodule FlopTest do
         order_by: [:owner_name, :age]
       }
 
-      assert Flop.bindings(flop, Pet) == [:owner]
+      assert Flop.named_bindings(flop, Pet) == [:owner]
     end
 
     test "returns used binding names with filters" do
@@ -1673,7 +1673,7 @@ defmodule FlopTest do
         ]
       }
 
-      assert Flop.bindings(flop, Pet) == [:owner]
+      assert Flop.named_bindings(flop, Pet) == [:owner]
     end
 
     test "returns empty list if no join fields are used" do
@@ -1686,11 +1686,11 @@ defmodule FlopTest do
         order_by: [:age]
       }
 
-      assert Flop.bindings(flop, Pet) == []
+      assert Flop.named_bindings(flop, Pet) == []
     end
 
     test "returns empty list if there are no filters and order fields" do
-      assert Flop.bindings(%Flop{}, Pet) == []
+      assert Flop.named_bindings(%Flop{}, Pet) == []
     end
   end
 

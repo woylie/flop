@@ -2281,7 +2281,7 @@ defmodule Flop do
   If you pass a Flop with a filter on the `:owner_age` field, the returned list
   will include the `:owner` binding.
 
-      iex> bindings(
+      iex> named_bindings(
       ...>   %Flop{
       ...>     filters: [%Flop.Filter{field: :owner_age, op: :==, value: 5}]
       ...>   },
@@ -2293,7 +2293,7 @@ defmodule Flop do
   filter and order options, or if the filter values are nil, an empty list will
   be returned.
 
-      iex> bindings(
+      iex> named_bindings(
       ...>   %Flop{
       ...>     filters: [
       ...>       %Flop.Filter{field: :name, op: :==, value: "George"},
@@ -2306,7 +2306,7 @@ defmodule Flop do
 
   If a join field is part of a compound field, it will be returned.
 
-      iex> bindings(
+      iex> named_bindings(
       ...>   %Flop{
       ...>     filters: [
       ...>       %Flop.Filter{field: :pet_and_owner_name, op: :==, value: "Mae"}
@@ -2348,8 +2348,12 @@ defmodule Flop do
   """
   @doc since: "0.16.0"
   @doc group: :queries
-  @spec bindings(Flop.t(), module, keyword) :: [atom]
-  def bindings(%Flop{filters: filters, order_by: order_by}, module, opts \\ [])
+  @spec named_bindings(Flop.t(), module, keyword) :: [atom]
+  def named_bindings(
+        %Flop{filters: filters, order_by: order_by},
+        module,
+        opts \\ []
+      )
       when is_atom(module) do
     order = Keyword.get(opts, :order, true)
     order_by = if order, do: order_by || [], else: []
