@@ -318,9 +318,9 @@ defprotocol Flop.Schema do
 
   Note that Flop doesn't create the join clauses for you. The named bindings
   already have to be present in the query you pass to the Flop functions. You
-  can use `Flop.bindings/3` to get the binding names needed to execute a query
-  in order to build the join clauses dynamically and avoid adding unnecessary
-  joins.
+  can use `Flop.with_named_bindings/4` or `Flop.named_bindings/3` to get the
+  build the join clauses needed for a query dynamically and avoid adding
+  unnecessary joins.
 
   ## Filtering by calculated values with subqueries
 

@@ -2317,7 +2317,7 @@ defmodule Flop do
       [:owner]
 
   You can use this to dynamically build the join clauses needed for the query.
-  See also `Flop.with_named_bindings/3`.
+  See also `Flop.with_named_bindings/4`.
 
   For more information about join fields, refer to the module documentation of
   `Flop.Schema`.
@@ -2374,7 +2374,7 @@ defmodule Flop do
   Applies a callback function to a query for all named bindings that are
   necessary for the given `Flop` parameters.
 
-  The callback function must accept a queryable the name of the binding and
+  The callback function must accept a queryable and the name of the binding and
   return a query that includes the given binding. This is the same as
   `Ecto.Query.with_named_binding/3`, except that the callback function _must_
   take the second argument.
@@ -2410,7 +2410,7 @@ defmodule Flop do
   any other bindings you may need for the query besides the ones for Flop
   filters.
 
-  This also means you can use `Ecto.Query.with_named_bindings/3` to recursively
+  This also means you can use `Ecto.Query.with_named_binding/3` to recursively
   add bindings in case you need intermediate joins to get to a nested
   association.
 

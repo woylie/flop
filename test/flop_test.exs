@@ -1694,7 +1694,7 @@ defmodule FlopTest do
     end
   end
 
-  describe "with_named_bindings/3" do
+  describe "with_named_bindings/4" do
     test "adds necessary bindings to query" do
       query = Pet
       opts = [for: Pet]
