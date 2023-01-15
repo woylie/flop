@@ -2,7 +2,7 @@ name: CI
 
 env:
   ELIXIR_VERSION: "1.14"
-  OTP_VERSION: "25.1"
+  OTP_VERSION: "25.2"
 
 on:
   push:
