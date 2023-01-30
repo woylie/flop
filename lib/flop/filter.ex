@@ -61,7 +61,8 @@ defmodule Flop.Filter do
   | `:ilike_or`     | `["Rubi", "Rosa"]`  | `WHERE column ILIKE '%Rubi%' OR column ILIKE '%Rosa%'`  |
   | `:ilike_or`     | `"Rubi Rosa"`       | `WHERE column ILIKE '%Rubi%' OR column ILIKE '%Rosa%'`  |
 
-  For array columns the `:empty` and `:not_empty` operators will check for (non)empty arrays respectively.
+  The filter operators `:empty` and `:not_empty` will regard empty arrays as
+  empty values if the field is known to be an array field.
 
   The filter operators `:ilike_and`, `:ilike_or`, `:like_and` and `:like_or`
   accept both strings and list of strings.
