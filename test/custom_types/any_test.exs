@@ -2,6 +2,12 @@ defmodule Flop.CustomTypes.AnyTest do
   use ExUnit.Case, async: true
   alias Flop.CustomTypes.Any
 
+  describe "type/0" do
+    test "returns :string" do
+      assert Any.type() == :string
+    end
+  end
+
   describe "cast/1" do
     test "casts any value" do
       assert Any.cast(1) == {:ok, 1}

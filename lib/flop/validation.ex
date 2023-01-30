@@ -35,9 +35,6 @@ defmodule Flop.Validation do
   defp maybe_remove_invalid_filters(changeset, true) do
     changeset =
       update_change(changeset, :filters, fn
-        nil ->
-          nil
-
         changesets when is_list(changesets) ->
           Enum.filter(changesets, fn %Changeset{valid?: valid?} -> valid? end)
       end)

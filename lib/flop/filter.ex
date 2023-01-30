@@ -922,7 +922,6 @@ defmodule Flop.Filter do
     |> Enum.reject(fn
       %{field: field} when is_atom(field) -> field in fields
       %{"field" => field} when is_binary(field) -> field in fields_str
-      _ -> false
     end)
   end
 
@@ -1142,7 +1141,6 @@ defmodule Flop.Filter do
     |> Enum.filter(fn
       %{field: field} when is_atom(field) -> field in fields
       %{"field" => field} when is_binary(field) -> field in fields_str
-      _ -> false
     end)
   end
 

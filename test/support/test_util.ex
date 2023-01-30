@@ -210,9 +210,10 @@ defmodule Flop.TestUtil do
   end
 
   @doc """
-  Queries all fruits using `Flop.all`. Sorts by Fruit ID.
+  Queries all fruits using `Flop.all`. Preloads the owners and sorts by
+  Fruit ID.
   """
-  def query_fruits(params, opts \\ []) do
+  def query_fruits_with_owners(params, opts \\ []) do
     flop =
       Flop.validate!(params,
         for: Fruit,
@@ -222,7 +223,11 @@ defmodule Flop.TestUtil do
 
     sort? = opts[:sort] || true
 
-    q = Fruit
+    q =
+      Fruit
+      |> join(:left, [f], o in assoc(f, :owner), as: :owner)
+      |> preload(:owner)
+
     q = if sort?, do: order_by(q, [p], p.id), else: q
     opts = opts |> Keyword.take([:extra_opts]) |> Keyword.put(:for, Fruit)
     Flop.all(q, flop, opts)

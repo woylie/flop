@@ -334,27 +334,40 @@ defmodule FlopTest do
                 fruits =
                   insert_list_and_sort(fruit_count, :fruit,
                     attributes: fn -> Enum.random([nil, %{}, %{"a" => "b"}]) end,
-                    extra: fn -> Enum.random([nil, %{}, %{"a" => "b"}]) end
+                    extra: fn -> Enum.random([nil, %{}, %{"a" => "b"}]) end,
+                    owner:
+                      build(:owner,
+                        attributes: fn ->
+                          Enum.random([nil, %{}, %{"a" => "b"}])
+                        end,
+                        extra: fn -> Enum.random([nil, %{}, %{"a" => "b"}]) end
+                      )
                   ),
-                field <- member_of([:attributes, :extra]),
+                field <-
+                  member_of([
+                    :attributes,
+                    :extra,
+                    :owner_attributes,
+                    :owner_extra
+                  ]),
                 op <- member_of([:empty, :not_empty]) do
         [opposite_op] = [:empty, :not_empty] -- [op]
         expected = filter_items(fruits, field, op, true)
         opposite_expected = filter_items(fruits, field, opposite_op, true)
 
-        assert query_fruits(%{
+        assert query_fruits_with_owners(%{
                  filters: [%{field: field, op: op, value: true}]
                }) == expected
 
-        assert query_fruits(%{
+        assert query_fruits_with_owners(%{
                  filters: [%{field: field, op: op, value: false}]
                }) == opposite_expected
 
-        assert query_fruits(%{
+        assert query_fruits_with_owners(%{
                  filters: [%{field: field, op: opposite_op, value: true}]
                }) == opposite_expected
 
-        assert query_fruits(%{
+        assert query_fruits_with_owners(%{
                  filters: [%{field: field, op: opposite_op, value: false}]
                }) == expected
 

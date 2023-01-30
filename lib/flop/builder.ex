@@ -243,7 +243,7 @@ defmodule Flop.Builder do
                field(r, ^field) == type(^%{}, ^ecto_type)) == ^value
         )
 
-      _ ->
+      :other ->
         nil
     end
   end
