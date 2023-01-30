@@ -175,6 +175,7 @@ defmodule Flop.Builder do
     end
   end
 
+  # credo:disable-for-next-line
   defp runtime_dynamic_normal(c, %module{}, field, %Filter{op: op, value: value})
        when op in [:empty, :not_empty] do
     field_type = module.__schema__(:type, field)
@@ -221,6 +222,7 @@ defmodule Flop.Builder do
     nil
   end
 
+  # credo:disable-for-next-line
   defp runtime_dynamic_join(
          c,
          _schema_struct,
