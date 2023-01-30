@@ -24,8 +24,17 @@ defmodule Flop.TestUtil do
 
   def filter_pets(pets, field, op, value) when is_atom(field) do
     case Flop.Schema.field_type(%Pet{}, field) do
-      {type, _field} = field_type when type in [:normal, :join] ->
-        filter_func = matches?(op, value)
+      {:join, %{ecto_type: ecto_type}} = field_type
+      when not is_nil(ecto_type) ->
+        filter_func = matches?(op, value, ecto_type)
+
+        Enum.filter(pets, fn pet ->
+          pet |> get_field(field_type) |> filter_func.()
+        end)
+
+      {type, _opts} = field_type when type in [:normal, :join] ->
+        ecto_type = Pet.__schema__(:type, field)
+        filter_func = matches?(op, value, ecto_type)
 
         Enum.filter(pets, fn pet ->
           pet |> get_field(field_type) |> filter_func.()
@@ -88,6 +97,13 @@ defmodule Flop.TestUtil do
   defp get_field(pet, {:join, %{path: [a, b]}}),
     do: pet |> Map.fetch!(a) |> Map.fetch!(b)
 
+  defp matches?(:empty, v, {:array, _}),
+    do: &(is_nil(&1) or v == Enum.empty?(&1))
+
+  defp matches?(:not_empty, v, {:array, _}),
+    do: &(not is_nil(&1) and v == !Enum.empty?(&1))
+
+  defp matches?(op, v, _), do: matches?(op, v)
   defp matches?(:==, v), do: &(&1 == v)
   defp matches?(:!=, v), do: &(&1 != v)
   defp matches?(:empty, _), do: &empty?(&1)

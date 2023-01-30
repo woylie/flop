@@ -36,7 +36,7 @@ defmodule Flop.Pet do
         path: [:owner, :name],
         ecto_type: :string
       ],
-      owner_tags: {:owner, :tags}
+      owner_tags: [binding: :owner, field: :tags, ecto_type: {:array, :string}]
     ],
     custom_fields: [
       custom: [
