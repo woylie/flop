@@ -381,11 +381,13 @@ defprotocol Flop.Schema do
   Filter module:
 
       defmodule CustomFilters do
+        import Ecto.Query
+
         def date_filter(query, %Flop.Filter{value: value, op: op}, opts) do
           source = Keyword.fetch!(opts, :source)
           timezone = Keyword.fetch!(opts, :timezone)
 
-          expr = dynamic([r], fragment("((? AT TIME ZONE 'utc') AT TIME ZONE ?)::date", field(r, source), ^timezone)
+          expr = dynamic([r], fragment("((? AT TIME ZONE 'utc') AT TIME ZONE ?)::date", field(r, ^source), ^timezone))
 
           case Ecto.Type.cast(:date, value) do
             {:ok, date} ->
