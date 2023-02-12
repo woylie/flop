@@ -1,8 +1,8 @@
 name: Bug Report
 description: File a bug report
-title: ""
+title: "[Bug] "
 labels: ["bug", "triage"]
-assignees:
+assignees: []
 body:
   - type: textarea
     attributes:
