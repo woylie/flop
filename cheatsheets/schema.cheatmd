@@ -112,8 +112,8 @@ defmodule User do
 
   @derive {
     Flop.Schema,
-    filterable: [:name, :species],
-    sortable: [:name, :age],
+    filterable: [:full_name],
+    sortable: [:full_name],
     compound_fields: [
       full_name: [:family_name, :given_name]
     ]
