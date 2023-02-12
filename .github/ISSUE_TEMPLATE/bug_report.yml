@@ -7,6 +7,8 @@ body:
   - type: textarea
     attributes:
       label: Summary
+    validations:
+      required: true
   - type: textarea
     attributes:
       label: Steps to reproduce
@@ -21,10 +23,14 @@ body:
     attributes:
       label: Elixir/Erlang version
       description: "`elixir -v`"
+    validations:
+      required: true
   - type: textarea
     attributes:
       label: Flop and Ecto versions
       description: "`mix deps | grep 'flop\\|ecto'`"
+    validations:
+      required: true
   - type: textarea
     attributes:
       label: Additional context
