@@ -4,17 +4,17 @@ title: ""
 labels: ["bug", "triage"]
 assignees:
 body:
-  - type: markdown
+  - type: textarea
     attributes:
       label: Summary
-  - type: markdown
+  - type: textarea
     attributes:
       label: Steps to reproduce
       value: 1. ...
-  - type: markdown
+  - type: textarea
     attributes:
       label: Expected behaviour
-  - type: markdown
+  - type: textarea
     attributes:
       label: Actual behaviour
   - type: textarea
@@ -25,6 +25,6 @@ body:
     attributes:
       label: Flop and Ecto versions
       description: "`mix deps | grep 'flop\\|ecto'`"
-  - type: markdown
+  - type: textarea
     attributes:
       label: Additional context
