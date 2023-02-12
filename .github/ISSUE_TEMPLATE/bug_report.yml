@@ -24,7 +24,7 @@ body:
   - type: textarea
     attributes:
       label: Flop and Ecto versions
-      description: "`mix deps | grep 'flop\|ecto'`"
+      description: "`mix deps | grep 'flop\\|ecto'`"
   - type: markdown
     attributes:
       label: Additional context
