@@ -388,7 +388,7 @@ defmodule Flop do
   - `:max_limit` - Sets a global maximum limit for queries that is used if no
     maximum limit is set for a schema. Set to `false` to not set any max limit.
     Defaults to `1000`.
-  - `:order_query` - Allows you to set a separate base query for counting. Can
+  - `:count_query` - Allows you to set a separate base query for counting. Can
     only be passed as an option to one of the query functions. See
     `Flop.validate_and_run/3` and `Flop.count/3`.
   - `:pagination` (boolean) - Can be set to `false` to silently ignore
@@ -451,7 +451,7 @@ defmodule Flop do
           | {:filtering, boolean}
           | {:for, module}
           | {:max_limit, pos_integer | false}
-          | {:order_query, Ecto.Queryable.t()}
+          | {:count_query, Ecto.Queryable.t()}
           | {:ordering, boolean}
           | {:pagination, boolean}
           | {:pagination_types, [pagination_type()]}
