@@ -393,6 +393,43 @@ defmodule Flop.Filter do
   end
 
   @doc """
+  Fetches the first filter value for the given field and returns it in a tuple.
+
+  ## Examples
+
+      iex> fetch_value([], :name)
+      :error
+
+      iex> fetch_value([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :name)
+      {:ok, "Joe"}
+
+      iex> fetch_value([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :age)
+      :error
+
+      iex> fetch_value(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   :name
+      ...> )
+      {:ok, "Joe"}
+  """
+  @doc since: "0.20.0"
+  @spec fetch_value([t()], atom) :: {:ok, any} | :error
+  def fetch_value(filters, field) when is_list(filters) and is_atom(field) do
+    filters
+    |> Enum.find(fn
+      %{field: ^field} -> true
+      _ -> false
+    end)
+    |> case do
+      %{value: value} -> {:ok, value}
+      _ -> :error
+    end
+  end
+
+  @doc """
   Returns the first filter for the given field.
 
   ## Examples
@@ -422,6 +459,46 @@ defmodule Flop.Filter do
       %{field: ^field} -> true
       _ -> false
     end)
+  end
+
+  @doc """
+  Returns the first filter value for the given field.
+
+  ## Examples
+
+      iex> get_value([], :name)
+      nil
+
+      iex> get_value([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :name)
+      "Joe"
+
+      iex> get_value([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :age)
+      nil
+
+      iex> get_value(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   :name
+      ...> )
+      "Joe"
+
+      iex> get_value([%Flop.Filter{field: :ok, op: :empty, value: false}], :ok)
+      false
+  """
+  @doc since: "0.20.0"
+  @spec get_value([t()], atom) :: any | nil
+  def get_value(filters, field) when is_list(filters) and is_atom(field) do
+    filters
+    |> Enum.find(fn
+      %{field: ^field} -> true
+      _ -> false
+    end)
+    |> case do
+      %{value: value} -> value
+      _ -> nil
+    end
   end
 
   @doc """
