@@ -1066,7 +1066,7 @@ defmodule Flop.Filter do
         %Flop.Filter{field: :name, op: :==, value: "Jim"}
       ]
   """
-  @doc since: "0.19.0"
+  @doc since: "0.20.0"
   @spec put_new_value([t], atom, any, op()) :: [t]
   def put_new_value(filters, field, value, op \\ :==)
       when is_list(filters) and is_atom(field) do
