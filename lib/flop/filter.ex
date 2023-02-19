@@ -952,6 +952,54 @@ defmodule Flop.Filter do
   end
 
   @doc """
+  Adds the given filter value to the filter list and removes all existing
+  filters for the same field from the list.
+
+  ## Examples
+
+      iex> put_value(
+      ...>   [%Flop.Filter{field: :name, op: :==, value: "Joe"}],
+      ...>   :age,
+      ...>   8
+      ...> )
+      [
+        %Flop.Filter{field: :age, op: :==, value: 8},
+        %Flop.Filter{field: :name, op: :==, value: "Joe"}
+      ]
+
+      iex> put_value(
+      ...>   [%Flop.Filter{field: :name, op: :==, value: "Joe"}],
+      ...>   :age,
+      ...>   8,
+      ...>   :>=
+      ...> )
+      [
+        %Flop.Filter{field: :age, op: :>=, value: 8},
+        %Flop.Filter{field: :name, op: :==, value: "Joe"}
+      ]
+
+      iex> put_value(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   :name,
+      ...>   "Jane"
+      ...> )
+      [
+        %Flop.Filter{field: :name, op: :==, value: "Jane"},
+        %Flop.Filter{field: :age, op: :>, value: 8}
+      ]
+  """
+  @doc since: "0.20.0"
+  @spec put_value([t], atom, any, op()) :: [t]
+  def put_value(filters, field, value, op \\ :==)
+      when is_list(filters) and is_atom(field) do
+    [%Flop.Filter{field: field, op: op, value: value} | delete(filters, field)]
+  end
+
+  @doc """
   Adds the given filter to the filter list only if no filter for the field
   exists yet.
 
@@ -985,6 +1033,46 @@ defmodule Flop.Filter do
     case fetch(filters, field) do
       {:ok, _} -> filters
       :error -> [filter | filters]
+    end
+  end
+
+  @doc """
+  Adds the given filter value to the filter list only if no filter for the field
+  exists yet.
+
+  ## Examples
+
+      iex> put_new_value(
+      ...>   [%Flop.Filter{field: :name, op: :==, value: "Joe"}],
+      ...>   :age,
+      ...>   8,
+      ...>   :>
+      ...> )
+      [
+        %Flop.Filter{field: :age, op: :>, value: 8},
+        %Flop.Filter{field: :name, op: :==, value: "Joe"}
+      ]
+
+      iex> put_new_value(
+      ...>   [
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   :name,
+      ...>   "Jane"
+      ...> )
+      [
+        %Flop.Filter{field: :age, op: :>, value: 8},
+        %Flop.Filter{field: :name, op: :==, value: "Jim"}
+      ]
+  """
+  @doc since: "0.19.0"
+  @spec put_new_value([t], atom, any, op()) :: [t]
+  def put_new_value(filters, field, value, op \\ :==)
+      when is_list(filters) and is_atom(field) do
+    case fetch(filters, field) do
+      {:ok, _} -> filters
+      :error -> [%Flop.Filter{field: field, op: op, value: value} | filters]
     end
   end
 end

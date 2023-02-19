@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- Added `fetch_value`, `get_value`, `put_value` and `put_new_value` functions
+  to `Flop.Filter`.
+
 ## [0.19.0] - 2023-01-15
 
 ### Added
