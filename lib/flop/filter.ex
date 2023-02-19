@@ -360,6 +360,8 @@ defmodule Flop.Filter do
 
   ## Examples
 
+  ### Flop struct
+
       iex> fetch([], :name)
       :error
 
@@ -377,18 +379,33 @@ defmodule Flop.Filter do
       ...>   :name
       ...> )
       {:ok, %Flop.Filter{field: :name, op: :==, value: "Joe"}}
+
+  ### Map with atom keys
+
+      iex> fetch([%{field: :name, op: :==, value: "Joe"}], :name)
+      {:ok, %{field: :name, op: :==, value: "Joe"}}
+
+  ### Map with string keys
+
+      iex> fetch([%{"field" => "name", "op" => "==", "value" => "Joe"}], :name)
+      {:ok, %{"field" => "name", "op" => "==", "value" => "Joe"}}
+
+  ### Indexed map
+
+      iex> fetch(
+      ...>   %{"0" => %{"field" => "name", "op" => "==", "value" => "Joe"}},
+      ...>   :name
+      ...> )
+      {:ok, %{"field" => "name", "op" => "==", "value" => "Joe"}}
   """
   @doc since: "0.19.0"
-  @spec fetch([t()], atom) :: {:ok, t()} | :error
-  def fetch(filters, field) when is_list(filters) and is_atom(field) do
+  @spec fetch([t()] | [map] | map, atom) :: {:ok, t() | map} | :error
+  def fetch(filters, field) when is_atom(field) do
     filters
-    |> Enum.find(fn
-      %{field: ^field} -> true
-      _ -> false
-    end)
+    |> get(field)
     |> case do
+      %{} = filter -> {:ok, filter}
       nil -> :error
-      filter -> {:ok, filter}
     end
   end
 
@@ -396,6 +413,8 @@ defmodule Flop.Filter do
   Fetches the first filter value for the given field and returns it in a tuple.
 
   ## Examples
+
+  ### Flop struct
 
       iex> fetch_value([], :name)
       :error
@@ -414,18 +433,36 @@ defmodule Flop.Filter do
       ...>   :name
       ...> )
       {:ok, "Joe"}
+
+  ### Map with atom keys
+
+      iex> fetch_value([%{field: :name, op: :==, value: "Joe"}], :name)
+      {:ok, "Joe"}
+
+  ### Map with string keys
+
+      iex> fetch_value(
+      ...>   [%{"field" => "name", "op" => "==", "value" => "Joe"}],
+      ...>   :name
+      ...> )
+      {:ok, "Joe"}
+
+  ### Indexed map
+
+      iex> fetch_value(
+      ...>   %{"0" => %{"field" => "name", "op" => "==", "value" => "Joe"}},
+      ...>   :name
+      ...> )
+      {:ok, "Joe"}
   """
   @doc since: "0.20.0"
-  @spec fetch_value([t()], atom) :: {:ok, any} | :error
-  def fetch_value(filters, field) when is_list(filters) and is_atom(field) do
+  @spec fetch_value([t()] | [map] | map, atom) :: {:ok, any} | :error
+  def fetch_value(filters, field) when is_atom(field) do
     filters
-    |> Enum.find(fn
-      %{field: ^field} -> true
-      _ -> false
-    end)
+    |> get_value(field)
     |> case do
-      %{value: value} -> {:ok, value}
-      _ -> :error
+      nil -> :error
+      value -> {:ok, value}
     end
   end
 
@@ -433,6 +470,8 @@ defmodule Flop.Filter do
   Returns the first filter for the given field.
 
   ## Examples
+
+  ### Flop struct
 
       iex> get([], :name)
       nil
@@ -451,20 +490,44 @@ defmodule Flop.Filter do
       ...>   :name
       ...> )
       %Flop.Filter{field: :name, op: :==, value: "Joe"}
+
+  ### Map with atom keys
+
+      iex> get([%{field: :name, op: :==, value: "Joe"}], :name)
+      %{field: :name, op: :==, value: "Joe"}
+
+  ### Map with string keys
+
+      iex> get([%{"field" => "name", "op" => "==", "value" => "Joe"}], :name)
+      %{"field" => "name", "op" => "==", "value" => "Joe"}
+
+  ### Indexed map
+
+      iex> get(
+      ...>   %{"0" => %{"field" => "name", "op" => "==", "value" => "Joe"}},
+      ...>   :name
+      ...> )
+      %{"field" => "name", "op" => "==", "value" => "Joe"}
   """
   @doc since: "0.19.0"
-  @spec get([t()], atom) :: t() | nil
-  def get(filters, field) when is_list(filters) and is_atom(field) do
-    Enum.find(filters, fn
-      %{field: ^field} -> true
-      _ -> false
-    end)
+  @spec get([t()] | [map] | map, atom) :: t() | map | nil
+  def get(filters, field) when is_atom(field) do
+    field_str = to_string(field)
+
+    filters
+    |> Enum.find(&matches_field?(&1, field, field_str))
+    |> case do
+      {_, filter} -> filter
+      filter -> filter
+    end
   end
 
   @doc """
   Returns the first filter value for the given field.
 
   ## Examples
+
+  ### Flop struct
 
       iex> get_value([], :name)
       nil
@@ -486,18 +549,37 @@ defmodule Flop.Filter do
 
       iex> get_value([%Flop.Filter{field: :ok, op: :empty, value: false}], :ok)
       false
+
+  ### Map with atom keys
+
+      iex> get_value([%{field: :name, op: :==, value: "Joe"}], :name)
+      "Joe"
+
+  ### Map with string keys
+
+      iex> get_value(
+      ...>   [%{"field" => "name", "op" => "==", "value" => "Joe"}],
+      ...>   :name
+      ...> )
+      "Joe"
+
+  ### Indexed map
+
+      iex> get_value(
+      ...>   %{"0" => %{"field" => "name", "op" => "==", "value" => "Joe"}},
+      ...>   :name
+      ...> )
+      "Joe"
   """
   @doc since: "0.20.0"
-  @spec get_value([t()], atom) :: any | nil
-  def get_value(filters, field) when is_list(filters) and is_atom(field) do
+  @spec get_value([t()] | [map] | map, atom) :: any | nil
+  def get_value(filters, field) when is_atom(field) do
     filters
-    |> Enum.find(fn
-      %{field: ^field} -> true
-      _ -> false
-    end)
+    |> get(field)
     |> case do
+      nil -> nil
       %{value: value} -> value
-      _ -> nil
+      %{"value" => value} -> value
     end
   end
 
@@ -505,6 +587,8 @@ defmodule Flop.Filter do
   Returns the all filters for the given field.
 
   ## Examples
+
+  ### Flop struct
 
       iex> get_all([], :name)
       []
@@ -527,13 +611,62 @@ defmodule Flop.Filter do
         %Flop.Filter{field: :name, op: :==, value: "Joe"},
         %Flop.Filter{field: :name, op: :==, value: "Jim"}
       ]
+
+  ### Map with atom keys
+
+      iex> get_all(
+      ...>   [
+      ...>     %{field: :name, op: :==, value: "Joe"},
+      ...>     %{field: :age, op: :>, value: 8},
+      ...>     %{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   :name
+      ...> )
+      [
+        %{field: :name, op: :==, value: "Joe"},
+        %{field: :name, op: :==, value: "Jim"}
+      ]
+
+  ### Map with string keys
+
+      iex> get_all(
+      ...>   [
+      ...>     %{"field" => "name", "op" => "==", "value" => "Joe"},
+      ...>     %{"field" => "age", "op" => ">", "value" => 8},
+      ...>     %{"field" => "name", "op" => "==", "value" => "Jim"}
+      ...>   ],
+      ...>   :name
+      ...> )
+      [
+        %{"field" => "name", "op" => "==", "value" => "Joe"},
+        %{"field" => "name", "op" => "==", "value" => "Jim"}
+      ]
+
+  ### Indexed map
+
+      iex> get_all(
+      ...>   %{
+      ...>     "0" => %{"field" => "name", "op" => "==", "value" => "Joe"},
+      ...>     "1" => %{"field" => "age", "op" => ">", "value" => 8},
+      ...>     "2" => %{"field" => "name", "op" => "==", "value" => "Jim"}
+      ...>   },
+      ...>   :name
+      ...> )
+      [
+        %{"field" => "name", "op" => "==", "value" => "Joe"},
+        %{"field" => "name", "op" => "==", "value" => "Jim"}
+      ]
   """
   @doc since: "0.19.0"
-  @spec get_all([t()], atom) :: [t()]
-  def get_all(filters, field) when is_list(filters) and is_atom(field) do
-    Enum.filter(filters, fn
-      %{field: ^field} -> true
-      _ -> false
+  @spec get_all([t()] | [map] | map, atom) :: [t()] | [map]
+  def get_all(filters, field) when is_atom(field) do
+    field_str = to_string(field)
+
+    filters
+    |> Enum.filter(&matches_field?(&1, field, field_str))
+    |> Enum.map(fn
+      {_, filter} -> filter
+      filter -> filter
     end)
   end
 
@@ -541,6 +674,8 @@ defmodule Flop.Filter do
   Deletes the filters for the given field from a list of filters.
 
   ## Examples
+
+  ### Flop struct
 
       iex> delete(
       ...>   [
@@ -563,14 +698,51 @@ defmodule Flop.Filter do
 
       iex> delete([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :age)
       [%Flop.Filter{field: :name, op: :==, value: "Joe"}]
+
+  ### Map with atom keys
+
+      iex> delete(
+      ...>   [
+      ...>     %{field: :name, op: :==, value: "Joe"},
+      ...>     %{field: :age, op: :>, value: 8}
+      ...>   ],
+      ...>   :name
+      ...> )
+      [%{field: :age, op: :>, value: 8}]
+
+  ### Map with string keys
+
+      iex> delete(
+      ...>   [
+      ...>     %{"field" => "name", "op" => "==", "value" => "Joe"},
+      ...>     %{"field" => "age", "op" => ">", "value" => "8"}
+      ...>   ],
+      ...>   :name
+      ...> )
+      [%{"field" => "age", "op" => ">", "value" => "8"}]
+
+  ### Indexed map
+
+  Filters passed as an indexed map will be converted to a list, even if no
+  matching filter exists.
+
+      iex> delete(
+      ...>   %{
+      ...>     "0" => %{"field" => "name", "op" => "==", "value" => "Joe"},
+      ...>     "1" => %{"field" => "age", "op" => ">", "value" => "8"}
+      ...>   },
+      ...>   :name
+      ...> )
+      [%{"field" => "age", "op" => ">", "value" => "8"}]
   """
   @doc since: "0.19.0"
-  @spec delete([t], atom) :: [t]
-  def delete(filters, field) when is_list(filters) and is_atom(field) do
-    Enum.reject(filters, fn
-      %{field: ^field} -> true
-      _ -> false
-    end)
+  @spec delete([t] | [map] | map, atom) :: [t] | [map]
+  def delete(filters, field) when is_atom(field) do
+    field_str = to_string(field)
+
+    filters
+    |> indexed_map_to_list()
+    |> Enum.reject(&matches_field?(&1, field, field_str))
   end
 
   @doc """
@@ -593,22 +765,78 @@ defmodule Flop.Filter do
 
       iex> delete_first([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :age)
       [%Flop.Filter{field: :name, op: :==, value: "Joe"}]
+
+  ### Map with atom keys
+
+      iex> delete_first(
+      ...>   [
+      ...>     %{field: :name, op: :==, value: "Joe"},
+      ...>     %{field: :age, op: :>, value: 8},
+      ...>     %{field: :name, op: :==, value: "Jim"}
+      ...>   ],
+      ...>   :name
+      ...> )
+      [
+        %{field: :age, op: :>, value: 8},
+        %{field: :name, op: :==, value: "Jim"}
+      ]
+
+  ### Map with string keys
+
+      iex> delete_first(
+      ...>   [
+      ...>     %{"field" => "name", "op" => "==", "value" => "Joe"},
+      ...>     %{"field" => "age", "op" => ">", "value" => 8},
+      ...>     %{"field" => "name", "op" => "==", "value" => "Jim"}
+      ...>   ],
+      ...>   :name
+      ...> )
+      [
+        %{"field" => "age", "op" => ">", "value" => 8},
+        %{"field" => "name", "op" => "==", "value" => "Jim"}
+      ]
+
+  ### Indexed map
+
+  Filters passed as an indexed map will be converted to a list, even if no
+  matching filter exists.
+
+      iex> delete_first(
+      ...>   %{
+      ...>     "0" => %{"field" => "name", "op" => "==", "value" => "Joe"},
+      ...>     "1" => %{"field" => "age", "op" => ">", "value" => 8},
+      ...>     "2" => %{"field" => "name", "op" => "==", "value" => "Jim"}
+      ...>   },
+      ...>   :name
+      ...> )
+      [
+        %{"field" => "age", "op" => ">", "value" => 8},
+        %{"field" => "name", "op" => "==", "value" => "Jim"}
+      ]
   """
   @doc since: "0.19.0"
-  @spec delete_first([t], atom) :: [t]
+  @spec delete_first([t] | [map] | map, atom) :: [t] | [map]
   def delete_first(filters, field) when is_list(filters) and is_atom(field) do
-    delete_first_filter(filters, field)
+    delete_first_filter(filters, field, to_string(field))
   end
 
-  defp delete_first_filter([%{field: field} | tail], field) do
+  def delete_first(%{} = filters, field) when is_atom(field) do
+    filters |> indexed_map_to_list() |> delete_first(field)
+  end
+
+  defp delete_first_filter([%{field: field} | tail], field, _) do
     tail
   end
 
-  defp delete_first_filter([%{} = filter | tail], field) do
-    [filter | delete_first_filter(tail, field)]
+  defp delete_first_filter([%{"field" => field_str} | tail], _, field_str) do
+    tail
   end
 
-  defp delete_first_filter([], _field) do
+  defp delete_first_filter([%{} = filter | tail], field, field_str) do
+    [filter | delete_first_filter(tail, field, field_str)]
+  end
+
+  defp delete_first_filter([], _, _) do
     []
   end
 
@@ -1074,5 +1302,21 @@ defmodule Flop.Filter do
       {:ok, _} -> filters
       :error -> [%Flop.Filter{field: field, op: op, value: value} | filters]
     end
+  end
+
+  defp matches_field?(value, field, field_str) do
+    case value do
+      %{field: ^field} -> true
+      %{"field" => ^field_str} -> true
+      {_, %{"field" => ^field_str}} -> true
+      _ -> false
+    end
+  end
+
+  defp indexed_map_to_list(filters) do
+    Enum.map(filters, fn
+      {_, filter} -> filter
+      filter -> filter
+    end)
   end
 end
