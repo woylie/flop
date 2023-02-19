@@ -2133,6 +2133,80 @@ defmodule Flop do
   defp map_to_list(list) when is_list(list), do: list
 
   @doc """
+  Takes a Flop, converts it to a map and unnests the filters for the given
+  fields.
+
+  This is the reverse operation of `nest_filters/3`, with the caveat that the
+  result of `nest_filters/3` needs to be validated to convert it to a `Flop`
+  struct before it can be passed back to `unnest_filters/3`.
+
+  The function returns a map with `nil` values removed.
+
+  ## Examples
+
+      iex> unnest_filters(
+      ...>   %Flop{
+      ...>     filters: [%Flop.Filter{field: :name, op: :==, value: "Peter"}],
+      ...>     page_size: 10
+      ...>   },
+      ...>   [:name]
+      ...> )
+      %{name: "Peter", page_size: 10}
+
+      iex> unnest_filters(
+      ...>   %Flop{
+      ...>     filters: [%Flop.Filter{field: :name, op: :==, value: nil}],
+      ...>     page_size: 10
+      ...>   },
+      ...>   [:name]
+      ...> )
+      %{page_size: 10}
+
+  To rename fields, you can pass a map, where the keys are the field names in
+  the unnested map and the values are the field names in the `Flop.Filter`
+  struct. You can pass the exact same rename map to `nest_filters/3` and
+  `unnest_filters/3` to revert the nesting/unnesting.
+
+      iex> unnest_filters(
+      ...>   %Flop{
+      ...>     filters: [%Flop.Filter{field: :name, op: :==, value: "Peter"}],
+      ...>     page_size: 10
+      ...>   },
+      ...>   [:name],
+      ...>   rename: %{nombre: :name}
+      ...> )
+      %{nombre: "Peter", page_size: 10}
+  """
+  @doc since: "0.20.0"
+  @doc group: :parameters
+  @spec unnest_filters(Flop.t(), [atom], keyword) :: map
+  def unnest_filters(%Flop{filters: filters} = flop, fields, opts \\ [])
+      when is_list(fields) do
+    renamings = Enum.into(opts[:rename] || %{}, %{}, fn {k, v} -> {v, k} end)
+
+    {to_unnest, remaining} = Enum.split_with(filters, &(&1.field in fields))
+
+    unnested_map =
+      Enum.into(to_unnest, %{}, &{rename_field(&1.field, renamings), &1.value})
+
+    remaining_maps =
+      remaining
+      |> Enum.map(&Map.from_struct/1)
+      |> Enum.reject(&is_nil(&1.value))
+
+    flop
+    |> Map.from_struct()
+    |> Map.merge(unnested_map)
+    |> Map.put(:filters, remaining_maps)
+    |> Enum.reject(fn
+      {_, nil} -> true
+      {_, []} -> true
+      _ -> false
+    end)
+    |> Enum.into(%{})
+  end
+
+  @doc """
   Converts a map of filter conditions into a list of Flop filter params.
 
   The default operator is `:==`. `nil` values are excluded from the result.
