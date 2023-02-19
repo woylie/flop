@@ -4,8 +4,10 @@
 
 ### Added
 
-- Added `fetch_value`, `get_value`, `put_value` and `put_new_value` functions
-  to `Flop.Filter`.
+- Added `Flop.unnest_filters/3` as a reverse operation of `Flop.nest_filters/3`
+  after retrieving data from the database.
+- Added `Flop.Filter.fetch_value/2`, `Flop.Filter.get_value/2`,
+  `Flop.Filter.put_value/4` and `Flop.Filter.put_new_value/4` to `Flop.Filter`.
 
 ## [0.19.0] - 2023-01-15
 
