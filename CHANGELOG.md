@@ -9,6 +9,12 @@
 - Added `Flop.Filter.fetch_value/2`, `Flop.Filter.get_value/2`,
   `Flop.Filter.put_value/4` and `Flop.Filter.put_new_value/4` to `Flop.Filter`.
 
+### Changed
+
+- Several of the functions for manipulating lists of filters in the
+  `Flop.Filter` module now accept lists maps with atom keys, lists of maps with
+  string keys, and indexed maps as produced by Phoenix HTML forms as argument.
+
 ## [0.19.0] - 2023-01-15
 
 ### Added
