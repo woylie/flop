@@ -12,7 +12,7 @@
 ### Changed
 
 - Several of the functions for manipulating lists of filters in the
-  `Flop.Filter` module now accept lists maps with atom keys, lists of maps with
+  `Flop.Filter` module now accept lists of maps with atom keys, lists of maps with
   string keys, and indexed maps as produced by Phoenix HTML forms as argument.
 
 ## [0.19.0] - 2023-01-15
