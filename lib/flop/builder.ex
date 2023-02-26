@@ -137,53 +137,19 @@ defmodule Flop.Builder do
     c
   end
 
-  {empty_fragment, empty_prelude, empty_combinator} = op_config(:empty)
-
-  {not_empty_fragment, not_empty_prelude, not_empty_combinator} =
-    op_config(:not_empty)
-
-  # credo:disable-for-next-line
   defp build_op(c, %module{}, {:normal, field}, %Filter{op: op, value: value})
        when op in [:empty, :not_empty] do
     ecto_type = module.__schema__(:type, field)
+    value = value in [true, "true"]
+    value = if op == :not_empty, do: !value, else: value
 
-    case {array_or_map(ecto_type), op} do
-      {:array, _} ->
-        value = if op == :not_empty, do: !value, else: value
-
-        dynamic(
-          [r],
-          ^c and
-            (is_nil(field(r, ^field)) or
-               field(r, ^field) == type(^[], ^ecto_type)) == ^value
-        )
-
-      {:map, _} ->
-        value = if op == :not_empty, do: !value, else: value
-
-        dynamic(
-          [r],
-          ^c and
-            (is_nil(field(r, ^field)) or
-               field(r, ^field) == type(^%{}, ^ecto_type)) == ^value
-        )
-
-      {:other, :empty} ->
-        unquote(empty_prelude)
-        build_dynamic(unquote(empty_fragment), false, unquote(empty_combinator))
-
-      {:other, :not_empty} ->
-        unquote(not_empty_prelude)
-
-        build_dynamic(
-          unquote(not_empty_fragment),
-          false,
-          unquote(not_empty_combinator)
-        )
+    case array_or_map(ecto_type) do
+      :array -> dynamic([r], ^c and empty(:array) == ^value)
+      :map -> dynamic([r], ^c and empty(:map) == ^value)
+      :other -> dynamic([r], ^c and empty(:other) == ^value)
     end
   end
 
-  # credo:disable-for-next-line
   defp build_op(
          c,
          _schema_struct,
@@ -191,39 +157,13 @@ defmodule Flop.Builder do
          %Filter{op: op, value: value}
        )
        when op in [:empty, :not_empty] do
-    case {array_or_map(ecto_type), op} do
-      {:array, _} ->
-        value = if op == :not_empty, do: !value, else: value
+    value = value in [true, "true"]
+    value = if op == :not_empty, do: !value, else: value
 
-        dynamic(
-          [{^binding, r}],
-          ^c and
-            (is_nil(field(r, ^field)) or
-               field(r, ^field) == type(^[], ^ecto_type)) == ^value
-        )
-
-      {:map, _} ->
-        value = if op == :not_empty, do: !value, else: value
-
-        dynamic(
-          [{^binding, r}],
-          ^c and
-            (is_nil(field(r, ^field)) or
-               field(r, ^field) == type(^%{}, ^ecto_type)) == ^value
-        )
-
-      {:other, :empty} ->
-        unquote(empty_prelude)
-        build_dynamic(unquote(empty_fragment), true, unquote(empty_combinator))
-
-      {:other, :not_empty} ->
-        unquote(not_empty_prelude)
-
-        build_dynamic(
-          unquote(not_empty_fragment),
-          true,
-          unquote(not_empty_combinator)
-        )
+    case array_or_map(ecto_type) do
+      :array -> dynamic([{^binding, r}], ^c and empty(:array) == ^value)
+      :map -> dynamic([{^binding, r}], ^c and empty(:map) == ^value)
+      :other -> dynamic([{^binding, r}], ^c and empty(:other) == ^value)
     end
   end
 

@@ -268,6 +268,26 @@ defmodule Flop.Operators do
     end
   end
 
+  defmacro empty(:array) do
+    quote do
+      is_nil(field(r, ^var!(field))) or
+        field(r, ^var!(field)) == type(^[], ^var!(ecto_type))
+    end
+  end
+
+  defmacro empty(:map) do
+    quote do
+      is_nil(field(r, ^var!(field))) or
+        field(r, ^var!(field)) == type(^%{}, ^var!(ecto_type))
+    end
+  end
+
+  defmacro empty(:other) do
+    quote do
+      is_nil(field(r, ^var!(field)))
+    end
+  end
+
   defp prelude(:add_wildcard) do
     quote do
       var!(value) = Flop.Misc.add_wildcard(var!(value))
