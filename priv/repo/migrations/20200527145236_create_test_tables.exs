@@ -22,6 +22,8 @@ defmodule Flop.Repo.Migrations.CreateTestTables do
     create table(:fruits) do
       add :family, :string
       add :name, :string
+      add :attributes, :map
+      add :extra, {:map, :string}
     end
   end
 end

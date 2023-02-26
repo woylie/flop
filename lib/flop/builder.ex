@@ -152,8 +152,11 @@ defmodule Flop.Builder do
       unquote(prelude)
 
       case runtime_dynamic_normal(c, schema_struct, field, filter) do
-        nil -> build_dynamic(unquote(fragment), false, unquote(combinator))
-        dynamic -> dynamic
+        nil ->
+          build_dynamic(unquote(fragment), false, unquote(combinator))
+
+        dynamic ->
+          dynamic
       end
     end
 
@@ -178,42 +181,27 @@ defmodule Flop.Builder do
   # credo:disable-for-next-line
   defp runtime_dynamic_normal(c, %module{}, field, %Filter{op: op, value: value})
        when op in [:empty, :not_empty] do
-    field_type = module.__schema__(:type, field)
+    ecto_type = module.__schema__(:type, field)
+    value = if op == :not_empty, do: !value, else: value
 
-    case {field_type, op, value} do
-      {{:array, _} = ecto_type, :empty, true} ->
+    case array_or_map(ecto_type) do
+      :array ->
         dynamic(
           [r],
           ^c and
             (is_nil(field(r, ^field)) or
-               field(r, ^field) == type(^[], ^ecto_type))
+               field(r, ^field) == type(^[], ^ecto_type)) == ^value
         )
 
-      {{:array, _} = ecto_type, :empty, false} ->
-        dynamic(
-          [r],
-          ^c and
-            (not is_nil(field(r, ^field)) and
-               field(r, ^field) != type(^[], ^ecto_type))
-        )
-
-      {{:array, _} = ecto_type, :not_empty, true} ->
-        dynamic(
-          [r],
-          ^c and
-            (not is_nil(field(r, ^field)) and
-               field(r, ^field) != type(^[], ^ecto_type))
-        )
-
-      {{:array, _} = ecto_type, :not_empty, false} ->
+      :map ->
         dynamic(
           [r],
           ^c and
             (is_nil(field(r, ^field)) or
-               field(r, ^field) == type(^[], ^ecto_type))
+               field(r, ^field) == type(^%{}, ^ecto_type)) == ^value
         )
 
-      _ ->
+      :other ->
         nil
     end
   end
@@ -221,6 +209,11 @@ defmodule Flop.Builder do
   defp runtime_dynamic_normal(_, _, _, _) do
     nil
   end
+
+  defp array_or_map({:array, _}), do: :array
+  defp array_or_map({:map, _}), do: :map
+  defp array_or_map(:map), do: :map
+  defp array_or_map(_), do: :other
 
   # credo:disable-for-next-line
   defp runtime_dynamic_join(
@@ -231,37 +224,23 @@ defmodule Flop.Builder do
          %Filter{op: op, value: value}
        )
        when op in [:empty, :not_empty] do
-    case {ecto_type, op, value} do
-      {{:array, _} = ecto_type, :empty, true} ->
+    value = if op == :not_empty, do: !value, else: value
+
+    case array_or_map(ecto_type) do
+      :array ->
         dynamic(
           [{^binding, r}],
           ^c and
             (is_nil(field(r, ^field)) or
-               field(r, ^field) == type(^[], ^ecto_type))
+               field(r, ^field) == type(^[], ^ecto_type)) == ^value
         )
 
-      {{:array, _} = ecto_type, :empty, false} ->
-        dynamic(
-          [{^binding, r}],
-          ^c and
-            (not is_nil(field(r, ^field)) and
-               field(r, ^field) != type(^[], ^ecto_type))
-        )
-
-      {{:array, _} = ecto_type, :not_empty, true} ->
-        dynamic(
-          [{^binding, r}],
-          ^c and
-            (not is_nil(field(r, ^field)) and
-               field(r, ^field) != type(^[], ^ecto_type))
-        )
-
-      {{:array, _} = ecto_type, :not_empty, false} ->
+      :map ->
         dynamic(
           [{^binding, r}],
           ^c and
             (is_nil(field(r, ^field)) or
-               field(r, ^field) == type(^[], ^ecto_type))
+               field(r, ^field) == type(^%{}, ^ecto_type)) == ^value
         )
 
       _ ->

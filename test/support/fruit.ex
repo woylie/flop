@@ -5,7 +5,7 @@ defmodule Flop.Fruit do
   use Ecto.Schema
 
   @derive {Flop.Schema,
-           filterable: [:name, :family],
+           filterable: [:name, :family, :attributes, :extra],
            sortable: [:name],
            default_limit: 60,
            default_order: %{
@@ -17,5 +17,7 @@ defmodule Flop.Fruit do
   schema "fruits" do
     field :name, :string
     field :family, :string
+    field :attributes, :map
+    field :extra, {:map, :string}
   end
 end

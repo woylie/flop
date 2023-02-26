@@ -177,7 +177,7 @@ defmodule FlopTest do
                 pet <- member_of(pets),
                 query_value <- pet |> Pet.get_field(field) |> constant(),
                 query_value != "" do
-        expected = filter_pets(pets, field, :==, query_value)
+        expected = filter_items(pets, field, :==, query_value)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :==, value: query_value}]
@@ -204,7 +204,7 @@ defmodule FlopTest do
                 pet <- member_of(pets),
                 query_value = Pet.get_field(pet, field),
                 query_value != "" do
-        expected = filter_pets(pets, field, :!=, query_value)
+        expected = filter_items(pets, field, :!=, query_value)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :!=, value: query_value}]
@@ -234,8 +234,8 @@ defmodule FlopTest do
                 field <- member_of([:species, :owner_name]),
                 op <- member_of([:empty, :not_empty]) do
         [opposite_op] = [:empty, :not_empty] -- [op]
-        expected = filter_pets(pets, field, op)
-        opposite_expected = filter_pets(pets, field, opposite_op)
+        expected = filter_items(pets, field, op)
+        opposite_expected = filter_items(pets, field, opposite_op)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: op, value: true}]
@@ -269,8 +269,8 @@ defmodule FlopTest do
                 field <- member_of([:species, :owner_name]),
                 op <- member_of([:empty, :not_empty]) do
         [opposite_op] = [:empty, :not_empty] -- [op]
-        expected = filter_pets(pets, field, op)
-        opposite_expected = filter_pets(pets, field, opposite_op)
+        expected = filter_items(pets, field, op)
+        opposite_expected = filter_items(pets, field, opposite_op)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: op, value: "true"}]
@@ -306,8 +306,8 @@ defmodule FlopTest do
                 field <- member_of([:tags, :owner_tags]),
                 op <- member_of([:empty, :not_empty]) do
         [opposite_op] = [:empty, :not_empty] -- [op]
-        expected = filter_pets(pets, field, op, true)
-        opposite_expected = filter_pets(pets, field, opposite_op, true)
+        expected = filter_items(pets, field, op, true)
+        opposite_expected = filter_items(pets, field, opposite_op, true)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: op, value: true}]
@@ -329,6 +329,39 @@ defmodule FlopTest do
       end
     end
 
+    test "applies empty and not_empty filter to map fields" do
+      check all fruit_count <- integer(@pet_count_range),
+                fruits =
+                  insert_list_and_sort(fruit_count, :fruit,
+                    attributes: fn -> Enum.random([nil, %{}, %{"a" => "b"}]) end,
+                    extra: fn -> Enum.random([nil, %{}, %{"a" => "b"}]) end
+                  ),
+                field <- member_of([:attributes, :extra]),
+                op <- member_of([:empty, :not_empty]) do
+        [opposite_op] = [:empty, :not_empty] -- [op]
+        expected = filter_items(fruits, field, op, true)
+        opposite_expected = filter_items(fruits, field, opposite_op, true)
+
+        assert query_fruits(%{
+                 filters: [%{field: field, op: op, value: true}]
+               }) == expected
+
+        assert query_fruits(%{
+                 filters: [%{field: field, op: op, value: false}]
+               }) == opposite_expected
+
+        assert query_fruits(%{
+                 filters: [%{field: field, op: opposite_op, value: true}]
+               }) == opposite_expected
+
+        assert query_fruits(%{
+                 filters: [%{field: field, op: opposite_op, value: false}]
+               }) == expected
+
+        checkin_checkout()
+      end
+    end
+
     property "applies like filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
@@ -336,7 +369,7 @@ defmodule FlopTest do
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 query_value <- substring(value) do
-        expected = filter_pets(pets, field, :like, query_value)
+        expected = filter_items(pets, field, :like, query_value)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :like, value: query_value}]
@@ -353,7 +386,7 @@ defmodule FlopTest do
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 query_value <- substring(value) do
-        expected = filter_pets(pets, field, :not_like, query_value)
+        expected = filter_items(pets, field, :not_like, query_value)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :not_like, value: query_value}]
@@ -371,7 +404,7 @@ defmodule FlopTest do
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 query_value <- substring(value) do
-        expected = filter_pets(pets, field, :ilike, query_value)
+        expected = filter_items(pets, field, :ilike, query_value)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: op, value: query_value}]
@@ -388,7 +421,7 @@ defmodule FlopTest do
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 query_value <- substring(value) do
-        expected = filter_pets(pets, field, :not_ilike, query_value)
+        expected = filter_items(pets, field, :not_ilike, query_value)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :not_ilike, value: query_value}]
@@ -405,7 +438,7 @@ defmodule FlopTest do
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 search_text_or_list <- search_text_or_list(value) do
-        expected = filter_pets(pets, field, :like_and, search_text_or_list)
+        expected = filter_items(pets, field, :like_and, search_text_or_list)
 
         assert query_pets_with_owners(%{
                  filters: [
@@ -424,7 +457,7 @@ defmodule FlopTest do
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 search_text_or_list <- search_text_or_list(value) do
-        expected = filter_pets(pets, field, :like_or, search_text_or_list)
+        expected = filter_items(pets, field, :like_or, search_text_or_list)
 
         assert query_pets_with_owners(%{
                  filters: [
@@ -443,7 +476,7 @@ defmodule FlopTest do
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 search_text_or_list <- search_text_or_list(value) do
-        expected = filter_pets(pets, field, :ilike_and, search_text_or_list)
+        expected = filter_items(pets, field, :ilike_and, search_text_or_list)
 
         assert query_pets_with_owners(%{
                  filters: [
@@ -462,7 +495,7 @@ defmodule FlopTest do
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 search_text_or_list <- search_text_or_list(value) do
-        expected = filter_pets(pets, field, :ilike_or, search_text_or_list)
+        expected = filter_items(pets, field, :ilike_or, search_text_or_list)
 
         assert query_pets_with_owners(%{
                  filters: [
@@ -483,7 +516,7 @@ defmodule FlopTest do
                 field <- member_of([:age, :name, :owner_age]),
                 op <- one_of([:<=, :<, :>, :>=]),
                 query_value <- compare_value_by_field(field) do
-        expected = filter_pets(pets, field, op, query_value)
+        expected = filter_items(pets, field, op, query_value)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: op, value: query_value}]
@@ -502,7 +535,7 @@ defmodule FlopTest do
                   list_of(one_of([member_of(values), value_by_field(field)]),
                     max_length: 5
                   ) do
-        expected = filter_pets(pets, field, :in, query_value)
+        expected = filter_items(pets, field, :in, query_value)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :in, value: query_value}]
@@ -521,7 +554,7 @@ defmodule FlopTest do
                   list_of(one_of([member_of(values), value_by_field(field)]),
                     max_length: 5
                   ) do
-        expected = filter_pets(pets, field, :not_in, query_value)
+        expected = filter_items(pets, field, :not_in, query_value)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :not_in, value: query_value}]
@@ -537,7 +570,7 @@ defmodule FlopTest do
                 field <- member_of([:tags, :owner_tags]),
                 values = Enum.flat_map(pets, &Pet.get_field(&1, field)),
                 query_value <- member_of(values) do
-        expected = filter_pets(pets, field, :contains, query_value)
+        expected = filter_items(pets, field, :contains, query_value)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :contains, value: query_value}]
@@ -553,7 +586,7 @@ defmodule FlopTest do
                 field <- member_of([:tags, :owner_tags]),
                 values = Enum.flat_map(pets, &Pet.get_field(&1, field)),
                 query_value <- member_of(values) do
-        expected = filter_pets(pets, field, :not_contains, query_value)
+        expected = filter_items(pets, field, :not_contains, query_value)
 
         assert query_pets_with_owners(%{
                  filters: [
@@ -570,7 +603,7 @@ defmodule FlopTest do
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
                 values = Enum.map(pets, &String.reverse(&1.name)),
                 query_value <- member_of(values) do
-        expected = filter_pets(pets, :name, :==, query_value)
+        expected = filter_items(pets, :name, :==, query_value)
 
         assert query_pets_with_owners(%{
                  filters: [
