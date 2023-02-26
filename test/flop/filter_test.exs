@@ -6,6 +6,15 @@ defmodule Flop.FilterTest do
 
   doctest Flop.Filter, import: true
 
+  defmodule SchemaWithoutDerive do
+    use Ecto.Schema
+
+    schema "whatever" do
+      field :name, :string
+      field :age, :integer
+    end
+  end
+
   describe "allowed_operators/1" do
     test "returns a list of operators for each native Ecto type" do
       types = [
@@ -45,6 +54,43 @@ defmodule Flop.FilterTest do
   describe "allowed_operators/2" do
     test "returns a list of operators for the given module and field" do
       assert Filter.allowed_operators(Pet, :age) == [
+               :==,
+               :!=,
+               :empty,
+               :not_empty,
+               :<=,
+               :<,
+               :>=,
+               :>,
+               :in,
+               :not_in
+             ]
+    end
+
+    test "returns a list of operators for a schema without derive" do
+      assert Filter.allowed_operators(SchemaWithoutDerive, :name) == [
+               :==,
+               :!=,
+               :=~,
+               :empty,
+               :not_empty,
+               :<=,
+               :<,
+               :>=,
+               :>,
+               :in,
+               :not_in,
+               :like,
+               :not_like,
+               :like_and,
+               :like_or,
+               :ilike,
+               :not_ilike,
+               :ilike_and,
+               :ilike_or
+             ]
+
+      assert Filter.allowed_operators(SchemaWithoutDerive, :age) == [
                :==,
                :!=,
                :empty,

@@ -5,6 +5,7 @@ defmodule Flop.TestUtil do
   import Flop.Factory
 
   alias Ecto.Adapters.SQL.Sandbox
+  alias Flop.Fruit
   alias Flop.Pet
   alias Flop.Repo
 
@@ -14,35 +15,38 @@ defmodule Flop.TestUtil do
   end
 
   @doc """
-  Takes a list of pets and applies filter operators on the list using
+  Takes a list of items and applies filter operators on the list using
   `Enum.filter/2`.
 
   The function supports regular fields, join fields and compound fields. The
   associations need to be preloaded if join fields are used.
   """
-  def filter_pets(pets, field, op, value \\ nil)
+  def filter_items(items, field, op, value \\ nil)
 
-  def filter_pets(pets, field, op, value) when is_atom(field) do
-    case Flop.Schema.field_type(%Pet{}, field) do
+  def filter_items([], _, _, _), do: []
+
+  def filter_items([%module{} = struct | _] = items, field, op, value)
+      when is_atom(field) do
+    case Flop.Schema.field_type(struct, field) do
       {:join, %{ecto_type: ecto_type}} = field_type
       when not is_nil(ecto_type) ->
         filter_func = matches?(op, value, ecto_type)
 
-        Enum.filter(pets, fn pet ->
-          pet |> get_field(field_type) |> filter_func.()
+        Enum.filter(items, fn item ->
+          item |> get_field(field_type) |> filter_func.()
         end)
 
       {type, _opts} = field_type when type in [:normal, :join] ->
-        ecto_type = Pet.__schema__(:type, field)
+        ecto_type = module.__schema__(:type, field)
         filter_func = matches?(op, value, ecto_type)
 
-        Enum.filter(pets, fn pet ->
-          pet |> get_field(field_type) |> filter_func.()
+        Enum.filter(items, fn item ->
+          item |> get_field(field_type) |> filter_func.()
         end)
 
       {:compound, fields} ->
         Enum.filter(
-          pets,
+          items,
           &apply_filter_to_compound_fields(&1, fields, op, value)
         )
     end
@@ -96,12 +100,6 @@ defmodule Flop.TestUtil do
 
   defp get_field(pet, {:join, %{path: [a, b]}}),
     do: pet |> Map.fetch!(a) |> Map.fetch!(b)
-
-  defp matches?(:empty, v, {:array, _}),
-    do: &(is_nil(&1) or v == Enum.empty?(&1))
-
-  defp matches?(:not_empty, v, {:array, _}),
-    do: &(not is_nil(&1) and v == !Enum.empty?(&1))
 
   defp matches?(op, v, _), do: matches?(op, v)
   defp matches?(:==, v), do: &(&1 == v)
@@ -165,6 +163,8 @@ defmodule Flop.TestUtil do
   end
 
   defp empty?(nil), do: true
+  defp empty?([]), do: true
+  defp empty?(map) when map == %{}, do: true
   defp empty?(_), do: false
 
   @doc """
@@ -206,6 +206,30 @@ defmodule Flop.TestUtil do
 
     opts = opts |> Keyword.take([:extra_opts]) |> Keyword.put(:for, Pet)
 
+    Flop.all(q, flop, opts)
+  end
+
+  @doc """
+  Queries all fruits using `Flop.all`. Preloads the owners and sorts by
+  Fruit ID.
+  """
+  def query_fruits_with_owners(params, opts \\ []) do
+    flop =
+      Flop.validate!(params,
+        for: Fruit,
+        max_limit: 999_999_999,
+        default_limit: 999_999_999
+      )
+
+    sort? = opts[:sort] || true
+
+    q =
+      Fruit
+      |> join(:left, [f], o in assoc(f, :owner), as: :owner)
+      |> preload(:owner)
+
+    q = if sort?, do: order_by(q, [p], p.id), else: q
+    opts = opts |> Keyword.take([:extra_opts]) |> Keyword.put(:for, Fruit)
     Flop.all(q, flop, opts)
   end
 

@@ -21,6 +21,8 @@ defmodule Flop.Owner do
     field :name, :string
     field :tags, {:array, :string}, default: []
     field :pet_count, :integer, virtual: true
+    field :attributes, :map
+    field :extra, {:map, :string}
 
     has_many :pets, Pet
   end
