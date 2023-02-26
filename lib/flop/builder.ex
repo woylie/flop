@@ -137,52 +137,20 @@ defmodule Flop.Builder do
     c
   end
 
-  for op <- @operators do
-    {fragment, prelude, combinator} = op_config(op)
+  {empty_fragment, empty_prelude, empty_combinator} = op_config(:empty)
 
-    defp build_op(
-           c,
-           schema_struct,
-           {:normal, field},
-           %Filter{
-             op: unquote(op),
-             value: value
-           } = filter
-         ) do
-      unquote(prelude)
-
-      case runtime_dynamic_normal(c, schema_struct, field, filter) do
-        nil -> build_dynamic(unquote(fragment), false, unquote(combinator))
-        dynamic -> dynamic
-      end
-    end
-
-    defp build_op(
-           c,
-           schema_struct,
-           {:join, %{binding: binding, field: field} = join},
-           %Filter{
-             op: unquote(op),
-             value: value
-           } = filter
-         ) do
-      unquote(prelude)
-
-      case runtime_dynamic_join(c, schema_struct, join, field, filter) do
-        nil -> build_dynamic(unquote(fragment), true, unquote(combinator))
-        dynamic -> dynamic
-      end
-    end
-  end
+  {not_empty_fragment, not_empty_prelude, not_empty_combinator} =
+    op_config(:not_empty)
 
   # credo:disable-for-next-line
-  defp runtime_dynamic_normal(c, %module{}, field, %Filter{op: op, value: value})
+  defp build_op(c, %module{}, {:normal, field}, %Filter{op: op, value: value})
        when op in [:empty, :not_empty] do
     ecto_type = module.__schema__(:type, field)
-    value = if op == :not_empty, do: !value, else: value
 
-    case array_or_map(ecto_type) do
-      :array ->
+    case {array_or_map(ecto_type), op} do
+      {:array, _} ->
+        value = if op == :not_empty, do: !value, else: value
+
         dynamic(
           [r],
           ^c and
@@ -190,7 +158,9 @@ defmodule Flop.Builder do
                field(r, ^field) == type(^[], ^ecto_type)) == ^value
         )
 
-      :map ->
+      {:map, _} ->
+        value = if op == :not_empty, do: !value, else: value
+
         dynamic(
           [r],
           ^c and
@@ -198,56 +168,93 @@ defmodule Flop.Builder do
                field(r, ^field) == type(^%{}, ^ecto_type)) == ^value
         )
 
-      :other ->
-        nil
+      {:other, :empty} ->
+        unquote(empty_prelude)
+        build_dynamic(unquote(empty_fragment), false, unquote(empty_combinator))
+
+      {:other, :not_empty} ->
+        unquote(not_empty_prelude)
+
+        build_dynamic(
+          unquote(not_empty_fragment),
+          false,
+          unquote(not_empty_combinator)
+        )
     end
   end
 
-  defp runtime_dynamic_normal(_, _, _, _) do
-    nil
+  # credo:disable-for-next-line
+  defp build_op(
+         c,
+         _schema_struct,
+         {:join, %{binding: binding, ecto_type: ecto_type, field: field}},
+         %Filter{op: op, value: value}
+       )
+       when op in [:empty, :not_empty] do
+    case {array_or_map(ecto_type), op} do
+      {:array, _} ->
+        value = if op == :not_empty, do: !value, else: value
+
+        dynamic(
+          [{^binding, r}],
+          ^c and
+            (is_nil(field(r, ^field)) or
+               field(r, ^field) == type(^[], ^ecto_type)) == ^value
+        )
+
+      {:map, _} ->
+        value = if op == :not_empty, do: !value, else: value
+
+        dynamic(
+          [{^binding, r}],
+          ^c and
+            (is_nil(field(r, ^field)) or
+               field(r, ^field) == type(^%{}, ^ecto_type)) == ^value
+        )
+
+      {:other, :empty} ->
+        unquote(empty_prelude)
+        build_dynamic(unquote(empty_fragment), true, unquote(empty_combinator))
+
+      {:other, :not_empty} ->
+        unquote(not_empty_prelude)
+
+        build_dynamic(
+          unquote(not_empty_fragment),
+          true,
+          unquote(not_empty_combinator)
+        )
+    end
+  end
+
+  for op <- @operators do
+    {fragment, prelude, combinator} = op_config(op)
+
+    defp build_op(
+           c,
+           _schema_struct,
+           {:normal, field},
+           %Filter{op: unquote(op), value: value}
+         ) do
+      unquote(prelude)
+      build_dynamic(unquote(fragment), false, unquote(combinator))
+    end
+
+    defp build_op(
+           c,
+           _schema_struct,
+           {:join, %{binding: binding, field: field}},
+           %Filter{op: unquote(op), value: value}
+         ) do
+      unquote(prelude)
+      build_dynamic(unquote(fragment), true, unquote(combinator))
+    end
   end
 
   defp array_or_map({:array, _}), do: :array
   defp array_or_map({:map, _}), do: :map
   defp array_or_map(:map), do: :map
   defp array_or_map(_), do: :other
-
-  # credo:disable-for-next-line
-  defp runtime_dynamic_join(
-         c,
-         _schema_struct,
-         %{binding: binding, ecto_type: ecto_type},
-         field,
-         %Filter{op: op, value: value}
-       )
-       when op in [:empty, :not_empty] do
-    value = if op == :not_empty, do: !value, else: value
-
-    case array_or_map(ecto_type) do
-      :array ->
-        dynamic(
-          [{^binding, r}],
-          ^c and
-            (is_nil(field(r, ^field)) or
-               field(r, ^field) == type(^[], ^ecto_type)) == ^value
-        )
-
-      :map ->
-        dynamic(
-          [{^binding, r}],
-          ^c and
-            (is_nil(field(r, ^field)) or
-               field(r, ^field) == type(^%{}, ^ecto_type)) == ^value
-        )
-
-      :other ->
-        nil
-    end
-  end
-
-  defp runtime_dynamic_join(_, _, _, _, _) do
-    nil
-  end
 
   defp get_field_type(nil, field), do: {:normal, field}
 
