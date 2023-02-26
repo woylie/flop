@@ -152,11 +152,8 @@ defmodule Flop.Builder do
       unquote(prelude)
 
       case runtime_dynamic_normal(c, schema_struct, field, filter) do
-        nil ->
-          build_dynamic(unquote(fragment), false, unquote(combinator))
-
-        dynamic ->
-          dynamic
+        nil -> build_dynamic(unquote(fragment), false, unquote(combinator))
+        dynamic -> dynamic
       end
     end
 
