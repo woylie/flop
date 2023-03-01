@@ -1216,7 +1216,7 @@ defmodule Flop.Filter do
       }
   """
   @doc since: "0.19.0"
-  @spec pop([t] | [map] | map, atom, any) :: {t, [t]} | {map, [map]}
+  @spec pop([t] | [map] | map, atom, any) :: {t | any, [t]} | {map | any, [map]}
   def pop(filters, field, default \\ nil) when is_atom(field) do
     case fetch(filters, field) do
       {:ok, value} -> {value, delete(filters, field)}
@@ -1305,7 +1305,8 @@ defmodule Flop.Filter do
       }
   """
   @doc since: "0.19.0"
-  @spec pop_first([t] | [map] | map, atom, any) :: {t, [t]} | {map, [map]}
+  @spec pop_first([t] | [map] | map, atom, any) ::
+          {t | any, [t]} | {map | any, [map]}
   def pop_first(filters, field, default \\ nil) when is_atom(field) do
     case fetch(filters, field) do
       {:ok, value} -> {value, delete_first(filters, field)}
