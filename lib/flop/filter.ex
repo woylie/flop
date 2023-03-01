@@ -393,6 +393,12 @@ defmodule Flop.Filter do
   ### Indexed map
 
       iex> fetch(
+      ...>   %{0 => %{field: "name", op: "==", value: "Joe"}},
+      ...>   :name
+      ...> )
+      {:ok, %{field: "name", op: "==", value: "Joe"}}
+
+      iex> fetch(
       ...>   %{"0" => %{"field" => "name", "op" => "==", "value" => "Joe"}},
       ...>   :name
       ...> )
@@ -450,6 +456,12 @@ defmodule Flop.Filter do
   ### Indexed map
 
       iex> fetch_value(
+      ...>   %{0 => %{field: "name", op: "==", value: "Joe"}},
+      ...>   :name
+      ...> )
+      {:ok, "Joe"}
+
+      iex> fetch_value(
       ...>   %{"0" => %{"field" => "name", "op" => "==", "value" => "Joe"}},
       ...>   :name
       ...> )
@@ -501,13 +513,34 @@ defmodule Flop.Filter do
       iex> get([%{"field" => "name", "op" => "==", "value" => "Joe"}], :name)
       %{"field" => "name", "op" => "==", "value" => "Joe"}
 
+      iex> get([%{"field" => :name, "op" => "==", "value" => "Joe"}], :name)
+      %{"field" => :name, "op" => "==", "value" => "Joe"}
+
   ### Indexed map
+
+      iex> get(
+      ...>   %{0 => %{field: "name", op: "==", value: "Joe"}},
+      ...>   :name
+      ...> )
+      %{field: "name", op: "==", value: "Joe"}
+
+      iex> get(
+      ...>   %{0 => %{field: :name, op: "==", value: "Joe"}},
+      ...>   :name
+      ...> )
+      %{field: :name, op: "==", value: "Joe"}
 
       iex> get(
       ...>   %{"0" => %{"field" => "name", "op" => "==", "value" => "Joe"}},
       ...>   :name
       ...> )
       %{"field" => "name", "op" => "==", "value" => "Joe"}
+
+      iex> get(
+      ...>   %{"0" => %{"field" => :name, "op" => "==", "value" => "Joe"}},
+      ...>   :name
+      ...> )
+      %{"field" => :name, "op" => "==", "value" => "Joe"}
   """
   @doc since: "0.19.0"
   @spec get([t()] | [map] | map, atom) :: t() | map | nil
@@ -564,6 +597,12 @@ defmodule Flop.Filter do
       "Joe"
 
   ### Indexed map
+
+      iex> get_value(
+      ...>   %{0 => %{field: "name", op: "==", value: "Joe"}},
+      ...>   :name
+      ...> )
+      "Joe"
 
       iex> get_value(
       ...>   %{"0" => %{"field" => "name", "op" => "==", "value" => "Joe"}},
@@ -643,6 +682,19 @@ defmodule Flop.Filter do
       ]
 
   ### Indexed map
+
+      iex> get_all(
+      ...>   %{
+      ...>     0 => %{field: "name", op: "==", value: "Joe"},
+      ...>     1 => %{field: "age", op: ">", value: 8},
+      ...>     2 => %{field: "name", op: "==", value: "Jim"}
+      ...>   },
+      ...>   :name
+      ...> )
+      [
+        %{field: "name", op: "==", value: "Joe"},
+        %{field: "name", op: "==", value: "Jim"}
+      ]
 
       iex> get_all(
       ...>   %{
@@ -728,6 +780,15 @@ defmodule Flop.Filter do
 
       iex> delete(
       ...>   %{
+      ...>     0 => %{field: "name", op: "==", value: "Joe"},
+      ...>     1 => %{field: "age", op: ">", value: "8"}
+      ...>   },
+      ...>   :name
+      ...> )
+      [%{field: "age", op: ">", value: "8"}]
+
+      iex> delete(
+      ...>   %{
       ...>     "0" => %{"field" => "name", "op" => "==", "value" => "Joe"},
       ...>     "1" => %{"field" => "age", "op" => ">", "value" => "8"}
       ...>   },
@@ -798,10 +859,36 @@ defmodule Flop.Filter do
         %{"field" => "name", "op" => "==", "value" => "Jim"}
       ]
 
+      iex> delete_first(
+      ...>   [
+      ...>     %{"field" => :name, "op" => :==, "value" => "Joe"},
+      ...>     %{"field" => :age, "op" => :>, "value" => 8},
+      ...>     %{"field" => :name, "op" => :==, "value" => "Jim"}
+      ...>   ],
+      ...>   :name
+      ...> )
+      [
+        %{"field" => :age, "op" => :>, "value" => 8},
+        %{"field" => :name, "op" => :==, "value" => "Jim"}
+      ]
+
   ### Indexed map
 
   Filters passed as an indexed map will be converted to a list, even if no
   matching filter exists.
+
+      iex> delete_first(
+      ...>   %{
+      ...>     0 => %{field: "name", op: "==", value: "Joe"},
+      ...>     1 => %{field: "age", op: ">", value: 8},
+      ...>     2 => %{field: "name", op: "==", value: "Jim"}
+      ...>   },
+      ...>   :name
+      ...> )
+      [
+        %{field: "age", op: ">", value: 8},
+        %{field: "name", op: "==", value: "Jim"}
+      ]
 
       iex> delete_first(
       ...>   %{
@@ -826,21 +913,16 @@ defmodule Flop.Filter do
     filters |> indexed_map_to_list() |> delete_first(field)
   end
 
-  defp delete_first_filter([%{field: field} | tail], field, _) do
-    tail
-  end
-
-  defp delete_first_filter([%{"field" => field_str} | tail], _, field_str) do
-    tail
-  end
+  defp delete_first_filter([%{field: field} | tail], field, _), do: tail
+  defp delete_first_filter([%{field: field} | tail], _, field), do: tail
+  defp delete_first_filter([%{"field" => field} | tail], field, _), do: tail
+  defp delete_first_filter([%{"field" => field} | tail], _, field), do: tail
 
   defp delete_first_filter([%{} = filter | tail], field, field_str) do
     [filter | delete_first_filter(tail, field, field_str)]
   end
 
-  defp delete_first_filter([], _, _) do
-    []
-  end
+  defp delete_first_filter([], _, _), do: []
 
   @doc """
   Removes the filters for the given fields from a list of filters.
@@ -897,10 +979,31 @@ defmodule Flop.Filter do
       ...> )
       [%{"field" => "age", "op" => ">", "value" => "8"}]
 
+      iex> drop(
+      ...>   [
+      ...>     %{"field" => :name, "op" => :==, "value" => "Joe"},
+      ...>     %{"field" => :age, "op" => :>, "value" => "8"},
+      ...>     %{"field" => :color, "op" => :==, "value" => "blue"}
+      ...>   ],
+      ...>   [:name, :color]
+      ...> )
+      [%{"field" => :age, "op" => :>, "value" => "8"}]
+
+
   ### Indexed map
 
   Filters passed as an indexed map will be converted to a list, even if no
   matching filter exists.
+
+      iex> drop(
+      ...>   %{
+      ...>     0 => %{field: "name", op: "==", value: "Joe"},
+      ...>     1 => %{field: "age", op: ">", value: "8"},
+      ...>     2 => %{field: "color", op: "==", value: "blue"}
+      ...>   },
+      ...>   [:name, :color]
+      ...> )
+      [%{field: "age", op: ">", value: "8"}]
 
       iex> drop(
       ...>   %{
@@ -919,10 +1022,7 @@ defmodule Flop.Filter do
 
     filters
     |> indexed_map_to_list()
-    |> Enum.reject(fn
-      %{field: field} when is_atom(field) -> field in fields
-      %{"field" => field} when is_binary(field) -> field in fields_str
-    end)
+    |> Enum.reject(&contains_field?(&1, fields, fields_str))
   end
 
   @doc """
@@ -1120,6 +1220,19 @@ defmodule Flop.Filter do
 
       iex> take(
       ...>   %{
+      ...>     0 => %{field: "name", op: "==", value: "Joe"},
+      ...>     1 => %{field: "age", op: ">", value: 8},
+      ...>     2 => %{field: "color", op: "==", value: "blue"}
+      ...>   },
+      ...>   [:name, :color]
+      ...> )
+      [
+        %{field: "name", op: "==", value: "Joe"},
+        %{field: "color", op: "==", value: "blue"}
+      ]
+
+      iex> take(
+      ...>   %{
       ...>     "0" => %{"field" => "name", "op" => "==", "value" => "Joe"},
       ...>     "1" => %{"field" => "age", "op" => ">", "value" => 8},
       ...>     "2" => %{"field" => "color", "op" => "==", "value" => "blue"}
@@ -1138,10 +1251,7 @@ defmodule Flop.Filter do
 
     filters
     |> indexed_map_to_list()
-    |> Enum.filter(fn
-      %{field: field} when is_atom(field) -> field in fields
-      %{"field" => field} when is_binary(field) -> field in fields_str
-    end)
+    |> Enum.filter(&contains_field?(&1, fields, fields_str))
   end
 
   @doc """
@@ -1204,9 +1314,22 @@ defmodule Flop.Filter do
 
       iex> pop(
       ...>   %{
-      ...>     "0" => %{"field" => "name", "op" => "==", "value" => "Joe"},
-      ...>     "1" => %{"field" => "age", "op" => ">", "value" => "8"},
-      ...>     "2" => %{"field" => "name", "op" => "==", "value" => "Jim"},
+      ...>     0 => %{field: "name", op: "==", value: "Joe"},
+      ...>     1 => %{field: "age", op: ">", value: "8"},
+      ...>     2 => %{field: "name", op: "==", value: "Jim"},
+      ...>   },
+      ...>   :name
+      ...> )
+      {
+        %{field: "name", op: "==", value: "Joe"},
+        [%{field: "age", op: ">", value: "8"}]
+      }
+
+      iex> pop(
+      ...>   %{
+      ...>     0 => %{"field" => "name", "op" => "==", "value" => "Joe"},
+      ...>     1 => %{"field" => "age", "op" => ">", "value" => "8"},
+      ...>     2 => %{"field" => "name", "op" => "==", "value" => "Jim"},
       ...>   },
       ...>   :name
       ...> )
@@ -1289,11 +1412,27 @@ defmodule Flop.Filter do
   matching filter exists.
 
       iex> pop_first(
-      ...>   [
-      ...>     %{"field" => "name", "op" => "==", "value" => "Joe"},
-      ...>     %{"field" => "age", "op" => ">", "value" => 8},
-      ...>     %{"field" => "name", "op" => "==", "value" => "Jim"},
-      ...>   ],
+      ...>   %{
+      ...>     0 => %{field: "name", op: "==", value: "Joe"},
+      ...>     1 => %{field: "age", op: ">", value: 8},
+      ...>     2 => %{field: "name", op: "==", value: "Jim"},
+      ...>   },
+      ...>   :name
+      ...> )
+      {
+        %{field: "name", op: "==", value: "Joe"},
+        [
+          %{field: "age", op: ">", value: 8},
+          %{field: "name", op: "==", value: "Jim"}
+        ]
+      }
+
+      iex> pop_first(
+      ...>   %{
+      ...>     "0" => %{"field" => "name", "op" => "==", "value" => "Joe"},
+      ...>     "1" => %{"field" => "age", "op" => ">", "value" => 8},
+      ...>     "2" => %{"field" => "name", "op" => "==", "value" => "Jim"},
+      ...>   },
       ...>   :name
       ...> )
       {
@@ -1474,12 +1613,22 @@ defmodule Flop.Filter do
     end
   end
 
-  defp matches_field?(value, field, field_str) do
-    case value do
-      %{field: ^field} -> true
-      %{"field" => ^field_str} -> true
-      {_, %{"field" => ^field_str}} -> true
-      _ -> false
+  defp matches_field?(%{field: field}, field, _), do: true
+  defp matches_field?(%{field: field}, _, field), do: true
+  defp matches_field?(%{"field" => field}, field, _), do: true
+  defp matches_field?(%{"field" => field}, _, field), do: true
+  defp matches_field?({_, %{field: field}}, field, _), do: true
+  defp matches_field?({_, %{field: field}}, _, field), do: true
+  defp matches_field?({_, %{"field" => field}}, field, _), do: true
+  defp matches_field?({_, %{"field" => field}}, _, field), do: true
+  defp matches_field?(_, _, _), do: false
+
+  defp contains_field?(filter, fields, fields_str) do
+    case filter do
+      %{field: field} when is_atom(field) -> field in fields
+      %{field: field} when is_binary(field) -> field in fields_str
+      %{"field" => field} when is_binary(field) -> field in fields_str
+      %{"field" => field} when is_atom(field) -> field in fields
     end
   end
 
