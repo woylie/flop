@@ -17,6 +17,8 @@
   argument.
 - The `empty` and `not_empty` operators now treat empty maps as empty values on
   map fields.
+- `%` and `_` characters in filter values for the `like`, `ilike` and `=~`
+  operators are now escaped.
 
 ## [0.19.0] - 2023-01-15
 

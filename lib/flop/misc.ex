@@ -4,10 +4,20 @@ defmodule Flop.Misc do
   @doc """
   Adds wildcard at the beginning and end of a string for partial matches.
 
+  Escapes `%` and `_` within the given string.
+
       iex> add_wildcard("borscht")
       "%borscht%"
+
+      iex> add_wildcard("bor%t")
+      "%bor\\\\%t%"
+
+      iex> add_wildcard("bor_cht")
+      "%bor\\\\_cht%"
   """
-  def add_wildcard(value), do: "%#{value}%"
+  def add_wildcard(value) when is_binary(value) do
+    "%" <> String.replace(value, ["%", "_"], &"\\#{&1}") <> "%"
+  end
 
   @doc """
   Splits a search text into tokens.
