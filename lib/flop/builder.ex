@@ -60,23 +60,49 @@ defmodule Flop.Builder do
     end
   end
 
+  for op <- [:like_and, :like_or, :ilike_and, :ilike_or] do
+    {field_op, combinator} =
+      case op do
+        :ilike_and -> {:ilike, :and}
+        :ilike_or -> {:ilike, :or}
+        :like_and -> {:like, :and}
+        :like_or -> {:like, :or}
+      end
+
+    defp build_op(
+           schema_struct,
+           {:compound, fields},
+           %Filter{op: unquote(op), value: value}
+         ) do
+      fields = Enum.map(fields, &get_field_type(schema_struct, &1))
+
+      value =
+        case value do
+          v when is_binary(v) -> String.split(v)
+          v when is_list(v) -> v
+        end
+
+      reduce_dynamic(unquote(combinator), value, fn substring ->
+        Enum.reduce(fields, false, fn field, inner_dynamic ->
+          dynamic_for_field =
+            build_op(schema_struct, field, %Filter{
+              field: field,
+              op: unquote(field_op),
+              value: substring
+            })
+
+          dynamic([r], ^inner_dynamic or ^dynamic_for_field)
+        end)
+      end)
+    end
+  end
+
   defp build_op(
          schema_struct,
          {:compound, fields},
          %Filter{op: op} = filter
        )
-       when op in [
-              :=~,
-              :like,
-              :not_like,
-              :like_and,
-              :like_or,
-              :ilike,
-              :not_ilike,
-              :ilike_and,
-              :ilike_or,
-              :not_empty
-            ] do
+       when op in [:=~, :like, :not_like, :ilike, :not_ilike, :not_empty] do
     fields
     |> Enum.map(&get_field_type(schema_struct, &1))
     |> Enum.reduce(false, fn field, dynamic ->

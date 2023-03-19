@@ -37,6 +37,18 @@ defmodule Flop.Operators do
     end
   end
 
+  def reduce_dynamic(:and, values, inner_func) do
+    Enum.reduce(values, true, fn value, dynamic ->
+      dynamic([r], ^dynamic and ^inner_func.(value))
+    end)
+  end
+
+  def reduce_dynamic(:or, values, inner_func) do
+    Enum.reduce(values, false, fn value, dynamic ->
+      dynamic([r], ^dynamic or ^inner_func.(value))
+    end)
+  end
+
   defp binding_arg(true) do
     quote do
       [{^var!(binding), r}]
