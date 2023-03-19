@@ -1258,11 +1258,12 @@ defmodule Flop.Filter do
   Returns the first filter for the given field and removes all other filters for
   the same field from the filter list.
 
-  Returns a tuple with the first matching filter first value for `key` and the
-  remaining filter list. If there is no filter for the field in the list, the
-  default value is returned as the first tuple element.
+  Returns a tuple with the first matching filter for `key` and the remaining
+  filter list. If there is no filter for the field in the list, the default
+  value is returned as the first tuple element.
 
-  See also `Flop.Filter.pop_first/3`.
+  See also `Flop.Filter.pop_first/3`, `Flop.Filter.pop_value/3` and
+  `Flop.Filter.pop_first_value/3`.
 
   ## Examples
 
@@ -1342,6 +1343,89 @@ defmodule Flop.Filter do
   @spec pop([t] | [map] | map, atom, any) :: {t | any, [t]} | {map | any, [map]}
   def pop(filters, field, default \\ nil) when is_atom(field) do
     case fetch(filters, field) do
+      {:ok, filter} -> {filter, delete(filters, field)}
+      :error -> {default, filters}
+    end
+  end
+
+  @doc """
+  Returns the first filter value for the given field and removes all other
+  filters for the same field from the filter list.
+
+  Returns a tuple with the value of the first matching filter for `key` and the
+  remaining filter list. If there is no filter for the field in the list, the
+  default value is returned as the first tuple element.
+
+  See also `Flop.Filter.pop/3`, `Flop.Filter.pop_first/3` and
+  `Flop.Filter.pop_first_value/3`
+
+  ## Examples
+
+  ### Flop.Filter struct
+
+      iex> pop_value([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :name)
+      {"Joe", []}
+
+      iex> pop_value([%Flop.Filter{field: :name, op: :==, value: "Joe"}], :age)
+      {nil, [%Flop.Filter{field: :name, op: :==, value: "Joe"}]}
+
+      iex> pop_value(
+      ...>   [%Flop.Filter{field: :name, op: :==, value: "Joe"}],
+      ...>   :age,
+      ...>   8
+      ...> )
+      {8, [%Flop.Filter{field: :name, op: :==, value: "Joe"}]}
+
+      iex> pop_value(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"},
+      ...>   ],
+      ...>   :name
+      ...> )
+      {"Joe", [%Flop.Filter{field: :age, op: :>, value: 8}]}
+
+  ### Map with atom keys
+
+      iex> pop_value([%{field: :name, op: :==, value: "Joe"}], :name)
+      {"Joe", []}
+
+  ### Map with string keys
+
+      iex> pop_value([%{"field" => "name", "op" => "==", "value" => "Joe"}], :name)
+      {"Joe", []}
+
+  ### Indexed map
+
+  Filters passed as an indexed map will be converted to a list, even if no
+  matching filter exists.
+
+      iex> pop_value(
+      ...>   %{
+      ...>     0 => %{field: "name", op: "==", value: "Joe"},
+      ...>     1 => %{field: "age", op: ">", value: "8"},
+      ...>     2 => %{field: "name", op: "==", value: "Jim"},
+      ...>   },
+      ...>   :name
+      ...> )
+      {"Joe", [%{field: "age", op: ">", value: "8"}]}
+
+      iex> pop_value(
+      ...>   %{
+      ...>     0 => %{"field" => "name", "op" => "==", "value" => "Joe"},
+      ...>     1 => %{"field" => "age", "op" => ">", "value" => "8"},
+      ...>     2 => %{"field" => "name", "op" => "==", "value" => "Jim"},
+      ...>   },
+      ...>   :name
+      ...> )
+      {"Joe", [%{"field" => "age", "op" => ">", "value" => "8"}]}
+  """
+  @doc since: "0.20.0"
+  @spec pop_value([t] | [map] | map, atom, any) ::
+          {t | any, [t]} | {map | any, [map]}
+  def pop_value(filters, field, default \\ nil) when is_atom(field) do
+    case fetch_value(filters, field) do
       {:ok, value} -> {value, delete(filters, field)}
       :error -> {default, filters}
     end
@@ -1351,11 +1435,12 @@ defmodule Flop.Filter do
   Returns the first filter for the given field and a filter list with all
   remaining filters.
 
-  Returns a tuple with the first matching filter first value for `key` and the
+  Returns a tuple with the first matching filter for `key` and the
   remaining filter list. If there is no filter for the field in the list, the
   default value is returned as the first tuple element.
 
-  See also `Flop.Filter.pop/3`.
+  See also `Flop.Filter.pop/3`, `Flop.Filter.pop_value/3` and
+  `Flop.Filter.pop_first_value/3`.
 
   ## Examples
 
@@ -1448,6 +1533,116 @@ defmodule Flop.Filter do
           {t | any, [t]} | {map | any, [map]}
   def pop_first(filters, field, default \\ nil) when is_atom(field) do
     case fetch(filters, field) do
+      {:ok, value} -> {value, delete_first(filters, field)}
+      :error -> {default, filters}
+    end
+  end
+
+  @doc """
+  Returns the first filter for the given field and a filter list with all
+  remaining filters.
+
+  Returns a tuple with the first matching filter value for `key` and the
+  remaining filter list. If there is no filter for the field in the list, the
+  default value is returned as the first tuple element.
+
+  See also `Flop.Filter.pop/3`, `Flop.Filter.pop_value/3` and
+  `Flop.Filter.pop_first/3`.
+
+  ## Examples
+
+  ### Flop.Filter struct
+
+      iex> pop_first_value(
+      ...>   [%Flop.Filter{field: :name, op: :==, value: "Joe"}],
+      ...>   :name
+      ...> )
+      {"Joe", []}
+
+      iex> pop_first_value(
+      ...>   [%Flop.Filter{field: :name, op: :==, value: "Joe"}],
+      ...>   :age
+      ...> )
+      {nil, [%Flop.Filter{field: :name, op: :==, value: "Joe"}]}
+
+      iex> pop_first_value(
+      ...>   [%Flop.Filter{field: :name, op: :==, value: "Joe"}],
+      ...>   :age,
+      ...>   8
+      ...> )
+      {8, [%Flop.Filter{field: :name, op: :==, value: "Joe"}]}
+
+      iex> pop_first_value(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :age, op: :>, value: 8},
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Jim"},
+      ...>   ],
+      ...>   :name
+      ...> )
+      {
+        "Joe",
+        [
+          %Flop.Filter{field: :age, op: :>, value: 8},
+          %Flop.Filter{field: :name, op: :==, value: "Jim"}
+        ]
+      }
+
+  ### Map with atom keys
+
+      iex> pop_first_value([%{field: :name, op: :==, value: "Joe"}], :name)
+      {"Joe", []}
+
+  ### Map with string keys
+
+      iex> pop_first_value(
+      ...>   [%{"field" => "name", "op" => "==", "value" => "Joe"}],
+      ...>   :name
+      ...> )
+      {"Joe", []}
+
+  ### Indexed map
+
+  Filters passed as an indexed map will be converted to a list, even if no
+  matching filter exists.
+
+      iex> pop_first_value(
+      ...>   %{
+      ...>     0 => %{field: "name", op: "==", value: "Joe"},
+      ...>     1 => %{field: "age", op: ">", value: 8},
+      ...>     2 => %{field: "name", op: "==", value: "Jim"},
+      ...>   },
+      ...>   :name
+      ...> )
+      {
+        "Joe",
+        [
+          %{field: "age", op: ">", value: 8},
+          %{field: "name", op: "==", value: "Jim"}
+        ]
+      }
+
+      iex> pop_first_value(
+      ...>   %{
+      ...>     "0" => %{"field" => "name", "op" => "==", "value" => "Joe"},
+      ...>     "1" => %{"field" => "age", "op" => ">", "value" => 8},
+      ...>     "2" => %{"field" => "name", "op" => "==", "value" => "Jim"},
+      ...>   },
+      ...>   :name
+      ...> )
+      {
+        "Joe",
+        [
+          %{"field" => "age", "op" => ">", "value" => 8},
+          %{"field" => "name", "op" => "==", "value" => "Jim"}
+        ]
+      }
+  """
+  @doc since: "0.20.0"
+  @spec pop_first_value([t] | [map] | map, atom, any) ::
+          {t | any, [t]} | {map | any, [map]}
+  def pop_first_value(filters, field, default \\ nil) when is_atom(field) do
+    case fetch_value(filters, field) do
       {:ok, value} -> {value, delete_first(filters, field)}
       :error -> {default, filters}
     end

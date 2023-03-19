@@ -7,7 +7,8 @@
 - Added `Flop.unnest_filters/3` as a reverse operation of `Flop.nest_filters/3`
   after retrieving data from the database.
 - Added `Flop.Filter.fetch_value/2`, `Flop.Filter.get_value/2`,
-  `Flop.Filter.put_value/4` and `Flop.Filter.put_new_value/4` to `Flop.Filter`.
+  `Flop.Filter.put_value/4`, `Flop.Filter.put_new_value/4`,
+  `Flop.Filter.pop_value/3` and `Flop.Filter.pop_first_value/3`.
 
 ### Changed
 
