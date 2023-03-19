@@ -33,38 +33,38 @@ defmodule Flop.Builder do
   ]
 
   def filter(query, schema_struct, filters, extra_opts) do
-    {query, conditions} =
-      Enum.reduce(
-        filters,
-        {query, true},
-        &apply_filter(&1, schema_struct, extra_opts, &2)
-      )
-
-    where(query, ^conditions)
+    Enum.reduce(
+      filters,
+      query,
+      &apply_filter(&2, &1, schema_struct, extra_opts)
+    )
   end
 
-  defp apply_filter(%Filter{field: nil}, _, _, result), do: result
-  defp apply_filter(%Filter{value: nil}, _, _, result), do: result
+  defp apply_filter(query, %Filter{field: nil}, _, _), do: query
+  defp apply_filter(query, %Filter{value: nil}, _, _), do: query
 
   defp apply_filter(
+         query,
          %Filter{field: field} = filter,
          schema_struct,
-         extra_opts,
-         {query, conditions}
+         extra_opts
        ) do
     case get_field_type(schema_struct, field) do
       {:custom, %{} = custom_opts} ->
         {mod, fun, opts} = Map.fetch!(custom_opts, :filter)
         opts = Keyword.merge(extra_opts, opts)
-
-        {apply(mod, fun, [query, filter, opts]), conditions}
+        apply(mod, fun, [query, filter, opts])
 
       field_type ->
-        {query, build_op(conditions, schema_struct, field_type, filter)}
+        where(query, ^build_op(schema_struct, field_type, filter))
     end
   end
 
-  defp build_op(c, schema_struct, {:compound, fields}, %Filter{op: op} = filter)
+  defp build_op(
+         schema_struct,
+         {:compound, fields},
+         %Filter{op: op} = filter
+       )
        when op in [
               :=~,
               :like,
@@ -77,40 +77,32 @@ defmodule Flop.Builder do
               :ilike_or,
               :not_empty
             ] do
-    compound_dynamic =
-      fields
-      |> Enum.map(&get_field_type(schema_struct, &1))
-      |> Enum.reduce(false, fn field, dynamic ->
-        dynamic_for_field =
-          build_op(true, schema_struct, field, %{filter | field: field})
+    fields
+    |> Enum.map(&get_field_type(schema_struct, &1))
+    |> Enum.reduce(false, fn field, dynamic ->
+      dynamic_for_field =
+        build_op(schema_struct, field, %{filter | field: field})
 
-        dynamic([r], ^dynamic or ^dynamic_for_field)
-      end)
-
-    dynamic([r], ^c and ^compound_dynamic)
+      dynamic([r], ^dynamic or ^dynamic_for_field)
+    end)
   end
 
   defp build_op(
-         c,
          schema_struct,
          {:compound, fields},
          %Filter{op: :empty} = filter
        ) do
-    compound_dynamic =
-      fields
-      |> Enum.map(&get_field_type(schema_struct, &1))
-      |> Enum.reduce(true, fn field, dynamic ->
-        dynamic_for_field =
-          build_op(true, schema_struct, field, %{filter | field: field})
+    fields
+    |> Enum.map(&get_field_type(schema_struct, &1))
+    |> Enum.reduce(true, fn field, dynamic ->
+      dynamic_for_field =
+        build_op(schema_struct, field, %{filter | field: field})
 
-        dynamic([r], ^dynamic and ^dynamic_for_field)
-      end)
-
-    dynamic([r], ^c and ^compound_dynamic)
+      dynamic([r], ^dynamic and ^dynamic_for_field)
+    end)
   end
 
   defp build_op(
-         c,
          _schema_struct,
          {:compound, _fields},
          %Filter{op: op, value: _value} = _filter
@@ -134,24 +126,23 @@ defmodule Flop.Builder do
       "Flop: Operator '#{op}' not supported for compound fields. Ignored."
     )
 
-    c
+    true
   end
 
-  defp build_op(c, %module{}, {:normal, field}, %Filter{op: op, value: value})
+  defp build_op(%module{}, {:normal, field}, %Filter{op: op, value: value})
        when op in [:empty, :not_empty] do
     ecto_type = module.__schema__(:type, field)
     value = value in [true, "true"]
     value = if op == :not_empty, do: !value, else: value
 
     case array_or_map(ecto_type) do
-      :array -> dynamic([r], ^c and empty(:array) == ^value)
-      :map -> dynamic([r], ^c and empty(:map) == ^value)
-      :other -> dynamic([r], ^c and empty(:other) == ^value)
+      :array -> dynamic([r], empty(:array) == ^value)
+      :map -> dynamic([r], empty(:map) == ^value)
+      :other -> dynamic([r], empty(:other) == ^value)
     end
   end
 
   defp build_op(
-         c,
          _schema_struct,
          {:join, %{binding: binding, ecto_type: ecto_type, field: field}},
          %Filter{op: op, value: value}
@@ -161,9 +152,9 @@ defmodule Flop.Builder do
     value = if op == :not_empty, do: !value, else: value
 
     case array_or_map(ecto_type) do
-      :array -> dynamic([{^binding, r}], ^c and empty(:array) == ^value)
-      :map -> dynamic([{^binding, r}], ^c and empty(:map) == ^value)
-      :other -> dynamic([{^binding, r}], ^c and empty(:other) == ^value)
+      :array -> dynamic([{^binding, r}], empty(:array) == ^value)
+      :map -> dynamic([{^binding, r}], empty(:map) == ^value)
+      :other -> dynamic([{^binding, r}], empty(:other) == ^value)
     end
   end
 
@@ -171,7 +162,6 @@ defmodule Flop.Builder do
     {fragment, prelude, combinator} = op_config(op)
 
     defp build_op(
-           c,
            _schema_struct,
            {:normal, field},
            %Filter{op: unquote(op), value: value}
@@ -181,7 +171,6 @@ defmodule Flop.Builder do
     end
 
     defp build_op(
-           c,
            _schema_struct,
            {:join, %{binding: binding, field: field}},
            %Filter{op: unquote(op), value: value}
