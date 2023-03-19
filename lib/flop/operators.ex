@@ -7,7 +7,7 @@ defmodule Flop.Operators do
     binding_arg = binding_arg(binding?)
 
     quote do
-      dynamic(unquote(binding_arg), ^var!(c) and unquote(fragment))
+      dynamic(unquote(binding_arg), unquote(fragment))
     end
   end
 
@@ -20,7 +20,7 @@ defmodule Flop.Operators do
           dynamic(unquote(binding_arg), ^dynamic and unquote(fragment))
         end)
 
-      dynamic(unquote(binding_arg), ^var!(c) and ^filter_condition)
+      dynamic(unquote(binding_arg), ^filter_condition)
     end
   end
 
@@ -33,8 +33,20 @@ defmodule Flop.Operators do
           dynamic(unquote(binding_arg), ^dynamic or unquote(fragment))
         end)
 
-      dynamic(unquote(binding_arg), ^var!(c) and ^filter_condition)
+      dynamic(unquote(binding_arg), ^filter_condition)
     end
+  end
+
+  def reduce_dynamic(:and, values, inner_func) do
+    Enum.reduce(values, true, fn value, dynamic ->
+      dynamic([r], ^dynamic and ^inner_func.(value))
+    end)
+  end
+
+  def reduce_dynamic(:or, values, inner_func) do
+    Enum.reduce(values, false, fn value, dynamic ->
+      dynamic([r], ^dynamic or ^inner_func.(value))
+    end)
   end
 
   defp binding_arg(true) do

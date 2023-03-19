@@ -395,22 +395,22 @@ defmodule FlopTest do
     test "escapes % and _ in (i)like queries" do
       flop = %Flop{filters: [%Filter{field: :name, op: :like, value: "a%c"}]}
 
-      assert %Ecto.Query{wheres: [%{params: [_, {"%a\\%c%", :string}]}]} =
+      assert %Ecto.Query{wheres: [%{params: [{"%a\\%c%", :string}]}]} =
                Flop.query(Pet, flop)
 
       flop = %Flop{filters: [%Filter{field: :name, op: :like, value: "a_c"}]}
 
-      assert %Ecto.Query{wheres: [%{params: [_, {"%a\\_c%", :string}]}]} =
+      assert %Ecto.Query{wheres: [%{params: [{"%a\\_c%", :string}]}]} =
                Flop.query(Pet, flop)
 
       flop = %Flop{filters: [%Filter{field: :name, op: :ilike, value: "a%c"}]}
 
-      assert %Ecto.Query{wheres: [%{params: [_, {"%a\\%c%", :string}]}]} =
+      assert %Ecto.Query{wheres: [%{params: [{"%a\\%c%", :string}]}]} =
                Flop.query(Pet, flop)
 
       flop = %Flop{filters: [%Filter{field: :name, op: :ilike, value: "a_c"}]}
 
-      assert %Ecto.Query{wheres: [%{params: [_, {"%a\\_c%", :string}]}]} =
+      assert %Ecto.Query{wheres: [%{params: [{"%a\\_c%", :string}]}]} =
                Flop.query(Pet, flop)
     end
 

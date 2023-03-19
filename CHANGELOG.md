@@ -21,6 +21,12 @@
 - `%` and `_` characters in filter values for the `like`, `ilike` and `=~`
   operators are now escaped.
 
+### Fixed
+
+- Fixed an issue that caused filter conditions for `like_and`, `like_or`,
+  `ilike_and` and `ilike_or` to be wrongly combined when applied to compound
+  fields.
+
 ## [0.19.0] - 2023-01-15
 
 ### Added

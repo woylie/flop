@@ -87,6 +87,58 @@ defmodule Flop.TestUtil do
     end)
   end
 
+  defp apply_filter_to_compound_fields(pet, fields, :like_and, value) do
+    value = if is_binary(value), do: String.split(value), else: value
+
+    Enum.all?(value, fn substring ->
+      filter_func = matches?(:like, substring)
+
+      Enum.any?(fields, fn field ->
+        field_type = Flop.Schema.field_type(%Pet{}, field)
+        pet |> get_field(field_type) |> filter_func.()
+      end)
+    end)
+  end
+
+  defp apply_filter_to_compound_fields(pet, fields, :ilike_and, value) do
+    value = if is_binary(value), do: String.split(value), else: value
+
+    Enum.all?(value, fn substring ->
+      filter_func = matches?(:ilike, substring)
+
+      Enum.any?(fields, fn field ->
+        field_type = Flop.Schema.field_type(%Pet{}, field)
+        pet |> get_field(field_type) |> filter_func.()
+      end)
+    end)
+  end
+
+  defp apply_filter_to_compound_fields(pet, fields, :like_or, value) do
+    value = if is_binary(value), do: String.split(value), else: value
+
+    Enum.any?(value, fn substring ->
+      filter_func = matches?(:like, substring)
+
+      Enum.any?(fields, fn field ->
+        field_type = Flop.Schema.field_type(%Pet{}, field)
+        pet |> get_field(field_type) |> filter_func.()
+      end)
+    end)
+  end
+
+  defp apply_filter_to_compound_fields(pet, fields, :ilike_or, value) do
+    value = if is_binary(value), do: String.split(value), else: value
+
+    Enum.any?(value, fn substring ->
+      filter_func = matches?(:ilike, substring)
+
+      Enum.any?(fields, fn field ->
+        field_type = Flop.Schema.field_type(%Pet{}, field)
+        pet |> get_field(field_type) |> filter_func.()
+      end)
+    end)
+  end
+
   defp apply_filter_to_compound_fields(pet, fields, op, value) do
     filter_func = matches?(op, value)
 
