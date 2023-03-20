@@ -17,7 +17,7 @@
   with string keys, and indexed maps as produced by Phoenix HTML forms as
   argument.
 - The `empty` and `not_empty` operators now treat empty maps as empty values on
-  map fields.
+  map fields and empty arrays as empty values on array fields.
 - `%` and `_` characters in filter values for the `like`, `ilike` and `=~`
   operators are now escaped.
 
