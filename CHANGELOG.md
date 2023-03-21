@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.20.0] - 2023-03-21
+
 ### Added
 
 - Added `Flop.unnest_filters/3` as a reverse operation of `Flop.nest_filters/3`
@@ -24,7 +26,7 @@
 ### Fixed
 
 - Fixed an issue that caused filter conditions for `like_and`, `like_or`,
-  `ilike_and` and `ilike_or` to be wrongly combined when applied to compound
+  `ilike_and` and `ilike_or` to be incorrectly combined when applied to compound
   fields.
 
 ## [0.19.0] - 2023-01-15
