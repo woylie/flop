@@ -96,9 +96,7 @@ defmodule Flop.Validation do
       if opts[:replace_invalid_params] do
         field_groups
         |> List.flatten()
-        |> Enum.reduce(changeset, fn field, acc ->
-          delete_change(acc, field)
-        end)
+        |> Enum.reduce(changeset, &delete_change(&2, &1))
       else
         add_error(
           changeset,
@@ -254,20 +252,7 @@ defmodule Flop.Validation do
         order_directions = get_field(changeset, :order_directions) || []
 
         {new_order_by, new_order_directions} =
-          Enum.reduce(
-            order_by,
-            {order_by, order_directions},
-            fn field, {acc_order_by, acc_order_directions} ->
-              if field in sortable_fields do
-                {acc_order_by, acc_order_directions}
-              else
-                index = Enum.find_index(acc_order_by, &(&1 == field))
-
-                {List.delete_at(acc_order_by, index),
-                 List.delete_at(acc_order_directions, index)}
-              end
-            end
-          )
+          remove_unsortable_fields(order_by, order_directions, sortable_fields)
 
         changeset
         |> put_change(:order_by, new_order_by)
@@ -278,6 +263,23 @@ defmodule Flop.Validation do
     else
       changeset
     end
+  end
+
+  defp remove_unsortable_fields(order_by, order_directions, sortable_fields) do
+    Enum.reduce(
+      order_by,
+      {order_by, order_directions},
+      fn field, {acc_order_by, acc_order_directions} ->
+        if field in sortable_fields do
+          {acc_order_by, acc_order_directions}
+        else
+          index = Enum.find_index(acc_order_by, &(&1 == field))
+
+          {List.delete_at(acc_order_by, index),
+           List.delete_at(acc_order_directions, index)}
+        end
+      end
+    )
   end
 
   defp validate_within_max_limit(changeset, field, opts) do
@@ -293,17 +295,31 @@ defmodule Flop.Validation do
     order_fields = get_field(changeset, :order_by)
 
     if encoded_cursor && order_fields do
-      case Cursor.decode(encoded_cursor) do
-        {:ok, cursor_map} ->
-          if Enum.sort(Map.keys(cursor_map)) == Enum.sort(order_fields),
-            do: changeset,
-            else: add_error(changeset, field, "does not match order fields")
-
-        :error ->
-          add_error(changeset, field, "is invalid")
-      end
+      validate_cursors_match_order_fields(
+        changeset,
+        field,
+        encoded_cursor,
+        order_fields
+      )
     else
       changeset
+    end
+  end
+
+  defp validate_cursors_match_order_fields(
+         changeset,
+         field,
+         encoded_cursor,
+         order_fields
+       ) do
+    case Cursor.decode(encoded_cursor) do
+      {:ok, cursor_map} ->
+        if Enum.sort(Map.keys(cursor_map)) == Enum.sort(order_fields),
+          do: changeset,
+          else: add_error(changeset, field, "does not match order fields")
+
+      :error ->
+        add_error(changeset, field, "is invalid")
     end
   end
 
