@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added the `:count` override option to `Flop.count/3`
+
 ## [0.20.0] - 2023-03-21
 
 ### Added
