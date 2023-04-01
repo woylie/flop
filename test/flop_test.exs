@@ -778,6 +778,25 @@ defmodule FlopTest do
       assert Flop.count(Pet, flop, count_query: where(Pet, name: "A")) == 6
       assert Flop.count(Pet, flop, count_query: where(Pet, name: "B")) == 5
     end
+
+    test "allows overriding the count itself" do
+      _matching_pets = insert_list(6, :pet, age: 5, name: "A")
+      _more_matching_pets = insert_list(5, :pet, age: 5, name: "B")
+      _non_matching_pets = insert_list(4, :pet, age: 6)
+
+      flop = %Flop{
+        limit: 2,
+        offset: 2,
+        order_by: [:age],
+        filters: [%Filter{field: :age, op: :<=, value: 5}]
+      }
+
+      # default query
+      assert Flop.count(Pet, flop) == 11
+
+      # custom count
+      assert Flop.count(Pet, flop, count: 6) == 6
+    end
   end
 
   describe "meta/3" do

@@ -391,6 +391,9 @@ defmodule Flop do
   - `:count_query` - Allows you to set a separate base query for counting. Can
     only be passed as an option to one of the query functions. See
     `Flop.validate_and_run/3` and `Flop.count/3`.
+  - `:count` - Allows you to set the count, useful for when the count is already
+    computed elsewhere. Can only be passed as an option to one of the query
+    functions. See `Flop.validate_and_run/3` and `Flop.count/3`.
   - `:pagination` (boolean) - Can be set to `false` to silently ignore
     pagination parameters.
   - `:pagination_types` - Defines which pagination types are allowed. Parameters
@@ -452,6 +455,7 @@ defmodule Flop do
           | {:for, module}
           | {:max_limit, pos_integer | false}
           | {:count_query, Ecto.Queryable.t()}
+          | {:count, integer}
           | {:ordering, boolean}
           | {:pagination, boolean}
           | {:pagination_types, [pagination_type()]}
@@ -751,6 +755,11 @@ defmodule Flop do
 
   The filter parameters of the given Flop are applied to the custom count query.
 
+  If for some reason you already have the count, you can pass it as the `:count`
+  option.
+
+      count(query, %Flop{}, count: 42)
+
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
   `validate/2` or `validate!/2` before passing them to this function.
@@ -759,8 +768,12 @@ defmodule Flop do
   @doc group: :queries
   @spec count(Queryable.t(), Flop.t(), [option()]) :: non_neg_integer
   def count(q, %Flop{} = flop, opts \\ []) do
-    q = opts[:count_query] || q
-    apply_on_repo(:aggregate, "count", [filter(q, flop, opts), :count], opts)
+    if count = opts[:count] do
+      count
+    else
+      q = opts[:count_query] || q
+      apply_on_repo(:aggregate, "count", [filter(q, flop, opts), :count], opts)
+    end
   end
 
   @doc """
