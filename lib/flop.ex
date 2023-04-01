@@ -391,6 +391,9 @@ defmodule Flop do
   - `:count_query` - Allows you to set a separate base query for counting. Can
     only be passed as an option to one of the query functions. See
     `Flop.validate_and_run/3` and `Flop.count/3`.
+  - `:count` - Allows you to set the count, useful for when the count is already
+    computed elsewhere. Can only be passed as an option to one of the query
+    functions. See `Flop.validate_and_run/3` and `Flop.count/3`.
   - `:pagination` (boolean) - Can be set to `false` to silently ignore
     pagination parameters.
   - `:pagination_types` - Defines which pagination types are allowed. Parameters
@@ -452,6 +455,7 @@ defmodule Flop do
           | {:for, module}
           | {:max_limit, pos_integer | false}
           | {:count_query, Ecto.Queryable.t()}
+          | {:count, integer}
           | {:ordering, boolean}
           | {:pagination, boolean}
           | {:pagination_types, [pagination_type()]}
