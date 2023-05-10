@@ -1673,8 +1673,6 @@ defmodule Flop do
   Takes a `Flop.Meta` struct and returns a `Flop` struct with updated cursor
   pagination params for going to the previous page.
 
-  If there is no previous page, the `Flop` struct is return unchanged.
-
   ## Examples
 
       iex> to_previous_cursor(
@@ -1693,6 +1691,8 @@ defmodule Flop do
       ...> )
       %Flop{last: 5, before: "a"}
 
+  If there is no previous page, the `Flop` struct is returned unchanged.
+
       iex> to_previous_cursor(
       ...>   %Flop.Meta{
       ...>     flop: %Flop{first: 5, after: "b"},
@@ -1700,18 +1700,44 @@ defmodule Flop do
       ...>   }
       ...> )
       %Flop{first: 5, after: "b"}
+
+  It can happen that `has_previous_page?` is `true`, but no start cursor is set,
+  for example if the user is on the next-to-last page and switches to the next
+  page right after the only item on the last page is deleted. Since the result
+  set would be empty and there is no start cursor in this case, this function
+  sets the new `before` parameter to `nil`. By doing this, the user is sent to
+  the actual last page without skipping any items.
+
+      iex> to_previous_cursor(
+      ...>   %Flop.Meta{
+      ...>     flop: %Flop{first: 5, after: "a"},
+      ...>     has_previous_page?: true, start_cursor: nil
+      ...>   }
+      ...> )
+      %Flop{last: 5, before: nil}
+
+      iex> to_previous_cursor(
+      ...>   %Flop.Meta{
+      ...>     flop: %Flop{last: 5, before: "b"},
+      ...>     has_previous_page?: true, start_cursor: nil
+      ...>   }
+      ...> )
+      %Flop{last: 5, before: nil}
   """
   @doc since: "0.15.0"
   @doc group: :parameters
   @spec to_previous_cursor(Meta.t()) :: Flop.t()
-  def to_previous_cursor(%Meta{flop: flop, has_previous_page?: false}), do: flop
+  def to_previous_cursor(%Meta{
+        flop: %Flop{} = flop,
+        has_previous_page?: false
+      }),
+      do: flop
 
   def to_previous_cursor(%Meta{
-        flop: flop,
+        flop: %Flop{} = flop,
         has_previous_page?: true,
         start_cursor: start_cursor
-      })
-      when is_binary(start_cursor) do
+      }) do
     %{
       flop
       | before: start_cursor,
@@ -1728,8 +1754,6 @@ defmodule Flop do
   @doc """
   Takes a `Flop.Meta` struct and returns a `Flop` struct with updated cursor
   pagination params for going to the next page.
-
-  If there is no next page, the `Flop` struct is return unchanged.
 
   ## Examples
 
@@ -1749,6 +1773,8 @@ defmodule Flop do
       ...> )
       %Flop{first: 5, after: "a"}
 
+  If there is no next page, the `Flop` struct is returned unchanged.
+
       iex> to_next_cursor(
       ...>   %Flop.Meta{
       ...>     flop: %Flop{first: 5, after: "a"},
@@ -1756,18 +1782,41 @@ defmodule Flop do
       ...>   }
       ...> )
       %Flop{first: 5, after: "a"}
+
+  It can happen that `has_next_page?` is `true`, but no end cursor is set,
+  for example if the user is on the second page and switches to the previous
+  page right after the only item on the first page is deleted. Since the result
+  set is empty and there is no end cursor in this case, this function sets the
+  new `after` parameter to `nil`. By doing this, the user is sent to the first
+  page without skipping any items.
+
+      iex> to_next_cursor(
+      ...>   %Flop.Meta{
+      ...>     flop: %Flop{first: 5, after: "a"},
+      ...>     has_next_page?: true, end_cursor: nil
+      ...>   }
+      ...> )
+      %Flop{first: 5, after: nil}
+
+      iex> to_next_cursor(
+      ...>   %Flop.Meta{
+      ...>     flop: %Flop{last: 5, before: "b"},
+      ...>     has_next_page?: true, end_cursor: nil
+      ...>   }
+      ...> )
+      %Flop{first: 5, after: nil}
   """
   @doc since: "0.15.0"
   @doc group: :parameters
   @spec to_next_cursor(Meta.t()) :: Flop.t()
-  def to_next_cursor(%Meta{flop: flop, has_next_page?: false}), do: flop
+  def to_next_cursor(%Meta{flop: %Flop{} = flop, has_next_page?: false}),
+    do: flop
 
   def to_next_cursor(%Meta{
-        flop: flop,
+        flop: %Flop{} = flop,
         has_next_page?: true,
         end_cursor: end_cursor
-      })
-      when is_binary(end_cursor) do
+      }) do
     %{
       flop
       | after: end_cursor,
