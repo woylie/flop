@@ -1037,19 +1037,19 @@ defmodule FlopTest do
       flop = %Flop{page: 1, page_size: 10, order_by: order_by}
       query = Flop.query(Pet, flop)
       assert %QueryExpr{params: [{0, :integer}]} = query.offset
-      assert %QueryExpr{params: [{10, :integer}]} = query.limit
+      assert %{params: [{10, :integer}]} = query.limit
       assert Repo.all(query) == Enum.slice(sorted_pets, 0..9)
 
       flop = %Flop{page: 2, page_size: 10, order_by: order_by}
       query = Flop.query(Pet, flop)
       assert %QueryExpr{params: [{10, :integer}]} = query.offset
-      assert %QueryExpr{params: [{10, :integer}]} = query.limit
+      assert %{params: [{10, :integer}]} = query.limit
       assert Repo.all(query) == Enum.slice(sorted_pets, 10..19)
 
       flop = %Flop{page: 3, page_size: 4, order_by: order_by}
       query = Flop.query(Pet, flop)
       assert %QueryExpr{params: [{8, :integer}]} = query.offset
-      assert %QueryExpr{params: [{4, :integer}]} = query.limit
+      assert %{params: [{4, :integer}]} = query.limit
       assert Repo.all(query) == Enum.slice(sorted_pets, 8..11)
     end
   end
