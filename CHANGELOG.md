@@ -2,7 +2,14 @@
 
 ## Unreleased
 
-- Added the `:count` override option to `Flop.count/3`
+### Added
+
+- Added the `:count` override option to `Flop.count/3`.
+
+### Fixed
+
+- Don't raise function clause error in `Flop.to_previous_cursor/1` and
+  `Flop.to_next_cursor/1` when the start cursor or end cursor are `nil`.
 
 ## [0.20.0] - 2023-03-21
 
