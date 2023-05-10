@@ -526,6 +526,16 @@ defprotocol Flop.Schema do
   def pagination_types(data)
 
   @doc """
+  Returns the allowed pagination types of a schema.
+
+      iex> Flop.Schema.pagination_types(%Flop.Fruit{})
+      [:first, :last, :offset]
+  """
+  @doc since: "0.21.0"
+  @spec default_pagination_type(any) :: Flop.pagination_type() | nil
+  def default_pagination_type(data)
+
+  @doc """
   Returns the sortable fields of a schema.
 
       iex> Flop.Schema.sortable(%Flop.Pet{})
@@ -599,6 +609,7 @@ defimpl Flop.Schema, for: Any do
     default_limit = Keyword.get(options, :default_limit)
     max_limit = Keyword.get(options, :max_limit)
     pagination_types = Keyword.get(options, :pagination_types)
+    default_pagination_type = Keyword.get(options, :default_pagination_type)
     default_order = Keyword.get(options, :default_order)
     compound_fields = Keyword.get(options, :compound_fields, [])
     alias_fields = Keyword.get(options, :alias_fields, [])
@@ -663,6 +674,10 @@ defimpl Flop.Schema, for: Any do
           unquote(pagination_types)
         end
 
+        def default_pagination_type(_) do
+          unquote(default_pagination_type)
+        end
+
         def sortable(_) do
           unquote(sortable_fields)
         end
@@ -698,6 +713,12 @@ defimpl Flop.Schema, for: Any do
     validate_limit!(opts[:default_limit], "default")
     validate_limit!(opts[:max_limit], "max")
     validate_pagination_types!(opts[:pagination_types])
+
+    validate_default_pagination_type!(
+      opts[:default_pagination_type],
+      opts[:pagination_types]
+    )
+
     check_legacy_default_order(opts)
     validate_no_unknown_options!(opts)
     validate_no_unknown_field!(opts[:filterable], all_fields, "filterable")
@@ -767,6 +788,47 @@ defimpl Flop.Schema, for: Any do
     """
   end
 
+  defp validate_default_pagination_type!(nil, _), do: :ok
+
+  defp validate_default_pagination_type!(default_type, types) do
+    valid_types = [:offset, :page, :first, :last]
+
+    unless default_type in valid_types do
+      raise ArgumentError,
+            """
+            invalid default pagination type
+
+            expected one of #{inspect(valid_types)}, got: #{inspect(default_type)}
+            """
+    end
+
+    unless is_nil(types) || default_type in types do
+      raise ArgumentError,
+            """
+            default pagination type not among allowed types
+
+            The default pagination type set on the schema is not among the
+            allowed pagination types.
+
+                @derive {
+                  Flop.Schema,
+                  # ...
+                  default_pagination_type: #{inspect(default_type)}
+                  pagination_types: #{inspect(types)}
+                }
+
+            You can fix this in of these ways:
+
+                1. add the default pagination type to the `pagination_types`
+                   option of the schema
+                2. change the `default_pagination_type` option to one of the
+                   types set with the `pagination_types` option
+                3. remove the `default_pagination_type` option from the schema
+                4. remove the `pagination_types` option from the schema
+            """
+    end
+  end
+
   defp validate_no_unknown_options!(opts) do
     known_keys = [
       :alias_fields,
@@ -778,6 +840,7 @@ defimpl Flop.Schema, for: Any do
       :join_fields,
       :max_limit,
       :pagination_types,
+      :default_pagination_type,
       :sortable
     ]
 
@@ -1302,6 +1365,7 @@ defimpl Flop.Schema, for: Any do
     :filterable,
     :max_limit,
     :pagination_types,
+    :default_pagination_type,
     :sortable
   ]
 

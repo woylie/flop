@@ -6,6 +6,10 @@
 
 - Added the `:count` override option to `Flop.count/3`.
 
+### Changed
+
+- The `default_pagination_type` can now be set in the schema.
+
 ### Fixed
 
 - Don't raise function clause error in `Flop.to_previous_cursor/1` and
