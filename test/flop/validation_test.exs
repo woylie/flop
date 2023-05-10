@@ -8,6 +8,7 @@ defmodule Flop.ValidationTest do
 
   alias Flop.Cursor
   alias Flop.Fruit
+  alias Flop.Owner
   alias Flop.Pet
   alias Flop.Validation
   alias Flop.Vegetable
@@ -206,6 +207,10 @@ defmodule Flop.ValidationTest do
 
       assert {:ok, %Flop{last: 60}} =
                validate(%{}, for: Fruit, default_pagination_type: :last)
+    end
+
+    test "sets default limit with default pagination type from schema" do
+      assert {:ok, %Flop{page_size: 50}} = validate(%{}, for: Owner)
     end
 
     test "can override default pagination type" do

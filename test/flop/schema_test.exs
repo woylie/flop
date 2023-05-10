@@ -138,6 +138,12 @@ defmodule Flop.SchemaTest do
     end
   end
 
+  test "calling default_pagination_type/1 without deriving raises error" do
+    assert_raise Protocol.UndefinedError, fn ->
+      Schema.default_pagination_type(%{})
+    end
+  end
+
   describe "__deriving__/3" do
     test "raises if no filterable fields are set" do
       error =
@@ -246,6 +252,52 @@ defmodule Flop.SchemaTest do
         end
 
       assert error.message =~ "invalid pagination type"
+
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [], sortable: [], pagination_types: :offset
+            }
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "invalid pagination type"
+    end
+
+    test "raises if default_pagination_type is invalid" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [], sortable: [], default_pagination_type: "a"
+            }
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "invalid default pagination type"
+    end
+
+    test "raises if default_pagination_type is not allowed" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Vegetable do
+            @derive {
+              Flop.Schema,
+              filterable: [],
+              sortable: [],
+              default_pagination_type: :first,
+              pagination_types: [:page]
+            }
+            defstruct [:name]
+          end
+        end
+
+      assert error.message =~ "default pagination type not among allowed types"
     end
 
     test "raises if unknown option is passed" do

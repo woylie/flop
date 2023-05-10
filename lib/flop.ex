@@ -434,7 +434,8 @@ defmodule Flop do
 
   1. option passed to function
   2. option set for schema using `Flop.Schema` (only `:max_limit`,
-     `:default_limit`, `:default_order` and `:pagination_types`)
+     `:default_limit`, `:default_order`, `:pagination_types` and
+     `:default_pagination_type`)
   3. option set in config module, if one is used (except `:for`,
      `:default_order` and `:count_query`; see section "Config modules"
      in the module documentation)
@@ -2071,6 +2072,7 @@ defmodule Flop do
                 :filterable_fields,
                 :max_limit,
                 :pagination_types,
+                :default_pagination_type,
                 :sortable
               ] do
     apply(Flop.Schema, key, [struct(module)])
