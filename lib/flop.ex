@@ -61,8 +61,15 @@ defmodule Flop do
   end
   ```
 
-  This will define wrapper functions around all `Flop` functions that take a
-  query, Flop parameters and options:
+  > #### `use Flop` {: .info}
+  >
+  > When you `use Flop`, the Flop module will define wrapper functions around
+  > all of the `Flop` functions that take a query, the Flop parameters, and
+  > options as arguments. The options passed to `use Flop` will be used as
+  > default options in all the wrapper functions, but you can still override
+  > them.
+
+  The wrapped functions are:
 
   - `Flop.all/3`
   - `Flop.count/3`

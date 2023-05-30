@@ -23,7 +23,6 @@ defprotocol Flop.Schema do
         end
       end
 
-
   After that, you can pass the module as the `:for` option to `Flop.validate/2`.
 
       iex> Flop.validate(%Flop{order_by: [:name]}, for: Flop.Pet)
