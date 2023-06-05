@@ -148,7 +148,7 @@ defmodule Flop.Builder do
     # value = value |> String.split() |> Enum.join(" ")
     # filter = %{filter | value: value}
     # compare value with concatenated fields
-    Logger.warn(
+    Logger.warning(
       "Flop: Operator '#{op}' not supported for compound fields. Ignored."
     )
 

@@ -1114,7 +1114,7 @@ defimpl Flop.Schema, for: Any do
     for {compound_field, _fields} <- compound_fields do
       quote do
         def cursor_dynamic(_, [{_, unquote(compound_field)}], _) do
-          Logger.warn(
+          Logger.warning(
             "Flop: Cursor pagination is not supported for compound fields. Ignored."
           )
 
@@ -1126,7 +1126,7 @@ defimpl Flop.Schema, for: Any do
               [{_, unquote(compound_field)} | tail],
               cursor
             ) do
-          Logger.warn(
+          Logger.warning(
             "Flop: Cursor pagination is not supported for compound fields. Ignored."
           )
 
