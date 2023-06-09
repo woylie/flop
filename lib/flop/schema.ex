@@ -26,8 +26,7 @@ defprotocol Flop.Schema do
   > #### `@derive Flop.Schema` {: .info}
   >
   > When you derive `Flop.Schema`, all the functions required for the
-  > `Flop.Schema` protocol will be compiled in your module based on the options
-  > you set.
+  > `Flop.Schema` protocol will be defined based on the options you set.
 
   After that, you can pass the module as the `:for` option to `Flop.validate/2`.
 
