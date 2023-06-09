@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## [0.20.2] - 2023-06-09
+
+### Changed
+
+- Added nutrition facts about `use Flop` and `@derive Flop.Schema`.
+- The minimum Elixir version is now 1.11.
+
+### Fixed
+
+- Fixed a deprecation warning about `Logger.warn/1`.
+- Fixed a deprecation warning about passing an MFA to `:with` in
+  cast_assoc/cast_embed introduced in Ecto 3.10.2.
+
 ## [0.20.1] - 2023-05-19
 
 ### Added

@@ -26,7 +26,7 @@ Add `flop` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:flop, "~> 0.20.1"}
+    {:flop, "~> 0.20.2"}
   ]
 end
 ```
