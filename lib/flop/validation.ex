@@ -72,9 +72,11 @@ defmodule Flop.Validation do
   end
 
   defp cast_filters(changeset, opts) do
-    if Flop.get_option(:filtering, opts, true),
-      do: cast_embed(changeset, :filters, with: {Filter, :changeset, [opts]}),
-      else: changeset
+    if Flop.get_option(:filtering, opts, true) do
+      cast_embed(changeset, :filters, with: &Filter.changeset(&1, &2, opts))
+    else
+      changeset
+    end
   end
 
   # Takes a list of field groups and validates that no fields from multiple
