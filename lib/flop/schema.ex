@@ -23,6 +23,12 @@ defprotocol Flop.Schema do
         end
       end
 
+  > #### `@derive Flop.Schema` {: .info}
+  >
+  > When you derive `Flop.Schema`, all the functions required for the
+  > `Flop.Schema` protocol will be compiled in your module based on the options
+  > you set.
+
   After that, you can pass the module as the `:for` option to `Flop.validate/2`.
 
       iex> Flop.validate(%Flop{order_by: [:name]}, for: Flop.Pet)
