@@ -2,26 +2,39 @@
 
 ![CI](https://github.com/woylie/flop/workflows/CI/badge.svg) [![Hex](https://img.shields.io/hexpm/v/flop)](https://hex.pm/packages/flop) [![codecov](https://codecov.io/gh/woylie/flop/branch/main/graph/badge.svg?token=32BSY8O2LI)](https://codecov.io/gh/woylie/flop)
 
-Flop is an Elixir library that applies filtering, ordering and pagination
-parameters to your Ecto queries.
+Flop is an Elixir library designed to easily apply filtering, ordering, and
+pagination to your Ecto queries.
 
 ## Features
 
-- offset-based pagination with `offset`/`limit` or `page`/`page_size`
-- cursor-based pagination (aka key set pagination), compatible with Relay pagination arguments
-- ordering by multiple fields in multiple directions
-- filtering by multiple conditions with various operators on multiple fields
-- parameter validation
-- configurable filterable and sortable fields
-- join fields
-- compound fields
-- query and meta data helpers
-- Relay connection formatter (edges, nodes and page info)
-- UI helpers and URL builders through [Flop Phoenix](https://hex.pm/packages/flop_phoenix).
+- **Offset-based pagination:** Allows pagination through `offset`/`limit` or
+  `page`/`page_size` parameters.
+- **Cursor-based pagination:** Also known as key set pagination, provides a more
+  efficient alternative to offset-based pagination. Compatible with Relay
+  pagination arguments.
+- **Sorting:** Applies sort parameters on multiple fields in any direction.
+- **Filtering:** Allows complex data filtering using multiple conditions,
+  operators, and fields.
+- **Parameter validation:** Ensures the validity of provided parameters.
+- **Configurable filterable and sortable fields:** Only applies parameters to
+  the fields that were explicitly configured as filterable or sortable.
+- **Join fields:** Allows the application of pagination, sort, and filter
+  parameters on any named binding. Provides functions to help you to avoid
+  unnecessary join clauses.
+- **Compound fields:** Provides the ability to apply filter parameters on
+  multiple string fields, for example for a full name filter.
+- **Custom fields:** Provides an escape hatch for filters that Flop is not able
+  to build on its own.
+- **Relay connection formatter:** Formats the connection in Relay style,
+  providing edges, nodes, and page info.
+- **UI helpers and URL builders through
+  [Flop Phoenix](https://hex.pm/packages/flop_phoenix):** Pagination, sortable
+  tables and filter forms.
 
 ## Installation
 
-Add `flop` to your list of dependencies in `mix.exs`:
+To get started, add `flop` to your dependencies list in your project's `mix.exs`
+file:
 
 ```elixir
 def deps do
@@ -31,24 +44,25 @@ def deps do
 end
 ```
 
-If you want to configure a default repo, add this to your config file:
+You can also configure a default repo for Flop by adding the following line to
+your config file:
 
 ```elixir
 config :flop, repo: MyApp.Repo
 ```
 
-Alternatively, you can add a configuration module. For more information, refer
-to the Flop module documentation.
+Instead of configuring Flop globally, you can also use a configuration module.
+Please refer to the Flop module documentation for more information.
 
 ## Usage
 
 ### Define sortable and filterable fields
 
-To configure the sortable and filterable fields, derive `Flop.Schema` in your
-Ecto schema. While this step is optional, it is highly recommend, since the
-parameters you will pass to the Flop functions will come from the user side and
-should be validated. Deriving `Flop.Schema` will ensure that Flop only
-applies filtering and sorting parameters on the configured fields.
+To define sortable and filterable fields in your Ecto schema, you can derive
+`Flop.Schema`. This step is optional but highly recommended, particularly when
+the parameters passed to Flop's functions are user-provided. Deriving
+`Flop.Schema` ensures that Flop applies filtering and sorting parameters only to
+the fields you've explicitly configured.
 
 ```elixir
 defmodule MyApp.Pet do
@@ -69,15 +83,18 @@ defmodule MyApp.Pet do
 end
 ```
 
-You can also define join fields, compound fields, max and default limit, and
-more. See the [Flop.Schema documentation](https://hexdocs.pm/flop/Flop.Schema.html)
-for all the options.
+Besides sortable and filterable fields, `Flop.Schema` also allows the definition
+of join fields, compound fields, or custom fields. You can also set maximum or
+default limits, among other options. For a comprehensive list of available
+options, check the `Flop.Schema` documentation.
 
 ### Query data
 
-You can use `Flop.validate_and_run/3` or `Flop.validate_and_run!/3` to validate
-the Flop parameters, retrieve the data from the database and get the meta data
-for pagination in one go.
+Use the `Flop.validate_and_run/3` or `Flop.validate_and_run!/3` function to both
+validate the parameters and fetch data from the database, and acquire pagination
+metadata in one operation.
+
+Here is an example of how you might use this in your code:
 
 ```elixir
 defmodule MyApp.Pets do
@@ -95,87 +112,69 @@ end
 ```
 
 The `for` option sets the Ecto schema for which you derived `Flop.Schema`. If
-you didn't derive Flop.Schema as described above and don't care to do so,
-you can omit this option (not recommended, unless you only deal with internally
-generated, safe parameters).
+you haven't derived `Flop.Schema` as described above, this option can be
+omitted. However, this is not recommended unless all parameters are generated
+internally and are guaranteed to be safe.
 
-On success, `Flop.validate_and_run/3` returns an `:ok` tuple, with the second
-element being a tuple with the data and the meta data.
+On success, `Flop.validate_and_run/3` returns an `:ok` tuple. The second element
+of this tuple is another tuple containing the fetched data and metadata.
 
 ```elixir
 {:ok, {[%Pet{}], %Flop.Meta{}}}
 ```
 
-Consult the [docs](https://hexdocs.pm/flop/Flop.Meta.html) for more info on the
-`Meta` struct.
+You can learn more about the `Flop.Meta` struct in the
+[module documentation](https://hexdocs.pm/flop/Flop.Meta.html).
 
-If you prefer to validate the parameters in your controllers, you can use
-`Flop.validate/2` or `Flop.validate!/2` and `Flop.run/3` instead.
+Alternatively, you may separate parameter validation and data fetching into
+different steps using the Flop.validate/2, Flop.validate!/2, and Flop.run/3
+functions. This allows you to manipulate the validated parameters, to modify the
+query depending on the parameters, or to move the parameter validation to a
+different layer of your application.
 
 ```elixir
-defmodule MyAppWeb.PetController do
-  use MyAppWeb, :controller
-
-  alias Flop
-  alias MyApp.Pets
-  alias MyApp.Pets.Pet
-
-  action_fallback MyAppWeb.FallbackController
-
-  def index(conn, params) do
-    with {:ok, flop} <- Flop.validate(params, for: Pet) do
-      pets = Pets.list_pets(flop)
-      render(conn, "index.html", pets: pets)
-    end
-  end
-end
-
-defmodule MyApp.Pets do
-  import Ecto.Query, warn: false
-
-  alias Flop
-  alias MyApp.Pets.Pet
-  alias MyApp.Repo
-
-  @spec list_pets(Flop.t()) :: {[Pet.t()], Flop.Meta.t}
-  def list_pets(flop \\ %Flop{}) do
-    Flop.run(Pet, flop, for: Pet)
-  end
+with {:ok, flop} <- Flop.validate(params, for: Pet) do
+  Flop.run(Pet, flop, for: Pet)
 end
 ```
 
-If you only need the data, or if you only need the meta data, you can also
-call `Flop.all/3`, `Flop.meta/3` or `Flop.count/3` directly. Note that these
-functions do not apply parameter validation. If the parameters are generated
-through a user action, always use `Flop.validate/2` or `Flop.validate!/2`
-first.
+The aforementioned functions internally call the lower-level functions
+`Flop.all/3`, `Flop.meta/3`, and `Flop.count/3`. If you have advanced
+requirements, you might prefer to use these functions directly. However, it's
+important to note that these lower-level functions do not validate the
+parameters. If parameters are generated based on user input, they should always
+be validated first using `Flop.validate/2` or `Flop.validate!/2` to ensure safe
+execution.
 
-If you didn't configure a default repo as described above or if you want to
-override the default repo, you can pass it as an option to any function that
-uses the repo:
+The examples above assume that you configured a default repo. However, you can
+also pass the repo directly to the functions:
 
 ```elixir
 Flop.validate_and_run(Pet, flop, repo: MyApp.Repo)
 Flop.all(Pet, flop, repo: MyApp.Repo)
 Flop.meta(Pet, flop, repo: MyApp.Repo)
-# etc.
 ```
 
-See the [docs](https://hexdocs.pm/flop/readme.html) for more detailed
-information.
+For more detailed information, refer the
+[documentation](https://hexdocs.pm/flop/readme.html).
 
 ## Parameter format
 
-Below are some examples for the parameter format, including the equivalent query
-parameter strings that could be used with Phoenix.
+The Flop library requires parameters to be provided in a specific format as a
+map. This map can be translated into a URL query parameter string, typically
+for use in a web framework like Phoenix.
 
 ### Pagination
 
 #### Offset / limit
 
+You can specify an offset to start from and a limit to the number of results.
+
 ```elixir
 %{offset: 20, limit: 10}
 ```
+
+This translates to the following query parameter string:
 
 ```html
 ?offset=20&limit=10
@@ -183,9 +182,13 @@ parameter strings that could be used with Phoenix.
 
 #### Page / page size
 
+You can specify the page number and the size of each page.
+
 ```elixir
 %{page: 2, page_size: 10}
 ```
+
+This translates to the following query parameter string:
 
 ```html
 ?page=2&page_size=10
@@ -193,30 +196,30 @@ parameter strings that could be used with Phoenix.
 
 #### Cursor
 
+You can fetch a specific number of results before or after a given cursor.
+
 ```elixir
 %{first: 10, after: "g3QAAAABZAACaWRiAAACDg=="}
-```
-
-```html
-?first=10&after=g3QAAAABZAACaWRiAAACDg==
-```
-
-```elixir
 %{last: 10, before: "g3QAAAABZAACaWRiAAACDg=="}
 ```
 
+These translate to the following query parameter strings:
+
 ```html
+?first=10&after=g3QAAAABZAACaWRiAAACDg==
 ?last=10&before=g3QAAAABZAACaWRiAAACDg==
 ```
 
 ### Ordering
 
-The order parameters are split into `order_by` and `order_directions`, so that
-they can be translated into query parameters.
+To sort the results, specify fields to order by and the direction of sorting for
+each field.
 
 ```elixir
 %{order_by: [:name, :age], order_directions: [:asc, :desc]}
 ```
+
+This translates to the following query parameter string:
 
 ```html
 ?order_by[]=name&order_by[]=age&order_directions[]=asc&order_directions[]=desc
@@ -224,31 +227,33 @@ they can be translated into query parameters.
 
 ### Filters
 
-A complete filter consists of the field, the operator, and the value. The
-operator is optional and defaults to `==`. Filters need to be passed as a list
-and are combined with a logical `AND`. It is currently not possible to combine
-filters with an `OR`.
+You can filter the results by providing a field, an operator, and a value. The
+operator is optional and defaults to `==`. Multiple filters are combined with a
+logical `AND`. At the moment, combining filters with `OR` is not supported.
 
 ```elixir
 %{filters: [%{field: :name, op: :ilike_and, value: "Jane"}]}
 ```
 
+This translates to the following query parameter string:
+
 ```html
 ?filters[0][field]=name&filters[0][op]=ilike_and&filters[0][value]=Jane
 ```
 
-See the documentation of `Flop.Filter` and the type documentation of
-`t:Flop.t/0` for more details.
+Refer to the `Flop.Filter` documentation and `t:Flop.t/0` type documentation for
+more details on using filters.
 
 ## Internal parameters
 
-Flop is built to handle parameters generated by a user. While you could
-manipulate those parameters and add additional filters when you receive them, it
-is recommended to cleanly separate the parameters you get from the outside and
-the parameters that your application needs to add internally.
+Flop is designed to manage parameters that come from the user side. While it is
+possible to alter those parameters and append extra filters upon receiving them,
+it is advisable to clearly differentiate parameters coming from outside and the
+parameters that your application adds internally.
 
-For example, if you need to scope a query depending on the current user, it is
-preferred to add a separate function that adds the necessary `WHERE` clauses:
+Consider the scenario where you need to scope a query based on the current user.
+In this case, it is better to create a separate function that introduces the
+necessary `WHERE` clauses:
 
 ```elixir
 def list_pets(%{} = params, %User{} = current_user) do
@@ -261,9 +266,10 @@ defp scope(q, %User{role: :admin}), do: q
 defp scope(q, %User{id: user_id}), do: where(q, user_id: ^user_id)
 ```
 
-To add additional filters that can only be used internally without exposing them
-to the user, you can pass them as a separate argument. You can use the same
-argument to override certain options depending on where the function is used.
+If you need to add extra filters that are only used internally and aren't
+exposed to the user, you can pass them as a separate argument. This same
+argument can be used to override certain options depending on the context in
+which the function is called.
 
 ```elixir
 def list_pets(%{} = args, opts \\ [], %User{} = current_user) do
@@ -294,17 +300,20 @@ defp apply_filters(q, opts) do
 end
 ```
 
+With this approach, you maintain a clean separation between user-driven
+parameters and system-driven parameters, leading to more maintainable and less
+error-prone code.
+
 ## Relay and Absinthe
 
-If you are serving a GraphQL API using
-[absinthe](https://hex.pm/packages/absinthe) and
-[absinthe_relay](https://hex.pm/packages/absinthe_relay) (or even if you just
-need to support the Relay cursor specification), you can use the
-functions in the `Flop.Relay` module to turn the query responses into the format
-that is expected by Relay.
+The `Flop.Relay` module is useful if you are using
+[absinthe](https://hex.pm/packages/absinthe) with
+[absinthe_relay](https://hex.pm/packages/absinthe_relay), or if you simply need
+to adhere to the Relay cursor specification. This module provides functions that
+help transform query responses into a format compatible with Relay.
 
-Let's say you defined node objects for owners and pets, and a connection field
-for pets on the owner node object.
+Consider the scenario where you have defined node objects for owners and pets,
+along with a connection field for pets on the owner node object.
 
 ```elixir
 node object(:owner) do
@@ -325,11 +334,10 @@ end
 connection(node_type: :pet)
 ```
 
-Absinthe Relay will define the arguments `after`, `before`, `first` and `last`
-on the `pets` field. These are the same argument names that Flop uses, so it
-will already know how to apply them.
+Absinthe Relay will establish the arguments `after`, `before`, `first` and
+`last` on the `pets` field. These argument names align with those used by Flop, facilitating their application.
 
-We're going to define a `list_pets_by_owner/2` function in the `Pets` context.
+Next, we'll define a `list_pets_by_owner/2` function in the Pets context.
 
 ```elixir
 defmodule MyApp.Pets do
@@ -347,9 +355,9 @@ defmodule MyApp.Pets do
 end
 ```
 
-Now all you need to do in your resolver is to call that function and to call
-`Flop.Relay.connection_from_result/1`, which turns the result into a tuple
-consisting of the edges and the `page_info`, as expected by `absinthe_relay`.
+Now, within your resolver, you merely need to invoke the function and call
+`Flop.Relay.connection_from_result/1`, which transforms the result into a tuple
+composed of the edges and the page_info, as required by `absinthe_relay`.
 
 ```elixir
 defmodule MyAppWeb.Resolvers.Pet do
@@ -363,9 +371,9 @@ defmodule MyAppWeb.Resolvers.Pet do
 end
 ```
 
-If you want to add additional filter arguments, you can use
-`Flop.nest_filters/3` to convert simple filter arguments into Flop filters
-without requiring users of your API to know about the Flop filter format.
+In case you want to introduce additional filter arguments, you can employ
+`Flop.nest_filters/3` to convert simple filter arguments into Flop filters,
+without necessitating API users to understand the Flop filter format.
 
 Let's add `name` and `species` filter arguments to the `pets` connection field.
 
@@ -383,9 +391,9 @@ node object(:owner) do
 end
 ```
 
-Assuming that these fields were already configured as filterable with
+Assuming that these fields have been already configured as filterable with
 `Flop.Schema`, we can use `Flop.nest_filters/3` to take the filter arguments and
-convert them into a list of Flop filters.
+transform them into a list of Flop filters.
 
 ```elixir
 defmodule MyAppWeb.Resolvers.Pet do
@@ -401,7 +409,7 @@ defmodule MyAppWeb.Resolvers.Pet do
 end
 ```
 
-`Flop.nest_filters/3` uses the the equality operator `:==` by default.
+`Flop.nest_filters/3` uses the equality operator `:==` by default.
 You can override the default operator per field.
 
 ```elixir
@@ -411,4 +419,6 @@ args = nest_filters(args, [:name, :species], operators: %{name: :ilike_and})
 ## Flop Phoenix
 
 [Flop Phoenix](https://hex.pm/packages/flop_phoenix) is a companion library that
-defines view helpers for use in Phoenix templates.
+provides Phoenix components for pagination, sortable tables, and filter forms,
+usable with both Phoenix LiveView and in dead views. It also defines helper
+functions to build URLs with Flop query parameters.
