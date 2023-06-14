@@ -1646,6 +1646,30 @@ defmodule FlopTest do
                  )
       end
     end
+
+    test "paging on composite type" do
+      1..10
+      |> Enum.map(
+        &Flop.WalkingDistances.changeset(%Flop.WalkingDistances{}, %{
+          trip: %{value: &1, unit: "m"}
+        })
+      )
+      |> Enum.each(&Repo.insert!(&1))
+
+      assert {:ok, {[_element], %Meta{end_cursor: end_cursor}}} =
+               Flop.validate_and_run(
+                 Flop.WalkingDistances,
+                 %Flop{first: 1, order_by: [:trip]},
+                 for: Flop.WalkingDistances
+               )
+
+      assert {:ok, {[_element], %Meta{}}} =
+               Flop.validate_and_run(
+                 Flop.WalkingDistances,
+                 %Flop{first: 1, after: end_cursor, order_by: [:trip]},
+                 for: Flop.WalkingDistances
+               )
+    end
   end
 
   describe "validate/1" do
