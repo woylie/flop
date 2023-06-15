@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- Fixed cursor-based pagination on composite types.
+
 ## [0.20.2] - 2023-06-09
 
 ### Changed
