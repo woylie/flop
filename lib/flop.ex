@@ -779,8 +779,32 @@ defmodule Flop do
     if count = opts[:count] do
       count
     else
-      q = opts[:count_query] || q
-      apply_on_repo(:aggregate, "count", [filter(q, flop, opts), :count], opts)
+      q =
+        if opts[:count_query] do
+          filter(opts[:count_query], flop, opts)
+        else
+          q |> filter(flop, opts) |> count_query()
+        end
+
+      apply_on_repo(:aggregate, "count", [q, :count], opts)
+    end
+  end
+
+  defp count_query(query) do
+    query =
+      query
+      |> Query.exclude(:preload)
+      |> Query.exclude(:order_by)
+      |> Query.exclude(:select)
+
+    case query do
+      %{group_bys: group_bys} = query when group_bys != [] ->
+        query
+        |> Query.select(%{})
+        |> Query.subquery()
+
+      query ->
+        query
     end
   end
 
