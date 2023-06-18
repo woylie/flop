@@ -798,10 +798,6 @@ defmodule Flop do
       |> Query.exclude(:select)
 
     case query do
-      %{distinct: %{expr: expr}} = query
-      when expr == true or (is_list(expr) and expr != []) ->
-        Query.subquery(query)
-
       %{group_bys: group_bys} = query when group_bys != [] ->
         query
         |> Query.select(%{})
