@@ -783,7 +783,7 @@ defmodule Flop do
         if opts[:count_query] do
           filter(opts[:count_query], flop, opts)
         else
-          count_query(filter(q, flop, opts))
+          q |> filter(flop, opts) |> count_query()
         end
 
       apply_on_repo(:aggregate, "count", [q, :count], opts)
