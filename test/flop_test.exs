@@ -797,6 +797,28 @@ defmodule FlopTest do
       # custom count
       assert Flop.count(Pet, flop, count: 6) == 6
     end
+
+    test "counts entries for queries with group_by clauses" do
+      _owner_1 = insert(:owner, age: 13, pets: build_list(3, :pet))
+      _owner_2 = insert(:owner, age: 20, pets: build_list(2, :pet))
+      _owner_3 = insert(:owner, age: 22, pets: build_list(1, :pet))
+      _non_matching_owner = insert(:owner, age: 52, pets: build_list(4, :pet))
+
+      q =
+        Owner
+        |> join(:left, [o], p in assoc(o, :pets), as: :pets)
+        |> group_by([o], o.id)
+        |> select(
+          [o, pets: p],
+          %{o | pet_count: count(p.id)}
+        )
+
+      flop = %Flop{
+        filters: [%Filter{field: :age, op: :<=, value: 30}]
+      }
+
+      assert Flop.count(q, flop) == 3
+    end
   end
 
   describe "meta/3" do
