@@ -804,7 +804,7 @@ defmodule Flop do
 
       %{group_bys: group_bys} = query when group_bys != [] ->
         query
-        |> Query.select(%{dont_care: true})
+        |> Query.select(%{})
         |> Query.subquery()
 
       query ->
