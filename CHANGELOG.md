@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+- `Flop.count/3` will now wrap queries that have `GROUP BY` clauses in a
+  subquery.
+
 ### Fixed
 
 - Fixed cursor-based pagination on composite types.
