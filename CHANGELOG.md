@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.20.3] - 2023-06-23
+
 ### Changed
 
 - `Flop.count/3` will now wrap queries that have `GROUP BY` clauses in a
