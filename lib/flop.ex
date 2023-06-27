@@ -2306,13 +2306,19 @@ defmodule Flop do
 
   The default operator is `:==`. `nil` values are excluded from the result.
 
-      iex> map_to_filter_params(%{name: "George", age: 8, species: nil})
+      iex> params = map_to_filter_params(
+      ...>   %{name: "George", age: 8, species: nil}
+      ...> )
+      iex> Enum.sort(params)
       [
         %{field: :age, op: :==, value: 8},
         %{field: :name, op: :==, value: "George"}
       ]
 
-      iex> map_to_filter_params(%{"name" => "George", "age" => 8, "cat" => true})
+      iex> params = map_to_filter_params(
+      ...>   %{"name" => "George", "age" => 8, "cat" => true}
+      ...>  )
+      iex> Enum.sort(params)
       [
         %{"field" => "age", "op" => :==, "value" => 8},
         %{"field" => "cat", "op" => :==, "value" => true},
@@ -2322,10 +2328,11 @@ defmodule Flop do
   You can optionally pass a mapping from field names to operators as a map
   with atom keys.
 
-      iex> map_to_filter_params(
+      iex> params = map_to_filter_params(
       ...>   %{name: "George", age: 8, species: nil},
       ...>   operators: %{name: :ilike_and}
       ...> )
+      iex> Enum.sort(params)
       [
         %{field: :age, op: :==, value: 8},
         %{field: :name, op: :ilike_and, value: "George"}
@@ -2343,10 +2350,11 @@ defmodule Flop do
 
   You can also pass a map to rename fields.
 
-      iex> map_to_filter_params(
+      iex> params = map_to_filter_params(
       ...>   %{s: "George", age: 8, species: nil},
       ...>   rename: %{s: :name}
       ...> )
+      iex> Enum.sort(params)
       [
         %{field: :age, op: :==, value: 8},
         %{field: :name, op: :==, value: "George"}
