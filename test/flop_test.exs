@@ -13,11 +13,11 @@ defmodule FlopTest do
   alias Ecto.Adapters.SQL.Sandbox
   alias Ecto.Query.QueryExpr
   alias Flop.Filter
-  alias Flop.Fruit
   alias Flop.Meta
-  alias Flop.Owner
-  alias Flop.Pet
   alias Flop.Repo
+  alias MyApp.Fruit
+  alias MyApp.Owner
+  alias MyApp.Pet
 
   @pet_count_range 1..200
 
@@ -1672,7 +1672,7 @@ defmodule FlopTest do
     test "paging on composite type" do
       1..10
       |> Enum.map(
-        &Flop.WalkingDistances.changeset(%Flop.WalkingDistances{}, %{
+        &MyApp.WalkingDistances.changeset(%MyApp.WalkingDistances{}, %{
           trip: %{value: &1, unit: "m"}
         })
       )
@@ -1680,16 +1680,16 @@ defmodule FlopTest do
 
       assert {:ok, {[_element], %Meta{end_cursor: end_cursor}}} =
                Flop.validate_and_run(
-                 Flop.WalkingDistances,
+                 MyApp.WalkingDistances,
                  %Flop{first: 1, order_by: [:trip]},
-                 for: Flop.WalkingDistances
+                 for: MyApp.WalkingDistances
                )
 
       assert {:ok, {[_element], %Meta{}}} =
                Flop.validate_and_run(
-                 Flop.WalkingDistances,
+                 MyApp.WalkingDistances,
                  %Flop{first: 1, after: end_cursor, order_by: [:trip]},
-                 for: Flop.WalkingDistances
+                 for: MyApp.WalkingDistances
                )
     end
   end

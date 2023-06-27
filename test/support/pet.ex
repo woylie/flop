@@ -1,11 +1,11 @@
-defmodule Flop.Pet do
+defmodule MyApp.Pet do
   @moduledoc """
   Defines an Ecto schema for testing.
   """
   use Ecto.Schema
   import Ecto.Query
 
-  alias Flop.Owner
+  alias MyApp.Owner
 
   @derive {
     Flop.Schema,

@@ -1,10 +1,10 @@
-defmodule Flop.Fruit do
+defmodule MyApp.Fruit do
   @moduledoc """
   Defines an Ecto schema for testing.
   """
   use Ecto.Schema
 
-  alias Flop.Owner
+  alias MyApp.Owner
 
   @derive {Flop.Schema,
            filterable: [

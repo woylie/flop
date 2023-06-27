@@ -7,7 +7,7 @@ defprotocol Flop.Schema do
   Derive `Flop.Schema` in your Ecto schema and set the filterable and sortable
   fields.
 
-      defmodule Flop.Pet do
+      defmodule MyApp.Pet do
         use Ecto.Schema
 
         @derive {
@@ -30,7 +30,7 @@ defprotocol Flop.Schema do
 
   After that, you can pass the module as the `:for` option to `Flop.validate/2`.
 
-      iex> Flop.validate(%Flop{order_by: [:name]}, for: Flop.Pet)
+      iex> Flop.validate(%Flop{order_by: [:name]}, for: MyApp.Pet)
       {:ok,
        %Flop{
          filters: [],
@@ -43,7 +43,7 @@ defprotocol Flop.Schema do
        }}
 
       iex> {:error, %Flop.Meta{} = meta} = Flop.validate(
-      ...>   %Flop{order_by: [:species]}, for: Flop.Pet
+      ...>   %Flop{order_by: [:species]}, for: MyApp.Pet
       ...> )
       iex> meta.params
       %{"order_by" => [:species], "filters" => []}
@@ -413,7 +413,7 @@ defprotocol Flop.Schema do
 
   Query:
 
-      Flop.validate_and_run(Flop.Pet, params, for: Flop.Pet, extra_opts: [timezone: timezone])
+      Flop.validate_and_run(MyApp.Pet, params, for: MyApp.Pet, extra_opts: [timezone: timezone])
 
   """
 
@@ -434,11 +434,11 @@ defprotocol Flop.Schema do
 
   ## Examples
 
-      iex> field_type(%Flop.Pet{}, :age)
+      iex> field_type(%MyApp.Pet{}, :age)
       {:normal, :age}
-      iex> field_type(%Flop.Pet{}, :full_name)
+      iex> field_type(%MyApp.Pet{}, :full_name)
       {:compound, [:family_name, :given_name]}
-      iex> field_type(%Flop.Pet{}, :owner_name)
+      iex> field_type(%MyApp.Pet{}, :owner_name)
       {
         :join,
         %{
@@ -448,11 +448,11 @@ defprotocol Flop.Schema do
           ecto_type: :string
         }
       }
-      iex> field_type(%Flop.Pet{}, :reverse_name)
+      iex> field_type(%MyApp.Pet{}, :reverse_name)
       {
         :custom,
         %{
-          filter: {Flop.Pet, :reverse_name_filter, []},
+          filter: {MyApp.Pet, :reverse_name_filter, []},
           ecto_type: :string
         }
       }
@@ -469,7 +469,7 @@ defprotocol Flop.Schema do
   @doc """
   Returns the filterable fields of a schema.
 
-      iex> Flop.Schema.filterable(%Flop.Pet{})
+      iex> Flop.Schema.filterable(%MyApp.Pet{})
       [
         :age,
         :full_name,
@@ -501,14 +501,14 @@ defprotocol Flop.Schema do
   Resolves join fields and compound fields according to the config.
 
       # join_fields: [owner_name: {:owner, :name}]
-      iex> pet = %Flop.Pet{name: "George", owner: %Flop.Owner{name: "Carl"}}
+      iex> pet = %MyApp.Pet{name: "George", owner: %MyApp.Owner{name: "Carl"}}
       iex> Flop.Schema.get_field(pet, :name)
       "George"
       iex> Flop.Schema.get_field(pet, :owner_name)
       "Carl"
 
       # compound_fields: [full_name: [:family_name, :given_name]]
-      iex> pet = %Flop.Pet{given_name: "George", family_name: "Gooney"}
+      iex> pet = %MyApp.Pet{given_name: "George", family_name: "Gooney"}
       iex> Flop.Schema.get_field(pet, :full_name)
       "Gooney George"
 
@@ -522,7 +522,7 @@ defprotocol Flop.Schema do
   @doc """
   Returns the allowed pagination types of a schema.
 
-      iex> Flop.Schema.pagination_types(%Flop.Fruit{})
+      iex> Flop.Schema.pagination_types(%MyApp.Fruit{})
       [:first, :last, :offset]
   """
   @doc since: "0.9.0"
@@ -532,7 +532,7 @@ defprotocol Flop.Schema do
   @doc """
   Returns the allowed pagination types of a schema.
 
-      iex> Flop.Schema.pagination_types(%Flop.Fruit{})
+      iex> Flop.Schema.pagination_types(%MyApp.Fruit{})
       [:first, :last, :offset]
   """
   @doc since: "0.21.0"
@@ -542,7 +542,7 @@ defprotocol Flop.Schema do
   @doc """
   Returns the sortable fields of a schema.
 
-      iex> Flop.Schema.sortable(%Flop.Pet{})
+      iex> Flop.Schema.sortable(%MyApp.Pet{})
       [:name, :age, :owner_name, :owner_age]
   """
   @spec sortable(any) :: [atom]
@@ -551,7 +551,7 @@ defprotocol Flop.Schema do
   @doc """
   Returns the default limit of a schema.
 
-      iex> Flop.Schema.default_limit(%Flop.Fruit{})
+      iex> Flop.Schema.default_limit(%MyApp.Fruit{})
       60
   """
   @doc since: "0.3.0"
@@ -561,7 +561,7 @@ defprotocol Flop.Schema do
   @doc """
   Returns the default order of a schema.
 
-      iex> Flop.Schema.default_order(%Flop.Fruit{})
+      iex> Flop.Schema.default_order(%MyApp.Fruit{})
       %{order_by: [:name], order_directions: [:asc]}
   """
   @doc since: "0.7.0"
@@ -576,7 +576,7 @@ defprotocol Flop.Schema do
   @doc """
   Returns the maximum limit of a schema.
 
-      iex> Flop.Schema.max_limit(%Flop.Pet{})
+      iex> Flop.Schema.max_limit(%MyApp.Pet{})
       1000
   """
   @doc since: "0.2.0"

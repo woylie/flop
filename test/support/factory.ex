@@ -2,9 +2,9 @@ defmodule Flop.Factory do
   @moduledoc false
   use ExMachina.Ecto, repo: Flop.Repo
 
-  alias Flop.Fruit
-  alias Flop.Owner
-  alias Flop.Pet
+  alias MyApp.Fruit
+  alias MyApp.Owner
+  alias MyApp.Pet
 
   @family [
     "Rosaceae",

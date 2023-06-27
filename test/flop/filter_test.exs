@@ -2,7 +2,7 @@ defmodule Flop.FilterTest do
   use ExUnit.Case, async: true
 
   alias Flop.Filter
-  alias Flop.Pet
+  alias MyApp.Pet
 
   doctest Flop.Filter, import: true
 

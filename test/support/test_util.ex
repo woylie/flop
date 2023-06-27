@@ -5,9 +5,9 @@ defmodule Flop.TestUtil do
   import Flop.Factory
 
   alias Ecto.Adapters.SQL.Sandbox
-  alias Flop.Fruit
-  alias Flop.Pet
   alias Flop.Repo
+  alias MyApp.Fruit
+  alias MyApp.Pet
 
   def checkin_checkout do
     :ok = Sandbox.checkin(Repo)
