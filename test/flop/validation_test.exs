@@ -257,6 +257,13 @@ defmodule Flop.ValidationTest do
                validate(params, replace_invalid_params: true)
     end
 
+    test "replaces malformed page with replace_invalid_params" do
+      params = %{page: "a", page_size: 10}
+
+      assert {:ok, %Flop{page: 1}} =
+               validate(params, replace_invalid_params: true)
+    end
+
     test "page size must be a positive integer" do
       params = %{page_size: 0}
       assert {:error, changeset} = validate(params)
@@ -684,6 +691,16 @@ defmodule Flop.ValidationTest do
       assert {:ok,
               %Flop{order_by: [:name], order_directions: [:desc_nulls_first]}} =
                validate(params, for: Pet, replace_invalid_params: true)
+    end
+
+    test "replaces malformed order fields with replace_invalid_params" do
+      params = %{
+        order_by: 5,
+        order_directions: true
+      }
+
+      assert {:ok, %Flop{order_by: [:name], order_directions: [:asc]}} =
+               validate(params, for: Fruit, replace_invalid_params: true)
     end
 
     test "validates order directions" do

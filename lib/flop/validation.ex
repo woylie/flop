@@ -215,7 +215,9 @@ defmodule Flop.Validation do
     validated_changeset = validate_func.(changeset, field, opts)
 
     if validated_changeset.errors[field] do
-      delete_change(changeset, field)
+      changeset
+      |> delete_change(field)
+      |> Map.update!(:errors, &Keyword.delete(&1, field))
     else
       validated_changeset
     end
@@ -259,6 +261,10 @@ defmodule Flop.Validation do
         changeset
         |> put_change(:order_by, new_order_by)
         |> put_change(:order_directions, new_order_directions)
+        |> Map.update!(
+          :errors,
+          &Keyword.drop(&1, [:order_by, :order_directions])
+        )
       else
         validate_subset(changeset, :order_by, sortable_fields)
       end

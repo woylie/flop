@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+
+- When the `replace_invalid_params` option was set to `true`, cast errors for
+  pagination and sorting parameters were still causing validation errors instead
+  of defaulting to valid parameters.
+
 ## [0.20.3] - 2023-06-23
 
 ### Changed
