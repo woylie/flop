@@ -1,4 +1,4 @@
-defmodule Flop.WalkingDistances do
+defmodule MyApp.WalkingDistances do
   @moduledoc """
   Defines an Ecto schema for testing.
   """

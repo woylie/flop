@@ -7,11 +7,11 @@ defmodule Flop.ValidationTest do
   import Flop.TestUtil
 
   alias Flop.Cursor
-  alias Flop.Fruit
-  alias Flop.Owner
-  alias Flop.Pet
   alias Flop.Validation
-  alias Flop.Vegetable
+  alias MyApp.Fruit
+  alias MyApp.Owner
+  alias MyApp.Pet
+  alias MyApp.Vegetable
 
   defmodule TestProviderWithDefaultPaginationType do
     use Flop,

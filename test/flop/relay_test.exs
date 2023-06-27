@@ -7,7 +7,7 @@ defmodule Flop.RelayTest do
     test "allows edges to be nil" do
       flop = %Flop{order_by: [:name]}
       meta = %Flop.Meta{flop: flop}
-      items = [{%Flop.Fruit{name: "Apple"}, nil}]
+      items = [{%MyApp.Fruit{name: "Apple"}, nil}]
       func = fn {fruit, _edge}, order_by -> Map.take(fruit, order_by) end
 
       assert Flop.Relay.edges_from_result({items, meta},
@@ -15,7 +15,7 @@ defmodule Flop.RelayTest do
              ) == [
                %{
                  cursor: "g3QAAAABdwRuYW1lbQAAAAVBcHBsZQ==",
-                 node: %Flop.Fruit{name: "Apple"}
+                 node: %MyApp.Fruit{name: "Apple"}
                }
              ]
     end

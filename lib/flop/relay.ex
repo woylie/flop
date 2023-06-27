@@ -32,13 +32,13 @@ defmodule Flop.Relay do
 
       iex> flop = %Flop{order_by: [:name]}
       iex> meta = %Flop.Meta{flop: flop, start_cursor: "a", end_cursor: "b"}
-      iex> result = {[%Flop.Fruit{name: "Apple", family: "Rosaceae"}], meta}
+      iex> result = {[%MyApp.Fruit{name: "Apple", family: "Rosaceae"}], meta}
       iex> Flop.Relay.connection_from_result(result)
       %{
         edges: [
           %{
             cursor: "g3QAAAABdwRuYW1lbQAAAAVBcHBsZQ==",
-            node: %Flop.Fruit{family: "Rosaceae", id: nil, name: "Apple"}
+            node: %MyApp.Fruit{family: "Rosaceae", id: nil, name: "Apple"}
           }
         ],
         page_info: %{
@@ -106,12 +106,12 @@ defmodule Flop.Relay do
 
       iex> flop = %Flop{order_by: [:name]}
       iex> meta = %Flop.Meta{flop: flop}
-      iex> result = {[%Flop.Fruit{name: "Apple", family: "Rosaceae"}], meta}
+      iex> result = {[%MyApp.Fruit{name: "Apple", family: "Rosaceae"}], meta}
       iex> Flop.Relay.edges_from_result(result)
       [
         %{
           cursor: "g3QAAAABdwRuYW1lbQAAAAVBcHBsZQ==",
-          node: %Flop.Fruit{name: "Apple", family: "Rosaceae"}
+          node: %MyApp.Fruit{name: "Apple", family: "Rosaceae"}
         }
       ]
 
@@ -148,7 +148,7 @@ defmodule Flop.Relay do
 
       iex> flop = %Flop{order_by: [:name]}
       iex> meta = %Flop.Meta{flop: flop}
-      iex> items = [{%Flop.Fruit{name: "Apple"}, %{preparation:  :grated}}]
+      iex> items = [{%MyApp.Fruit{name: "Apple"}, %{preparation:  :grated}}]
       iex> func = fn {fruit, _edge}, order_by -> Map.take(fruit, order_by) end
       iex> Flop.Relay.edges_from_result(
       ...>   {items, meta},
@@ -157,7 +157,7 @@ defmodule Flop.Relay do
       [
         %{
           cursor: "g3QAAAABdwRuYW1lbQAAAAVBcHBsZQ==",
-          node: %Flop.Fruit{name: "Apple"},
+          node: %MyApp.Fruit{name: "Apple"},
           preparation: :grated
         }
       ]

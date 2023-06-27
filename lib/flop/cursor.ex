@@ -207,9 +207,9 @@ defmodule Flop.Cursor do
   are resolved according to the configuration.
 
       iex> record = %{id: 25, relation: "sibling"}
-      iex> edge = %Flop.Pet{
+      iex> edge = %MyApp.Pet{
       ...>   name: "George",
-      ...>   owner: %Flop.Owner{name: "Carl"}
+      ...>   owner: %MyApp.Owner{name: "Carl"}
       ...> }
       iex>
       iex> Flop.Cursor.get_cursor_from_edge({record, edge}, [:owner_name])
@@ -218,7 +218,7 @@ defmodule Flop.Cursor do
       %{owner_name: "Carl"}
 
       iex> record = %{id: 25, relation: "sibling"}
-      iex> edge = %Flop.Pet{
+      iex> edge = %MyApp.Pet{
       ...>   given_name: "George",
       ...>   family_name: "Gooney"
       ...> }
@@ -264,9 +264,9 @@ defmodule Flop.Cursor do
   If the node is a struct that derives `Flop.Schema`, join and compound fields
   are resolved according to the configuration.
 
-      iex> record = %Flop.Pet{
+      iex> record = %MyApp.Pet{
       ...>   name: "George",
-      ...>   owner: %Flop.Owner{name: "Carl"}
+      ...>   owner: %MyApp.Owner{name: "Carl"}
       ...> }
       iex> edge = %{id: 25, relation: "sibling"}
       iex>
@@ -275,7 +275,7 @@ defmodule Flop.Cursor do
       iex> Flop.Cursor.get_cursor_from_node(record, [:owner_name])
       %{owner_name: "Carl"}
 
-      iex> record = %Flop.Pet{
+      iex> record = %MyApp.Pet{
       ...>   given_name: "George",
       ...>   family_name: "Gooney"
       ...> }

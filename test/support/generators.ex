@@ -26,7 +26,7 @@ defmodule Flop.Generators do
   end
 
   def filterable_pet_field do
-    member_of(Flop.Schema.filterable(%Flop.Pet{}))
+    member_of(Flop.Schema.filterable(%MyApp.Pet{}))
   end
 
   def filterable_pet_field(:string) do
@@ -54,7 +54,7 @@ defmodule Flop.Generators do
       [names, ages, species, family_names, given_names, owners]
       |> Enum.zip()
       |> Enum.map(fn {name, age, species, family_name, given_name, owner} ->
-        %Flop.Pet{
+        %MyApp.Pet{
           name: name,
           age: age,
           species: species,
@@ -73,7 +73,7 @@ defmodule Flop.Generators do
       [names, ages, emails]
       |> Enum.zip()
       |> Enum.map(fn {name, age, email} ->
-        %Flop.Owner{name: name, age: age, email: email}
+        %MyApp.Owner{name: name, age: age, email: email}
       end)
     end
   end

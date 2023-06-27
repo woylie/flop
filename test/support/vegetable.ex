@@ -1,4 +1,4 @@
-defmodule Flop.Vegetable do
+defmodule MyApp.Vegetable do
   @moduledoc """
   Defines an Ecto schema for testing.
   """

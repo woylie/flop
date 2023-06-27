@@ -9,7 +9,7 @@ defmodule Flop do
   take a queryable and a parameter map, validate the parameters, run the query
   and return the query results and the meta information.
 
-      iex> Flop.Repo.insert_all(Flop.Pet, [
+      iex> Flop.Repo.insert_all(MyApp.Pet, [
       ...>   %{name: "Harry", age: 4, species: "C. lupus"},
       ...>   %{name: "Maggie", age: 1, species: "O. cuniculus"},
       ...>   %{name: "Patty", age: 2, species: "C. aegagrus"}
@@ -17,7 +17,7 @@ defmodule Flop do
       iex> params = %{order_by: ["name", "age"], page: 1, page_size: 2}
       iex> {:ok, {results, meta}} =
       ...>   Flop.validate_and_run(
-      ...>     Flop.Pet,
+      ...>     MyApp.Pet,
       ...>     params,
       ...>     repo: Flop.Repo
       ...>   )
@@ -116,12 +116,12 @@ defmodule Flop do
   includes the validation step with the `:for` option.
 
       iex> params = %{"order_by" => ["name", "age"], "limit" => 5}
-      iex> {:ok, flop} = Flop.validate(params, for: Flop.Pet)
+      iex> {:ok, flop} = Flop.validate(params, for: MyApp.Pet)
       iex> flop.limit
       5
 
       iex> params = %{"order_by" => ["name", "age"], "limit" => 10_000}
-      iex> {:error, meta} = Flop.validate(params, for: Flop.Pet)
+      iex> {:error, meta} = Flop.validate(params, for: MyApp.Pet)
       iex> [limit: [{msg, _}]] = meta.errors
       iex> msg
       "must be less than or equal to %{number}"
@@ -129,9 +129,9 @@ defmodule Flop do
       iex> params = %{"order_by" => ["name", "age"], "limit" => 10_000}
       iex> {:error, %Flop.Meta{} = meta} =
       ...>   Flop.validate_and_run(
-      ...>     Flop.Pet,
+      ...>     MyApp.Pet,
       ...>     params,
-      ...>     for: Flop.Pet
+      ...>     for: MyApp.Pet
       ...>   )
       iex> [limit: [{msg, _}]] = meta.errors
       iex> msg
@@ -173,7 +173,7 @@ defmodule Flop do
   `:last`/`:before`. You also need to pass the `:order_by` parameter or set a
   default order for the schema via `Flop.Schema`.
 
-      iex> Flop.Repo.insert_all(Flop.Pet, [
+      iex> Flop.Repo.insert_all(MyApp.Pet, [
       ...>   %{name: "Harry", age: 4, species: "C. lupus"},
       ...>   %{name: "Maggie", age: 1, species: "O. cuniculus"},
       ...>   %{name: "Patty", age: 2, species: "C. aegagrus"}
@@ -182,7 +182,7 @@ defmodule Flop do
       iex> # forward (first/after)
       iex>
       iex> params = %{first: 2, order_by: [:species, :name]}
-      iex> {:ok, {results, meta}} = Flop.validate_and_run(Flop.Pet, params)
+      iex> {:ok, {results, meta}} = Flop.validate_and_run(MyApp.Pet, params)
       iex> Enum.map(results, & &1.name)
       ["Patty", "Harry"]
       iex> meta.has_next_page?
@@ -190,7 +190,7 @@ defmodule Flop do
       iex> end_cursor = meta.end_cursor
       "g3QAAAACdwRuYW1lbQAAAAVIYXJyeXcHc3BlY2llc20AAAAIQy4gbHVwdXM="
       iex> params = %{first: 2, after: end_cursor, order_by: [:species, :name]}
-      iex> {:ok, {results, meta}} = Flop.validate_and_run(Flop.Pet, params)
+      iex> {:ok, {results, meta}} = Flop.validate_and_run(MyApp.Pet, params)
       iex> Enum.map(results, & &1.name)
       ["Maggie"]
       iex> meta.has_next_page?
@@ -199,7 +199,7 @@ defmodule Flop do
       iex> # backward (last/before)
       iex>
       iex> params = %{last: 2, order_by: [:species, :name]}
-      iex> {:ok, {results, meta}} = Flop.validate_and_run(Flop.Pet, params)
+      iex> {:ok, {results, meta}} = Flop.validate_and_run(MyApp.Pet, params)
       iex> Enum.map(results, & &1.name)
       ["Harry", "Maggie"]
       iex> meta.has_previous_page?
@@ -207,7 +207,7 @@ defmodule Flop do
       iex> start_cursor = meta.start_cursor
       "g3QAAAACdwRuYW1lbQAAAAVIYXJyeXcHc3BlY2llc20AAAAIQy4gbHVwdXM="
       iex> params = %{last: 2, before: start_cursor, order_by: [:species, :name]}
-      iex> {:ok, {results, meta}} = Flop.validate_and_run(Flop.Pet, params)
+      iex> {:ok, {results, meta}} = Flop.validate_and_run(MyApp.Pet, params)
       iex> Enum.map(results, & &1.name)
       ["Patty"]
       iex> meta.has_previous_page?
@@ -226,14 +226,14 @@ defmodule Flop do
   Filters can be passed as a list of maps. It is recommended to define the
   filterable fields for a schema using `Flop.Schema`.
 
-      iex> Flop.Repo.insert_all(Flop.Pet, [
+      iex> Flop.Repo.insert_all(MyApp.Pet, [
       ...>   %{name: "Harry", age: 4, species: "C. lupus"},
       ...>   %{name: "Maggie", age: 1, species: "O. cuniculus"},
       ...>   %{name: "Patty", age: 2, species: "C. aegagrus"}
       ...> ])
       iex>
       iex> params = %{filters: [%{field: :name, op: :=~, value: "Mag"}]}
-      iex> {:ok, {results, meta}} = Flop.validate_and_run(Flop.Pet, params)
+      iex> {:ok, {results, meta}} = Flop.validate_and_run(MyApp.Pet, params)
       iex> meta.total_count
       1
       iex> [pet] = results
@@ -572,18 +572,22 @@ defmodule Flop do
   ## Examples
 
       iex> flop = %Flop{limit: 10, offset: 19}
-      iex> Flop.query(Flop.Pet, flop)
-      #Ecto.Query<from p0 in Flop.Pet, limit: ^10, offset: ^19>
+      iex> Flop.query(MyApp.Pet, flop)
+      #Ecto.Query<from p0 in MyApp.Pet, limit: ^10, offset: ^19>
 
   Or enhance an already defined query:
 
       iex> require Ecto.Query
       iex> flop = %Flop{limit: 10}
-      iex> Flop.Pet |> Ecto.Query.where(species: "dog") |> Flop.query(flop)
-      #Ecto.Query<from p0 in Flop.Pet, where: p0.species == \"dog\", limit: ^10>
+      iex> q = Ecto.Query.where(MyApp.Pet, species: "dog")
+      iex> Flop.query(q, flop, for: MyApp.Pet)
+      #Ecto.Query<from p0 in MyApp.Pet, where: p0.species == \"dog\", limit: ^10>
 
   Note that when using cursor-based pagination, the applied limit will be
   `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`.
+
+  Also note that you will need to pass the `for` option in order for Flop to be
+  able to find your join, compound, alias and custom field configuration.
   """
   @doc group: :queries
   @spec query(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
@@ -598,7 +602,7 @@ defmodule Flop do
   Applies the given Flop to the given queryable and returns all matchings
   entries.
 
-      iex> Flop.all(Flop.Pet, %Flop{}, repo: Flop.Repo)
+      iex> Flop.all(MyApp.Pet, %Flop{}, repo: Flop.Repo)
       []
 
   You can also configure a default repo in your config files:
@@ -607,12 +611,15 @@ defmodule Flop do
 
   This allows you to omit the third argument:
 
-      iex> Flop.all(Flop.Pet, %Flop{})
+      iex> Flop.all(MyApp.Pet, %Flop{}, for: MyApp.Pet)
       []
 
   Note that when using cursor-based pagination, the applied limit will be
   `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`, but
   not by this function.
+
+  Also note that you will need to pass the `for` option in order for Flop to be
+  able to find your join, compound, alias and custom field configuration.
 
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
@@ -634,7 +641,14 @@ defmodule Flop do
   `Flop.validate!/2`, or you can use `Flop.validate_and_run/3` or
   `Flop.validate_and_run!/3` instead of this function.
 
-      iex> {data, meta} = Flop.run(Flop.Pet, %Flop{})
+  Note that you will need to pass the `for` option to both to `validate/2`,
+  `validate!/2` and `run/3`. Otherwise, Flop would not know how to find your
+  field configuration (join fields, alias fields, custom fields, compound
+  fields).
+
+      iex> opts = [for: MyApp.Pet]
+      iex> flop = Flop.validate!(%{}, opts)
+      iex> {data, meta} = Flop.run(MyApp.Pet, flop, opts)
       iex> data == []
       true
       iex> match?(%Flop.Meta{}, meta)
@@ -690,9 +704,9 @@ defmodule Flop do
   success.
 
       iex> {:ok, {[], %Flop.Meta{}}} =
-      ...>   Flop.validate_and_run(Flop.Pet, %Flop{}, for: Flop.Pet)
+      ...>   Flop.validate_and_run(MyApp.Pet, %Flop{}, for: MyApp.Pet)
       iex> {:error, %Flop.Meta{} = meta} =
-      ...>   Flop.validate_and_run(Flop.Pet, %Flop{limit: -1})
+      ...>   Flop.validate_and_run(MyApp.Pet, %Flop{limit: -1})
       iex> meta.errors
       [
         limit: [
@@ -703,7 +717,8 @@ defmodule Flop do
 
   ## Options
 
-  - `for`: Passed to `Flop.validate/2`.
+  - `for`: Passed to `Flop.validate/2`. Also used to look up the join, alias,
+    compound and custom field configuration.
   - `repo`: The `Ecto.Repo` module. Required if no default repo is configured.
   - `cursor_value_func`: An arity-2 function to be used to retrieve an
     unencoded cursor value from a query result item and the `order_by` fields.
@@ -740,7 +755,7 @@ defmodule Flop do
 
   The pagination and ordering option are disregarded.
 
-      iex> Flop.count(Flop.Pet, %Flop{}, repo: Flop.Repo)
+      iex> Flop.count(MyApp.Pet, %Flop{}, repo: Flop.Repo)
       0
 
   You can also configure a default repo in your config files:
@@ -749,7 +764,7 @@ defmodule Flop do
 
   This allows you to omit the third argument:
 
-      iex> Flop.count(Flop.Pet, %Flop{})
+      iex> Flop.count(MyApp.Pet, %Flop{})
       0
 
   You can override the default query by passing the `:count_query` option. This
@@ -759,18 +774,21 @@ defmodule Flop do
 
       query = join(Pet, :left, [p], o in assoc(p, :owner))
       count_query = Pet
-      count(query, %Flop{}, count_query: count_query)
+      count(query, %Flop{}, count_query: count_query, for: Pet)
 
   The filter parameters of the given Flop are applied to the custom count query.
 
   If for some reason you already have the count, you can pass it as the `:count`
   option.
 
-      count(query, %Flop{}, count: 42)
+      count(query, %Flop{}, count: 42, for: Pet)
 
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
   `validate/2` or `validate!/2` before passing them to this function.
+
+  Note that you will need to pass the `for` option in order for Flop to be
+  able to find your join, compound, alias and custom field configuration.
   """
   @doc since: "0.6.0"
   @doc group: :queries
@@ -812,7 +830,7 @@ defmodule Flop do
   Returns meta information for the given query and flop that can be used for
   building the pagination links.
 
-      iex> Flop.meta(Flop.Pet, %Flop{limit: 10}, repo: Flop.Repo)
+      iex> Flop.meta(MyApp.Pet, %Flop{limit: 10}, repo: Flop.Repo)
       %Flop.Meta{
         current_offset: 0,
         current_page: 1,
@@ -1000,6 +1018,9 @@ defmodule Flop do
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
   `validate/2` or `validate!/2` before passing them to this function.
+
+  Note that you will need to pass the `for` option in order for Flop to be
+  able to find your join, compound, alias and custom field configuration.
   """
   @doc group: :queries
   @spec order_by(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
@@ -1095,6 +1116,9 @@ defmodule Flop do
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
   `validate/2` or `validate!/2` before passing them to this function.
+
+  Note that you will need to pass the `for` option in order for Flop to be
+  able to find your join, compound, alias and custom field configuration.
   """
   @doc group: :queries
   @spec paginate(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
@@ -1280,6 +1304,9 @@ defmodule Flop do
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
   `validate/2` or `validate!/2` before passing them to this function.
+
+  Note that you will need to pass the `for` option in order for Flop to be
+  able to find your join, compound, alias and custom field configuration.
   """
   @doc group: :queries
   @spec filter(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
@@ -1346,7 +1373,7 @@ defmodule Flop do
   values set for the schema.
 
       iex> params = %{"order_by" => ["species"]}
-      iex> {:error, %Flop.Meta{} = meta} = Flop.validate(params, for: Flop.Pet)
+      iex> {:error, %Flop.Meta{} = meta} = Flop.validate(params, for: MyApp.Pet)
       iex> [order_by: [{msg, [_, {_, enum}]}]] = meta.errors
       iex> msg
       "has an invalid entry"
@@ -2462,7 +2489,7 @@ defmodule Flop do
       ...>   %Flop{
       ...>     filters: [%Flop.Filter{field: :owner_age, op: :==, value: 5}]
       ...>   },
-      ...>   Flop.Pet
+      ...>   MyApp.Pet
       ...> )
       [:owner]
 
@@ -2477,7 +2504,7 @@ defmodule Flop do
       ...>       %Flop.Filter{field: :owner_age, op: :==, value: nil}
       ...>     ]
       ...>   },
-      ...>   Flop.Pet
+      ...>   MyApp.Pet
       ...> )
       []
 
@@ -2489,7 +2516,7 @@ defmodule Flop do
       ...>       %Flop.Filter{field: :pet_and_owner_name, op: :==, value: "Mae"}
       ...>     ]
       ...>   },
-      ...>   Flop.Pet
+      ...>   MyApp.Pet
       ...> )
       [:owner]
 
@@ -2647,13 +2674,13 @@ defmodule Flop do
   If you pass a Flop that orders by the `:pet_count` field, the returned list
   will include the `:pet_count` alias.
 
-      iex> aliases(%Flop{order_by: [:name, :pet_count]}, Flop.Owner)
+      iex> aliases(%Flop{order_by: [:name, :pet_count]}, MyApp.Owner)
       [:pet_count]
 
   If on the other hand only normal fields are used in the `order_by` parameter,
   an empty list will be returned.
 
-      iex> aliases(%Flop{order_by: [:name]}, Flop.Owner)
+      iex> aliases(%Flop{order_by: [:name]}, MyApp.Owner)
       []
 
   You can use this to dynamically build the select clause needed for the query.
