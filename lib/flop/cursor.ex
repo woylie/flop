@@ -6,7 +6,7 @@ defmodule Flop.Cursor do
   @doc """
   Encodes a cursor value.
 
-      iex> Flop.Cursor.encode(%{email: "peter@mail", name: "Peter"})
+      Flop.Cursor.encode(%{email: "peter@mail", name: "Peter"})
       "g3QAAAACdwRuYW1lbQAAAAVQZXRlcncFZW1haWxtAAAACnBldGVyQG1haWw="
   """
   @doc since: "0.8.0"
