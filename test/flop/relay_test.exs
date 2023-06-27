@@ -14,7 +14,7 @@ defmodule Flop.RelayTest do
                cursor_value_func: func
              ) == [
                %{
-                 cursor: "g3QAAAABZAAEbmFtZW0AAAAFQXBwbGU=",
+                 cursor: "g3QAAAABdwRuYW1lbQAAAAVBcHBsZQ==",
                  node: %Flop.Fruit{name: "Apple"}
                }
              ]

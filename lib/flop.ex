@@ -188,7 +188,7 @@ defmodule Flop do
       iex> meta.has_next_page?
       true
       iex> end_cursor = meta.end_cursor
-      "g3QAAAACZAAEbmFtZW0AAAAFSGFycnlkAAdzcGVjaWVzbQAAAAhDLiBsdXB1cw=="
+      "g3QAAAACdwRuYW1lbQAAAAVIYXJyeXcHc3BlY2llc20AAAAIQy4gbHVwdXM="
       iex> params = %{first: 2, after: end_cursor, order_by: [:species, :name]}
       iex> {:ok, {results, meta}} = Flop.validate_and_run(Flop.Pet, params)
       iex> Enum.map(results, & &1.name)
@@ -205,7 +205,7 @@ defmodule Flop do
       iex> meta.has_previous_page?
       true
       iex> start_cursor = meta.start_cursor
-      "g3QAAAACZAAEbmFtZW0AAAAFSGFycnlkAAdzcGVjaWVzbQAAAAhDLiBsdXB1cw=="
+      "g3QAAAACdwRuYW1lbQAAAAVIYXJyeXcHc3BlY2llc20AAAAIQy4gbHVwdXM="
       iex> params = %{last: 2, before: start_cursor, order_by: [:species, :name]}
       iex> {:ok, {results, meta}} = Flop.validate_and_run(Flop.Pet, params)
       iex> Enum.map(results, & &1.name)

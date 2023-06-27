@@ -6,13 +6,13 @@ defmodule Flop.Cursor do
   @doc """
   Encodes a cursor value.
 
-      iex> Flop.Cursor.encode(%{name: "Peter", email: "peter@mail"})
-      "g3QAAAACZAAFZW1haWxtAAAACnBldGVyQG1haWxkAARuYW1lbQAAAAVQZXRlcg=="
+      iex> Flop.Cursor.encode(%{email: "peter@mail", name: "Peter"})
+      "g3QAAAACdwRuYW1lbQAAAAVQZXRlcncFZW1haWxtAAAACnBldGVyQG1haWw="
   """
   @doc since: "0.8.0"
   @spec encode(map()) :: binary()
   def encode(key) do
-    Base.url_encode64(:erlang.term_to_binary(key))
+    Base.url_encode64(:erlang.term_to_binary(key, minor_version: 2))
   end
 
   @doc """
@@ -123,7 +123,7 @@ defmodule Flop.Cursor do
       iex>
       iex> {start_cursor, end_cursor} =
       ...>   Flop.Cursor.get_cursors(results, order_by)
-      {"g3QAAAABZAAEbmFtZW0AAAAETWFyeQ==", "g3QAAAABZAAEbmFtZW0AAAAFUGV0ZXI="}
+      {"g3QAAAABdwRuYW1lbQAAAARNYXJ5", "g3QAAAABdwRuYW1lbQAAAAVQZXRlcg=="}
       iex>
       iex> Flop.Cursor.decode(start_cursor)
       {:ok, %{name: "Mary"}}
@@ -154,8 +154,8 @@ defmodule Flop.Cursor do
       iex>
       iex> {start_cursor, end_cursor} =
       ...>   Flop.Cursor.get_cursors(results, [:name, :year], opts)
-      {"g3QAAAACZAAEbmFtZW0AAAAETWFyeWQABHllYXJiAAAHkA==",
-        "g3QAAAACZAAEbmFtZW0AAAAFUGV0ZXJkAAR5ZWFyYgAAB5I="}
+      {"g3QAAAACdwRuYW1lbQAAAARNYXJ5dwR5ZWFyYgAAB5A=",
+        "g3QAAAACdwRuYW1lbQAAAAVQZXRlcncEeWVhcmIAAAeS"}
       iex>
       iex> Flop.Cursor.decode(start_cursor)
       {:ok, %{name: "Mary", year: 1936}}

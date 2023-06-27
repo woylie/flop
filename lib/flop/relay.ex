@@ -37,7 +37,7 @@ defmodule Flop.Relay do
       %{
         edges: [
           %{
-            cursor: "g3QAAAABZAAEbmFtZW0AAAAFQXBwbGU=",
+            cursor: "g3QAAAABdwRuYW1lbQAAAAVBcHBsZQ==",
             node: %Flop.Fruit{family: "Rosaceae", id: nil, name: "Apple"}
           }
         ],
@@ -110,7 +110,7 @@ defmodule Flop.Relay do
       iex> Flop.Relay.edges_from_result(result)
       [
         %{
-          cursor: "g3QAAAABZAAEbmFtZW0AAAAFQXBwbGU=",
+          cursor: "g3QAAAABdwRuYW1lbQAAAAVBcHBsZQ==",
           node: %Flop.Fruit{name: "Apple", family: "Rosaceae"}
         }
       ]
@@ -156,7 +156,7 @@ defmodule Flop.Relay do
       ...> )
       [
         %{
-          cursor: "g3QAAAABZAAEbmFtZW0AAAAFQXBwbGU=",
+          cursor: "g3QAAAABdwRuYW1lbQAAAAVBcHBsZQ==",
           node: %Flop.Fruit{name: "Apple"},
           preparation: :grated
         }
