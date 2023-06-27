@@ -579,11 +579,15 @@ defmodule Flop do
 
       iex> require Ecto.Query
       iex> flop = %Flop{limit: 10}
-      iex> MyApp.Pet |> Ecto.Query.where(species: "dog") |> Flop.query(flop)
+      iex> q = Ecto.Query.where(MyApp.Pet, species: "dog")
+      iex> Flop.query(q, flop, for: MyApp.Pet)
       #Ecto.Query<from p0 in MyApp.Pet, where: p0.species == \"dog\", limit: ^10>
 
   Note that when using cursor-based pagination, the applied limit will be
   `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`.
+
+  Also note that you will need to pass the `for` option in order for Flop to be
+  able to find your join, compound, alias and custom field configuration.
   """
   @doc group: :queries
   @spec query(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
@@ -607,12 +611,15 @@ defmodule Flop do
 
   This allows you to omit the third argument:
 
-      iex> Flop.all(MyApp.Pet, %Flop{})
+      iex> Flop.all(MyApp.Pet, %Flop{}, for: MyApp.Pet)
       []
 
   Note that when using cursor-based pagination, the applied limit will be
   `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`, but
   not by this function.
+
+  Also note that you will need to pass the `for` option in order for Flop to be
+  able to find your join, compound, alias and custom field configuration.
 
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
@@ -634,7 +641,14 @@ defmodule Flop do
   `Flop.validate!/2`, or you can use `Flop.validate_and_run/3` or
   `Flop.validate_and_run!/3` instead of this function.
 
-      iex> {data, meta} = Flop.run(MyApp.Pet, %Flop{})
+  Note that you will need to pass the `for` option to both to `validate/2`,
+  `validate!/2` and `run/3`. Otherwise, Flop would not know how to find your
+  field configuration (join fields, alias fields, custom fields, compound
+  fields).
+
+      iex> opts = [for: MyApp.Pet]
+      iex> flop = Flop.validate!(%{}, opts)
+      iex> {data, meta} = Flop.run(MyApp.Pet, flop, opts)
       iex> data == []
       true
       iex> match?(%Flop.Meta{}, meta)
@@ -703,7 +717,8 @@ defmodule Flop do
 
   ## Options
 
-  - `for`: Passed to `Flop.validate/2`.
+  - `for`: Passed to `Flop.validate/2`. Also used to look up the join, alias,
+    compound and custom field configuration.
   - `repo`: The `Ecto.Repo` module. Required if no default repo is configured.
   - `cursor_value_func`: An arity-2 function to be used to retrieve an
     unencoded cursor value from a query result item and the `order_by` fields.
@@ -759,18 +774,21 @@ defmodule Flop do
 
       query = join(Pet, :left, [p], o in assoc(p, :owner))
       count_query = Pet
-      count(query, %Flop{}, count_query: count_query)
+      count(query, %Flop{}, count_query: count_query, for: Pet)
 
   The filter parameters of the given Flop are applied to the custom count query.
 
   If for some reason you already have the count, you can pass it as the `:count`
   option.
 
-      count(query, %Flop{}, count: 42)
+      count(query, %Flop{}, count: 42, for: Pet)
 
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
   `validate/2` or `validate!/2` before passing them to this function.
+
+  Note that you will need to pass the `for` option in order for Flop to be
+  able to find your join, compound, alias and custom field configuration.
   """
   @doc since: "0.6.0"
   @doc group: :queries
@@ -1000,6 +1018,9 @@ defmodule Flop do
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
   `validate/2` or `validate!/2` before passing them to this function.
+
+  Note that you will need to pass the `for` option in order for Flop to be
+  able to find your join, compound, alias and custom field configuration.
   """
   @doc group: :queries
   @spec order_by(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
@@ -1095,6 +1116,9 @@ defmodule Flop do
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
   `validate/2` or `validate!/2` before passing them to this function.
+
+  Note that you will need to pass the `for` option in order for Flop to be
+  able to find your join, compound, alias and custom field configuration.
   """
   @doc group: :queries
   @spec paginate(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
@@ -1280,6 +1304,9 @@ defmodule Flop do
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
   `validate/2` or `validate!/2` before passing them to this function.
+
+  Note that you will need to pass the `for` option in order for Flop to be
+  able to find your join, compound, alias and custom field configuration.
   """
   @doc group: :queries
   @spec filter(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
