@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+- `Flop.Cursor.encode/1` now explicitly sets the minor version option for
+  `:erlang.term_to_binary/2` to `2`, which is the new default in OTP 26.
+
 ### Fixed
 
 - When the `replace_invalid_params` option was set to `true`, cast errors for
