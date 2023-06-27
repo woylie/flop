@@ -1030,25 +1030,28 @@ defmodule Flop.Filter do
 
   The default operator is `:==`.
 
-      iex> new(%{name: "George", age: 8})
+      iex> filters = new(%{name: "George", age: 8})
+      iex> Enum.sort(filters)
       [
         %Flop.Filter{field: :age, op: :==, value: 8},
         %Flop.Filter{field: :name, op: :==, value: "George"}
       ]
 
-      iex> new([name: "George", age: 8])
+      iex> filters = new([name: "George", age: 8])
+      iex> Enum.sort(filters)
       [
-        %Flop.Filter{field: :name, op: :==, value: "George"},
         %Flop.Filter{field: :age, op: :==, value: 8},
+        %Flop.Filter{field: :name, op: :==, value: "George"}
       ]
 
   You can optionally pass a mapping from field names to operators as a map
   with atom keys.
 
-      iex> new(
+      iex> filters = new(
       ...>   %{name: "George", age: 8},
       ...>   operators: %{name: :ilike_and}
       ...> )
+      iex> Enum.sort(filters)
       [
         %Flop.Filter{field: :age, op: :==, value: 8},
         %Flop.Filter{field: :name, op: :ilike_and, value: "George"}
@@ -1056,19 +1059,21 @@ defmodule Flop.Filter do
 
   You can also pass a map to rename fields.
 
-      iex> new(
+      iex> filters = new(
       ...>   %{s: "George", age: 8},
       ...>   rename: %{s: :name}
       ...> )
+      iex> Enum.sort(filters)
       [
         %Flop.Filter{field: :age, op: :==, value: 8},
         %Flop.Filter{field: :name, op: :==, value: "George"}
       ]
 
-      iex> new(
+      iex> filters = new(
       ...>   %{s: "George", cat: true},
       ...>   rename: %{s: :name, cat: :dog}
       ...> )
+      iex> Enum.sort(filters)
       [
         %Flop.Filter{field: :dog, op: :==, value: true},
         %Flop.Filter{field: :name, op: :==, value: "George"}

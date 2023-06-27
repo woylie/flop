@@ -1,8 +1,8 @@
 name: CI
 
 env:
-  ELIXIR_VERSION: "1.14"
-  OTP_VERSION: "25.2"
+  ELIXIR_VERSION: "1.15"
+  OTP_VERSION: "26"
 
 on:
   push:
@@ -18,19 +18,22 @@ jobs:
     name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
     strategy:
       matrix:
-        otp: ["22.3", "23.3", "24.3", "25.1"]
-        elixir: ["1.11", "1.12", "1.13", "1.14"]
-        exclude:
-          - otp: "24.3"
-            elixir: "1.11"
-          - otp: "25.1"
-            elixir: "1.11"
-          - otp: "25.1"
-            elixir: "1.12"
-          - otp: "25.1"
-            elixir: "1.13"
-          - otp: "22.3"
-            elixir: "1.14"
+        include:
+          - { elixir: 1.11, otp: 21 }
+          - { elixir: 1.11, otp: 22 }
+          - { elixir: 1.11, otp: 23 }
+          - { elixir: 1.12, otp: 22 }
+          - { elixir: 1.12, otp: 23 }
+          - { elixir: 1.12, otp: 24 }
+          - { elixir: 1.13, otp: 22 }
+          - { elixir: 1.13, otp: 23 }
+          - { elixir: 1.13, otp: 24 }
+          - { elixir: 1.14, otp: 23 }
+          - { elixir: 1.14, otp: 24 }
+          - { elixir: 1.14, otp: 25 }
+          - { elixir: 1.15, otp: 24 }
+          - { elixir: 1.15, otp: 25 }
+          - { elixir: 1.15, otp: 26 }
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -90,7 +93,7 @@ jobs:
           fi
 
   code-quality:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     name: Code Quality
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
