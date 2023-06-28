@@ -821,5 +821,112 @@ defmodule Flop.ValidationTest do
       params = %{filters: [%{field: "a", op: :==, value: "b"}]}
       assert {:ok, %Flop{filters: []}} = validate(params, filtering: false)
     end
+
+    test "validates filter value for normal string fields" do
+      params = %{filters: [%{field: :name, value: "Hanna"}]}
+      assert {:ok, %{filters: [%{value: "Hanna"}]}} = validate(params, for: Pet)
+
+      params = %{filters: [%{field: :name, value: 2}]}
+      assert {:error, changeset} = validate(params, for: Pet)
+      assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+    end
+
+    test "validates filter value for normal integer fields" do
+      params = %{filters: [%{field: :age, value: "5"}]}
+      assert {:ok, %Flop{filters: [%{value: 5}]}} = validate(params, for: Pet)
+
+      params = %{filters: [%{field: :age, value: "8y"}]}
+      assert {:error, changeset} = validate(params, for: Pet)
+      assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+    end
+
+    test "casts filter values for in/not_in operators as arrays" do
+      for op <- [:in, :not_in] do
+        params = %{filters: [%{field: :age, op: op, value: 5}]}
+        assert {:error, changeset} = validate(params, for: Pet)
+        assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+
+        params = %{filters: [%{field: :age, op: op, value: [5]}]}
+        assert {:ok, %{filters: [%{value: [5]}]}} = validate(params, for: Pet)
+
+        params = %{filters: [%{field: :age, op: op, value: ["5"]}]}
+        assert {:ok, %{filters: [%{value: [5]}]}} = validate(params, for: Pet)
+
+        params = %{filters: [%{field: :age, value: ["five"]}]}
+        assert {:error, changeset} = validate(params, for: Pet)
+        assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+      end
+    end
+
+    test "casts filter values for contains/not_contains as inner type" do
+      for op <- [:contains, :not_contains] do
+        params = %{filters: [%{field: :tags, op: op, value: "a"}]}
+        assert {:ok, %{filters: [%{value: "a"}]}} = validate(params, for: Pet)
+
+        params = %{filters: [%{field: :tags, op: op, value: 5}]}
+        assert {:error, changeset} = validate(params, for: Pet)
+        assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+
+        params = %{filters: [%{field: :tags, op: op, value: ["5"]}]}
+        assert {:error, changeset} = validate(params, for: Pet)
+        assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+      end
+    end
+
+    test "casts filter values for compound fields as strings" do
+      params = %{filters: [%{field: :full_name, op: :=~, value: "Carl"}]}
+      assert {:ok, %{filters: [%{value: "Carl"}]}} = validate(params, for: Pet)
+
+      params = %{filters: [%{field: :full_name, op: :=~, value: 2}]}
+      assert {:error, changeset} = validate(params, for: Pet)
+      assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+    end
+
+    test "cast filter value for join fields with binding option" do
+      params = %{filters: [%{field: :owner_name, value: "Harry"}]}
+      assert {:ok, %{filters: [%{value: "Harry"}]}} = validate(params, for: Pet)
+
+      params = %{filters: [%{field: :owner_name, value: 5}]}
+      assert {:error, changeset} = validate(params, for: Pet)
+      assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+    end
+
+    test "casts any filter value for join fields without binding option" do
+      params = %{filters: [%{field: :owner_age, value: 5}]}
+      assert {:ok, %Flop{filters: [%{value: 5}]}} = validate(params, for: Pet)
+
+      params = %{filters: [%{field: :owner_age, value: "five"}]}
+      assert {:ok, %{filters: [%{value: "five"}]}} = validate(params, for: Pet)
+    end
+
+    test "casts filter value (i)like_and/or as string or array of strings" do
+      for op <- [:like_and, :like_or, :ilike_and, :ilike_or] do
+        params = %{filters: [%{field: :name, op: op, value: "a"}]}
+        assert {:ok, %{filters: [%{value: "a"}]}} = validate(params, for: Pet)
+
+        params = %{filters: [%{field: :name, op: op, value: ["a"]}]}
+        assert {:ok, %{filters: [%{value: ["a"]}]}} = validate(params, for: Pet)
+
+        params = %{filters: [%{field: :name, op: op, value: 5}]}
+        assert {:error, changeset} = validate(params, for: Pet)
+        assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+
+        params = %{filters: [%{field: :name, op: op, value: [5]}]}
+        assert {:error, changeset} = validate(params, for: Pet)
+        assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+      end
+    end
+
+    test "casts filter values for empty/not_empty operators as booleans" do
+      params = %{filters: [%{field: :name, op: :empty, value: "true"}]}
+      assert {:ok, %{filters: [%{value: true}]}} = validate(params, for: Pet)
+
+      params = %{filters: [%{field: :name, op: "not_empty", value: "false"}]}
+      assert {:ok, %{filters: [%{value: false}]}} = validate(params, for: Pet)
+
+      params = %{filters: [%{field: :name, op: :empty, value: "maybe"}]}
+      assert {:error, changeset} = validate(params, for: Pet)
+      assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+    end
   end
 end

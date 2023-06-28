@@ -11,6 +11,7 @@ defmodule Flop.Filter do
   alias Ecto.Changeset
   alias Flop.CustomTypes.Any
   alias Flop.CustomTypes.ExistingAtom
+  alias Flop.CustomTypes.Like
 
   @typedoc """
   Represents filter query parameters.
@@ -95,35 +96,37 @@ defmodule Flop.Filter do
           | :ilike_and
           | :ilike_or
 
+  @operators [
+    :==,
+    :!=,
+    :=~,
+    :empty,
+    :not_empty,
+    :<=,
+    :<,
+    :>=,
+    :>,
+    :in,
+    :not_in,
+    :contains,
+    :not_contains,
+    :like,
+    :not_like,
+    :like_and,
+    :like_or,
+    :ilike,
+    :not_ilike,
+    :ilike_and,
+    :ilike_or
+  ]
+
   @primary_key false
   embedded_schema do
     field :field, ExistingAtom
 
     field :op, Ecto.Enum,
       default: :==,
-      values: [
-        :==,
-        :!=,
-        :=~,
-        :empty,
-        :not_empty,
-        :<=,
-        :<,
-        :>=,
-        :>,
-        :in,
-        :not_in,
-        :contains,
-        :not_contains,
-        :like,
-        :not_like,
-        :like_and,
-        :like_or,
-        :ilike,
-        :not_ilike,
-        :ilike_and,
-        :ilike_or
-      ]
+      values: @operators
 
     field :value, Any
   end
@@ -131,12 +134,72 @@ defmodule Flop.Filter do
   @doc false
   @spec changeset(__MODULE__.t(), map, keyword) :: Changeset.t()
   def changeset(filter, %{} = params, opts \\ []) do
-    filter
-    |> cast(params, [:field, :op, :value])
-    |> validate_required([:field, :op])
-    |> validate_filterable(opts[:for])
-    |> validate_op(opts[:for])
+    schema = Keyword.get(opts, :for)
+
+    types = %{
+      field: ExistingAtom,
+      op: Ecto.ParameterizedType.init(Ecto.Enum, values: @operators),
+      value: Any
+    }
+
+    {filter, types}
+    |> Changeset.cast(params, [:field, :op])
+    |> Changeset.validate_required([:field, :op])
+    |> validate_filterable(schema)
+    |> validate_op(schema)
+    |> cast_value(schema)
   end
+
+  defp cast_value(%Changeset{} = changeset, nil) do
+    cast_value_as(changeset, Any)
+  end
+
+  defp cast_value(%Changeset{} = changeset, schema) do
+    field = Changeset.fetch_field!(changeset, :field)
+    op = Changeset.fetch_field!(changeset, :op)
+    type = value_type(schema, field, op)
+    cast_value_as(changeset, type)
+  end
+
+  defp value_type(_schema, _field, :empty), do: :boolean
+  defp value_type(_schema, _field, :not_empty), do: :boolean
+  defp value_type(_schema, _field, :ilike_and), do: Like
+  defp value_type(_schema, _field, :ilike_or), do: Like
+  defp value_type(_schema, _field, :like_and), do: Like
+  defp value_type(_schema, _field, :like_or), do: Like
+
+  defp value_type(schema, field, op) do
+    struct = struct!(schema)
+
+    if Flop.Schema.impl_for(struct) != Flop.Schema.Any do
+      field_type = field_type_from_flop_schema(schema, struct, field)
+
+      field_type =
+        if field_type == :flop_compound, do: :string, else: field_type
+
+      value_type(field_type, op)
+    else
+      Any
+    end
+  end
+
+  defp value_type(nil, _), do: Any
+  defp value_type(type, :in), do: {:array, type}
+  defp value_type(type, :not_in), do: {:array, type}
+  defp value_type({:array, type}, :contains), do: type
+  defp value_type({:array, type}, :not_contains), do: type
+  defp value_type(type, _), do: type
+
+  defp cast_value_as(%Changeset{params: params} = changeset, type) do
+    case Ecto.Type.cast(type, get_value_param(params)) do
+      {:ok, cast_value} -> put_change(changeset, :value, cast_value)
+      _ -> add_error(changeset, :value, "is invalid")
+    end
+  end
+
+  defp get_value_param(%{"value" => value}), do: value
+  defp get_value_param(%{value: value}), do: value
+  defp get_value_param(_), do: nil
 
   @spec validate_filterable(Changeset.t(), module | nil) :: Changeset.t()
   defp validate_filterable(changeset, nil), do: changeset
