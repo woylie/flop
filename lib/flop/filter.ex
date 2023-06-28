@@ -11,6 +11,7 @@ defmodule Flop.Filter do
   alias Ecto.Changeset
   alias Flop.CustomTypes.Any
   alias Flop.CustomTypes.ExistingAtom
+  alias Flop.CustomTypes.Like
 
   @typedoc """
   Represents filter query parameters.
@@ -95,35 +96,37 @@ defmodule Flop.Filter do
           | :ilike_and
           | :ilike_or
 
+  @operators [
+    :==,
+    :!=,
+    :=~,
+    :empty,
+    :not_empty,
+    :<=,
+    :<,
+    :>=,
+    :>,
+    :in,
+    :not_in,
+    :contains,
+    :not_contains,
+    :like,
+    :not_like,
+    :like_and,
+    :like_or,
+    :ilike,
+    :not_ilike,
+    :ilike_and,
+    :ilike_or
+  ]
+
   @primary_key false
   embedded_schema do
     field :field, ExistingAtom
 
     field :op, Ecto.Enum,
       default: :==,
-      values: [
-        :==,
-        :!=,
-        :=~,
-        :empty,
-        :not_empty,
-        :<=,
-        :<,
-        :>=,
-        :>,
-        :in,
-        :not_in,
-        :contains,
-        :not_contains,
-        :like,
-        :not_like,
-        :like_and,
-        :like_or,
-        :ilike,
-        :not_ilike,
-        :ilike_and,
-        :ilike_or
-      ]
+      values: @operators
 
     field :value, Any
   end
@@ -131,12 +134,49 @@ defmodule Flop.Filter do
   @doc false
   @spec changeset(__MODULE__.t(), map, keyword) :: Changeset.t()
   def changeset(filter, %{} = params, opts \\ []) do
-    filter
-    |> cast(params, [:field, :op, :value])
-    |> validate_required([:field, :op])
-    |> validate_filterable(opts[:for])
-    |> validate_op(opts[:for])
+    module = Keyword.get(opts, :for)
+
+    changeset =
+      filter
+      |> cast(params, [:field, :op])
+      |> validate_required([:field, :op])
+      |> validate_filterable(module)
+
+    if changeset.valid? do
+      field = Changeset.fetch_field!(changeset, :field)
+      op = Changeset.fetch_field!(changeset, :op)
+      field_type = module && get_field_type(module, field)
+
+      changeset
+      |> validate_op(field_type, op)
+      |> cast_value(field_type, op)
+    else
+      changeset
+    end
   end
+
+  defp cast_value(%Changeset{params: params} = changeset, field_type, op) do
+    type = value_type(field_type, op)
+
+    case Ecto.Type.cast(type, params["value"]) do
+      {:ok, cast_value} -> put_change(changeset, :value, cast_value)
+      _ -> add_error(changeset, :value, "is invalid")
+    end
+  end
+
+  defp value_type(_, :empty), do: :boolean
+  defp value_type(_, :not_empty), do: :boolean
+  defp value_type(_, :ilike_and), do: Like
+  defp value_type(_, :ilike_or), do: Like
+  defp value_type(_, :like_and), do: Like
+  defp value_type(_, :like_or), do: Like
+  defp value_type(nil, _), do: Any
+  defp value_type(:flop_compound, op), do: value_type(:string, op)
+  defp value_type(type, :in), do: {:array, type}
+  defp value_type(type, :not_in), do: {:array, type}
+  defp value_type({:array, type}, :contains), do: type
+  defp value_type({:array, type}, :not_contains), do: type
+  defp value_type(type, _), do: type
 
   @spec validate_filterable(Changeset.t(), module | nil) :: Changeset.t()
   defp validate_filterable(changeset, nil), do: changeset
@@ -150,24 +190,14 @@ defmodule Flop.Filter do
     validate_inclusion(changeset, :field, filterable_fields)
   end
 
-  defp validate_op(changeset, nil), do: changeset
+  defp validate_op(changeset, nil, _), do: changeset
 
-  defp validate_op(%Changeset{valid?: true} = changeset, module)
-       when is_atom(module) do
-    field = Changeset.get_field(changeset, :field)
-    op = Changeset.get_field(changeset, :op)
-    allowed_operators = allowed_operators(module, field)
-
-    if op in allowed_operators do
+  defp validate_op(%Changeset{valid?: true} = changeset, field_type, op) do
+    if op in allowed_operators(field_type) do
       changeset
     else
       add_error(changeset, :op, "is invalid")
     end
-  end
-
-  defp validate_op(%Changeset{valid?: false} = changeset, module)
-       when is_atom(module) do
-    changeset
   end
 
   @doc """
@@ -188,14 +218,18 @@ defmodule Flop.Filter do
   @spec allowed_operators(atom, atom) :: [op]
   def allowed_operators(module, field)
       when is_atom(module) and is_atom(field) do
-    struct = struct!(module)
+    module
+    |> get_field_type(field)
+    |> allowed_operators()
+  end
+
+  defp get_field_type(module, field) do
+    struct = struct(module)
 
     if Flop.Schema.impl_for(struct) != Flop.Schema.Any do
-      module
-      |> field_type_from_flop_schema(struct, field)
-      |> allowed_operators()
+      field_type_from_flop_schema(module, struct, field)
     else
-      :type |> module.__schema__(field) |> allowed_operators()
+      module.__schema__(:type, field)
     end
   end
 
@@ -227,7 +261,7 @@ defmodule Flop.Filter do
       iex> allowed_operators(:integer)
       [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
   """
-  @spec allowed_operators(atom) :: [op]
+  @spec allowed_operators(any) :: [op]
   def allowed_operators(type) when type in [:decimal, :float, :id, :integer] do
     [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
   end
