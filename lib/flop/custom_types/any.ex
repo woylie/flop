@@ -9,19 +9,13 @@ defmodule Flop.CustomTypes.Any do
   # this type into/from a database, and you should not misuse this type for
   # that.
 
-  def type, do: :string
-
   def cast(value), do: {:ok, value}
 
   # coveralls-ignore-start
-  # This type is only used for casting values. The load function will never be
-  # called.
-  def load(value), do: {:ok, value}
-  # coveralls-ignore-end
-
-  def dump(value) when is_number(value), do: {:ok, to_string(value)}
-  def dump(value) when is_binary(value), do: {:ok, value}
-  def dump(value) when is_boolean(value), do: {:ok, to_string(value)}
-  def dump(nil), do: {:ok, ""}
+  # This type is only used for casting values. The load and dump functions will
+  # never be called.
+  def type, do: :string
+  def load(_), do: :error
   def dump(_), do: :error
+  # coveralls-ignore-end
 end

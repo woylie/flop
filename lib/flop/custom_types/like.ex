@@ -5,8 +5,6 @@ defmodule Flop.CustomTypes.Like do
   # Custom ecto type for casting values for (i)like_and/or operators. Attempts
   # to cast the value as either a string or a list of strings.
 
-  def type, do: :string
-
   def cast(value) do
     case Ecto.Type.cast(:string, value) do
       {:ok, cast_value} ->
@@ -23,6 +21,7 @@ defmodule Flop.CustomTypes.Like do
   # coveralls-ignore-start
   # This type is only used for casting values. The load and dump functions will
   # never be called.
+  def type, do: :string
   def load(_), do: :error
   def dump(_), do: :error
   # coveralls-ignore-end
