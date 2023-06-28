@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Filter values are now dynamically cast depending on the field type and
+  operator, instead of allowing any arbitrary filter value. By doing this,
+  invalid filter values will now result in validation errors instead of
+  causing cast errors.
 - `Flop.Cursor.encode/1` now explicitly sets the minor version option for
   `:erlang.term_to_binary/2` to `2`, which is the new default in OTP 26.
 
@@ -12,6 +16,7 @@
 - When the `replace_invalid_params` option was set to `true`, cast errors for
   pagination and sorting parameters were still causing validation errors instead
   of defaulting to valid parameters.
+- Fixed type specification for `Flop.Filter.allowed_operators/1`.
 
 ## [0.20.3] - 2023-06-23
 
