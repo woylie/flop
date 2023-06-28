@@ -261,7 +261,7 @@ defmodule Flop.Filter do
       iex> allowed_operators(:integer)
       [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
   """
-  @spec allowed_operators(atom) :: [op]
+  @spec allowed_operators(any) :: [op]
   def allowed_operators(type) when type in [:decimal, :float, :id, :integer] do
     [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
   end
