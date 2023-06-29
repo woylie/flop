@@ -928,5 +928,58 @@ defmodule Flop.ValidationTest do
       assert {:error, changeset} = validate(params, for: Pet)
       assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
     end
+
+    test "handles empty filter values" do
+      empty_values = [nil, "", " "]
+
+      ops = [
+        :==,
+        :!=,
+        :=~,
+        :empty,
+        :not_empty,
+        :<=,
+        :<,
+        :>=,
+        :>,
+        :like,
+        :not_like,
+        :like_and,
+        :like_or,
+        :ilike,
+        :not_ilike,
+        :ilike_and,
+        :ilike_or
+      ]
+
+      for value <- empty_values, op <- ops do
+        params = %{filters: [%{field: :name, op: op, value: value}]}
+        assert {:ok, %{filters: [%{value: nil}]}} = validate(params, for: Pet)
+      end
+
+      empty_values = [nil, "", " "]
+      ops = [:contains, :not_contains]
+
+      for value <- empty_values, op <- ops do
+        params = %{filters: [%{field: :tags, op: op, value: value}]}
+        assert {:ok, %{filters: [%{value: nil}]}} = validate(params, for: Pet)
+      end
+
+      empty_values = [nil, "", " "]
+      ops = [:in, :not_in]
+
+      for value <- empty_values, op <- ops do
+        params = %{filters: [%{field: :name, op: op, value: value}]}
+        assert {:ok, %{filters: [%{value: nil}]}} = validate(params, for: Pet)
+      end
+
+      empty_values = [[nil], [""], [" "]]
+      ops = [:in, :not_in]
+
+      for value <- empty_values, op <- ops do
+        params = %{filters: [%{field: :name, op: op, value: value}]}
+        assert {:ok, %{filters: [%{value: []}]}} = validate(params, for: Pet)
+      end
+    end
   end
 end

@@ -157,11 +157,22 @@ defmodule Flop.Filter do
 
   defp cast_value(%Changeset{params: params} = changeset, field_type, op) do
     type = value_type(field_type, op)
+    value = filter_empty_values(type, params["value"])
 
-    case Ecto.Type.cast(type, params["value"]) do
+    case Ecto.Type.cast(type, value) do
       {:ok, cast_value} -> put_change(changeset, :value, cast_value)
       _ -> add_error(changeset, :value, "is invalid")
     end
+  end
+
+  defp filter_empty_values({:array, type}, value) when is_list(value) do
+    for v <- value,
+        v when not is_nil(v) <- [filter_empty_values(type, v)],
+        do: v
+  end
+
+  defp filter_empty_values(_type, v) do
+    if is_binary(v) and String.trim_leading(v) == "", do: nil, else: v
   end
 
   defp value_type(_, :empty), do: :boolean
