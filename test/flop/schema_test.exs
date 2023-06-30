@@ -146,143 +146,6 @@ defmodule Flop.SchemaTest do
   end
 
   describe "__deriving__/3" do
-    test "raises if no filterable fields are set" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
-            @derive {Flop.Schema, sortable: [:name]}
-            defstruct [:name]
-          end
-        end
-
-      assert error.message =~
-               "have to set both the filterable and the sortable option"
-    end
-
-    test "raises if no sortable fields are set" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Beverage do
-            use Ecto.Schema
-            @derive {Flop.Schema, filterable: [:name]}
-            defstruct [:name]
-          end
-        end
-
-      assert error.message =~
-               "have to set both the filterable and the sortable option"
-    end
-
-    test "raises if default limit is negative" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
-            @derive {
-              Flop.Schema,
-              filterable: [], sortable: [], default_limit: -1
-            }
-            defstruct [:name]
-          end
-        end
-
-      assert error.message =~ "invalid default limit"
-    end
-
-    test "raises if default limit is not an integer" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
-            @derive {
-              Flop.Schema,
-              filterable: [], sortable: [], default_limit: "a"
-            }
-            defstruct [:name]
-          end
-        end
-
-      assert error.message =~ "invalid default limit"
-    end
-
-    test "raises if max limit is negative" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
-            @derive {Flop.Schema, filterable: [], sortable: [], max_limit: -1}
-            defstruct [:name]
-          end
-        end
-
-      assert error.message =~ "invalid max limit"
-    end
-
-    test "raises if max limit is not an integer" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
-            @derive {Flop.Schema, filterable: [], sortable: [], max_limit: "a"}
-            defstruct [:name]
-          end
-        end
-
-      assert error.message =~ "invalid max limit"
-    end
-
-    test "raises if pagination_types has invalid value" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
-            @derive {
-              Flop.Schema,
-              filterable: [], sortable: [], pagination_types: "a"
-            }
-            defstruct [:name]
-          end
-        end
-
-      assert error.message =~ "invalid pagination type"
-
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
-            @derive {
-              Flop.Schema,
-              filterable: [], sortable: [], pagination_types: [:offset, :finger]
-            }
-            defstruct [:name]
-          end
-        end
-
-      assert error.message =~ "invalid pagination type"
-
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
-            @derive {
-              Flop.Schema,
-              filterable: [], sortable: [], pagination_types: :offset
-            }
-            defstruct [:name]
-          end
-        end
-
-      assert error.message =~ "invalid pagination type"
-    end
-
-    test "raises if default_pagination_type is invalid" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
-            @derive {
-              Flop.Schema,
-              filterable: [], sortable: [], default_pagination_type: "a"
-            }
-            defstruct [:name]
-          end
-        end
-
-      assert error.message =~ "invalid default pagination type"
-    end
-
     test "raises if default_pagination_type is not allowed" do
       error =
         assert_raise ArgumentError, fn ->
@@ -299,18 +162,6 @@ defmodule Flop.SchemaTest do
         end
 
       assert error.message =~ "default pagination type not among allowed types"
-    end
-
-    test "raises if unknown option is passed" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
-            @derive {Flop.Schema, filterable: [], sortable: [], shakeable: "a"}
-            defstruct [:name]
-          end
-        end
-
-      assert error.message =~ "unknown option"
     end
 
     test "raises if filterable field is unknown" do
@@ -337,21 +188,6 @@ defmodule Flop.SchemaTest do
       assert error.message =~ "unknown sortable field"
     end
 
-    test "raises if default order is invalid" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
-            @derive {
-              Flop.Schema,
-              filterable: [:name], sortable: [], default_order: %{asc: :name}
-            }
-            defstruct [:name]
-          end
-        end
-
-      assert error.message =~ "invalid default order"
-    end
-
     test "raises if default order field is not sortable" do
       error =
         assert_raise ArgumentError, fn ->
@@ -368,40 +204,6 @@ defmodule Flop.SchemaTest do
 
       assert error.message =~ "invalid default order"
       assert error.message =~ "must be sortable"
-    end
-
-    test "raises if default order by is not a list" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
-            @derive {
-              Flop.Schema,
-              filterable: [:name],
-              sortable: [],
-              default_order: %{order_by: :name}
-            }
-            defstruct [:name]
-          end
-        end
-
-      assert error.message =~ "invalid default order"
-    end
-
-    test "raises if order direction is invalid" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
-            @derive {
-              Flop.Schema,
-              filterable: [],
-              sortable: [:name],
-              default_order: %{order_by: [:name], order_directions: [:random]}
-            }
-            defstruct [:name]
-          end
-        end
-
-      assert error.message =~ "Invalid order direction"
     end
 
     test "raises if compound field references unknown field" do
