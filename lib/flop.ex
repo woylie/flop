@@ -453,11 +453,7 @@ defmodule Flop do
   @type option ::
           {:cursor_value_func, (any, [atom] -> map)}
           | {:default_limit, pos_integer | false}
-          | {:default_order,
-             %{
-               required(:order_by) => [atom],
-               optional(:order_directions) => [order_direction()]
-             }}
+          | {:default_order, default_order()}
           | {:default_pagination_type, pagination_type() | false}
           | {:filtering, boolean}
           | {:for, module}
@@ -474,6 +470,12 @@ defmodule Flop do
           | private_option()
 
   @typep private_option :: {:backend, module}
+
+  @type default_order ::
+          %{
+            required(:order_by) => [atom],
+            optional(:order_directions) => [order_direction()]
+          }
 
   @typedoc """
   Represents the supported order direction values.
@@ -783,6 +785,9 @@ defmodule Flop do
 
       count(query, %Flop{}, count: 42, for: Pet)
 
+  If you pass both the `:count` and the `:count_query` options, the `:count`
+  option will take precedence.
+
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
   `validate/2` or `validate!/2` before passing them to this function.
@@ -798,8 +803,8 @@ defmodule Flop do
       count
     else
       q =
-        if opts[:count_query] do
-          filter(opts[:count_query], flop, opts)
+        if count_query = opts[:count_query] do
+          filter(count_query, flop, opts)
         else
           q |> filter(flop, opts) |> count_query()
         end
@@ -1044,7 +1049,7 @@ defmodule Flop do
       when is_integer(last) do
     reversed_order =
       fields
-      |> prepare_order(directions)
+      |> prepare_order_fields_and_directions(directions)
       |> reverse_ordering()
 
     case opts[:for] do
@@ -1067,23 +1072,26 @@ defmodule Flop do
       ) do
     case opts[:for] do
       nil ->
-        Query.order_by(q, ^prepare_order(fields, directions))
+        Query.order_by(
+          q,
+          ^prepare_order_fields_and_directions(fields, directions)
+        )
 
       module ->
         struct = struct(module)
 
         fields
-        |> prepare_order(directions)
+        |> prepare_order_fields_and_directions(directions)
         |> Enum.reduce(q, fn expr, acc_q ->
           Flop.Schema.apply_order_by(struct, acc_q, expr)
         end)
     end
   end
 
-  @spec prepare_order([atom], [order_direction()]) :: [
+  @spec prepare_order_fields_and_directions([atom], [order_direction()]) :: [
           {order_direction(), atom}
         ]
-  defp prepare_order(fields, directions) do
+  defp prepare_order_fields_and_directions(fields, directions) do
     directions = directions || []
     field_count = length(fields)
     direction_count = length(directions)
@@ -1168,7 +1176,7 @@ defmodule Flop do
         opts
       )
       when is_integer(first) do
-    orderings = prepare_order(order_by, order_directions)
+    orderings = prepare_order_fields_and_directions(order_by, order_directions)
 
     q
     |> apply_cursor(after_, orderings, opts)
@@ -1191,11 +1199,12 @@ defmodule Flop do
       when is_integer(last) do
     prepared_order_reversed =
       order_by
-      |> prepare_order(order_directions)
+      |> prepare_order_fields_and_directions(order_directions)
       |> reverse_ordering()
 
     q
     |> apply_cursor(before, prepared_order_reversed, opts)
+    # add 1 to limit, so that we know whether there are more items to show
     |> limit(last + 1)
   end
 
@@ -1639,7 +1648,7 @@ defmodule Flop do
 
   def to_previous_offset(%Flop{offset: offset, limit: limit} = flop)
       when is_integer(limit) and is_integer(offset),
-      do: %{flop | offset: max(offset - limit, 0)}
+      do: %{flop | offset: max(0, offset - limit)}
 
   @doc """
   Sets the offset of a Flop struct to the next page depending on the limit.

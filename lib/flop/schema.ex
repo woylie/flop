@@ -10,7 +10,7 @@ defprotocol Flop.Schema do
   ## Usage
 
   To utilize this protocol, derive `Flop.Schema` in your Ecto schema and define
-  the filterable and sortable fields
+  the filterable and sortable fields.
 
       defmodule MyApp.Pet do
         use Ecto.Schema
@@ -27,6 +27,8 @@ defprotocol Flop.Schema do
           field :species, :string
         end
       end
+
+  See `t:option/0` for an overview of all available options.
 
   > #### `@derive Flop.Schema` {: .info}
   >
@@ -475,6 +477,115 @@ defprotocol Flop.Schema do
 
   @fallback_to_any true
 
+  @typedoc """
+  Defines the options that can be passed when deriving the Flop.Schema protocol.
+
+  - `:filterable` (required) - Defines the fields by which you can filter. You
+    can reference fields from the Ecto schema, join fields, compound fields and
+    custom fields here. Alias fields are not supported.
+  - `:sortable` (required) - Defines the fields by which you can sort. You
+    can reference fields from the Ecto schema, join fields, and alias fields
+    here. Custom fields and compound fields are not supported.
+  - `:default_limit` - Defines the default limit to apply if no `limit`,
+    `page_size`, `first` or `last` parameter is set.
+  - `:max_limit` - Defines the maximum limit that can be set via parameters.
+  - `:default_order` - Defines the default order if no order parameters are set.
+  - `:pagination_types` - Defines which pagination types are allowed for this
+    schema.
+  - `:default_pagination_type` - Defines the default pagination type to use if
+    no pagination parameters are set.
+  - `:join_fields` - Defines fields on named bindings.
+  - `:compound_fields` - Defines groups of fields that can be filtered by
+    combined, e.g. a family name plus a given name field.
+  - `:custom_fields` - Defines fields for custom fields for which you define
+    your own filter functions.
+  - `:alias_field` - Defines fields that reference aliases defined with
+    `Ecto.Query.API.selected_as/2`.
+  """
+  @type option ::
+          {:filterable, [atom]}
+          | {:sortable, [atom]}
+          | {:default_limit, integer}
+          | {:max_limit, integer}
+          | {:default_order, Flop.default_order()}
+          | {:pagination_types, [Flop.pagination_type()]}
+          | {:default_pagination_type, Flop.pagination_type()}
+          | {:join_fields, [{atom, [join_field_option()]}]}
+          | {:compound_fields, [{atom, [atom]}]}
+          | {:custom_fields, [{atom, [custom_field_option()]}]}
+          | {:alias_fields, [atom]}
+
+  @typedoc """
+  Defines the options for a join field.
+
+  - `:binding` (required) - Any named binding
+  - `:field` (required)
+  - `:ecto_type` - The Ecto type of the field. The filter operator and value
+    validation is based on this option.
+  - `:path` - This option is used by `Flop.Schema.get_field/2` to retrieve the
+    field value from a row. That function is also used by the default cursor
+    functions in `Flop.Cursor` to determine the cursors. If the option is
+    omitted, it defaults to `[binding, field]`.
+  """
+  @type join_field_option ::
+          {:binding, atom}
+          | {:field, atom}
+          | {:ecto_type, ecto_type()}
+          | {:path, [atom]}
+
+  @typedoc """
+  Defines the options for a custom field.
+
+  - `:filter` (required) - A module/function/options tuple referencing a
+    custom filter function. The function must take the Ecto query, the
+    `Flop.Filter` struct, and the options from the tuple as arguments.
+  - `:ecto_type` - The Ecto type of the field. The filter operator and value
+    validation is based on this option.
+  - `:operators` - Defines which filter operators are allowed for this field.
+    If omitted, all operators will be accepted.
+
+  If both the `:ecto_type` and the `:operators` option are set, the `:operators`
+  option takes precendence and only the filter value validation is based on the
+  `:ecto_type`.
+  """
+  @type custom_field_option ::
+          {:filter, {module, atom, keyword}}
+          | {:ecto_type, ecto_type()}
+          | {:operators, [Flop.Filter.op()]}
+
+  @typedoc """
+  Either an Ecto type, or reference to the type of an existing schema field, or
+  an adhoc Ecto.Enum.
+
+  ## Examples
+
+  You can pass any Ecto type:
+
+  - `:string`
+  - `:integer`
+  - `Ecto.UUID`
+  - `{:parameterized, Ecto.Enum, Ecto.Enum.init(values: [:one, :two])}`
+
+  Or reference a schema field:
+
+  `{:from_schema, MyApp.Pet, :mood}`
+
+  Or build an adhoc Ecto.Enum:
+
+  - `{:enum, [:one, :two]}` (This has the same effect as the `:parameterized`
+    example above.)
+  - `{:enum, [one: 1, two: 2]}`
+
+  Note that if you make an `Ecto.Enum` type this way, the filter value will be
+  cast as an atom. This means the field you filter on also needs to be an
+  `Ecto.Enum`, or a custom type that is able to cast atoms. You cannot use this
+  on a string field.
+  """
+  @type ecto_type ::
+          Ecto.Type.t()
+          | {:from_schema, module, atom}
+          | {:enum, [atom] | keyword}
+
   @doc """
   Returns the field type in a schema.
 
@@ -643,6 +754,8 @@ defprotocol Flop.Schema do
 end
 
 defimpl Flop.Schema, for: Any do
+  alias Flop.NimbleSchemas
+
   @instructions """
   Flop.Schema protocol must always be explicitly implemented.
 
@@ -664,6 +777,7 @@ defimpl Flop.Schema, for: Any do
   """
   # credo:disable-for-next-line
   defmacro __deriving__(module, struct, options) do
+    NimbleOptions.validate!(options, NimbleSchemas.__schema_option__())
     validate_options!(options, struct)
 
     filterable_fields = Keyword.get(options, :filterable)
@@ -757,9 +871,6 @@ defimpl Flop.Schema, for: Any do
   end
 
   defp validate_options!(opts, struct) do
-    if is_nil(opts[:filterable]) || is_nil(opts[:sortable]),
-      do: raise(ArgumentError, @instructions)
-
     compound_fields = get_compound_fields(opts)
     join_fields = get_join_fields(opts)
     schema_fields = get_schema_fields(struct)
@@ -774,17 +885,12 @@ defimpl Flop.Schema, for: Any do
       compound_fields ++ join_fields ++ alias_fields ++ custom_fields
     )
 
-    validate_limit!(opts[:default_limit], "default")
-    validate_limit!(opts[:max_limit], "max")
-    validate_pagination_types!(opts[:pagination_types])
-
     validate_default_pagination_type!(
       opts[:default_pagination_type],
       opts[:pagination_types]
     )
 
     check_legacy_default_order(opts)
-    validate_no_unknown_options!(opts)
     validate_no_unknown_field!(opts[:filterable], all_fields, "filterable")
     validate_no_unknown_field!(opts[:sortable], all_fields, "sortable")
     validate_default_order!(opts[:default_order], opts[:sortable])
@@ -817,55 +923,9 @@ defimpl Flop.Schema, for: Any do
     |> Enum.map(fn {field, _} -> field end)
   end
 
-  defp validate_limit!(nil, _), do: :ok
-  defp validate_limit!(i, _) when is_integer(i) and i > 0, do: :ok
-
-  defp validate_limit!(i, type) do
-    raise ArgumentError, """
-    invalid #{type} limit
-
-    expected non-negative integer, got: #{inspect(i)}
-    """
-  end
-
-  defp validate_pagination_types!(nil), do: :ok
-
-  defp validate_pagination_types!(types) when is_list(types) do
-    valid_types = [:offset, :page, :first, :last]
-    unknown = Enum.uniq(types) -- valid_types
-
-    if unknown != [] do
-      raise ArgumentError,
-            """
-            invalid pagination type
-
-            expected one of #{inspect(valid_types)}, got: #{inspect(unknown)}
-            """
-    end
-  end
-
-  defp validate_pagination_types!(types) do
-    raise ArgumentError, """
-    invalid pagination type
-
-    expected list of atoms, got: #{inspect(types)}
-    """
-  end
-
   defp validate_default_pagination_type!(nil, _), do: :ok
 
   defp validate_default_pagination_type!(default_type, types) do
-    valid_types = [:offset, :page, :first, :last]
-
-    unless default_type in valid_types do
-      raise ArgumentError,
-            """
-            invalid default pagination type
-
-            expected one of #{inspect(valid_types)}, got: #{inspect(default_type)}
-            """
-    end
-
     unless is_nil(types) || default_type in types do
       raise ArgumentError,
             """
@@ -893,28 +953,6 @@ defimpl Flop.Schema, for: Any do
     end
   end
 
-  defp validate_no_unknown_options!(opts) do
-    known_keys = [
-      :alias_fields,
-      :compound_fields,
-      :custom_fields,
-      :default_limit,
-      :default_order,
-      :filterable,
-      :join_fields,
-      :max_limit,
-      :pagination_types,
-      :default_pagination_type,
-      :sortable
-    ]
-
-    unknown_keys = Keyword.keys(opts) -- known_keys
-
-    if unknown_keys != [] do
-      raise ArgumentError, "unknown option(s): #{inspect(unknown_keys)}"
-    end
-  end
-
   defp validate_no_unknown_field!(fields, known_fields, type) do
     unknown_fields = fields -- known_fields
 
@@ -927,20 +965,15 @@ defimpl Flop.Schema, for: Any do
   defp validate_default_order!(nil, _), do: :ok
 
   defp validate_default_order!(%{} = map, sortable_fields) do
-    if Map.keys(map) -- [:order_by, :order_directions] != [] do
-      raise ArgumentError, default_order_error(map)
-    end
-
     order_by = Map.get(map, :order_by, [])
-    order_directions = Map.get(map, :order_directions, [])
+    sortable_fields = MapSet.new(sortable_fields)
 
-    if !is_list(order_by) || !is_list(order_directions) do
-      raise ArgumentError, default_order_error(map)
-    end
+    unsortable_fields =
+      order_by
+      |> MapSet.new()
+      |> MapSet.difference(sortable_fields)
 
-    unsortable_fields = Enum.uniq(order_by) -- sortable_fields
-
-    if unsortable_fields != [] do
+    unless Enum.empty?(unsortable_fields) do
       raise ArgumentError, """
       invalid default order
 
@@ -949,45 +982,6 @@ defimpl Flop.Schema, for: Any do
           #{inspect(unsortable_fields)}
       """
     end
-
-    valid_directions = [
-      :asc,
-      :asc_nulls_first,
-      :asc_nulls_last,
-      :desc,
-      :desc_nulls_first,
-      :desc_nulls_last
-    ]
-
-    invalid_directions = Enum.uniq(order_directions) -- valid_directions
-
-    if invalid_directions != [] do
-      raise ArgumentError, """
-      invalid default order
-
-      Invalid order direction(s):
-
-          #{inspect(invalid_directions)}
-      """
-    end
-  end
-
-  defp validate_default_order!(value, _) do
-    raise ArgumentError, default_order_error(value)
-  end
-
-  defp default_order_error(value) do
-    """
-    invalid default order
-
-    expected a map like this:
-
-        %{order_by: [:some_field], order_directions: [:asc]}
-
-    got:
-
-        #{inspect(value)}
-    """
   end
 
   defp validate_compound_fields!(nil, _), do: :ok
