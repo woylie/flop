@@ -41,7 +41,8 @@ defmodule MyApp.Pet do
     ],
     custom_fields: [
       custom: [
-        filter: {__MODULE__, :test_custom_filter, [some: :options]}
+        filter: {__MODULE__, :test_custom_filter, [some: :options]},
+        operators: [:==]
       ],
       reverse_name: [
         filter: {__MODULE__, :reverse_name_filter, []},

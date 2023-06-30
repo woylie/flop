@@ -823,6 +823,23 @@ defmodule Flop.ValidationTest do
       assert {:ok, %Flop{filters: [%{op: :==}]}} = validate(params)
     end
 
+    test "validates filter operator for custom filter if option is set" do
+      params = %{filters: [%{field: :custom, op: :==, value: "b"}]}
+      assert {:ok, %Flop{filters: [%{op: :==}]}} = validate(params, for: Pet)
+
+      params = %{filters: [%{field: :custom, op: :>, value: "b"}]}
+      assert {:error, changeset} = validate(params, for: Pet)
+      assert errors_on(changeset)[:filters] == [%{op: ["is invalid"]}]
+    end
+
+    test "does not validate operators for custom filter without option" do
+      params = %{filters: [%{field: :reverse_name, op: :==, value: "b"}]}
+      assert {:ok, %Flop{filters: [%{op: :==}]}} = validate(params, for: Pet)
+
+      params = %{filters: [%{field: :reverse_name, op: :>, value: "b"}]}
+      assert {:ok, %Flop{filters: [%{op: :>}]}} = validate(params, for: Pet)
+    end
+
     test "does not cast filters if filtering is disabled" do
       params = %{filters: [%{field: "a", op: :==, value: "b"}]}
       assert {:ok, %Flop{filters: []}} = validate(params, filtering: false)

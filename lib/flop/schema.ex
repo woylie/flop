@@ -509,7 +509,8 @@ defprotocol Flop.Schema do
         :custom,
         %{
           filter: {MyApp.Pet, :reverse_name_filter, []},
-          ecto_type: :string
+          ecto_type: :string,
+          operators: nil
         }
       }
   """
@@ -1094,7 +1095,8 @@ defimpl Flop.Schema, for: Any do
   def normalize_custom_opts({name, opts}) when is_list(opts) do
     opts = %{
       filter: Keyword.fetch!(opts, :filter),
-      ecto_type: Keyword.get(opts, :ecto_type)
+      ecto_type: Keyword.get(opts, :ecto_type),
+      operators: Keyword.get(opts, :operators)
     }
 
     {name, opts}
