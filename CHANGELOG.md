@@ -9,6 +9,11 @@
   references: `{:from_schema, MySchema, :some_field}`.
 - The `ecto_type` option now supports a convenient syntax for adhoc enums:
   `{:enum, [:one, :two]}`.
+- The documentation was improved by adding the type definitions
+  `t:Flop.Schema.option/0`, `t:Flop.Schema.join_field_option/0`,
+  `t:Flop.Schema.custom_field_option/0` and `t:Flop.Schema.ecto_type/0`. These
+  types describe the options that you can pass when deriving the `Flop.Schema`
+  protocol.
 
 ### Changed
 
@@ -16,6 +21,8 @@
   field type and operator, instead of allowing any arbitrary filter value. By
   doing this, invalid filter values will now result in validation errors instead
   of causing cast errors.
+- The options for deriving the `Flop.Schema` protocol are now stricter validated
+  with `NimbleOptions`.
 - `Flop.Cursor.encode/1` now explicitly sets the minor version option for
   `:erlang.term_to_binary/2` to `2`, which is the new default in OTP 26.
 
