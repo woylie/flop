@@ -11,6 +11,7 @@ defmodule Flop.Repo.Migrations.CreatePetsInSecondSchema do
       add :name, :string
       add :owner_id, :integer
       add :species, :string
+      add :mood, :string
       add :tags, {:array, :string}
     end
   end

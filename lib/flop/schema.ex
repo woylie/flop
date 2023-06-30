@@ -473,6 +473,7 @@ defprotocol Flop.Schema do
       [
         :age,
         :full_name,
+        :mood,
         :name,
         :owner_age,
         :owner_name,

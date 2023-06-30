@@ -156,7 +156,7 @@ defmodule Flop.Filter do
   end
 
   defp cast_value(%Changeset{params: params} = changeset, field_type, op) do
-    type = value_type(field_type, op)
+    type = field_type |> value_type(op) |> expand_type()
     value = filter_empty_values(type, params["value"])
 
     case Ecto.Type.cast(type, value) do
@@ -188,6 +188,16 @@ defmodule Flop.Filter do
   defp value_type({:array, type}, :contains), do: type
   defp value_type({:array, type}, :not_contains), do: type
   defp value_type(type, _), do: type
+
+  defp expand_type({:enum, values}) do
+    {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)}
+  end
+
+  defp expand_type({:from_schema, module, field}) do
+    module.__schema__(:type, field)
+  end
+
+  defp expand_type(type), do: type
 
   @spec validate_filterable(Changeset.t(), module | nil) :: Changeset.t()
   defp validate_filterable(changeset, nil), do: changeset

@@ -12,6 +12,7 @@ defmodule MyApp.Pet do
     filterable: [
       :age,
       :full_name,
+      :mood,
       :name,
       :owner_age,
       :owner_name,
@@ -55,6 +56,7 @@ defmodule MyApp.Pet do
     field :given_name, :string
     field :name, :string
     field :species, :string
+    field :mood, Ecto.Enum, values: [:happy, :relaxed, :playful]
     field :tags, {:array, :string}, default: []
 
     belongs_to :owner, Owner
