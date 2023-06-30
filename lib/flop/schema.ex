@@ -466,8 +466,11 @@ defprotocol Flop.Schema do
 
   - `ecto_type: {:from_schema, MyApp.Pet, :mood}`
 
-  Remember, specifying Ecto types correctly helps ensure your filters work as
-  intended and helps prevent errors during the query execution process.
+  Note that `Flop.Phoenix` encodes all filters in query string using
+  `Plug.Conn.Query`. It is expected that filter values can be converted to
+  strings with `to_string/1`. If you are using an Ecto custom type that casts
+  as a struct, you will need to implement the `String.Chars` protocol for that
+  struct.
   """
 
   @fallback_to_any true

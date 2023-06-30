@@ -38,6 +38,11 @@ The dynamic casting of filter values might have some effects on your code:
   atom, you will get an error. You will need to properly reference the schema
   field (`{:from_schema, MySchema, :some_field}`) or pass the Enum values
   directly (`{:enum, [:one, :two}`).
+- In order for `Flop.Phoenix` to build a query string for filter parameters,
+  the filter value needs to be able to be converted into a string with
+  `to_string/1`. If you set `ecto_type` to a custom Ecto type that casts values
+  as a struct, you will need to implement the `String.Chars` protocol for that
+  struct.
 
 Please review the new "Ecto type option" section in the `Flop.Schema` module
 documentation.
