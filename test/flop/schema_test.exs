@@ -484,7 +484,11 @@ defmodule Flop.SchemaTest do
               filterable: [],
               sortable: [],
               compound_fields: [name: [:name, :nickname]],
-              custom_fields: [name: {__MODULE__, :some_function, []}]
+              custom_fields: [
+                name: [
+                  filter: {__MODULE__, :some_function, []}
+                ]
+              ]
             }
             defstruct [:id]
           end
@@ -502,7 +506,11 @@ defmodule Flop.SchemaTest do
               filterable: [],
               sortable: [],
               join_fields: [owner_name: {:owner, :name}],
-              custom_fields: [owner_name: {__MODULE__, :some_function, []}]
+              custom_fields: [
+                owner_name: [
+                  filter: {__MODULE__, :some_function, []}
+                ]
+              ]
             }
             defstruct [:id]
           end
@@ -520,7 +528,11 @@ defmodule Flop.SchemaTest do
               filterable: [],
               sortable: [],
               alias_fields: [:name],
-              custom_fields: [name: {__MODULE__, :some_function, []}]
+              custom_fields: [
+                name: [
+                  filter: {__MODULE__, :some_function, []}
+                ]
+              ]
             }
             defstruct [:id]
           end
@@ -563,7 +575,9 @@ defmodule Flop.SchemaTest do
             Flop.Schema,
             filterable: [],
             sortable: [:inserted_at],
-            custom_fields: [inserted_at: {__MODULE__, :some_function, []}]
+            custom_fields: [
+              inserted_at: [filter: {__MODULE__, :some_function, []}]
+            ]
           }
           defstruct [:id, :inserted_at]
         end
