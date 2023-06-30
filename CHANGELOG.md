@@ -2,16 +2,20 @@
 
 ## Unreleased
 
+### Added
+
+- New option `operators` to limit the accepted operators for a custom field.
+- The `ecto_type` option on join and custom fields now supports
+  references: `{:from_schema, MySchema, :some_field}`.
+- The `ecto_type` option now supports a convenient syntax for adhoc enums:
+  `{:enum, [:one, :two]}`.
+
 ### Changed
 
 - **Breaking change:** Filter values are now dynamically cast depending on the
   field type and operator, instead of allowing any arbitrary filter value. By
   doing this, invalid filter values will now result in validation errors instead
   of causing cast errors.
-- The `ecto_type` option on join and custom fields now supports
-  references: `{:from_schema, MySchema, :some_field}`.
-- The `ecto_type` option now supports a convenient syntax for adhoc enums:
-  `{:enum, [:one, :two]}`.
 - `Flop.Cursor.encode/1` now explicitly sets the minor version option for
   `:erlang.term_to_binary/2` to `2`, which is the new default in OTP 26.
 
