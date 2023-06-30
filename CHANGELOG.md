@@ -4,12 +4,43 @@
 
 ### Changed
 
-- Filter values are now dynamically cast depending on the field type and
-  operator, instead of allowing any arbitrary filter value. By doing this,
-  invalid filter values will now result in validation errors instead of
-  causing cast errors.
+- **Breaking change:** Filter values are now dynamically cast depending on the
+  field type and operator, instead of allowing any arbitrary filter value. By
+  doing this, invalid filter values will now result in validation errors instead
+  of causing cast errors.
+- The `ecto_type` option on join and custom fields now supports
+  references: `{:from_schema, MySchema, :some_field}`.
+- The `ecto_type` option now supports a convenient syntax for adhoc enums:
+  `{:enum, [:one, :two]}`.
 - `Flop.Cursor.encode/1` now explicitly sets the minor version option for
   `:erlang.term_to_binary/2` to `2`, which is the new default in OTP 26.
+
+### Upgrade notes
+
+The dynamic casting of filter values might have some effects on your code:
+
+- Filter values that cannot be cast according the determined type will now
+  result in a validation error, or the removal of the invalid filter if the
+  `replace_invalid_params` option is enabled.
+- The `value` field of the `Flop.Filter` struct will now hold the cast value,
+  instead of the original value from the parameters. For example, if you are
+  handling parameters generated with an HTML form with Flop, previously all
+  filter values would be reflected as strings in the struct, but now they may
+  be integers, `DateTime` structs, etc. Look out for this if you are
+  reading or manipulating `Flop.Filter` structs directly.
+- For join and custom fields, the type is determined with the `ecto_type`
+  option. Before, this option was only used for operator validation. Make sure
+  that the correct Ecto type is set. If the option is omitted, the filter values
+  will still be used in the format they come in.
+- Related to the last point, if you have filters on `Ecto.Enum` fields, you
+  could previously get away with setting `ecto_type` to `string`. This would
+  still work if you pass the filter value as a string, but if you pass it as an
+  atom, you will get an error. You will need to properly reference the schema
+  field (`{:from_schema, MySchema, :some_field}`) or pass the Enum values
+  directly (`{:enum, [:one, :two}`).
+
+Please review the new "Ecto type option" section in the `Flop.Schema` module
+documentation.
 
 ### Fixed
 

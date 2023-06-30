@@ -18,6 +18,7 @@ defmodule Flop.Repo.Migrations.CreateTestTables do
       add :name, :string
       add :owner_id, references(:owners)
       add :species, :string
+      add :mood, :string
       add :tags, {:array, :string}
     end
 

@@ -26,6 +26,12 @@ defmodule Flop.ValidationTest do
     |> apply_action(:insert)
   end
 
+  defp validate!(params, opts) do
+    params
+    |> Validation.changeset(opts)
+    |> apply_action!(:insert)
+  end
+
   property "only allows one pagination method" do
     pagination_types = [:offset, :page, :first, :last]
 
@@ -980,6 +986,42 @@ defmodule Flop.ValidationTest do
         params = %{filters: [%{field: :name, op: op, value: value}]}
         assert {:ok, %{filters: [%{value: []}]}} = validate(params, for: Pet)
       end
+    end
+
+    test "casts filter values as ecto enums with special syntax" do
+      field = :pet_mood_as_enum
+
+      params = %{filters: [%{field: field, op: :==, value: "happy"}]}
+      assert %{filters: [%{value: :happy}]} = validate!(params, for: Owner)
+
+      params = %{filters: [%{field: field, op: :==, value: :happy}]}
+      assert %{filters: [%{value: :happy}]} = validate!(params, for: Owner)
+
+      params = %{filters: [%{field: field, op: :==, value: "joyful"}]}
+      assert {:error, changeset} = validate(params, for: Owner)
+      assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+
+      params = %{filters: [%{field: field, op: :==, value: :joyful}]}
+      assert {:error, changeset} = validate(params, for: Owner)
+      assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+    end
+
+    test "casts filter values as ecto enums when referencing other schema" do
+      field = :pet_mood_as_reference
+
+      params = %{filters: [%{field: field, op: :==, value: "happy"}]}
+      assert %{filters: [%{value: :happy}]} = validate!(params, for: Owner)
+
+      params = %{filters: [%{field: field, op: :==, value: :happy}]}
+      assert %{filters: [%{value: :happy}]} = validate!(params, for: Owner)
+
+      params = %{filters: [%{field: field, op: :==, value: "joyful"}]}
+      assert {:error, changeset} = validate(params, for: Owner)
+      assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+
+      params = %{filters: [%{field: field, op: :==, value: :joyful}]}
+      assert {:error, changeset} = validate(params, for: Owner)
+      assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
     end
   end
 end
