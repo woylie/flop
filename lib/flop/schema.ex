@@ -1,11 +1,16 @@
 defprotocol Flop.Schema do
   @moduledoc """
-  This protocol allows you to set query options in your Ecto schemas.
+  Flop.Schema is a protocol that allows you to customize and set query options
+  in your Ecto schemas.
+
+  This module allows you to define which fields are filterable and sortable, set
+  default and maximum limits, specify default sort orders, restrict pagination
+  types, and more.
 
   ## Usage
 
-  Derive `Flop.Schema` in your Ecto schema and set the filterable and sortable
-  fields.
+  To utilize this protocol, derive `Flop.Schema` in your Ecto schema and define
+  the filterable and sortable fields
 
       defmodule MyApp.Pet do
         use Ecto.Schema
@@ -57,9 +62,9 @@ defprotocol Flop.Schema do
 
   ## Default and maximum limits
 
-  To define a default or maximum limit, you can set the `default_limit` and
-  `max_limit` option when deriving `Flop.Schema`. The maximum limit will be
-  validated and the default limit applied by `Flop.validate/1`.
+  Define a default or maximum limit by setting the `default_limit` and
+  `max_limit` options while deriving Flop.Schema. `Flop.validate/1` will apply
+  the default limit and validate the maximum limit.
 
       @derive {
         Flop.Schema,
@@ -71,10 +76,10 @@ defprotocol Flop.Schema do
 
   ## Default sort order
 
-  To define a default sort order, you can set the `default_order_by` and
-  `default_order_directions` options when deriving `Flop.Schema`. The default
-  values are applied by `Flop.validate/1`. If no order directions are set,
-  `:asc` is assumed for all fields.
+  Specify a default sort order by setting the `default_order_by` and
+  `default_order_directions` options when deriving Flop.Schema. The default
+  values will be applied by `Flop.validate/1`. If no order directions are set,
+  `:asc` is the default for all fields.
 
       @derive {
         Flop.Schema,
@@ -89,9 +94,8 @@ defprotocol Flop.Schema do
   ## Restricting pagination types
 
   By default, `page`/`page_size`, `offset`/`limit` and cursor-based pagination
-  (`first`/`after` and `last`/`before`) are enabled. If you want to restrict the
-  pagination type for a schema, you can do that by setting the
-  `pagination_types` option.
+  (`first`/`after` and `last`/`before`) are enabled. If you wish to restrict the
+  pagination type for a schema, you can set the `pagination_types` option.
 
       @derive {
         Flop.Schema,
@@ -246,23 +250,6 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [:pet_species],
         sortable: [:pet_species],
-        join_fields: [pet_species: [binding: :pets, field: :species]]
-      }
-
-  In this case, `:pet_species` would be the alias of the field that you can
-  refer to in the filter and order parameters. The `:binding` option refers to
-  the named binding you set with the `:as` option in the join statement of your
-  query. `:field` is the field name on that binding.
-
-  You can also set the `ecto_type` option, which allows Flop to determine which
-  filter operators can be used on the field during the validation. This is also
-  important if the field is a map or array field, so that Flop can check for
-  empty arrays and empty maps when a `empty` or `not_empty` filter is used.
-
-      @derive {
-        Flop.Schema,
-        filterable: [:pet_species],
-        sortable: [:pet_species],
         join_fields: [
           pet_species: [
             binding: :pets,
@@ -272,8 +259,18 @@ defprotocol Flop.Schema do
         ]
       }
 
-  There is also a short syntax which you can use if you only want to specify
-  the binding and the field:
+  In this case, `:pet_species` would be the alias of the field that you can
+  refer to in the filter and order parameters. The options are:
+
+  - `:binding` - The named binding you set with the `:as` option in the join
+    statement of your query.
+  - `:field` - The field on that binding on which the filter should be applied.
+  - `:ecto_type` - The Ecto type of the field. This allows Flop to validate
+    filter values, and also to treat empty arrays and empty maps as empty values
+    depending on the type. See also `Ecto type option` section below.
+
+  There is a short syntax which you can use if you only want to specify the
+  binding and the field:
 
       @derive {
         Flop.Schema,
@@ -281,6 +278,8 @@ defprotocol Flop.Schema do
         sortable: [:pet_species],
         join_fields: [pet_species: {:pets, :species}]
       }
+
+  This syntax is not recommended anymore and should be viewed as deprecated.
 
   In order to retrieve the pagination cursor value for a join field, Flop needs
   to know how to get the field value from the struct that is returned from the
@@ -415,6 +414,60 @@ defprotocol Flop.Schema do
 
       Flop.validate_and_run(MyApp.Pet, params, for: MyApp.Pet, extra_opts: [timezone: timezone])
 
+  ## Ecto type option
+
+  Flop automatically retrieves the field type from the schema module for regular
+  schema fields, enabling it to correctly cast filter values. Compound fields
+  are always treated as string fields.
+
+  For join and custom fields, Flop cannot automatically determine the Ecto type.
+  Therefore, you need to specify the `ecto_type` option. This helps Flop cast
+  filter values for join and custom fields properly. If this option is not set,
+  Flop will accept any filter value, potentially leading to an
+  `Ecto.Query.CastError` if an invalid filter value is used. Additionally,
+  without this option, Flop cannot identify empty lists and maps as empty values
+  for array and map fields.
+
+      @derive {
+        Flop.Schema,
+        filterable: [:full_text, :pet_species],
+        sortable: [:id],
+        join_fields: [
+          pet_species: [
+            binding: :pets,
+            field: :species,
+            ecto_type: :string
+          ],
+          full_text: [
+            filter: {__MODULE__, :full_text_filter, []},
+            ecto_type: :string
+          ]
+        ]
+      }
+
+  You can specify any Ecto type with the `ecto_type` option. Here are some
+  examples:
+
+  - A simple string: `ecto_type: :string`
+  - An integer: `ecto_type: :integer`
+  - An array of strings: `ecto_type: {:array, :string}`
+  - A custom Ecto type: `ecto_type: MyCustomType`
+
+  For parameterized types, use the following syntax:
+
+  - `ecto_type: {:parameterized, Ecto.Enum, Ecto.Enum.init(values: [:one, :two])}`
+
+  If you're working with `Ecto.Enum` types, you can use a more convenient
+  syntax:
+
+  - `ecto_type: {:enum, [:one, :two]}`
+
+  Furthermore, you can reference a type from another schema:
+
+  - `ecto_type: {:from_schema, MyApp.Pet, :mood}`
+
+  Remember, specifying Ecto types correctly helps ensure your filters work as
+  intended and helps prevent errors during the query execution process.
   """
 
   @fallback_to_any true
