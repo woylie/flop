@@ -183,6 +183,10 @@ defmodule Flop.Filter do
   defp value_type(_, :like_or), do: Like
   defp value_type(nil, _), do: Any
   defp value_type(:flop_compound, op), do: value_type(:string, op)
+
+  defp value_type({:flop_custom, %{ecto_type: type}}, op),
+    do: value_type(type, op)
+
   defp value_type(type, :in), do: {:array, type}
   defp value_type(type, :not_in), do: {:array, type}
   defp value_type({:array, type}, :contains), do: type
@@ -262,8 +266,8 @@ defmodule Flop.Filter do
       {:join, %{ecto_type: type}} ->
         type
 
-      {:custom, %{ecto_type: type}} ->
-        type
+      {:custom, opts} ->
+        {:flop_custom, opts}
 
       {:compound, _} ->
         :flop_compound
@@ -382,6 +386,14 @@ defmodule Flop.Filter do
       :empty,
       :not_empty
     ]
+  end
+
+  def allowed_operators({:flop_custom, %{operators: ops}}) when is_list(ops) do
+    ops
+  end
+
+  def allowed_operators({:flop_custom, %{ecto_type: type}}) do
+    allowed_operators(type)
   end
 
   def allowed_operators(_) do

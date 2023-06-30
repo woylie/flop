@@ -119,9 +119,8 @@ defmodule Flop.FilterTest do
                Filter.allowed_operators(:string)
     end
 
-    test "returns a list of operators for a custom field without ecto_type" do
-      assert Filter.allowed_operators(Pet, :custom) ==
-               Filter.allowed_operators(:unknown)
+    test "returns a list of operators for a custom field with operators" do
+      assert Filter.allowed_operators(Pet, :custom) == [:==]
     end
 
     test "returns a list of operators for a compound field" do

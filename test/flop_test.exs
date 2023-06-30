@@ -671,7 +671,7 @@ defmodule FlopTest do
                query_pets_with_owners(
                  %{
                    filters: [
-                     %{field: :custom, op: :>=, value: "some_other_value"}
+                     %{field: :custom, op: :==, value: "some_other_value"}
                    ]
                  },
                  extra_opts: [other: :options]
@@ -682,7 +682,7 @@ defmodule FlopTest do
           assert filter ==
                    {%Flop.Filter{
                       field: :custom,
-                      op: :>=,
+                      op: :==,
                       value: "some_other_value"
                     }, [other: :options, some: :options]}
       end
