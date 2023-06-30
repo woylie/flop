@@ -453,11 +453,7 @@ defmodule Flop do
   @type option ::
           {:cursor_value_func, (any, [atom] -> map)}
           | {:default_limit, pos_integer | false}
-          | {:default_order,
-             %{
-               required(:order_by) => [atom],
-               optional(:order_directions) => [order_direction()]
-             }}
+          | {:default_order, default_order()}
           | {:default_pagination_type, pagination_type() | false}
           | {:filtering, boolean}
           | {:for, module}
@@ -474,6 +470,12 @@ defmodule Flop do
           | private_option()
 
   @typep private_option :: {:backend, module}
+
+  @type default_order ::
+          %{
+            required(:order_by) => [atom],
+            optional(:order_directions) => [order_direction()]
+          }
 
   @typedoc """
   Represents the supported order direction values.

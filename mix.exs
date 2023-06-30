@@ -61,6 +61,7 @@ defmodule Flop.MixProject do
       {:ex_doc, "~> 0.21", only: :dev, runtime: false},
       {:ex_machina, "~> 2.4", only: :test},
       {:excoveralls, "~> 0.10", only: :test},
+      {:nimble_options, "~> 1.0.0"},
       {:postgrex, ">= 0.0.0", only: :test},
       {:stream_data, "~> 0.5", only: [:dev, :test]}
     ]
