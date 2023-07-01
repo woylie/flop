@@ -67,7 +67,8 @@ defmodule Flop.SchemaTest do
               %{
                 filter: {Panini, :date_filter, [some: "option"]},
                 ecto_type: :date,
-                operators: nil
+                operators: nil,
+                bindings: []
               }}
   end
 

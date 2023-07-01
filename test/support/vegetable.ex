@@ -5,14 +5,20 @@ defmodule MyApp.Vegetable do
   use Ecto.Schema
 
   @derive {Flop.Schema,
-           filterable: [:name, :family],
+           filterable: [:name, :family, :with_bindings],
            sortable: [:name],
            default_limit: 60,
            default_order: %{
              order_by: [:name],
              order_directions: [:asc]
            },
-           pagination_types: [:page]}
+           pagination_types: [:page],
+           custom_fields: [
+             with_bindings: [
+               filter: {__MODULE__, :custom_filter, []},
+               bindings: [:curious]
+             ]
+           ]}
 
   schema "vegetables" do
     field :name, :string
