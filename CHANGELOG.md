@@ -41,9 +41,9 @@
 
 ### Fixed
 
-- Resolved an issue where setting `replace_invalid_params` to true still caused
-  validation errors for pagination and sorting parameters due to cast errors,
-  instead of defaulting to valid parameters.
+- Resolved an issue where setting `replace_invalid_params` to `true` still
+  caused validation errors for pagination and sorting parameters due to cast
+  errors, instead of defaulting to valid parameters.
 - Fixed the type specification for `Flop.Filter.allowed_operators/1`.
 
 ### Upgrade notes
