@@ -56,7 +56,9 @@ The dynamic casting of filter values might have some effects on your code:
 - For join and custom fields, the type is determined with the `ecto_type`
   option. Before, this option was only used for operator validation. Make sure
   that the correct Ecto type is set. If the option is omitted, the filter values
-  will still be used in the format they come in.
+  will still be used in the format they come in. If you manually cast filter
+  values in a custom filter function, you don't need to do that anymore if the
+  `ecto_type` option is set.
 - Related to the last point, if you have filters on `Ecto.Enum` fields, you
   could previously get away with setting `ecto_type` to `string`. This would
   still work if you pass the filter value as a string, but if you pass it as an
