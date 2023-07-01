@@ -2510,6 +2510,9 @@ defmodule Flop do
       ...> )
       [:owner]
 
+  For custom fields, you can set the `:bindings` option when you derive the
+  `Flop.Schema` protocol.
+
   You can use this to dynamically build the join clauses needed for the query.
   See also `Flop.with_named_bindings/4`.
 
@@ -2557,6 +2560,7 @@ defmodule Flop do
   end
 
   defp get_binding(_, {:join, %{binding: binding}}), do: binding
+  defp get_binding(_, {:custom, %{bindings: bindings}}), do: bindings
 
   defp get_binding(schema_struct, {:compound, fields}) do
     Enum.map(fields, &get_binding(schema_struct, &1))

@@ -96,6 +96,7 @@ defmodule Flop.NimbleSchemas do
               required: true
             ],
             ecto_type: [type: :any],
+            bindings: [type: {:list, :atom}],
             operators: [type: {:list, :atom}]
           ]
         ]

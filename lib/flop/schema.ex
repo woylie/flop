@@ -529,6 +529,10 @@ defprotocol Flop.Schema do
     `Flop.Filter` struct, and the options from the tuple as arguments.
   - `:ecto_type` - The Ecto type of the field. The filter operator and value
     validation is based on this option.
+  - `:bindings` - If the custom filter function requires certain named bindings
+    to be present in the Ecto query, you can specify them here. These bindings
+    will be conditionally added by `Flop.with_named_bindings/4` if the filter
+    is used.
   - `:operators` - Defines which filter operators are allowed for this field.
     If omitted, all operators will be accepted.
 
@@ -539,6 +543,7 @@ defprotocol Flop.Schema do
   @type custom_field_option ::
           {:filter, {module, atom, keyword}}
           | {:ecto_type, ecto_type()}
+          | {:bindings, [atom]}
           | {:operators, [Flop.Filter.op()]}
 
   @typedoc """
@@ -609,7 +614,8 @@ defprotocol Flop.Schema do
         %{
           filter: {MyApp.Pet, :reverse_name_filter, []},
           ecto_type: :string,
-          operators: nil
+          operators: nil,
+          bindings: []
         }
       }
   """
@@ -1087,7 +1093,8 @@ defimpl Flop.Schema, for: Any do
     opts = %{
       filter: Keyword.fetch!(opts, :filter),
       ecto_type: Keyword.get(opts, :ecto_type),
-      operators: Keyword.get(opts, :operators)
+      operators: Keyword.get(opts, :operators),
+      bindings: Keyword.get(opts, :bindings, [])
     }
 
     {name, opts}

@@ -18,6 +18,7 @@ defmodule FlopTest do
   alias MyApp.Fruit
   alias MyApp.Owner
   alias MyApp.Pet
+  alias MyApp.Vegetable
 
   @pet_count_range 1..200
 
@@ -1844,6 +1845,16 @@ defmodule FlopTest do
       }
 
       assert Flop.named_bindings(flop, Pet) == [:owner]
+    end
+
+    test "returns used binding names with custom filter using bindings opt" do
+      flop = %Flop{
+        filters: [
+          %Flop.Filter{field: :with_bindings, op: :==, value: 5}
+        ]
+      }
+
+      assert Flop.named_bindings(flop, Vegetable) == [:curious]
     end
 
     test "returns empty list if no join fields are used" do
