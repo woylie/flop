@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.21.0] - 2023-07-02
+
 ### Added
 
 - New option `operators` to limit the accepted operators for a custom field.
