@@ -1,6 +1,34 @@
 defmodule Flop.NimbleSchemas do
   @moduledoc false
 
+  @backend_option [
+    cursor_value_func: [type: {:fun, 2}],
+    default_limit: [type: :integer, default: 50],
+    max_limit: [type: :integer, default: 1000],
+    default_pagination_type: [
+      type: {:in, [:offset, :page, :first, :last]},
+      default: :offset
+    ],
+    filtering: [
+      type: :boolean,
+      default: true
+    ],
+    ordering: [
+      type: :boolean,
+      default: true
+    ],
+    pagination: [
+      type: :boolean,
+      default: true
+    ],
+    pagination_types: [
+      type: {:list, {:in, [:offset, :page, :first, :last]}},
+      default: [:offset, :page, :first, :last]
+    ],
+    repo: [],
+    query_opts: [type: :keyword_list]
+  ]
+
   @schema_option [
     filterable: [type: {:list, :atom}, required: true],
     sortable: [type: {:list, :atom}, required: true],
@@ -78,8 +106,9 @@ defmodule Flop.NimbleSchemas do
     ]
   ]
 
+  @backend_option NimbleOptions.new!(@backend_option)
   @schema_option NimbleOptions.new!(@schema_option)
 
-  @doc false
+  def __backend_option__, do: @backend_option
   def __schema_option__, do: @schema_option
 end
