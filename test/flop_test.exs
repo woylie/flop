@@ -1119,7 +1119,12 @@ defmodule FlopTest do
             remaining_pets,
             {[first_pet], cursor},
             fn _current_pet, {pet_list, cursor} ->
-              assert {:ok, {[returned_pet], %Meta{end_cursor: new_cursor}}} =
+              assert {:ok,
+                      {[returned_pet],
+                       %Meta{
+                         end_cursor: new_cursor,
+                         flop: %Flop{decoded_cursor: nil}
+                       }}} =
                        Flop.validate_and_run(
                          pets_with_owners_query(),
                          %Flop{

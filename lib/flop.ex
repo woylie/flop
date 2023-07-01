@@ -494,6 +494,8 @@ defmodule Flop do
     default limit.
   - `before`: Used for cursor-based pagination. Must be used with `last` or a
     default limit.
+  - `decoded_cursor`: Used internally to hold on to the decoded cursor between
+    validation and query execution. Value is discarded when meta is built.
   - `limit`, `offset`: Used for offset-based pagination.
   - `first` Used for cursor-based pagination. Can be used alone to begin
     pagination or with `after`
@@ -510,6 +512,7 @@ defmodule Flop do
   @type t :: %__MODULE__{
           after: String.t() | nil,
           before: String.t() | nil,
+          decoded_cursor: map | nil,
           filters: [Filter.t()] | nil,
           first: pos_integer | nil,
           last: pos_integer | nil,
@@ -543,6 +546,7 @@ defmodule Flop do
 
     field :page, :integer
     field :page_size, :integer
+    field :decoded_cursor, :map
 
     embeds_many :filters, Filter
   end
@@ -879,7 +883,7 @@ defmodule Flop do
 
     %Meta{
       backend: opts[:backend],
-      flop: flop,
+      flop: %{flop | decoded_cursor: nil},
       start_cursor: start_cursor,
       end_cursor: end_cursor,
       has_next_page?: length(results) > first,
@@ -909,7 +913,7 @@ defmodule Flop do
 
     %Meta{
       backend: opts[:backend],
-      flop: flop,
+      flop: %{flop | decoded_cursor: nil},
       start_cursor: start_cursor,
       end_cursor: end_cursor,
       has_next_page?: !is_nil(flop.before),
@@ -946,7 +950,7 @@ defmodule Flop do
       backend: opts[:backend],
       current_offset: current_offset,
       current_page: current_page,
-      flop: flop,
+      flop: %{flop | decoded_cursor: nil},
       has_next_page?: has_next_page?,
       has_previous_page?: has_previous_page?,
       next_offset: next_offset,
@@ -1154,6 +1158,7 @@ defmodule Flop do
         %Flop{
           first: first,
           after: after_,
+          decoded_cursor: decoded_cursor,
           order_by: order_by,
           order_directions: order_directions,
           before: nil,
@@ -1166,7 +1171,7 @@ defmodule Flop do
     orderings = prepare_order_fields_and_directions(order_by, order_directions)
 
     q
-    |> apply_cursor(after_, orderings, opts)
+    |> apply_cursor(after_, decoded_cursor, orderings, opts)
     |> limit(first + 1)
   end
 
@@ -1175,6 +1180,7 @@ defmodule Flop do
         %Flop{
           last: last,
           before: before,
+          decoded_cursor: decoded_cursor,
           order_by: order_by,
           order_directions: order_directions,
           first: nil,
@@ -1190,7 +1196,7 @@ defmodule Flop do
       |> reverse_ordering()
 
     q
-    |> apply_cursor(before, prepared_order_reversed, opts)
+    |> apply_cursor(before, decoded_cursor, prepared_order_reversed, opts)
     # add 1 to limit, so that we know whether there are more items to show
     |> limit(last + 1)
   end
@@ -1211,14 +1217,15 @@ defmodule Flop do
 
   @spec apply_cursor(
           Queryable.t(),
-          map() | nil,
+          String.t() | nil,
+          map | nil,
           [order_direction()],
           keyword
         ) :: Queryable.t()
-  defp apply_cursor(q, nil, _, _), do: q
+  defp apply_cursor(q, nil, _, _, _), do: q
 
-  defp apply_cursor(q, cursor, ordering, opts) do
-    cursor = Cursor.decode!(cursor)
+  defp apply_cursor(q, cursor, decoded_cursor, ordering, opts) do
+    cursor = decoded_cursor || Cursor.decode!(cursor)
 
     where_dynamic =
       case opts[:for] do
