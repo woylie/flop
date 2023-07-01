@@ -348,16 +348,24 @@ defprotocol Flop.Schema do
 
   ## Custom fields
 
-  If you need more control over the queries produced by the filters, you can
-  define custom fields that reference a function which implements the filter
-  logic. Custom field filters are referenced by
-  `{mod :: module, function :: atom, opts :: keyword}`. The function will
-  receive the Ecto query, the flop filter, and the option keyword list.
+  Custom fields allow for precise control over filter queries, making it
+  possible to implement filter logic that the built-in filtering options cannot
+  satisfy.
 
-  If you need to pass in options at runtime (e.g. the timezone of the request,
-  the user ID of the current user etc.), you can do so by passing in the
-  `extra_opts` option to the flop functions. Currently, custom fields only
-  support filtering and can not be used for sorting.
+  For example, you might need to handle dates and times in a particular way that
+  takes into account different time zones, or perform database-specific queries
+  using fragments.
+
+  Custom field filters are referenced by a tuple
+  `{mod :: module, function :: atom, opts :: keyword}`. The referenced function
+  receives three arguments: the Ecto query, the Flop filter, and an options
+  keyword list.
+
+  If runtime options are necessary (like the timezone of the request or the user
+  ID of the current user), use the `extra_opts` option when calling Flop
+  functions.
+
+  Note that as of now, custom fields only support filtering, not sorting.
 
   Schema:
 
@@ -367,10 +375,14 @@ defprotocol Flop.Schema do
         custom_fields: [
           inserted_at_date: [
             filter: {CustomFilters, :date_filter, [source: :inserted_at]},
-            ecto_type: :date
+            ecto_type: :date,
+            operators: [:<=, :>=]
           ]
         ]
       }
+
+  If you pass the `:ecto_type` option like above, the filter value will be
+  automatically cast.
 
   Filter module:
 
@@ -381,28 +393,35 @@ defprotocol Flop.Schema do
           source = Keyword.fetch!(opts, :source)
           timezone = Keyword.fetch!(opts, :timezone)
 
-          expr = dynamic([r], fragment("((? AT TIME ZONE 'utc') AT TIME ZONE ?)::date", field(r, ^source), ^timezone))
+          expr = dynamic(
+            [r],
+            fragment("((? AT TIME ZONE 'utc') AT TIME ZONE ?)::date",
+            field(r, ^source), ^timezone)
+          )
 
-          case Ecto.Type.cast(:date, value) do
-            {:ok, date} ->
-              conditions =
-                case op do
-                  :>= -> dynamic([r], ^expr >= ^date)
-                  :<= -> dynamic([r], ^expr <= ^date)
-                end
+          conditions =
+            case op do
+              :>= -> dynamic([r], ^expr >= ^date)
+              :<= -> dynamic([r], ^expr <= ^date)
+            end
 
-              where(query, ^conditions)
-
-            :error ->
-              query
-          end
-
+          where(query, ^conditions)
         end
       end
 
   Query:
 
-      Flop.validate_and_run(MyApp.Pet, params, for: MyApp.Pet, extra_opts: [timezone: timezone])
+      Flop.validate_and_run(
+        MyApp.Pet,
+        params,
+        for: MyApp.Pet,
+        extra_opts: [timezone: timezone]
+      )
+
+  If your custom filter requires certain named bindings, you can use the
+  `:bindings` option to specify them. Then, using `Flop.with_named_bindings/4`,
+  these bindings can be conditionally added to your query based on filter
+  conditions.
 
   ## Ecto type option
 
