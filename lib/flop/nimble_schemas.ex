@@ -110,6 +110,19 @@ defmodule Flop.NimbleSchemas do
   @backend_option NimbleOptions.new!(@backend_option)
   @schema_option NimbleOptions.new!(@schema_option)
 
-  def __backend_option__, do: @backend_option
-  def __schema_option__, do: @schema_option
+  def validate!(opts, schema_id, module, caller) do
+    case NimbleOptions.validate(opts, schema(schema_id)) do
+      {:ok, opts} ->
+        opts
+
+      {:error, err} ->
+        raise Flop.InvalidConfigError.from_nimble(err,
+                caller: caller,
+                module: module
+              )
+    end
+  end
+
+  defp schema(:backend_option), do: @backend_option
+  defp schema(:schema_option), do: @schema_option
 end

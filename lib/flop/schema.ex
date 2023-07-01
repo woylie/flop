@@ -795,9 +795,11 @@ defimpl Flop.Schema, for: Any do
   # credo:disable-for-next-line
   defmacro __deriving__(module, struct, options) do
     options =
-      NimbleOptions.validate!(
+      NimbleSchemas.validate!(
         options,
-        NimbleSchemas.__schema_option__()
+        :schema_option,
+        Flop.Schema,
+        __CALLER__.module
       )
 
     validate_options!(options, struct)

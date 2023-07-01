@@ -296,7 +296,13 @@ defmodule Flop do
   @default_opts [default_limit: 50, max_limit: 1000]
 
   defmacro __using__(opts) do
-    opts = NimbleOptions.validate!(opts, NimbleSchemas.__backend_option__())
+    opts =
+      NimbleSchemas.validate!(
+        opts,
+        :backend_option,
+        Flop,
+        __CALLER__.module
+      )
 
     quote do
       @doc false
