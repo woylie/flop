@@ -1126,7 +1126,7 @@ defimpl Flop.Schema, for: Any do
       case opts do
         {binding, field} ->
           Logger.warning(
-            "The tuple syntax for defining join fields has been deprecated. Use a keyword list instead."
+            "The tuple syntax for defining Flop join fields has been deprecated. Use a keyword list instead."
           )
 
           %{
