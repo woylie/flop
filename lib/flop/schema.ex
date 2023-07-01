@@ -271,18 +271,6 @@ defprotocol Flop.Schema do
     filter values, and also to treat empty arrays and empty maps as empty values
     depending on the type. See also `Ecto type option` section below.
 
-  There is a short syntax which you can use if you only want to specify the
-  binding and the field:
-
-      @derive {
-        Flop.Schema,
-        filterable: [:pet_species],
-        sortable: [:pet_species],
-        join_fields: [pet_species: {:pets, :species}]
-      }
-
-  This syntax is not recommended anymore and should be viewed as deprecated.
-
   In order to retrieve the pagination cursor value for a join field, Flop needs
   to know how to get the field value from the struct that is returned from the
   database. `Flop.Schema.get_field/2` is used for that. By default, Flop assumes
@@ -755,6 +743,7 @@ end
 
 defimpl Flop.Schema, for: Any do
   alias Flop.NimbleSchemas
+  require Logger
 
   @instructions """
   Flop.Schema protocol must always be explicitly implemented.
@@ -777,7 +766,12 @@ defimpl Flop.Schema, for: Any do
   """
   # credo:disable-for-next-line
   defmacro __deriving__(module, struct, options) do
-    NimbleOptions.validate!(options, NimbleSchemas.__schema_option__())
+    options =
+      NimbleOptions.validate!(
+        options,
+        NimbleSchemas.__schema_option__()
+      )
+
     validate_options!(options, struct)
 
     filterable_fields = Keyword.get(options, :filterable)
@@ -1100,6 +1094,10 @@ defimpl Flop.Schema, for: Any do
     opts =
       case opts do
         {binding, field} ->
+          Logger.warning(
+            "The tuple syntax for defining join fields has been deprecated. Use a keyword list instead."
+          )
+
           %{
             binding: binding,
             field: field,

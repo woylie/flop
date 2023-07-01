@@ -288,6 +288,7 @@ defmodule Flop do
   alias Flop.CustomTypes.ExistingAtom
   alias Flop.Filter
   alias Flop.Meta
+  alias Flop.NimbleSchemas
 
   require Ecto.Query
   require Logger
@@ -295,27 +296,7 @@ defmodule Flop do
   @default_opts [default_limit: 50, max_limit: 1000]
 
   defmacro __using__(opts) do
-    known_options = [
-      :cursor_value_func,
-      :default_limit,
-      :default_pagination_type,
-      :filtering,
-      :max_limit,
-      :pagination,
-      :pagination_types,
-      :query_opts,
-      :repo
-    ]
-
-    unknown_options = Keyword.keys(opts) -- known_options
-
-    if unknown_options != [] do
-      # coveralls-ignore-start
-      raise "unknown option(s) for Flop: #{inspect(unknown_options)}"
-      # coveralls-ignore-stop
-    end
-
-    opts = Keyword.merge(@default_opts, opts)
+    opts = NimbleOptions.validate!(opts, NimbleSchemas.__backend_option__())
 
     quote do
       @doc false
