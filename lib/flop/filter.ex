@@ -193,7 +193,7 @@ defmodule Flop.Filter do
   defp value_type({:array, type}, :not_contains), do: type
   defp value_type(type, _), do: type
 
-  defp expand_type({:enum, values}) do
+  defp expand_type({:ecto_enum, values}) do
     {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)}
   end
 

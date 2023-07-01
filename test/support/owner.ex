@@ -20,7 +20,7 @@ defmodule MyApp.Owner do
       pet_mood_as_enum: [
         binding: :pets,
         field: :mood,
-        ecto_type: {:enum, [:happy, :playful]}
+        ecto_type: {:ecto_enum, [:happy, :playful]}
       ]
     ],
     compound_fields: [age_and_pet_age: [:age, :pet_age]],

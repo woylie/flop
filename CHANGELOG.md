@@ -10,7 +10,7 @@
 - The `ecto_type` option on join and custom fields now supports
   references: `{:from_schema, MySchema, :some_field}`.
 - The `ecto_type` option now supports a convenient syntax for adhoc enums:
-  `{:enum, [:one, :two]}`.
+  `{:ecto_enum, [:one, :two]}`.
 - The documentation was improved by adding the type definitions
   `t:Flop.Schema.option/0`, `t:Flop.Schema.join_field_option/0`,
   `t:Flop.Schema.custom_field_option/0` and `t:Flop.Schema.ecto_type/0`. These
@@ -64,7 +64,7 @@ The dynamic casting of filter values might have some effects on your code:
   still work if you pass the filter value as a string, but if you pass it as an
   atom, you will get an error. You will need to properly reference the schema
   field (`{:from_schema, MySchema, :some_field}`) or pass the Enum values
-  directly (`{:enum, [:one, :two}`).
+  directly (`{:ecto_enum, [:one, :two}`).
 - In order for `Flop.Phoenix` to build a query string for filter parameters,
   the filter value needs to be able to be converted into a string with
   `to_string/1`. If you set `ecto_type` to a custom Ecto type that casts values

@@ -469,7 +469,7 @@ defprotocol Flop.Schema do
   If you're working with `Ecto.Enum` types, you can use a more convenient
   syntax:
 
-  - `ecto_type: {:enum, [:one, :two]}`
+  - `ecto_type: {:ecto_enum, [:one, :two]}`
 
   Furthermore, you can reference a type from another schema:
 
@@ -584,9 +584,9 @@ defprotocol Flop.Schema do
 
   Or build an adhoc Ecto.Enum:
 
-  - `{:enum, [:one, :two]}` (This has the same effect as the `:parameterized`
+  - `{:ecto_enum, [:one, :two]}` (This has the same effect as the `:parameterized`
     example above.)
-  - `{:enum, [one: 1, two: 2]}`
+  - `{:ecto_enum, [one: 1, two: 2]}`
 
   Note that if you make an `Ecto.Enum` type this way, the filter value will be
   cast as an atom. This means the field you filter on also needs to be an
@@ -596,7 +596,7 @@ defprotocol Flop.Schema do
   @type ecto_type ::
           Ecto.Type.t()
           | {:from_schema, module, atom}
-          | {:enum, [atom] | keyword}
+          | {:ecto_enum, [atom] | keyword}
 
   @doc """
   Returns the field type in a schema.
