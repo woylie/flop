@@ -971,8 +971,11 @@ defmodule FlopTest do
 
       assert Flop.meta(Pet, %Flop{}).total_count == 0
 
-      assert Flop.meta(Pet, %Flop{}, query_opts: [prefix: "other_schema"]).total_count ==
-               1
+      assert Flop.meta(
+               Pet,
+               %Flop{},
+               query_opts: [prefix: "other_schema"]
+             ).total_count == 1
     end
 
     test "sets the schema if :for option is passed" do
@@ -1116,7 +1119,12 @@ defmodule FlopTest do
             remaining_pets,
             {[first_pet], cursor},
             fn _current_pet, {pet_list, cursor} ->
-              assert {:ok, {[returned_pet], %Meta{end_cursor: new_cursor}}} =
+              assert {:ok,
+                      {[returned_pet],
+                       %Meta{
+                         end_cursor: new_cursor,
+                         flop: %Flop{decoded_cursor: nil}
+                       }}} =
                        Flop.validate_and_run(
                          pets_with_owners_query(),
                          %Flop{

@@ -325,7 +325,7 @@ defmodule Flop.Validation do
     case Cursor.decode(encoded_cursor) do
       {:ok, cursor_map} ->
         if Enum.sort(Map.keys(cursor_map)) == Enum.sort(order_fields),
-          do: changeset,
+          do: Changeset.put_change(changeset, :decoded_cursor, cursor_map),
           else:
             Changeset.add_error(changeset, field, "does not match order fields")
 

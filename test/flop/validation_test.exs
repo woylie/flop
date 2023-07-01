@@ -434,6 +434,16 @@ defmodule Flop.ValidationTest do
       assert errors_on(changeset)[:after] == ["is invalid"]
     end
 
+    test "adds decoded cursor to struct" do
+      cursor = Cursor.encode(%{name: "a"})
+
+      params = %{first: 2, after: cursor, order_by: [:name]}
+      assert {:ok, %Flop{decoded_cursor: %{name: "a"}}} = validate(params)
+
+      params = %{last: 2, before: cursor, order_by: [:name]}
+      assert {:ok, %Flop{decoded_cursor: %{name: "a"}}} = validate(params)
+    end
+
     test "replaces invalid after cursor with replace_invalid_params" do
       # malformed cursor
       params = %{first: 2, after: "a", order_by: [:name]}
