@@ -21,10 +21,22 @@
   field type and operator, instead of allowing any arbitrary filter value. By
   doing this, invalid filter values will now result in validation errors instead
   of causing cast errors.
-- The options for deriving the `Flop.Schema` protocol are now stricter validated
-  with `NimbleOptions`.
+- The options for both deriving the `Flop.Schema` protocol and for `use Flop`
+  are now stricter validated with `NimbleOptions`.
 - `Flop.Cursor.encode/1` now explicitly sets the minor version option for
   `:erlang.term_to_binary/2` to `2`, which is the new default in OTP 26.
+
+### Deprecated
+
+- The tuple syntax for join fields has been deprecated. Use a keyword list
+  instead.
+
+### Fixed
+
+- When the `replace_invalid_params` option was set to `true`, cast errors for
+  pagination and sorting parameters were still causing validation errors instead
+  of defaulting to valid parameters.
+- Fixed type specification for `Flop.Filter.allowed_operators/1`.
 
 ### Upgrade notes
 
@@ -58,12 +70,20 @@ The dynamic casting of filter values might have some effects on your code:
 Please review the new "Ecto type option" section in the `Flop.Schema` module
 documentation.
 
-### Fixed
+#### Join field syntax
 
-- When the `replace_invalid_params` option was set to `true`, cast errors for
-  pagination and sorting parameters were still causing validation errors instead
-  of defaulting to valid parameters.
-- Fixed type specification for `Flop.Filter.allowed_operators/1`.
+If you are using tuples to define join fields when you derive `Flop.Schema`,
+update the configuration to use keyword lists instead:
+
+```diff
+@derive {
+  Flop.Schema,
+  join_fields: [
+-    owner_name: {:owner, :name}
++    owner_name: [binding: :owner, field: :name]
+  ]
+}
+```
 
 ## [0.20.3] - 2023-06-23
 
@@ -145,6 +165,7 @@ documentation.
 - Added `ecto_type` option to join fields.
 - Added `not_like` and `not_ilike` filter operators.
 - Added a cheatsheet for schema configuration.
+- Added `opts` field to `Flop.Meta` struct.
 
 ### Changed
 
@@ -156,7 +177,6 @@ documentation.
   new `ecto_type` option. If the option is not set, the function returns all
   operators as before. For compound fields, only the supported operators are
   returned.
-- Added `opts` field to `Flop.Meta` struct.
 
 ## [0.18.4] - 2022-11-17
 
