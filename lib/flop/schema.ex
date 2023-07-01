@@ -766,7 +766,12 @@ defimpl Flop.Schema, for: Any do
   """
   # credo:disable-for-next-line
   defmacro __deriving__(module, struct, options) do
-    NimbleOptions.validate!(options, NimbleSchemas.__schema_option__())
+    options =
+      NimbleOptions.validate!(
+        options,
+        NimbleSchemas.__schema_option__()
+      )
+
     validate_options!(options, struct)
 
     filterable_fields = Keyword.get(options, :filterable)
