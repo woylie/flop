@@ -5,6 +5,8 @@
 ### Added
 
 - New option `operators` to limit the accepted operators for a custom field.
+- New option `bindings` for custom fields, so that you can add required named
+  bindings using `Flop.with_named_bindings/4`.
 - The `ecto_type` option on join and custom fields now supports
   references: `{:from_schema, MySchema, :some_field}`.
 - The `ecto_type` option now supports a convenient syntax for adhoc enums:
