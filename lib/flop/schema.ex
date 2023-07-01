@@ -722,6 +722,9 @@ defprotocol Flop.Schema do
       %{order_by: [:name], order_directions: [:asc]}
   """
   @doc since: "0.7.0"
+  # This is a map instead of a keyword list because the default order can also
+  # be passed directly to the `validate_*` functions, where we need it as a map.
+  # Using two different formats would be confusing.
   @spec default_order(any) ::
           %{
             order_by: [atom] | nil,
