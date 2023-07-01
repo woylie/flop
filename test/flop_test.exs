@@ -971,8 +971,11 @@ defmodule FlopTest do
 
       assert Flop.meta(Pet, %Flop{}).total_count == 0
 
-      assert Flop.meta(Pet, %Flop{}, query_opts: [prefix: "other_schema"]).total_count ==
-               1
+      assert Flop.meta(
+               Pet,
+               %Flop{},
+               query_opts: [prefix: "other_schema"]
+             ).total_count == 1
     end
 
     test "sets the schema if :for option is passed" do
