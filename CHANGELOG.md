@@ -6,79 +6,82 @@
 
 ### Added
 
-- New option `operators` to limit the accepted operators for a custom field.
-- New option `bindings` for custom fields, so that you can add required named
-  bindings using `Flop.with_named_bindings/4`.
+- Introduced `operators` as a new option for restricting acceptable operators
+  for a custom field.
+- Added bindings option for custom fields, allowing required named bindings to
+  be added via `Flop.with_named_bindings/4`.
 - The `ecto_type` option on join and custom fields now supports
   references: `{:from_schema, MySchema, :some_field}`.
 - The `ecto_type` option now supports a convenient syntax for adhoc enums:
   `{:ecto_enum, [:one, :two]}`.
-- The documentation was improved by adding the type definitions
-  `t:Flop.Schema.option/0`, `t:Flop.Schema.join_field_option/0`,
-  `t:Flop.Schema.custom_field_option/0` and `t:Flop.Schema.ecto_type/0`. These
-  types describe the options that you can pass when deriving the `Flop.Schema`
-  protocol.
+- Improved documentation with added type definitions: `t:Flop.Schema.option/0`,
+  `t:Flop.Schema.join_field_option/0`, `t:Flop.Schema.custom_field_option/0`,
+  and `t:Flop.Schema.ecto_type/0`, describing options available when deriving
+  the `Flop.Schema` protocol.
 
 ### Changed
 
-- **Breaking change:** Filter values are now dynamically cast depending on the
-  field type and operator, instead of allowing any arbitrary filter value. By
-  doing this, invalid filter values will now result in validation errors instead
-  of causing cast errors.
-- The options for both deriving the `Flop.Schema` protocol and for `use Flop`
-  are now stricter validated with `NimbleOptions`.
+- **Breaking change:** Filter values are now dynamically cast based on the
+  field type and operator, instead of allowing any arbitrary filter value. This
+  change ensures that invalid filter values cause validation errors instead of
+  cast errors.
+- The options for deriving the `Flop.Schema` protocol and for `use Flop`
+  now undergo stricter validation with `NimbleOptions`.
 - `Flop.Cursor.encode/1` now explicitly sets the minor version option for
-  `:erlang.term_to_binary/2` to `2`, which is the new default in OTP 26.
+  `:erlang.term_to_binary/2` to `2`, aligning with the new default in OTP 26.
+  Before, this option was not set at all.
+- Added a `decoded_cursor` field to the `Flop` struct. This field temporarily
+  stores the decoded cursor between validation and querying and is
+  discarded when generating the meta data.
 
 ### Deprecated
 
-- The tuple syntax for join fields has been deprecated. Use a keyword list
-  instead.
+- The tuple syntax for defining join fields has been deprecated in favor of a
+  keyword list.
 
 ### Fixed
 
-- When the `replace_invalid_params` option was set to `true`, cast errors for
-  pagination and sorting parameters were still causing validation errors instead
-  of defaulting to valid parameters.
-- Fixed type specification for `Flop.Filter.allowed_operators/1`.
+- Resolved an issue where setting `replace_invalid_params` to true still caused
+  validation errors for pagination and sorting parameters due to cast errors,
+  instead of defaulting to valid parameters.
+- Fixed the type specification for `Flop.Filter.allowed_operators/1`.
 
 ### Upgrade notes
 
-The dynamic casting of filter values might have some effects on your code:
+The newly implemented dynamic casting of filter values could impact your code:
 
-- Filter values that cannot be cast according the determined type will now
-  result in a validation error, or the removal of the invalid filter if the
+- Filter values failing to cast into the determined type will now yield a
+  validation error or result in the removal of the invalid filter if the
   `replace_invalid_params` option is enabled.
-- The `value` field of the `Flop.Filter` struct will now hold the cast value,
-  instead of the original value from the parameters. For example, if you are
-  handling parameters generated with an HTML form with Flop, previously all
-  filter values would be reflected as strings in the struct, but now they may
-  be integers, `DateTime` structs, etc. Look out for this if you are
-  reading or manipulating `Flop.Filter` structs directly.
+- The `value` field of the `Flop.Filter` struct now holds the cast value
+  instead of the original parameter value. For instance, while handling
+  parameters generated via an HTML form with Flop, previously all filter values
+  would be represented as strings in the struct. However, they may now be
+  integers, `DateTime` structs, and so forth. Look out for this if you are
+  directly reading or manipulating `Flop.Filter` structs.
 - For join and custom fields, the type is determined with the `ecto_type`
-  option. Before, this option was only used for operator validation. Make sure
-  that the correct Ecto type is set. If the option is omitted, the filter values
-  will still be used in the format they come in. If you manually cast filter
-  values in a custom filter function, you don't need to do that anymore if the
-  `ecto_type` option is set.
-- Related to the last point, if you have filters on `Ecto.Enum` fields, you
-  could previously get away with setting `ecto_type` to `string`. This would
-  still work if you pass the filter value as a string, but if you pass it as an
-  atom, you will get an error. You will need to properly reference the schema
-  field (`{:from_schema, MySchema, :some_field}`) or pass the Enum values
-  directly (`{:ecto_enum, [:one, :two}`).
-- In order for `Flop.Phoenix` to build a query string for filter parameters,
-  the filter value needs to be able to be converted into a string with
-  `to_string/1`. If you set `ecto_type` to a custom Ecto type that casts values
-  as a struct, you will need to implement the `String.Chars` protocol for that
-  struct.
+  option. Previously, this option was only used for operator validation.
+  Ensure the correct Ecto type is set. If the option is omitted, the filter
+  values will continue to use their incoming format.
+- Manual casting of filter values in a custom filter function is no longer
+  required if the `ecto_type` option is set.
+- If join fields point to `Ecto.Enum` fields, previously you could simply set
+  `ecto_type` to string. This will continue to work if the filter value is
+  passed as a string, but passing it as an atom will cause an error. Make sure
+  to correctly reference the schema field
+  (`{:from_schema, MySchema, :some_field}`) or directly pass the Enum values
+  (`{:ecto_enum, [:one, :two}`).
+- To enable `Flop.Phoenix` to build a query string for filter parameters, the
+  filter value must be convertible into a string via `to_string/1`. If
+  `ecto_type` is set to a custom Ecto type that casts values into a struct, the
+  `String.Chars` protocol must be implemented for that struct.
 
-Please review the new "Ecto type option" section in the `Flop.Schema` module
-documentation.
+Please review the newly added "Ecto type option" section in the `Flop.Schema`
+module documentation.
 
 #### Join field syntax
 
-If you are using tuples to define join fields when you derive `Flop.Schema`,
+If you are using tuples to define join fields when deriving `Flop.Schema`,
 update the configuration to use keyword lists instead:
 
 ```diff
