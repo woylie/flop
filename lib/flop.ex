@@ -278,12 +278,9 @@ defmodule Flop do
   """
   use Ecto.Schema
 
-  import Ecto.Changeset
-
   alias Ecto.Changeset
-  alias Ecto.Query
   alias Ecto.Queryable
-  alias Flop.Builder
+  alias Flop.Adapter
   alias Flop.Cursor
   alias Flop.CustomTypes.ExistingAtom
   alias Flop.Filter
@@ -456,7 +453,7 @@ defmodule Flop do
           | {:extra_opts, Keyword.t()}
           | private_option()
 
-  @typep private_option :: {:backend, module}
+  @typep private_option :: {:adapter, module} | {:backend, module}
 
   @type default_order ::
           %{
@@ -622,7 +619,9 @@ defmodule Flop do
   @doc group: :queries
   @spec all(Queryable.t(), Flop.t(), [option()]) :: [any]
   def all(q, %Flop{} = flop, opts \\ []) do
-    apply_on_repo(:all, "all", [query(q, flop, opts)], opts)
+    q
+    |> query(flop, opts)
+    |> Adapter.Ecto.list(opts)
   end
 
   @doc """
@@ -797,28 +796,10 @@ defmodule Flop do
         if count_query = opts[:count_query] do
           filter(count_query, flop, opts)
         else
-          q |> filter(flop, opts) |> count_query()
+          filter(q, flop, opts)
         end
 
-      apply_on_repo(:aggregate, "count", [q, :count], opts)
-    end
-  end
-
-  defp count_query(query) do
-    query =
-      query
-      |> Query.exclude(:preload)
-      |> Query.exclude(:order_by)
-      |> Query.exclude(:select)
-
-    case query do
-      %{group_bys: group_bys} = query when group_bys != [] ->
-        query
-        |> Query.select(%{})
-        |> Query.subquery()
-
-      query ->
-        query
+      Adapter.Ecto.count(q, opts)
     end
   end
 
@@ -925,10 +906,7 @@ defmodule Flop do
   end
 
   def meta(q, %Flop{} = flop, opts) do
-    repo = get_option(:repo, opts) || raise no_repo_error("meta")
-    opts_with_repo = Keyword.put(opts, :repo, repo)
-
-    total_count = count(q, flop, opts_with_repo)
+    total_count = count(q, flop, opts)
     page_size = flop.page_size || flop.limit
     total_pages = get_total_pages(total_count, page_size)
     current_offset = get_current_offset(flop)
@@ -1038,22 +1016,12 @@ defmodule Flop do
         opts
       )
       when is_integer(last) do
-    reversed_order =
+    prepared_directions =
       fields
       |> prepare_order_fields_and_directions(directions)
       |> reverse_ordering()
 
-    case opts[:for] do
-      nil ->
-        Query.order_by(q, ^reversed_order)
-
-      module ->
-        struct = struct(module)
-
-        Enum.reduce(reversed_order, q, fn expr, acc_q ->
-          Flop.Schema.apply_order_by(struct, acc_q, expr)
-        end)
-    end
+    Adapter.Ecto.apply_order_by(q, prepared_directions, opts)
   end
 
   def order_by(
@@ -1061,22 +1029,13 @@ defmodule Flop do
         %Flop{order_by: fields, order_directions: directions},
         opts
       ) do
-    case opts[:for] do
-      nil ->
-        Query.order_by(
-          q,
-          ^prepare_order_fields_and_directions(fields, directions)
-        )
+    prepared_directions =
+      prepare_order_fields_and_directions(
+        fields,
+        directions
+      )
 
-      module ->
-        struct = struct(module)
-
-        fields
-        |> prepare_order_fields_and_directions(directions)
-        |> Enum.reduce(q, fn expr, acc_q ->
-          Flop.Schema.apply_order_by(struct, acc_q, expr)
-        end)
-    end
+    Adapter.Ecto.apply_order_by(q, prepared_directions, opts)
   end
 
   @spec prepare_order_fields_and_directions([atom], [order_direction()]) :: [
@@ -1123,20 +1082,16 @@ defmodule Flop do
   @spec paginate(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def paginate(q, flop, opts \\ [])
 
-  def paginate(q, %Flop{limit: limit, offset: offset}, _)
+  def paginate(q, %Flop{limit: limit, offset: offset}, opts)
       when (is_integer(limit) and limit >= 1) or
              (is_integer(offset) and offset >= 0) do
-    q
-    |> limit(limit)
-    |> offset(offset)
+    Adapter.Ecto.apply_limit_offset(q, limit, offset, opts)
   end
 
-  def paginate(q, %Flop{page: page, page_size: page_size}, _)
+  def paginate(q, %Flop{page: page, page_size: page_size}, opts)
       when is_integer(page) and is_integer(page_size) and
              page >= 1 and page_size >= 1 do
-    q
-    |> limit(page_size)
-    |> offset((page - 1) * page_size)
+    Adapter.Ecto.apply_page_page_size(q, page, page_size, opts)
   end
 
   def paginate(
@@ -1148,10 +1103,10 @@ defmodule Flop do
           last: nil,
           limit: nil
         },
-        _
+        opts
       )
       when is_integer(first),
-      do: limit(q, first + 1)
+      do: Adapter.Ecto.apply_limit_offset(q, first + 1, nil, opts)
 
   def paginate(
         q,
@@ -1169,11 +1124,26 @@ defmodule Flop do
       )
       when is_integer(first) do
     orderings = prepare_order_fields_and_directions(order_by, order_directions)
+    decoded_cursor = decoded_cursor || Cursor.decode!(after_)
 
     q
-    |> apply_cursor(after_, decoded_cursor, orderings, opts)
-    |> limit(first + 1)
+    |> Adapter.Ecto.apply_cursor(decoded_cursor, orderings, opts)
+    |> Adapter.Ecto.apply_limit_offset(first + 1, nil, opts)
   end
+
+  def paginate(
+        q,
+        %Flop{
+          last: last,
+          before: nil,
+          first: nil,
+          after: nil,
+          limit: nil
+        },
+        opts
+      )
+      when is_integer(last),
+      do: Adapter.Ecto.apply_limit_offset(q, last + 1, nil, opts)
 
   def paginate(
         q,
@@ -1190,100 +1160,20 @@ defmodule Flop do
         opts
       )
       when is_integer(last) do
-    prepared_order_reversed =
+    orderings =
       order_by
       |> prepare_order_fields_and_directions(order_directions)
       |> reverse_ordering()
 
+    decoded_cursor = decoded_cursor || Cursor.decode!(before)
+
     q
-    |> apply_cursor(before, decoded_cursor, prepared_order_reversed, opts)
+    |> Adapter.Ecto.apply_cursor(decoded_cursor, orderings, opts)
     # add 1 to limit, so that we know whether there are more items to show
-    |> limit(last + 1)
+    |> Adapter.Ecto.apply_limit_offset(last + 1, nil, opts)
   end
 
   def paginate(q, _, _), do: q
-
-  ## Offset/limit pagination
-
-  @spec limit(Queryable.t(), pos_integer | nil) :: Queryable.t()
-  defp limit(q, nil), do: q
-  defp limit(q, limit), do: Query.limit(q, ^limit)
-
-  @spec offset(Queryable.t(), non_neg_integer | nil) :: Queryable.t()
-  defp offset(q, nil), do: q
-  defp offset(q, offset), do: Query.offset(q, ^offset)
-
-  ## Cursor pagination helpers
-
-  @spec apply_cursor(
-          Queryable.t(),
-          String.t() | nil,
-          map | nil,
-          [order_direction()],
-          keyword
-        ) :: Queryable.t()
-  defp apply_cursor(q, nil, _, _, _), do: q
-
-  defp apply_cursor(q, cursor, decoded_cursor, ordering, opts) do
-    cursor = decoded_cursor || Cursor.decode!(cursor)
-
-    where_dynamic =
-      case opts[:for] do
-        nil ->
-          cursor_dynamic(ordering, cursor)
-
-        module ->
-          module
-          |> struct()
-          |> Flop.Schema.cursor_dynamic(ordering, cursor)
-      end
-
-    Query.where(q, ^where_dynamic)
-  end
-
-  defp cursor_dynamic([], _), do: true
-
-  defp cursor_dynamic([{direction, field}], cursor) do
-    field_cursor = cursor[field]
-
-    if is_nil(field_cursor) do
-      true
-    else
-      case direction do
-        dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
-          Query.dynamic([r], field(r, ^field) > ^field_cursor)
-
-        dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
-          Query.dynamic([r], field(r, ^field) < ^field_cursor)
-      end
-    end
-  end
-
-  defp cursor_dynamic([{direction, field} | [{_, _} | _] = tail], cursor) do
-    field_cursor = cursor[field]
-
-    if is_nil(field_cursor) do
-      cursor_dynamic(tail, cursor)
-    else
-      case direction do
-        dir when dir in [:asc, :asc_nulls_first, :asc_nulls_last] ->
-          Query.dynamic(
-            [r],
-            field(r, ^field) >= ^field_cursor and
-              (field(r, ^field) > ^field_cursor or
-                 ^cursor_dynamic(tail, cursor))
-          )
-
-        dir when dir in [:desc, :desc_nulls_first, :desc_nulls_last] ->
-          Query.dynamic(
-            [r],
-            field(r, ^field) <= ^field_cursor and
-              (field(r, ^field) < ^field_cursor or
-                 ^cursor_dynamic(tail, cursor))
-          )
-      end
-    end
-  end
 
   @spec reverse_ordering([order_direction()]) :: [order_direction()]
   defp reverse_ordering(order_directions) do
@@ -1325,12 +1215,14 @@ defmodule Flop do
         module -> struct(module)
       end
 
-    Builder.filter(
-      q,
-      schema_struct,
-      filters,
-      Keyword.get(opts, :extra_opts, [])
-    )
+    Enum.reduce(filters, q, &apply_filter(&2, &1, schema_struct, opts))
+  end
+
+  defp apply_filter(query, %Filter{field: nil}, _, _), do: query
+  defp apply_filter(query, %Filter{value: nil}, _, _), do: query
+
+  defp apply_filter(query, %Filter{} = filter, schema_struct, opts) do
+    Flop.Adapter.Ecto.apply_filter(query, filter, schema_struct, opts)
   end
 
   ## Validation
@@ -1404,7 +1296,7 @@ defmodule Flop do
     result =
       params
       |> Flop.Validation.changeset(opts)
-      |> apply_action(:replace)
+      |> Changeset.apply_action(:replace)
 
     case result do
       {:ok, _} = r ->
@@ -2089,18 +1981,6 @@ defmodule Flop do
     {[field | order_by || []], [new_direction | order_directions || []]}
   end
 
-  defp apply_on_repo(repo_fn, flop_fn, args, opts) do
-    repo = get_option(:repo, opts) || raise no_repo_error(flop_fn)
-    opts = query_opts(opts)
-
-    apply(repo, repo_fn, args ++ [opts])
-  end
-
-  defp query_opts(opts) do
-    default_opts = Application.get_env(:flop, :query_opts, [])
-    Keyword.merge(default_opts, Keyword.get(opts, :query_opts, []))
-  end
-
   @doc """
   Returns the option with the given key.
 
@@ -2714,25 +2594,4 @@ defmodule Flop do
       |> Enum.uniq()
     end
   end
-
-  # coveralls-ignore-start
-  defp no_repo_error(function_name),
-    do: """
-    No repo specified. You can specify the repo either by passing it
-    explicitly:
-
-        Flop.#{function_name}(MyApp.Item, %Flop{}, repo: MyApp.Repo)
-
-    Or configure a default repo in your config:
-
-        config :flop, repo: MyApp.Repo
-
-    Or configure a repo with a backend module:
-
-        defmodule MyApp.Flop do
-          use Flop, repo: MyApp.Repo
-        end
-    """
-
-  # coveralls-ignore-end
 end
