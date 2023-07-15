@@ -301,6 +301,8 @@ defmodule Flop do
         __CALLER__.module
       )
 
+    opts = Keyword.put(opts, :adapter, Flop.Adapter.Ecto)
+
     quote do
       @doc false
       def __flop_options__, do: unquote(opts)
@@ -619,9 +621,11 @@ defmodule Flop do
   @doc group: :queries
   @spec all(Queryable.t(), Flop.t(), [option()]) :: [any]
   def all(q, %Flop{} = flop, opts \\ []) do
+    adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
+
     q
     |> query(flop, opts)
-    |> Adapter.Ecto.list(opts)
+    |> adapter.list(opts)
   end
 
   @doc """
@@ -799,7 +803,8 @@ defmodule Flop do
           filter(q, flop, opts)
         end
 
-      Adapter.Ecto.count(q, opts)
+      adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
+      adapter.count(q, opts)
     end
   end
 
@@ -1016,12 +1021,14 @@ defmodule Flop do
         opts
       )
       when is_integer(last) do
+    adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
+
     prepared_directions =
       fields
       |> prepare_order_fields_and_directions(directions)
       |> reverse_ordering()
 
-    Adapter.Ecto.apply_order_by(q, prepared_directions, opts)
+    adapter.apply_order_by(q, prepared_directions, opts)
   end
 
   def order_by(
@@ -1029,13 +1036,15 @@ defmodule Flop do
         %Flop{order_by: fields, order_directions: directions},
         opts
       ) do
+    adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
+
     prepared_directions =
       prepare_order_fields_and_directions(
         fields,
         directions
       )
 
-    Adapter.Ecto.apply_order_by(q, prepared_directions, opts)
+    adapter.apply_order_by(q, prepared_directions, opts)
   end
 
   @spec prepare_order_fields_and_directions([atom], [order_direction()]) :: [
@@ -1085,13 +1094,15 @@ defmodule Flop do
   def paginate(q, %Flop{limit: limit, offset: offset}, opts)
       when (is_integer(limit) and limit >= 1) or
              (is_integer(offset) and offset >= 0) do
-    Adapter.Ecto.apply_limit_offset(q, limit, offset, opts)
+    adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
+    adapter.apply_limit_offset(q, limit, offset, opts)
   end
 
   def paginate(q, %Flop{page: page, page_size: page_size}, opts)
       when is_integer(page) and is_integer(page_size) and
              page >= 1 and page_size >= 1 do
-    Adapter.Ecto.apply_page_page_size(q, page, page_size, opts)
+    adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
+    adapter.apply_page_page_size(q, page, page_size, opts)
   end
 
   def paginate(
@@ -1105,8 +1116,10 @@ defmodule Flop do
         },
         opts
       )
-      when is_integer(first),
-      do: Adapter.Ecto.apply_limit_offset(q, first + 1, nil, opts)
+      when is_integer(first) do
+    adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
+    adapter.apply_limit_offset(q, first + 1, nil, opts)
+  end
 
   def paginate(
         q,
@@ -1123,12 +1136,13 @@ defmodule Flop do
         opts
       )
       when is_integer(first) do
+    adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
     orderings = prepare_order_fields_and_directions(order_by, order_directions)
     decoded_cursor = decoded_cursor || Cursor.decode!(after_)
 
     q
-    |> Adapter.Ecto.apply_cursor(decoded_cursor, orderings, opts)
-    |> Adapter.Ecto.apply_limit_offset(first + 1, nil, opts)
+    |> adapter.apply_cursor(decoded_cursor, orderings, opts)
+    |> adapter.apply_limit_offset(first + 1, nil, opts)
   end
 
   def paginate(
@@ -1142,8 +1156,10 @@ defmodule Flop do
         },
         opts
       )
-      when is_integer(last),
-      do: Adapter.Ecto.apply_limit_offset(q, last + 1, nil, opts)
+      when is_integer(last) do
+    adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
+    adapter.apply_limit_offset(q, last + 1, nil, opts)
+  end
 
   def paginate(
         q,
@@ -1160,6 +1176,8 @@ defmodule Flop do
         opts
       )
       when is_integer(last) do
+    adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
+
     orderings =
       order_by
       |> prepare_order_fields_and_directions(order_directions)
@@ -1168,9 +1186,9 @@ defmodule Flop do
     decoded_cursor = decoded_cursor || Cursor.decode!(before)
 
     q
-    |> Adapter.Ecto.apply_cursor(decoded_cursor, orderings, opts)
+    |> adapter.apply_cursor(decoded_cursor, orderings, opts)
     # add 1 to limit, so that we know whether there are more items to show
-    |> Adapter.Ecto.apply_limit_offset(last + 1, nil, opts)
+    |> adapter.apply_limit_offset(last + 1, nil, opts)
   end
 
   def paginate(q, _, _), do: q
@@ -1222,7 +1240,8 @@ defmodule Flop do
   defp apply_filter(query, %Filter{value: nil}, _, _), do: query
 
   defp apply_filter(query, %Filter{} = filter, schema_struct, opts) do
-    Flop.Adapter.Ecto.apply_filter(query, filter, schema_struct, opts)
+    adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
+    adapter.apply_filter(query, filter, schema_struct, opts)
   end
 
   ## Validation
