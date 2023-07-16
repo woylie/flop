@@ -35,6 +35,60 @@ defmodule Flop.Adapter.Ecto do
     :ilike_or
   ]
 
+  @schema_options [
+    join_fields: [
+      type: :keyword_list,
+      keys: [
+        *: [
+          type:
+            {:or,
+             [
+               keyword_list: [
+                 binding: [type: :atom, required: true],
+                 field: [type: :atom, required: true],
+                 ecto_type: [type: :any],
+                 path: [type: {:list, :atom}]
+               ],
+               tuple: [:atom, :atom]
+             ]}
+        ]
+      ]
+    ],
+    compound_fields: [
+      type: :keyword_list,
+      keys: [
+        *: [
+          type: {:list, :atom}
+        ]
+      ]
+    ],
+    custom_fields: [
+      type: :keyword_list,
+      keys: [
+        *: [
+          type: :keyword_list,
+          keys: [
+            filter: [
+              type: {:tuple, [:atom, :atom, :keyword_list]},
+              required: true
+            ],
+            ecto_type: [type: :any],
+            bindings: [type: {:list, :atom}],
+            operators: [type: {:list, :atom}]
+          ]
+        ]
+      ]
+    ],
+    alias_fields: [
+      type: {:list, :atom}
+    ]
+  ]
+
+  @schema_options NimbleOptions.new!(@schema_options)
+
+  @impl Flop.Adapter
+  def schema_options, do: @schema_options
+
   @impl Flop.Adapter
   def apply_filter(
         query,

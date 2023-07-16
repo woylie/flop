@@ -30,6 +30,11 @@ defmodule Flop.NimbleSchemas do
   ]
 
   @schema_option [
+    adapter: [type: :atom, default: Flop.Adapter.Ecto],
+    adapter_opts: [
+      type: :keyword_list,
+      default: []
+    ],
     filterable: [type: {:list, :atom}, required: true],
     sortable: [type: {:list, :atom}, required: true],
     default_order: [
@@ -107,11 +112,18 @@ defmodule Flop.NimbleSchemas do
     ]
   ]
 
+  @schema_option_schema @schema_option
+  def schema_option_schema, do: @schema_option_schema
+
   @backend_option NimbleOptions.new!(@backend_option)
   @schema_option NimbleOptions.new!(@schema_option)
 
-  def validate!(opts, schema_id, module, caller) do
-    case NimbleOptions.validate(opts, schema(schema_id)) do
+  def validate!(opts, schema_id, module, caller) when is_atom(schema_id) do
+    validate!(opts, schema(schema_id), module, caller)
+  end
+
+  def validate!(opts, %NimbleOptions{} = schema, module, caller) do
+    case NimbleOptions.validate(opts, schema) do
       {:ok, opts} ->
         opts
 
