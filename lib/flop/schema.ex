@@ -914,7 +914,6 @@ defimpl Flop.Schema, for: Any do
       opts[:pagination_types]
     )
 
-    check_legacy_default_order(opts)
     validate_no_unknown_field!(opts[:filterable], all_fields, "filterable")
     validate_no_unknown_field!(opts[:sortable], all_fields, "sortable")
     validate_default_order!(opts[:default_order], opts[:sortable])
@@ -1087,27 +1086,6 @@ defimpl Flop.Schema, for: Any do
     |> Enum.frequencies()
     |> Enum.filter(fn {_, count} -> count > 1 end)
     |> Enum.map(fn {field, _} -> field end)
-  end
-
-  defp check_legacy_default_order(opts) do
-    if order_by = Keyword.get(opts, :default_order_by) do
-      directions = Keyword.get(opts, :default_order_directions)
-
-      raise """
-      The default order needs to be updated.
-
-      Please change your schema config to:
-
-          @derive {
-            Flop.Schema,
-            # ...
-            default_order: %{
-              order_by: #{inspect(order_by)},
-              order_directions: #{inspect(directions)}
-            }
-          }
-      """
-    end
   end
 
   def normalize_custom_opts({name, opts}) when is_list(opts) do
