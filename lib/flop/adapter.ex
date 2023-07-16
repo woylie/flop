@@ -4,12 +4,11 @@ defmodule Flop.Adapter do
   @type queryable :: term
   @type opts :: keyword
 
+  @callback init_backend_opts(keyword, keyword, module) :: keyword
+
   # Struct is available when deriving protocol. Change when protocol is
   # replaced.
   @callback init_schema_opts(keyword, keyword, module, struct) :: map
-
-  # Replace with init_backend_options
-  @callback backend_options() :: NimbleOptions.t()
 
   @callback fields(struct, adapter_opts) :: [{field, ecto_type | nil}]
             when adapter_opts: map,
