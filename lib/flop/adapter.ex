@@ -27,4 +27,7 @@ defmodule Flop.Adapter do
   @callback count(queryable, opts) :: non_neg_integer
 
   @callback list(queryable, opts) :: [any]
+
+  @callback backend_options() :: NimbleOptions.t()
+  @callback schema_options() :: NimbleOptions.t()
 end

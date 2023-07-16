@@ -30,6 +30,12 @@ defmodule FlopTest do
     use Flop, repo: Flop.Repo, default_limit: 35
   end
 
+  defmodule TestProviderNested do
+    use Flop,
+      adapter_opts: [repo: Flop.Repo],
+      default_limit: 35
+  end
+
   describe "ordering" do
     test "adds order_by to query if set" do
       pets = insert_list(20, :pet)
@@ -1958,6 +1964,29 @@ defmodule FlopTest do
                TestProvider.validate_and_run(Pet, %{})
 
       assert Keyword.get(opts, :backend) == TestProvider
+    end
+  end
+
+  describe "__using__/1 with nested adapter options" do
+    test "defines wrapper functions that pass default options" do
+      insert_list(3, :pet)
+
+      assert {:ok, {_, %Meta{page_size: 35}}} =
+               TestProviderNested.validate_and_run(Pet, %{})
+    end
+
+    test "allows to override defaults" do
+      insert_list(3, :pet)
+
+      assert {:ok, {_, %Meta{page_size: 30}}} =
+               TestProviderNested.validate_and_run(Pet, %{page_size: 30})
+    end
+
+    test "passes backend module" do
+      assert {:ok, {_, %Meta{backend: TestProviderNested, opts: opts}}} =
+               TestProviderNested.validate_and_run(Pet, %{})
+
+      assert Keyword.get(opts, :backend) == TestProviderNested
     end
   end
 

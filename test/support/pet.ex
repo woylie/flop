@@ -25,28 +25,34 @@ defmodule MyApp.Pet do
     ],
     sortable: [:name, :age, :owner_name, :owner_age],
     max_limit: 1000,
-    compound_fields: [
-      full_name: [:family_name, :given_name],
-      pet_and_owner_name: [:name, :owner_name]
-    ],
-    join_fields: [
-      owner_age: {:owner, :age},
-      owner_name: [
-        binding: :owner,
-        field: :name,
-        path: [:owner, :name],
-        ecto_type: :string
+    adapter_opts: [
+      compound_fields: [
+        full_name: [:family_name, :given_name],
+        pet_and_owner_name: [:name, :owner_name]
       ],
-      owner_tags: [binding: :owner, field: :tags, ecto_type: {:array, :string}]
-    ],
-    custom_fields: [
-      custom: [
-        filter: {__MODULE__, :test_custom_filter, [some: :options]},
-        operators: [:==]
+      join_fields: [
+        owner_age: {:owner, :age},
+        owner_name: [
+          binding: :owner,
+          field: :name,
+          path: [:owner, :name],
+          ecto_type: :string
+        ],
+        owner_tags: [
+          binding: :owner,
+          field: :tags,
+          ecto_type: {:array, :string}
+        ]
       ],
-      reverse_name: [
-        filter: {__MODULE__, :reverse_name_filter, []},
-        ecto_type: :string
+      custom_fields: [
+        custom: [
+          filter: {__MODULE__, :test_custom_filter, [some: :options]},
+          operators: [:==]
+        ],
+        reverse_name: [
+          filter: {__MODULE__, :reverse_name_filter, []},
+          ecto_type: :string
+        ]
       ]
     ]
   }
