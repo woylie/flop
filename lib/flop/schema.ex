@@ -655,11 +655,29 @@ defprotocol Flop.Schema do
       iex> field_info(%MyApp.Pet{}, :age)
       %Flop.FieldInfo{ecto_type: {:from_schema, MyApp.Pet, :age}}
       iex> field_info(%MyApp.Pet{}, :full_name)
-      %Flop.FieldInfo{ecto_type: :string}
+      %Flop.FieldInfo{
+        ecto_type: :string,
+        extra: %{type: :compound, fields: [:family_name, :given_name]}
+      }
       iex> field_info(%MyApp.Pet{}, :owner_name)
-      %Flop.FieldInfo{ecto_type: :string}
+      %Flop.FieldInfo{
+        ecto_type: :string,
+        extra: %{
+          type: :join,
+          path: [:owner, :name],
+          binding: :owner,
+          field: :name
+        }
+      }
       iex> field_info(%MyApp.Pet{}, :reverse_name)
-      %Flop.FieldInfo{ecto_type: :string}
+      %Flop.FieldInfo{
+        ecto_type: :string,
+        extra: %{
+          type: :custom,
+          filter: {MyApp.Pet, :reverse_name_filter, []},
+          bindings: []
+        }
+      }
   """
   @spec field_info(any, atom) :: Flop.FieldInfo.t()
   def field_info(data, field)

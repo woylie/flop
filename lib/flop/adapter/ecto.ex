@@ -139,25 +139,42 @@ defmodule Flop.Adapter.Ecto do
   end
 
   defp alias_fields(%{alias_fields: alias_fields}) do
-    Enum.map(alias_fields, &{&1, %FieldInfo{}})
+    Enum.map(alias_fields, &{&1, %FieldInfo{extra: %{type: :alias}}})
   end
 
   defp compound_fields(%{compound_fields: compound_fields}) do
-    Enum.map(compound_fields, fn {field, _} ->
-      {field, %FieldInfo{ecto_type: :string}}
+    Enum.map(compound_fields, fn {field, fields} ->
+      {field,
+       %FieldInfo{ecto_type: :string, extra: %{fields: fields, type: :compound}}}
     end)
   end
 
   defp join_fields(%{join_fields: join_fields}) do
     Enum.map(join_fields, fn
       {field, %{} = field_opts} ->
-        {field, %FieldInfo{ecto_type: Map.get(field_opts, :ecto_type)}}
+        extra = field_opts |> Map.delete(:ecto_type) |> Map.put(:type, :join)
+
+        {field,
+         %FieldInfo{
+           ecto_type: field_opts.ecto_type,
+           extra: extra
+         }}
     end)
   end
 
   defp custom_fields(%{custom_fields: custom_fields}) do
     Enum.map(custom_fields, fn {field, field_opts} ->
-      {field, %FieldInfo{ecto_type: Map.get(field_opts, :ecto_type)}}
+      extra =
+        field_opts
+        |> Map.drop([:ecto_type, :operators])
+        |> Map.put(:type, :custom)
+
+      {field,
+       %FieldInfo{
+         ecto_type: field_opts.ecto_type,
+         operators: field_opts.operators,
+         extra: extra
+       }}
     end)
   end
 
