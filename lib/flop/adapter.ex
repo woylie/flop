@@ -39,4 +39,6 @@ defmodule Flop.Adapter do
   @callback list(queryable, opts) :: [any]
 
   @callback get_field(any, atom, Flop.FieldInfo.t()) :: any
+
+  @callback custom_func_builder(opts) :: Macro.t() when opts: keyword
 end
