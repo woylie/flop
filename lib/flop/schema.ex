@@ -648,6 +648,23 @@ defprotocol Flop.Schema do
   def field_type(data, field)
 
   @doc """
+  Returns the field information for the given field name.
+
+  ## Examples
+
+      iex> field_info(%MyApp.Pet{}, :age)
+      %Flop.FieldInfo{ecto_type: {:from_schema, MyApp.Pet, :age}}
+      iex> field_info(%MyApp.Pet{}, :full_name)
+      %Flop.FieldInfo{ecto_type: :string}
+      iex> field_info(%MyApp.Pet{}, :owner_name)
+      %Flop.FieldInfo{ecto_type: :string}
+      iex> field_info(%MyApp.Pet{}, :reverse_name)
+      %Flop.FieldInfo{ecto_type: :string}
+  """
+  @spec field_info(any, atom) :: Flop.FieldInfo.t()
+  def field_info(data, field)
+
+  @doc """
   Returns the filterable fields of a schema.
 
       iex> Flop.Schema.filterable(%MyApp.Pet{})
@@ -841,6 +858,8 @@ defimpl Flop.Schema, for: Any do
         custom_fields
       )
 
+    field_info_func = build_field_info_func(adapter, adapter_opts, struct)
+
     order_by_func =
       build_order_by_func(compound_fields, join_fields, alias_fields)
 
@@ -869,6 +888,7 @@ defimpl Flop.Schema, for: Any do
           unquote(Macro.escape(default_order))
         end
 
+        unquote(field_info_func)
         unquote(field_type_func)
         unquote(order_by_func)
         unquote(get_field_func)
@@ -975,6 +995,14 @@ defimpl Flop.Schema, for: Any do
 
           #{inspect(unsortable_fields)}
       """
+    end
+  end
+
+  def build_field_info_func(adapter, adapter_opts, struct) do
+    for {name, field_info} <- adapter.fields(struct, adapter_opts) do
+      quote do
+        def field_info(_, unquote(name)), do: unquote(Macro.escape(field_info))
+      end
     end
   end
 
@@ -1329,6 +1357,13 @@ defimpl Flop.Schema, for: Any do
         value: struct,
         description: @instructions
     end
+  end
+
+  def field_info(struct, _) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol,
+      value: struct,
+      description: @instructions
   end
 
   def field_type(struct, _) do
