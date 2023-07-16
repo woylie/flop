@@ -97,10 +97,18 @@ defmodule Flop.Adapter.Ecto do
   @backend_options NimbleOptions.new!(@backend_options)
   @schema_options NimbleOptions.new!(@schema_options)
 
-  @impl Flop.Adapter
-  def backend_options, do: @backend_options
-
+  defp __backend_options__, do: @backend_options
   defp __schema_options__, do: @schema_options
+
+  @impl Flop.Adapter
+  def init_backend_opts(_opts, backend_opts, caller_module) do
+    NimbleSchemas.validate!(
+      backend_opts,
+      __backend_options__(),
+      Flop,
+      caller_module
+    )
+  end
 
   @impl Flop.Adapter
   def init_schema_opts(opts, schema_opts, caller_module, struct) do

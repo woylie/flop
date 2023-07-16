@@ -302,12 +302,13 @@ defmodule Flop do
       )
 
     {legacy_adapter_opts, opts} = Keyword.split(opts, [:query_opts, :repo])
-    adapter_schema = Keyword.fetch!(opts, :adapter).backend_options()
+    adapter = Keyword.fetch!(opts, :adapter)
 
     adapter_opts =
-      legacy_adapter_opts
-      |> Keyword.merge(Keyword.fetch!(opts, :adapter_opts))
-      |> NimbleSchemas.validate!(adapter_schema, Flop.Schema, __CALLER__.module)
+      Keyword.merge(legacy_adapter_opts, Keyword.fetch!(opts, :adapter_opts))
+
+    adapter_opts =
+      adapter.init_backend_opts(opts, adapter_opts, __CALLER__.module)
 
     opts = Keyword.put(opts, :adapter_opts, adapter_opts)
 
