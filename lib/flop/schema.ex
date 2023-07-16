@@ -645,6 +645,7 @@ defprotocol Flop.Schema do
           | {:join, map}
           | {:alias, atom}
           | {:custom, map}
+  @deprecated "use field_info/2 instead"
   def field_type(data, field)
 
   @doc """
