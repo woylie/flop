@@ -76,12 +76,6 @@ defmodule Flop.SchemaTest do
     assert Schema.max_limit(%Panini{}) == 50
   end
 
-  test "calling apply_order_by/3 without deriving raises error" do
-    assert_raise Protocol.UndefinedError, fn ->
-      Schema.apply_order_by(%{}, nil, nil)
-    end
-  end
-
   test "calling cursor_dynamic/3 without deriving raises error" do
     assert_raise Protocol.UndefinedError, fn ->
       Schema.cursor_dynamic(%{}, nil, nil)

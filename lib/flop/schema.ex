@@ -719,10 +719,6 @@ defprotocol Flop.Schema do
   def filterable(data)
 
   @doc false
-  @spec apply_order_by(any, Ecto.Query.t(), tuple | keyword) :: Ecto.Query.t()
-  def apply_order_by(data, q, expr)
-
-  @doc false
   @spec cursor_dynamic(any, keyword, map) :: any
   def cursor_dynamic(data, order, cursor_map)
 
@@ -891,10 +887,6 @@ defimpl Flop.Schema, for: Any do
       )
 
     field_info_func = build_field_info_func(adapter, adapter_opts, struct)
-
-    order_by_func =
-      build_order_by_func(compound_fields, join_fields, alias_fields)
-
     get_field_func = build_get_field_func(struct, adapter, adapter_opts)
 
     cursor_dynamic_func_compound =
@@ -922,7 +914,6 @@ defimpl Flop.Schema, for: Any do
 
         unquote(field_info_func)
         unquote(field_type_func)
-        unquote(order_by_func)
         unquote(get_field_func)
 
         def filterable(_) do
@@ -1303,57 +1294,6 @@ defimpl Flop.Schema, for: Any do
     end
   end
 
-  def build_order_by_func(compound_fields, join_fields, alias_fields) do
-    compound_field_funcs =
-      for {name, fields} <- compound_fields do
-        quote do
-          def apply_order_by(struct, q, {direction, unquote(name)}) do
-            Enum.reduce(unquote(fields), q, fn field, acc_q ->
-              Flop.Schema.apply_order_by(struct, acc_q, {direction, field})
-            end)
-          end
-        end
-      end
-
-    join_field_funcs =
-      for {join_field, %{binding: binding, field: field}} <- join_fields do
-        bindings = Code.string_to_quoted!("[#{binding}: r]")
-
-        quote do
-          def apply_order_by(_struct, q, {direction, unquote(join_field)}) do
-            order_by(
-              q,
-              unquote(bindings),
-              [{^direction, field(r, unquote(field))}]
-            )
-          end
-        end
-      end
-
-    alias_field_func =
-      for name <- alias_fields do
-        quote do
-          def apply_order_by(_struct, q, {direction, unquote(name)}) do
-            order_by(q, [{^direction, selected_as(unquote(name))}])
-          end
-        end
-      end
-
-    normal_field_func =
-      quote do
-        def apply_order_by(_struct, q, direction) do
-          order_by(q, ^direction)
-        end
-      end
-
-    quote do
-      unquote(compound_field_funcs)
-      unquote(join_field_funcs)
-      unquote(alias_field_func)
-      unquote(normal_field_func)
-    end
-  end
-
   def build_get_field_func(struct, adapter, adapter_opts) do
     for {field, field_info} <- adapter.fields(struct, adapter_opts) do
       quote do
@@ -1395,13 +1335,6 @@ defimpl Flop.Schema, for: Any do
   end
 
   def field_type(struct, _) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
-
-  def apply_order_by(struct, _, _) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,

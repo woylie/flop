@@ -263,10 +263,53 @@ defmodule Flop.Adapter.Ecto do
       module ->
         struct = struct(module)
 
-        Enum.reduce(directions, query, fn expr, acc_query ->
-          Flop.Schema.apply_order_by(struct, acc_query, expr)
+        Enum.reduce(directions, query, fn {_, field} = expr, acc_query ->
+          field_info = Flop.Schema.field_info(struct, field)
+          apply_order_by_field(acc_query, expr, field_info, struct)
         end)
     end
+  end
+
+  defp apply_order_by_field(
+         q,
+         {direction, _},
+         %FieldInfo{
+           extra: %{type: :join, binding: binding, field: field}
+         },
+         _
+       ) do
+    order_by(q, [{^binding, r}], [{^direction, field(r, ^field)}])
+  end
+
+  defp apply_order_by_field(
+         q,
+         {direction, _},
+         %FieldInfo{
+           extra: %{type: :compound, fields: fields}
+         },
+         struct
+       ) do
+    Enum.reduce(fields, q, fn field, acc_query ->
+      field_info = Flop.Schema.field_info(struct, field)
+      apply_order_by_field(acc_query, {direction, field}, field_info, struct)
+    end)
+  end
+
+  defp apply_order_by_field(
+         _q,
+         {_direction, _field},
+         %FieldInfo{
+           extra: %{type: :alias}
+         },
+         _
+       ) do
+    # boom
+    # order_by(q, [{^direction, selected_as(^field)}])
+    raise "not implemented"
+  end
+
+  defp apply_order_by_field(q, order_expr, _, _) do
+    order_by(q, ^order_expr)
   end
 
   @impl Flop.Adapter
