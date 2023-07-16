@@ -71,6 +71,7 @@ defmodule Flop.NimbleSchemas do
     ],
     join_fields: [
       type: :keyword_list,
+      default: [],
       keys: [
         *: [
           type:
@@ -89,6 +90,7 @@ defmodule Flop.NimbleSchemas do
     ],
     compound_fields: [
       type: :keyword_list,
+      default: [],
       keys: [
         *: [
           type: {:list, :atom}
@@ -97,6 +99,7 @@ defmodule Flop.NimbleSchemas do
     ],
     custom_fields: [
       type: :keyword_list,
+      default: [],
       keys: [
         *: [
           type: :keyword_list,
@@ -113,7 +116,8 @@ defmodule Flop.NimbleSchemas do
       ]
     ],
     alias_fields: [
-      type: {:list, :atom}
+      type: {:list, :atom},
+      default: []
     ]
   ]
 

@@ -150,7 +150,7 @@ defmodule Flop.SchemaTest do
     test "raises if default_pagination_type is not allowed" do
       error =
         assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
+          defmodule Bulgur do
             @derive {
               Flop.Schema,
               filterable: [],
@@ -168,7 +168,7 @@ defmodule Flop.SchemaTest do
     test "raises if filterable field is unknown" do
       error =
         assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
+          defmodule Pita do
             @derive {Flop.Schema, filterable: [:smell], sortable: []}
             defstruct [:name]
           end
@@ -180,7 +180,7 @@ defmodule Flop.SchemaTest do
     test "raises if sortable field is unknown" do
       error =
         assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
+          defmodule Marmelade do
             @derive {Flop.Schema, filterable: [], sortable: [:smell]}
             defstruct [:name]
           end
@@ -192,7 +192,7 @@ defmodule Flop.SchemaTest do
     test "raises if default order field is not sortable" do
       error =
         assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
+          defmodule Broomstick do
             @derive {
               Flop.Schema,
               filterable: [],
@@ -210,7 +210,7 @@ defmodule Flop.SchemaTest do
     test "raises if compound field references unknown field" do
       error =
         assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
+          defmodule Potato do
             @derive {
               Flop.Schema,
               filterable: [],
@@ -227,7 +227,7 @@ defmodule Flop.SchemaTest do
     test "raises if compound field uses existing join field name" do
       error =
         assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
+          defmodule Cannelloni do
             @derive {
               Flop.Schema,
               filterable: [],
@@ -245,7 +245,7 @@ defmodule Flop.SchemaTest do
     test "raises if alias field uses existing compound field name" do
       error =
         assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
+          defmodule Pickles do
             @derive {
               Flop.Schema,
               filterable: [],
@@ -263,7 +263,7 @@ defmodule Flop.SchemaTest do
     test "raises if alias field uses existing join field name" do
       error =
         assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
+          defmodule Juice do
             @derive {
               Flop.Schema,
               filterable: [],
@@ -281,7 +281,7 @@ defmodule Flop.SchemaTest do
     test "raises if custom field uses existing compound field name" do
       error =
         assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
+          defmodule Pasta do
             @derive {
               Flop.Schema,
               filterable: [],
@@ -293,7 +293,7 @@ defmodule Flop.SchemaTest do
                 ]
               ]
             }
-            defstruct [:id]
+            defstruct [:id, :nickname]
           end
         end
 
@@ -325,7 +325,7 @@ defmodule Flop.SchemaTest do
     test "raises if custom field uses existing alias field name" do
       error =
         assert_raise ArgumentError, fn ->
-          defmodule Vegetable do
+          defmodule Cranberry do
             @derive {
               Flop.Schema,
               filterable: [],
@@ -373,7 +373,7 @@ defmodule Flop.SchemaTest do
   test "raises error if custom field is added to sortable list" do
     error =
       assert_raise ArgumentError, fn ->
-        defmodule Vegetable do
+        defmodule Parsley do
           @derive {
             Flop.Schema,
             filterable: [],

@@ -8,6 +8,7 @@ defmodule Flop.Adapter.Ecto do
 
   alias Ecto.Query
   alias Flop.Filter
+  alias Flop.NimbleSchemas
 
   require Logger
 
@@ -43,6 +44,7 @@ defmodule Flop.Adapter.Ecto do
   @schema_options [
     join_fields: [
       type: :keyword_list,
+      default: [],
       keys: [
         *: [
           type:
@@ -61,6 +63,7 @@ defmodule Flop.Adapter.Ecto do
     ],
     compound_fields: [
       type: :keyword_list,
+      default: [],
       keys: [
         *: [
           type: {:list, :atom}
@@ -69,6 +72,7 @@ defmodule Flop.Adapter.Ecto do
     ],
     custom_fields: [
       type: :keyword_list,
+      default: [],
       keys: [
         *: [
           type: :keyword_list,
@@ -85,7 +89,8 @@ defmodule Flop.Adapter.Ecto do
       ]
     ],
     alias_fields: [
-      type: {:list, :atom}
+      type: {:list, :atom},
+      default: []
     ]
   ]
 
@@ -95,8 +100,71 @@ defmodule Flop.Adapter.Ecto do
   @impl Flop.Adapter
   def backend_options, do: @backend_options
 
+  defp __schema_options__, do: @schema_options
+
   @impl Flop.Adapter
-  def schema_options, do: @schema_options
+  def init_schema_opts(opts, schema_opts, caller_module, struct) do
+    schema_opts =
+      NimbleSchemas.validate!(
+        schema_opts,
+        __schema_options__(),
+        Flop.Schema,
+        caller_module
+      )
+
+    schema_opts
+    |> validate_no_duplicate_fields!()
+    |> normalize_schema_opts()
+    |> validate_alias_fields!(opts)
+    |> validate_compound_fields!(struct)
+    |> validate_custom_fields!(opts)
+  end
+
+  @impl Flop.Adapter
+  def fields(struct, opts) do
+    alias_fields(opts) ++
+      compound_fields(opts) ++
+      custom_fields(opts) ++
+      join_fields(opts) ++
+      schema_fields(struct)
+  end
+
+  defp alias_fields(%{alias_fields: alias_fields}) do
+    Enum.map(alias_fields, &{&1, nil})
+  end
+
+  defp compound_fields(%{compound_fields: compound_fields}) do
+    Enum.map(compound_fields, fn {field, _} -> {field, :string} end)
+  end
+
+  defp join_fields(%{join_fields: join_fields}) do
+    join_fields
+    |> Map.keys()
+    |> Enum.map(fn
+      {field, field_opts} when is_list(field_opts) ->
+        {field, Keyword.get(field_opts, :ecto_type)}
+
+      field when is_atom(field) ->
+        {field, nil}
+    end)
+  end
+
+  defp custom_fields(%{custom_fields: custom_fields}) do
+    Enum.map(custom_fields, fn {field, field_opts} ->
+      {field, Map.get(field_opts, :ecto_type)}
+    end)
+  end
+
+  defp schema_fields(%module{} = struct) do
+    struct
+    |> Map.from_struct()
+    |> Enum.reject(fn
+      {_, %Ecto.Association.NotLoaded{}} -> true
+      {:__meta__, _} -> true
+      _ -> false
+    end)
+    |> Enum.map(fn {field, _} -> {field, {:from_schema, module, field}} end)
+  end
 
   @impl Flop.Adapter
   def apply_filter(
@@ -441,5 +509,180 @@ defmodule Flop.Adapter.Ecto do
 
   defp get_field_type(struct, field) when is_atom(field) do
     Flop.Schema.field_type(struct, field)
+  end
+
+  ## Option normalization
+
+  defp normalize_schema_opts(opts) do
+    opts
+    |> Map.new()
+    |> Map.update!(:compound_fields, &normalize_compound_fields/1)
+    |> Map.update!(:custom_fields, &normalize_custom_fields/1)
+    |> Map.update!(:join_fields, &normalize_join_fields/1)
+  end
+
+  defp normalize_compound_fields(fields) do
+    Enum.into(fields, %{})
+  end
+
+  defp normalize_custom_fields(fields) do
+    Enum.into(fields, %{}, &normalize_custom_field_opts/1)
+  end
+
+  defp normalize_custom_field_opts({name, opts}) when is_list(opts) do
+    opts = %{
+      filter: Keyword.fetch!(opts, :filter),
+      ecto_type: Keyword.get(opts, :ecto_type),
+      operators: Keyword.get(opts, :operators),
+      bindings: Keyword.get(opts, :bindings, [])
+    }
+
+    {name, opts}
+  end
+
+  defp normalize_join_fields(fields) do
+    Enum.into(fields, %{}, &normalize_join_field_opts/1)
+  end
+
+  defp normalize_join_field_opts({name, {binding, field}}) do
+    Logger.warning(
+      "The tuple syntax for defining Flop join fields has been deprecated. Use a keyword list instead."
+    )
+
+    opts = %{
+      binding: binding,
+      field: field,
+      path: [binding, field],
+      ecto_type: nil
+    }
+
+    {name, opts}
+  end
+
+  defp normalize_join_field_opts({name, opts}) when is_list(opts) do
+    binding = Keyword.fetch!(opts, :binding)
+    field = Keyword.fetch!(opts, :field)
+
+    opts = %{
+      binding: binding,
+      field: field,
+      path: opts[:path] || [binding, field],
+      ecto_type: Keyword.get(opts, :ecto_type)
+    }
+
+    {name, opts}
+  end
+
+  ## Option validation
+
+  defp validate_no_duplicate_fields!(opts) when is_list(opts) do
+    duplicates =
+      opts
+      |> Keyword.take([
+        :alias_fields,
+        :compound_fields,
+        :custom_fields,
+        :join_fields
+      ])
+      |> Enum.flat_map(fn
+        {:alias_fields, fields} -> fields
+        {_, fields} -> Keyword.keys(fields)
+      end)
+      |> duplicates()
+
+    if duplicates != [] do
+      raise ArgumentError, """
+      duplicate fields
+
+      Alias field, compound field, custom field and join field names must be
+      unique. These field names were used multiple times:
+
+          #{inspect(duplicates)}
+      """
+    end
+
+    opts
+  end
+
+  defp validate_alias_fields!(
+         %{alias_fields: alias_fields} = adapter_opts,
+         opts
+       ) do
+    filterable = Keyword.fetch!(opts, :filterable)
+    illegal_fields = Enum.filter(alias_fields, &(&1 in filterable))
+
+    if illegal_fields != [] do
+      raise ArgumentError, """
+      cannot filter by alias fields
+
+      Alias fields are not allowed to be filterable. These alias fields were
+      configured as filterable:
+
+          #{inspect(illegal_fields)}
+
+      Use custom fields if you want to implement custom filtering.
+      """
+    end
+
+    adapter_opts
+  end
+
+  defp validate_compound_fields!(
+         %{compound_fields: compound_fields} = adapter_opts,
+         struct
+       ) do
+    known_fields =
+      Keyword.keys(schema_fields(struct) ++ join_fields(adapter_opts))
+
+    Enum.each(compound_fields, fn {field, fields} ->
+      unknown_fields = Enum.reject(fields, &(&1 in known_fields))
+
+      if unknown_fields != [] do
+        raise ArgumentError, """
+        compound field references unknown field(s)
+
+        Compound fields must reference existing fields, but #{inspect(field)}
+        references:
+
+            #{inspect(unknown_fields)}
+        """
+      end
+    end)
+
+    adapter_opts
+  end
+
+  defp validate_custom_fields!(
+         %{custom_fields: custom_fields} = adapter_opts,
+         opts
+       ) do
+    sortable = Keyword.fetch!(opts, :sortable)
+
+    illegal_fields =
+      custom_fields
+      |> Map.keys()
+      |> Enum.filter(&(&1 in sortable))
+
+    if illegal_fields != [] do
+      raise ArgumentError, """
+      cannot sort by custom fields
+
+      Custom fields are not allowed to be sortable. These custom fields were
+      configured as sortable:
+
+          #{inspect(illegal_fields)}
+
+      Use alias fields if you want to implement custom sorting.
+      """
+    end
+
+    adapter_opts
+  end
+
+  defp duplicates(fields) do
+    fields
+    |> Enum.frequencies()
+    |> Enum.filter(fn {_, count} -> count > 1 end)
+    |> Enum.map(fn {field, _} -> field end)
   end
 end
