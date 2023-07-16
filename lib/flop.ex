@@ -2477,15 +2477,15 @@ defmodule Flop do
   end
 
   defp get_binding(schema_struct, field) when is_atom(field) do
-    field_type = Flop.Schema.field_type(schema_struct, field)
-    get_binding(schema_struct, field_type)
+    field_info = Flop.Schema.field_info(schema_struct, field)
+    get_binding(schema_struct, field_info)
   end
 
-  defp get_binding(_, {:join, %{binding: binding}}), do: binding
-  defp get_binding(_, {:custom, %{bindings: bindings}}), do: bindings
+  defp get_binding(_, %{extra: %{type: :join, binding: binding}}), do: binding
+  defp get_binding(_, %{extra: %{type: :custom, bindings: bndgns}}), do: bndgns
 
-  defp get_binding(schema_struct, {:compound, fields}) do
-    Enum.map(fields, &get_binding(schema_struct, &1))
+  defp get_binding(struct, %{extra: %{type: :compound, fields: fields}}) do
+    Enum.map(fields, &get_binding(struct, &1))
   end
 
   defp get_binding(_, _), do: []
@@ -2614,13 +2614,17 @@ defmodule Flop do
       schema_struct = struct(module)
 
       order_by
-      |> Stream.map(&Flop.Schema.field_type(schema_struct, &1))
-      |> Stream.filter(fn
-        {:alias, _} -> true
-        _ -> false
-      end)
-      |> Stream.map(fn {:alias, field} -> field end)
+      |> filter_alias_fields(schema_struct)
       |> Enum.uniq()
     end
+  end
+
+  defp filter_alias_fields(order_fields, schema_struct) do
+    Enum.reduce(order_fields, [], fn order_field, alias_fields ->
+      case Flop.Schema.field_info(schema_struct, order_field) do
+        %{extra: %{type: :alias}} -> [order_field | alias_fields]
+        _ -> alias_fields
+      end
+    end)
   end
 end
