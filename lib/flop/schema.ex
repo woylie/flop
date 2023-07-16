@@ -653,7 +653,7 @@ defprotocol Flop.Schema do
   ## Examples
 
       iex> field_info(%MyApp.Pet{}, :age)
-      %Flop.FieldInfo{ecto_type: :integer}
+      %Flop.FieldInfo{ecto_type: :integer, extra: %{type: :normal, field: :age}}
       iex> field_info(%MyApp.Pet{}, :full_name)
       %Flop.FieldInfo{
         ecto_type: :string,
