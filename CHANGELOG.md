@@ -2,15 +2,23 @@
 
 ## Unreleased
 
+### Added
+
+- Added a `Flop.FieldInfo` struct.
+- Added `Flop.Schema.field_info/2` to derive the field info for a given field.
+
 ### Changed
 
-- The Ecto-specific options `alias_fields`, `compound_fields`, `custom_fields`
-  and `join_fields` for `Flop.Schema` must now be nested under the
-  `adapter_opts` keyword. The old configuration format is still supported, but
-  will be removed in a future version.
-- The Ecto-specific options `repo` and `query_opts` for `use Flop` must also be
-  nested under the `adapter_opts` keyword. The old configuration format is still
-  supported, but will be removed in a future version.
+- The Ecto-specific options `alias_fields`, `compound_fields`, `custom_fields`,
+  and `join_fields` within `Flop.Schema`, as well as `repo` and `query_opts`
+  within `use Flop`, are now nested under the `adapter_opts` keyword. The old
+  configuration format is still supported, but will be removed in a future
+  version.
+
+### Deprecated
+
+- `Flop.Schema.field_type/2` was deprecated in favor of
+  `Flop.Schema.field_info/2`.
 
 ## [0.21.0] - 2023-07-02
 

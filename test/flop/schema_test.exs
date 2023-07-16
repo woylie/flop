@@ -106,6 +106,12 @@ defmodule Flop.SchemaTest do
     end
   end
 
+  test "calling field_info/2 without deriving raises error" do
+    assert_raise Protocol.UndefinedError, fn ->
+      Schema.field_info(%{}, :field)
+    end
+  end
+
   test "calling filterable/1 without deriving raises error" do
     assert_raise Protocol.UndefinedError, fn ->
       Schema.filterable(%{})

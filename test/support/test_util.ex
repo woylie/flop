@@ -5,6 +5,7 @@ defmodule Flop.TestUtil do
   import Flop.Factory
 
   alias Ecto.Adapters.SQL.Sandbox
+  alias Flop.FieldInfo
   alias Flop.Repo
   alias MyApp.Fruit
   alias MyApp.Pet
@@ -27,24 +28,25 @@ defmodule Flop.TestUtil do
 
   def filter_items([%module{} = struct | _] = items, field, op, value)
       when is_atom(field) do
-    case Flop.Schema.field_type(struct, field) do
-      {:join, %{ecto_type: ecto_type}} = field_type
+    case Flop.Schema.field_info(struct, field) do
+      %FieldInfo{ecto_type: ecto_type, extra: %{type: :join}} = field_info
       when not is_nil(ecto_type) ->
         filter_func = matches?(op, value, ecto_type)
 
         Enum.filter(items, fn item ->
-          item |> get_field(field_type) |> filter_func.()
+          item |> get_field(field_info) |> filter_func.()
         end)
 
-      {type, _opts} = field_type when type in [:normal, :join] ->
+      %FieldInfo{extra: %{type: type}} = field_info
+      when type in [:normal, :join] ->
         ecto_type = module.__schema__(:type, field)
         filter_func = matches?(op, value, ecto_type)
 
         Enum.filter(items, fn item ->
-          item |> get_field(field_type) |> filter_func.()
+          item |> get_field(field_info) |> filter_func.()
         end)
 
-      {:compound, fields} ->
+      %FieldInfo{extra: %{type: :compound, fields: fields}} ->
         Enum.filter(
           items,
           &apply_filter_to_compound_fields(&1, fields, op, value)
@@ -65,16 +67,6 @@ defmodule Flop.TestUtil do
               :contains,
               :not_contains
             ] do
-    # joined_field_value =
-    #   fields
-    #   |> Enum.map(&Flop.Schema.field_type(%Pet{}, &1))
-    #   |> Enum.map(&get_field(pet, &1))
-    #   |> Enum.map(&String.split/1)
-    #   |> Enum.concat()
-    #   |> Enum.join(" ")
-
-    # joined_query_value = value |> String.split() |> Enum.join(" ")
-    # matches?(op, joined_query_value).(joined_field_value)
     true
   end
 
@@ -82,8 +74,8 @@ defmodule Flop.TestUtil do
     filter_func = matches?(:empty, value)
 
     Enum.all?(fields, fn field ->
-      field_type = Flop.Schema.field_type(%Pet{}, field)
-      pet |> get_field(field_type) |> filter_func.()
+      field_info = Flop.Schema.field_info(%Pet{}, field)
+      pet |> get_field(field_info) |> filter_func.()
     end)
   end
 
@@ -94,8 +86,8 @@ defmodule Flop.TestUtil do
       filter_func = matches?(:like, substring)
 
       Enum.any?(fields, fn field ->
-        field_type = Flop.Schema.field_type(%Pet{}, field)
-        pet |> get_field(field_type) |> filter_func.()
+        field_info = Flop.Schema.field_info(%Pet{}, field)
+        pet |> get_field(field_info) |> filter_func.()
       end)
     end)
   end
@@ -107,8 +99,8 @@ defmodule Flop.TestUtil do
       filter_func = matches?(:ilike, substring)
 
       Enum.any?(fields, fn field ->
-        field_type = Flop.Schema.field_type(%Pet{}, field)
-        pet |> get_field(field_type) |> filter_func.()
+        field_info = Flop.Schema.field_info(%Pet{}, field)
+        pet |> get_field(field_info) |> filter_func.()
       end)
     end)
   end
@@ -120,8 +112,8 @@ defmodule Flop.TestUtil do
       filter_func = matches?(:like, substring)
 
       Enum.any?(fields, fn field ->
-        field_type = Flop.Schema.field_type(%Pet{}, field)
-        pet |> get_field(field_type) |> filter_func.()
+        field_info = Flop.Schema.field_info(%Pet{}, field)
+        pet |> get_field(field_info) |> filter_func.()
       end)
     end)
   end
@@ -133,8 +125,8 @@ defmodule Flop.TestUtil do
       filter_func = matches?(:ilike, substring)
 
       Enum.any?(fields, fn field ->
-        field_type = Flop.Schema.field_type(%Pet{}, field)
-        pet |> get_field(field_type) |> filter_func.()
+        field_info = Flop.Schema.field_info(%Pet{}, field)
+        pet |> get_field(field_info) |> filter_func.()
       end)
     end)
   end
@@ -143,14 +135,15 @@ defmodule Flop.TestUtil do
     filter_func = matches?(op, value)
 
     Enum.any?(fields, fn field ->
-      field_type = Flop.Schema.field_type(%Pet{}, field)
-      pet |> get_field(field_type) |> filter_func.()
+      field_info = Flop.Schema.field_info(%Pet{}, field)
+      pet |> get_field(field_info) |> filter_func.()
     end)
   end
 
-  defp get_field(pet, {:normal, field}), do: Map.fetch!(pet, field)
+  defp get_field(pet, %FieldInfo{extra: %{type: :normal, field: field}}),
+    do: Map.fetch!(pet, field)
 
-  defp get_field(pet, {:join, %{path: [a, b]}}),
+  defp get_field(pet, %FieldInfo{extra: %{type: :join, path: [a, b]}}),
     do: pet |> Map.fetch!(a) |> Map.fetch!(b)
 
   defp matches?(op, v, _), do: matches?(op, v)

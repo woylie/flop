@@ -12,6 +12,7 @@ defmodule Flop.Filter do
   alias Flop.CustomTypes.Any
   alias Flop.CustomTypes.ExistingAtom
   alias Flop.CustomTypes.Like
+  alias Flop.FieldInfo
 
   @typedoc """
   Represents filter query parameters.
@@ -145,18 +146,18 @@ defmodule Flop.Filter do
     if changeset.valid? do
       field = Changeset.fetch_field!(changeset, :field)
       op = Changeset.fetch_field!(changeset, :op)
-      field_type = module && get_field_type(module, field)
+      field_info = module && get_field_info(module, field)
 
       changeset
-      |> validate_op(field_type, op)
-      |> cast_value(field_type, op)
+      |> validate_op(field_info, op)
+      |> cast_value(field_info, op)
     else
       changeset
     end
   end
 
-  defp cast_value(%Changeset{params: params} = changeset, field_type, op) do
-    type = field_type |> value_type(op) |> expand_type()
+  defp cast_value(%Changeset{params: params} = changeset, field_info, op) do
+    type = field_info |> value_type(op) |> expand_type()
     value = filter_empty_values(type, params["value"])
 
     case Ecto.Type.cast(type, value) do
@@ -182,23 +183,19 @@ defmodule Flop.Filter do
   defp value_type(_, :like_and), do: Like
   defp value_type(_, :like_or), do: Like
   defp value_type(nil, _), do: Any
-  defp value_type(:flop_compound, op), do: value_type(:string, op)
-
-  defp value_type({:flop_custom, %{ecto_type: type}}, op),
-    do: value_type(type, op)
-
+  defp value_type(%FieldInfo{ecto_type: type}, op), do: value_type(type, op)
   defp value_type(type, :in), do: {:array, type}
   defp value_type(type, :not_in), do: {:array, type}
   defp value_type({:array, type}, :contains), do: type
   defp value_type({:array, type}, :not_contains), do: type
   defp value_type(type, _), do: type
 
-  defp expand_type({:ecto_enum, values}) do
-    {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)}
-  end
-
   defp expand_type({:from_schema, module, field}) do
     module.__schema__(:type, field)
+  end
+
+  defp expand_type({:ecto_enum, values}) do
+    {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)}
   end
 
   defp expand_type(type), do: type
@@ -217,8 +214,8 @@ defmodule Flop.Filter do
 
   defp validate_op(changeset, nil, _), do: changeset
 
-  defp validate_op(%Changeset{valid?: true} = changeset, field_type, op) do
-    if op in allowed_operators(field_type) do
+  defp validate_op(%Changeset{valid?: true} = changeset, field_info, op) do
+    if op in allowed_operators(field_info) do
       changeset
     else
       add_error(changeset, :op, "is invalid")
@@ -244,36 +241,17 @@ defmodule Flop.Filter do
   def allowed_operators(module, field)
       when is_atom(module) and is_atom(field) do
     module
-    |> get_field_type(field)
+    |> get_field_info(field)
     |> allowed_operators()
   end
 
-  defp get_field_type(module, field) do
+  defp get_field_info(module, field) do
     struct = struct(module)
 
     if Flop.Schema.impl_for(struct) != Flop.Schema.Any do
-      field_type_from_flop_schema(module, struct, field)
+      Flop.Schema.field_info(struct, field)
     else
       module.__schema__(:type, field)
-    end
-  end
-
-  defp field_type_from_flop_schema(module, struct, field) do
-    case Flop.Schema.field_type(struct, field) do
-      {:normal, _} ->
-        module.__schema__(:type, field)
-
-      {:join, %{ecto_type: type}} ->
-        type
-
-      {:custom, opts} ->
-        {:flop_custom, opts}
-
-      {:compound, _} ->
-        :flop_compound
-
-      _ ->
-        nil
     end
   end
 
@@ -286,7 +264,16 @@ defmodule Flop.Filter do
       iex> allowed_operators(:integer)
       [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
   """
-  @spec allowed_operators(any) :: [op]
+  @spec allowed_operators(FieldInfo.t() | Flop.Schema.ecto_type() | nil) :: [op]
+  def allowed_operators(%FieldInfo{operators: operators})
+      when is_list(operators) do
+    operators
+  end
+
+  def allowed_operators(%FieldInfo{ecto_type: ecto_type}) do
+    ecto_type |> expand_type() |> allowed_operators()
+  end
+
   def allowed_operators(type) when type in [:decimal, :float, :id, :integer] do
     [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
   end
@@ -370,30 +357,6 @@ defmodule Flop.Filter do
       :in,
       :not_in
     ]
-  end
-
-  def allowed_operators(:flop_compound) do
-    [
-      :=~,
-      :like,
-      :not_like,
-      :like_and,
-      :like_or,
-      :ilike,
-      :not_ilike,
-      :ilike_and,
-      :ilike_or,
-      :empty,
-      :not_empty
-    ]
-  end
-
-  def allowed_operators({:flop_custom, %{operators: ops}}) when is_list(ops) do
-    ops
-  end
-
-  def allowed_operators({:flop_custom, %{ecto_type: type}}) do
-    allowed_operators(type)
   end
 
   def allowed_operators(_) do
