@@ -1,5 +1,4 @@
 [
-  ~r/lib\/flop\/schema\.ex.*no_return Function apply_order_by\/3 has no local return\./,
   ~r/lib\/flop\/schema\.ex.*no_return Function cursor_dynamic\/3 has no local return\./,
   ~r/lib\/flop\/schema\.ex.*no_return Function default_limit\/1 has no local return\./,
   ~r/lib\/flop\/schema\.ex.*no_return Function default_order\/1 has no local return\./,
