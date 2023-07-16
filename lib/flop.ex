@@ -301,7 +301,15 @@ defmodule Flop do
         __CALLER__.module
       )
 
-    opts = Keyword.put(opts, :adapter, Flop.Adapter.Ecto)
+    {legacy_adapter_opts, opts} = Keyword.split(opts, [:query_opts, :repo])
+    adapter_schema = Keyword.fetch!(opts, :adapter).backend_options()
+
+    adapter_opts =
+      legacy_adapter_opts
+      |> Keyword.merge(Keyword.fetch!(opts, :adapter_opts))
+      |> NimbleSchemas.validate!(adapter_schema, Flop.Schema, __CALLER__.module)
+
+    opts = Keyword.put(opts, :adapter_opts, adapter_opts)
 
     quote do
       @doc false
@@ -455,7 +463,8 @@ defmodule Flop do
           | {:extra_opts, Keyword.t()}
           | private_option()
 
-  @typep private_option :: {:adapter, module} | {:backend, module}
+  @typep private_option ::
+           {:adapter, module} | {:adapter_opts, keyword} | {:backend, module}
 
   @type default_order ::
           %{
