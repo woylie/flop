@@ -9,6 +9,5 @@
   ~r/lib\/flop\/schema\.ex.*no_return Function max_limit\/1 has no local return\./,
   ~r/lib\/flop\/schema\.ex.*no_return Function pagination_types\/1 has no local return\./,
   ~r/lib\/flop\/schema\.ex.*no_return Function default_pagination_type\/1 has no local return\./,
-  ~r/lib\/flop\/schema\.ex.*no_return Function sortable\/1 has no local return\./,
-  ~r/lib\/flop\/filter\.ex.*unused_fun Function field_type_from_flop_schema\/3 will never be called\./
+  ~r/lib\/flop\/schema\.ex.*no_return Function sortable\/1 has no local return\./
 ]
