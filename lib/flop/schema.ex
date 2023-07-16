@@ -653,7 +653,7 @@ defprotocol Flop.Schema do
   ## Examples
 
       iex> field_info(%MyApp.Pet{}, :age)
-      %Flop.FieldInfo{ecto_type: {:from_schema, MyApp.Pet, :age}}
+      %Flop.FieldInfo{ecto_type: :integer}
       iex> field_info(%MyApp.Pet{}, :full_name)
       %Flop.FieldInfo{
         ecto_type: :string,
@@ -1031,8 +1031,33 @@ defimpl Flop.Schema, for: Any do
 
   def build_field_info_func(adapter, adapter_opts, struct) do
     for {name, field_info} <- adapter.fields(struct, adapter_opts) do
-      quote do
-        def field_info(_, unquote(name)), do: unquote(Macro.escape(field_info))
+      case field_info do
+        %{ecto_type: {:from_schema, module, field}} ->
+          quote do
+            def field_info(_, unquote(name)) do
+              %{
+                unquote(Macro.escape(field_info))
+                | ecto_type: unquote(module).__schema__(:type, unquote(field))
+              }
+            end
+          end
+
+        %{ecto_type: {:ecto_enum, values}} ->
+          type = {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)}
+          field_info = %{field_info | ecto_type: type}
+
+          quote do
+            def field_info(_, unquote(name)) do
+              unquote(Macro.escape(field_info))
+            end
+          end
+
+        _ ->
+          quote do
+            def field_info(_, unquote(name)) do
+              unquote(Macro.escape(field_info))
+            end
+          end
       end
     end
   end
