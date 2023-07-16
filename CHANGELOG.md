@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Changed
+
+- The Ecto-specific options `alias_fields`, `compound_fields`, `custom_fields`
+  and `join_fields` for `Flop.Schema` must now be nested under the
+  `adapter_opts` keyword. The old configuration format is still supported, but
+  will be removed in a future version.
+- The Ecto-specific options `repo` and `query_opts` for `use Flop` must also be
+  nested under the `adapter_opts` keyword. The old configuration format is still
+  supported, but will be removed in a future version.
+
 ## [0.21.0] - 2023-07-02
 
 ### Added
