@@ -7,6 +7,7 @@ defmodule Flop.Adapter.Ecto do
   import Flop.Operators
 
   alias Ecto.Query
+  alias Flop.FieldInfo
   alias Flop.Filter
   alias Flop.NimbleSchemas
 
@@ -138,28 +139,25 @@ defmodule Flop.Adapter.Ecto do
   end
 
   defp alias_fields(%{alias_fields: alias_fields}) do
-    Enum.map(alias_fields, &{&1, nil})
+    Enum.map(alias_fields, &{&1, %FieldInfo{}})
   end
 
   defp compound_fields(%{compound_fields: compound_fields}) do
-    Enum.map(compound_fields, fn {field, _} -> {field, :string} end)
+    Enum.map(compound_fields, fn {field, _} ->
+      {field, %FieldInfo{ecto_type: :string}}
+    end)
   end
 
   defp join_fields(%{join_fields: join_fields}) do
-    join_fields
-    |> Map.keys()
-    |> Enum.map(fn
-      {field, field_opts} when is_list(field_opts) ->
-        {field, Keyword.get(field_opts, :ecto_type)}
-
-      field when is_atom(field) ->
-        {field, nil}
+    Enum.map(join_fields, fn
+      {field, %{} = field_opts} ->
+        {field, %FieldInfo{ecto_type: Map.get(field_opts, :ecto_type)}}
     end)
   end
 
   defp custom_fields(%{custom_fields: custom_fields}) do
     Enum.map(custom_fields, fn {field, field_opts} ->
-      {field, Map.get(field_opts, :ecto_type)}
+      {field, %FieldInfo{ecto_type: Map.get(field_opts, :ecto_type)}}
     end)
   end
 
@@ -171,7 +169,9 @@ defmodule Flop.Adapter.Ecto do
       {:__meta__, _} -> true
       _ -> false
     end)
-    |> Enum.map(fn {field, _} -> {field, {:from_schema, module, field}} end)
+    |> Enum.map(fn {field, _} ->
+      {field, %FieldInfo{ecto_type: {:from_schema, module, field}}}
+    end)
   end
 
   @impl Flop.Adapter

@@ -10,10 +10,9 @@ defmodule Flop.Adapter do
   # replaced.
   @callback init_schema_opts(keyword, keyword, module, struct) :: map
 
-  @callback fields(struct, adapter_opts) :: [{field, ecto_type | nil}]
+  @callback fields(struct, adapter_opts) :: [{field, Flop.FieldInfo.t()}]
             when adapter_opts: map,
-                 field: atom,
-                 ecto_type: Flop.Schema.ecto_type()
+                 field: atom
 
   @callback apply_filter(queryable, Flop.Filter.t(), struct, keyword) ::
               queryable
