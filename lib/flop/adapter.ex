@@ -4,6 +4,18 @@ defmodule Flop.Adapter do
   @type queryable :: term
   @type opts :: keyword
 
+  # Struct is available when deriving protocol. Change when protocol is
+  # replaced.
+  @callback init_schema_opts(keyword, keyword, module, struct) :: map
+
+  # Replace with init_backend_options
+  @callback backend_options() :: NimbleOptions.t()
+
+  @callback fields(struct, adapter_opts) :: [{field, ecto_type | nil}]
+            when adapter_opts: map,
+                 field: atom,
+                 ecto_type: Flop.Schema.ecto_type()
+
   @callback apply_filter(queryable, Flop.Filter.t(), struct, keyword) ::
               queryable
 
@@ -27,7 +39,4 @@ defmodule Flop.Adapter do
   @callback count(queryable, opts) :: non_neg_integer
 
   @callback list(queryable, opts) :: [any]
-
-  @callback backend_options() :: NimbleOptions.t()
-  @callback schema_options() :: NimbleOptions.t()
 end
