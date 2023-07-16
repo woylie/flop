@@ -212,6 +212,26 @@ defmodule Flop.Adapter.Ecto do
   end
 
   @impl Flop.Adapter
+  def get_field(%{} = item, _field, %FieldInfo{
+        extra: %{type: :compound, fields: fields}
+      }) do
+    Enum.map_join(fields, " ", &get_field(item, &1, %FieldInfo{}))
+  end
+
+  def get_field(%{} = item, _field, %FieldInfo{
+        extra: %{type: :join, path: path}
+      }) do
+    Enum.reduce(path, item, fn
+      field, %{} = acc -> Map.get(acc, field)
+      _, _ -> nil
+    end)
+  end
+
+  def get_field(%{} = item, field, %FieldInfo{}) do
+    Map.get(item, field)
+  end
+
+  @impl Flop.Adapter
   def apply_filter(
         query,
         %Flop.Filter{field: field} = filter,
