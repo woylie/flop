@@ -35,6 +35,11 @@ defmodule Flop.Adapter.Ecto do
     :ilike_or
   ]
 
+  @backend_options [
+    repo: [required: true],
+    query_opts: [type: :keyword_list, default: []]
+  ]
+
   @schema_options [
     join_fields: [
       type: :keyword_list,
@@ -84,7 +89,11 @@ defmodule Flop.Adapter.Ecto do
     ]
   ]
 
+  @backend_options NimbleOptions.new!(@backend_options)
   @schema_options NimbleOptions.new!(@schema_options)
+
+  @impl Flop.Adapter
+  def backend_options, do: @backend_options
 
   @impl Flop.Adapter
   def schema_options, do: @schema_options
@@ -239,6 +248,9 @@ defmodule Flop.Adapter.Ecto do
   end
 
   defp apply_on_repo(repo_fn, flop_fn, args, opts) do
+    # use nested adapter_opts if set
+    opts = Flop.get_option(:adapter_opts, opts) || opts
+
     repo = Flop.get_option(:repo, opts) || raise no_repo_error(flop_fn)
     opts = query_opts(opts)
 

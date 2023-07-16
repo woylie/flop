@@ -2,6 +2,11 @@ defmodule Flop.NimbleSchemas do
   @moduledoc false
 
   @backend_option [
+    adapter: [type: :atom, default: Flop.Adapter.Ecto],
+    adapter_opts: [
+      type: :keyword_list,
+      default: []
+    ],
     cursor_value_func: [type: {:fun, 2}],
     default_limit: [type: :integer, default: 50],
     max_limit: [type: :integer, default: 1000],
@@ -26,7 +31,7 @@ defmodule Flop.NimbleSchemas do
       default: [:offset, :page, :first, :last]
     ],
     repo: [],
-    query_opts: [type: :keyword_list]
+    query_opts: [type: :keyword_list, default: []]
   ]
 
   @schema_option [
