@@ -145,7 +145,23 @@ defmodule Flop.Adapter.Ecto do
   defp compound_fields(%{compound_fields: compound_fields}) do
     Enum.map(compound_fields, fn {field, fields} ->
       {field,
-       %FieldInfo{ecto_type: :string, extra: %{fields: fields, type: :compound}}}
+       %FieldInfo{
+         ecto_type: :string,
+         operators: [
+           :=~,
+           :like,
+           :not_like,
+           :like_and,
+           :like_or,
+           :ilike,
+           :not_ilike,
+           :ilike_and,
+           :ilike_or,
+           :empty,
+           :not_empty
+         ],
+         extra: %{fields: fields, type: :compound}
+       }}
     end)
   end
 

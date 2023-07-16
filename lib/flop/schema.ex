@@ -657,6 +657,19 @@ defprotocol Flop.Schema do
       iex> field_info(%MyApp.Pet{}, :full_name)
       %Flop.FieldInfo{
         ecto_type: :string,
+        operators: [
+          :=~,
+          :like,
+          :not_like,
+          :like_and,
+          :like_or,
+          :ilike,
+          :not_ilike,
+          :ilike_and,
+          :ilike_or,
+          :empty,
+          :not_empty
+        ],
         extra: %{type: :compound, fields: [:family_name, :given_name]}
       }
       iex> field_info(%MyApp.Pet{}, :owner_name)
