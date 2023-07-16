@@ -895,7 +895,7 @@ defimpl Flop.Schema, for: Any do
     order_by_func =
       build_order_by_func(compound_fields, join_fields, alias_fields)
 
-    get_field_func = build_get_field_func(compound_fields, join_fields)
+    get_field_func = build_get_field_func(struct, adapter, adapter_opts)
 
     cursor_dynamic_func_compound =
       build_cursor_dynamic_func_compound(compound_fields)
@@ -1354,46 +1354,17 @@ defimpl Flop.Schema, for: Any do
     end
   end
 
-  def build_get_field_func(compound_fields, join_fields) do
-    compound_field_funcs =
-      for {name, fields} <- compound_fields do
-        quote do
-          def get_field(struct, unquote(name)) do
-            Enum.map_join(
-              unquote(fields),
-              " ",
-              &Flop.Schema.get_field(struct, &1)
-            )
-          end
-        end
-      end
-
-    join_field_funcs =
-      for {name, %{path: path}} <- join_fields do
-        quote do
-          def get_field(struct, unquote(name)) do
-            Enum.reduce(unquote(path), struct, fn field, acc ->
-              case acc do
-                %{} -> Map.get(acc, field)
-                _ -> nil
-              end
-            end)
-
-            # assoc = Map.get(struct, unquote(assoc_field)) || %{}
-            # Map.get(assoc, unquote(field))
-          end
-        end
-      end
-
-    fallback_func =
+  def build_get_field_func(struct, adapter, adapter_opts) do
+    for {field, field_info} <- adapter.fields(struct, adapter_opts) do
       quote do
-        def get_field(struct, field), do: Map.get(struct, field)
+        def get_field(struct, unquote(field)) do
+          unquote(adapter).get_field(
+            struct,
+            unquote(field),
+            unquote(Macro.escape(field_info))
+          )
+        end
       end
-
-    quote do
-      unquote(compound_field_funcs)
-      unquote(join_field_funcs)
-      unquote(fallback_func)
     end
   end
 

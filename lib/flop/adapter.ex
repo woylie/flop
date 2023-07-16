@@ -37,4 +37,6 @@ defmodule Flop.Adapter do
   @callback count(queryable, opts) :: non_neg_integer
 
   @callback list(queryable, opts) :: [any]
+
+  @callback get_field(any, atom, Flop.FieldInfo.t()) :: any
 end
