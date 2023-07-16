@@ -802,7 +802,22 @@ defimpl Flop.Schema, for: Any do
         __CALLER__.module
       )
 
-    validate_options!(options, struct)
+    legacy_adapter_opts =
+      Keyword.take(options, [
+        :alias_fields,
+        :compound_fields,
+        :custom_fields,
+        :join_fields
+      ])
+
+    adapter_schema = Keyword.fetch!(options, :adapter).schema_options()
+
+    adapter_opts =
+      legacy_adapter_opts
+      |> Keyword.merge(Keyword.fetch!(options, :adapter_opts))
+      |> NimbleSchemas.validate!(adapter_schema, Flop.Schema, __CALLER__.module)
+
+    validate_options!(options, adapter_opts, struct)
 
     filterable_fields = Keyword.get(options, :filterable)
     sortable_fields = Keyword.get(options, :sortable)
@@ -811,16 +826,16 @@ defimpl Flop.Schema, for: Any do
     pagination_types = Keyword.get(options, :pagination_types)
     default_pagination_type = Keyword.get(options, :default_pagination_type)
     default_order = Keyword.get(options, :default_order)
-    compound_fields = Keyword.get(options, :compound_fields, [])
-    alias_fields = Keyword.get(options, :alias_fields, [])
+    compound_fields = Keyword.get(adapter_opts, :compound_fields, [])
+    alias_fields = Keyword.get(adapter_opts, :alias_fields, [])
 
     custom_fields =
-      options
+      adapter_opts
       |> Keyword.get(:custom_fields, [])
       |> Enum.map(&normalize_custom_opts/1)
 
     join_fields =
-      options
+      adapter_opts
       |> Keyword.get(:join_fields, [])
       |> Enum.map(&normalize_join_opts/1)
 
@@ -894,12 +909,12 @@ defimpl Flop.Schema, for: Any do
     end
   end
 
-  defp validate_options!(opts, struct) do
-    compound_fields = get_compound_fields(opts)
-    join_fields = get_join_fields(opts)
+  defp validate_options!(opts, adapter_opts, struct) do
+    compound_fields = get_compound_fields(adapter_opts)
+    join_fields = get_join_fields(adapter_opts)
     schema_fields = get_schema_fields(struct)
-    alias_fields = Keyword.get(opts, :alias_fields, [])
-    custom_fields = get_custom_fields(opts)
+    alias_fields = Keyword.get(adapter_opts, :alias_fields, [])
+    custom_fields = get_custom_fields(adapter_opts)
 
     all_fields =
       compound_fields ++
@@ -917,9 +932,9 @@ defimpl Flop.Schema, for: Any do
     validate_no_unknown_field!(opts[:filterable], all_fields, "filterable")
     validate_no_unknown_field!(opts[:sortable], all_fields, "sortable")
     validate_default_order!(opts[:default_order], opts[:sortable])
-    validate_compound_fields!(opts[:compound_fields], all_fields)
+    validate_compound_fields!(adapter_opts[:compound_fields], all_fields)
     validate_alias_fields!(alias_fields, opts[:filterable])
-    validate_custom_fields!(opts[:custom_fields], opts[:sortable])
+    validate_custom_fields!(adapter_opts[:custom_fields], opts[:sortable])
   end
 
   defp get_compound_fields(opts) do
