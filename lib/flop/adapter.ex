@@ -35,11 +35,37 @@ defmodule Flop.Adapter do
 
   @callback apply_cursor(queryable, cursor_fields, opts) :: queryable
 
+  @doc """
+  Takes a queryable and returns the total count.
+
+  Flop will pass the queryable with filter parameters applied, but without
+  pagination or sorting parameters.
+  """
   @callback count(queryable, opts) :: non_neg_integer
 
+  @doc """
+  Executes a list query.
+
+  The first argument is a queryable, for example an `Ecto.Queryable.t()` or any
+  other format depending on the adapter.
+  """
   @callback list(queryable, opts) :: [any]
 
   @callback get_field(any, atom, Flop.FieldInfo.t()) :: any
 
+  @doc """
+  Returns a quoted function to be compiled in the schema protocol
+  implementation.
+
+  Takes the schema options (with the nested adapter options) as argument.
+
+  This is a hacky workaround that is necessary because
+  `Ecto.Query.API.selected_as/1` does not accept variables, which means that we
+  need to compile a function that builds the `order_by` clause for configured
+  alias fields.
+
+  This callback will be removed as soon as a better solution is found or made
+  possible.
+  """
   @callback custom_func_builder(opts) :: Macro.t() when opts: keyword
 end
