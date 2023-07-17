@@ -2406,7 +2406,9 @@ defmodule Flop do
         Flop.Schema,
         filterable: [:name, :owner_age],
         sortable: [:name, :owner_age],
-        join_fields: [owner_age: {:owner, :age}]
+        adapter_opts: [
+          join_fields: [owner_age: {:owner, :age}]
+        ]
       }
 
   If you pass a Flop with a filter on the `:owner_age` field, the returned list
@@ -2599,7 +2601,9 @@ defmodule Flop do
         Flop.Schema,
         filterable: [],
         sortable: [:name, :pet_count],
-        alias_fields: [:pet_count]
+        adapter_opts: [
+          alias_fields: [:pet_count]
+        ]
       }
 
   If you pass a Flop that orders by the `:pet_count` field, the returned list

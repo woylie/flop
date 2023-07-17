@@ -121,7 +121,9 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [],
         sortable: [:pet_count],
-        alias_fields: [:pet_count]
+        adapter_opts: [
+          alias_fields: [:pet_count]
+        ]
       }
 
   Query:
@@ -149,7 +151,9 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [:full_name],
         sortable: [:full_name],
-        compound_fields: [full_name: [:family_name, :given_name]]
+        adapter_opts: [
+          compound_fields: [full_name: [:family_name, :given_name]]
+        ]
       }
 
   This allows you to use the field name `:full_name` as any other field in the
@@ -252,11 +256,13 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [:pet_species],
         sortable: [:pet_species],
-        join_fields: [
-          pet_species: [
-            binding: :pets,
-            field: :species,
-            ecto_type: :string
+        adapter_opts: [
+          join_fields: [
+            pet_species: [
+              binding: :pets,
+              field: :species,
+              ecto_type: :string
+            ]
           ]
         ]
       }
@@ -287,11 +293,14 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [:pet_species],
         sortable: [:pet_species],
-        join_fields: [
-          pet_species: [
-            binding: :pets,
-            field: :species,
-            path: [:pets, :species]
+        adapter_opts: [
+          join_fields: [
+            pet_species: [
+              binding: :pets,
+              field: :species,
+              path: [:pets, :species]
+            ]
+          ]
         ]
       }
 
@@ -327,7 +336,16 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [:pet_count],
         sortable: [:pet_count],
-        join_fields: [pet_count: [{:pet_count, :count}]}
+        adapter_opts: [
+          join_fields: [
+            pet_count: [
+              binding: :pet_count,
+              field: :count,
+              ecto_type: :integer
+            ]
+          ]
+        ]
+      }
 
   Query:
 
@@ -372,11 +390,13 @@ defprotocol Flop.Schema do
       @derive {
         Flop.Schema,
         filterable: [:inserted_at_date],
-        custom_fields: [
-          inserted_at_date: [
-            filter: {CustomFilters, :date_filter, [source: :inserted_at]},
-            ecto_type: :date,
-            operators: [:<=, :>=]
+        adapter_opts: [
+          custom_fields: [
+            inserted_at_date: [
+              filter: {CustomFilters, :date_filter, [source: :inserted_at]},
+              ecto_type: :date,
+              operators: [:<=, :>=]
+            ]
           ]
         ]
       }
@@ -441,15 +461,19 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [:full_text, :pet_species],
         sortable: [:id],
-        join_fields: [
-          pet_species: [
-            binding: :pets,
-            field: :species,
-            ecto_type: :string
+        adapter_opts: [
+          join_fields: [
+            pet_species: [
+              binding: :pets,
+              field: :species,
+              ecto_type: :string
+            ]
           ],
-          full_text: [
-            filter: {__MODULE__, :full_text_filter, []},
-            ecto_type: :string
+          custom_fields: [
+            full_text: [
+              filter: {__MODULE__, :full_text_filter, []},
+              ecto_type: :string
+            ]
           ]
         ]
       }
@@ -723,7 +747,7 @@ defprotocol Flop.Schema do
 
   Resolves join fields and compound fields according to the config.
 
-      # join_fields: [owner_name: {:owner, :name}]
+      # join_fields: [owner_name: [binding: :owner, field: :name]]
       iex> pet = %MyApp.Pet{name: "George", owner: %MyApp.Owner{name: "Carl"}}
       iex> Flop.Schema.get_field(pet, :name)
       "George"
