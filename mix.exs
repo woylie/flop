@@ -60,6 +60,7 @@ defmodule Flop.MixProject do
       {:ecto_sql, "~> 3.9", only: :test},
       {:ex_doc, "~> 0.21", only: :dev, runtime: false},
       {:ex_machina, "~> 2.4", only: :test},
+      {:makeup_diff, "~> 0.1.0", only: :dev, runtime: false},
       {:excoveralls, "~> 0.10", only: :test},
       {:nimble_options, "~> 1.0"},
       {:postgrex, ">= 0.0.0", only: :test},
