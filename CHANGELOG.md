@@ -2,18 +2,26 @@
 
 ## Unreleased
 
+This release includes a substantial refactoring to lay the groundwork for the
+upcoming adapter feature. While this release contains deprecations and changes,
+they are either backward compatible or affect functions that are unlikely used
+by end users. The primary aim has been to ensure a seamless transition and
+maintain compatibility with previous versions.
+
 ### Added
 
-- Added a `Flop.FieldInfo` struct.
-- Added `Flop.Schema.field_info/2` to derive the field info for a given field.
+- Added a `Flop.FieldInfo` struct that contains metadata for a field for use
+  by adapters.
+- Added the `Flop.Schema.field_info/2` function, which derives field information
+  and replaces the previous `Flop.Schema.field_type/2` function with a more
+  standardized and structured output.
 
 ### Changed
 
 - The Ecto-specific options `alias_fields`, `compound_fields`, `custom_fields`,
   and `join_fields` within `Flop.Schema`, as well as `repo` and `query_opts`
   within `use Flop`, are now nested under the `adapter_opts` keyword. The old
-  configuration format is still supported, but will be removed in a future
-  version.
+  configuration format is still supported.
 
 ### Deprecated
 
@@ -27,9 +35,11 @@
 
 ### Upgrade guide
 
-As mentioned, the old configuration format continues to work in this update, but
-if you want to get your application ready for future updates, nest the field
-configuration for `Flop.Schema` under `adapter_opts`:
+While the old configuration format is still supported, you are encouraged to
+update your application to the new structure to prepare for future versions.
+
+To do this, place the field configuration for `Flop.Schema` under
+`adapter_opts`:
 
 ```diff
 @derive {
@@ -49,7 +59,8 @@ configuration for `Flop.Schema` under `adapter_opts`:
 }
 ```
 
-Also, nest the `repo` and `query_opts` options for `use Flop`:
+Similarly for `use Flop`, you can nest `repo` and `query_opts` under
+`adapter_opts`:
 
 ```diff
 use Flop,
