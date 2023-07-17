@@ -718,10 +718,6 @@ defprotocol Flop.Schema do
   @spec filterable(any) :: [atom]
   def filterable(data)
 
-  @doc false
-  @spec cursor_dynamic(any, keyword, map) :: any
-  def cursor_dynamic(data, order, cursor_map)
-
   @doc """
   Gets the field value from a struct.
 
@@ -892,18 +888,8 @@ defimpl Flop.Schema, for: Any do
       )
 
     field_info_func = build_field_info_func(adapter, adapter_opts, struct)
-
     get_field_func = build_get_field_func(struct, adapter, adapter_opts)
-
-    cursor_dynamic_func_compound =
-      build_cursor_dynamic_func_compound(compound_fields)
-
-    cursor_dynamic_func_join = build_cursor_dynamic_func_join(join_fields)
-    cursor_dynamic_func_alias = build_cursor_dynamic_func_alias(alias_fields)
     custom_func = adapter.custom_func_builder(options)
-
-    cursor_dynamic_func_normal =
-      build_cursor_dynamic_func_normal(filterable_fields ++ sortable_fields)
 
     quote do
       defimpl Flop.Schema, for: unquote(module) do
@@ -942,13 +928,6 @@ defimpl Flop.Schema, for: Any do
         def sortable(_) do
           unquote(sortable_fields)
         end
-
-        def cursor_dynamic(_, [], _), do: true
-
-        unquote(cursor_dynamic_func_compound)
-        unquote(cursor_dynamic_func_join)
-        unquote(cursor_dynamic_func_alias)
-        unquote(cursor_dynamic_func_normal)
 
         unquote(custom_func)
       end
@@ -1111,198 +1090,6 @@ defimpl Flop.Schema, for: Any do
     end
   end
 
-  def build_cursor_dynamic_func_compound(compound_fields) do
-    for {compound_field, _fields} <- compound_fields do
-      quote do
-        def cursor_dynamic(_, [{_, unquote(compound_field)}], _) do
-          Logger.warning(
-            "Flop: Cursor pagination is not supported for compound fields. Ignored."
-          )
-
-          true
-        end
-
-        def cursor_dynamic(
-              struct,
-              [{_, unquote(compound_field)} | tail],
-              cursor
-            ) do
-          Logger.warning(
-            "Flop: Cursor pagination is not supported for compound fields. Ignored."
-          )
-
-          cursor_dynamic(struct, tail, cursor)
-        end
-      end
-    end
-  end
-
-  def build_cursor_dynamic_func_alias(alias_fields) do
-    for name <- alias_fields do
-      quote do
-        def cursor_dynamic(_, [{_, unquote(name)} | _], _) do
-          raise "alias fields are not supported in cursor pagination"
-        end
-      end
-    end
-  end
-
-  # credo:disable-for-next-line
-  def build_cursor_dynamic_func_join(join_fields) do
-    for {join_field, %{binding: binding, field: field}} <- join_fields do
-      bindings = Code.string_to_quoted!("[#{binding}: r]")
-
-      quote do
-        def cursor_dynamic(_, [{direction, unquote(join_field)}], %{
-              unquote(join_field) => field_cursor
-            })
-            when not is_nil(field_cursor) and
-                   direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
-          dynamic(
-            unquote(bindings),
-            field(r, unquote(field)) >
-              type(^field_cursor, field(r, unquote(field)))
-          )
-        end
-
-        def cursor_dynamic(_, [{direction, unquote(join_field)}], %{
-              unquote(join_field) => field_cursor
-            })
-            when not is_nil(field_cursor) and
-                   direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
-          dynamic(
-            unquote(bindings),
-            field(r, unquote(field)) <
-              type(^field_cursor, field(r, unquote(field)))
-          )
-        end
-
-        def cursor_dynamic(_, [{_direction, unquote(join_field)}], _cursor) do
-          true
-        end
-
-        def cursor_dynamic(
-              struct,
-              [{direction, unquote(join_field)} | [{_, _} | _] = tail],
-              %{unquote(join_field) => field_cursor} = cursor
-            )
-            when not is_nil(field_cursor) and
-                   direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
-          dynamic(
-            unquote(bindings),
-            field(r, unquote(field)) >=
-              type(^field_cursor, field(r, unquote(field))) and
-              (field(r, unquote(field)) >
-                 type(^field_cursor, field(r, unquote(field))) or
-                 ^cursor_dynamic(struct, tail, cursor))
-          )
-        end
-
-        def cursor_dynamic(
-              struct,
-              [{direction, unquote(join_field)} | [{_, _} | _] = tail],
-              %{unquote(join_field) => field_cursor} = cursor
-            )
-            when not is_nil(field_cursor) and
-                   direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
-          dynamic(
-            unquote(bindings),
-            field(r, unquote(field)) <=
-              type(^field_cursor, field(r, unquote(field))) and
-              (field(r, unquote(field)) <
-                 type(^field_cursor, field(r, unquote(field))) or
-                 ^cursor_dynamic(struct, tail, cursor))
-          )
-        end
-
-        def cursor_dynamic(
-              struct,
-              [{_direction, unquote(join_field)} | [{_, _} | _] = tail],
-              cursor
-            ) do
-          cursor_dynamic(struct, tail, cursor)
-        end
-      end
-    end
-  end
-
-  # credo:disable-for-next-line
-  def build_cursor_dynamic_func_normal(fields) do
-    for field <- Enum.uniq(fields) do
-      quote do
-        def cursor_dynamic(_, [{direction, unquote(field)}], %{
-              unquote(field) => field_cursor
-            })
-            when not is_nil(field_cursor) and
-                   direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
-          dynamic(
-            [r],
-            field(r, ^unquote(field)) >
-              type(^field_cursor, field(r, unquote(field)))
-          )
-        end
-
-        def cursor_dynamic(_, [{direction, unquote(field)}], %{
-              unquote(field) => field_cursor
-            })
-            when not is_nil(field_cursor) and
-                   direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
-          dynamic(
-            [r],
-            field(r, ^unquote(field)) <
-              type(^field_cursor, field(r, unquote(field)))
-          )
-        end
-
-        def cursor_dynamic(_, [{direction, unquote(field)}], _cursor) do
-          true
-        end
-
-        def cursor_dynamic(
-              struct,
-              [{direction, unquote(field)} | [{_, _} | _] = tail],
-              %{unquote(field) => field_cursor} = cursor
-            )
-            when not is_nil(field_cursor) and
-                   direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
-          dynamic(
-            [r],
-            field(r, ^unquote(field)) >=
-              type(^field_cursor, field(r, unquote(field))) and
-              (field(r, ^unquote(field)) >
-                 type(^field_cursor, field(r, unquote(field))) or
-                 ^Flop.Schema.cursor_dynamic(struct, tail, cursor))
-          )
-        end
-
-        def cursor_dynamic(
-              struct,
-              [{direction, unquote(field)} | [{_, _} | _] = tail],
-              %{unquote(field) => field_cursor} = cursor
-            )
-            when not is_nil(field_cursor) and
-                   direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
-          dynamic(
-            [r],
-            field(r, ^unquote(field)) <=
-              type(^field_cursor, field(r, unquote(field))) and
-              (field(r, ^unquote(field)) <
-                 type(^field_cursor, field(r, unquote(field))) or
-                 ^Flop.Schema.cursor_dynamic(struct, tail, cursor))
-          )
-        end
-
-        def cursor_dynamic(
-              struct,
-              [{direction, unquote(field)} | [{_, _} | _] = tail],
-              cursor
-            ) do
-          Flop.Schema.cursor_dynamic(struct, tail, cursor)
-        end
-      end
-    end
-  end
-
   def build_get_field_func(struct, adapter, adapter_opts) do
     for {field, field_info} <- adapter.fields(struct, adapter_opts) do
       quote do
@@ -1344,13 +1131,6 @@ defimpl Flop.Schema, for: Any do
   end
 
   def field_type(struct, _) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
-
-  def cursor_dynamic(struct, _, _) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,
