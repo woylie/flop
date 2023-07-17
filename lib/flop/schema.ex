@@ -121,7 +121,9 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [],
         sortable: [:pet_count],
-        alias_fields: [:pet_count]
+        adapter_opts: [
+          alias_fields: [:pet_count]
+        ]
       }
 
   Query:
@@ -149,7 +151,9 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [:full_name],
         sortable: [:full_name],
-        compound_fields: [full_name: [:family_name, :given_name]]
+        adapter_opts: [
+          compound_fields: [full_name: [:family_name, :given_name]]
+        ]
       }
 
   This allows you to use the field name `:full_name` as any other field in the
@@ -252,11 +256,13 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [:pet_species],
         sortable: [:pet_species],
-        join_fields: [
-          pet_species: [
-            binding: :pets,
-            field: :species,
-            ecto_type: :string
+        adapter_opts: [
+          join_fields: [
+            pet_species: [
+              binding: :pets,
+              field: :species,
+              ecto_type: :string
+            ]
           ]
         ]
       }
@@ -287,11 +293,14 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [:pet_species],
         sortable: [:pet_species],
-        join_fields: [
-          pet_species: [
-            binding: :pets,
-            field: :species,
-            path: [:pets, :species]
+        adapter_opts: [
+          join_fields: [
+            pet_species: [
+              binding: :pets,
+              field: :species,
+              path: [:pets, :species]
+            ]
+          ]
         ]
       }
 
@@ -327,7 +336,16 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [:pet_count],
         sortable: [:pet_count],
-        join_fields: [pet_count: [{:pet_count, :count}]}
+        adapter_opts: [
+          join_fields: [
+            pet_count: [
+              binding: :pet_count,
+              field: :count,
+              ecto_type: :integer
+            ]
+          ]
+        ]
+      }
 
   Query:
 
@@ -372,11 +390,13 @@ defprotocol Flop.Schema do
       @derive {
         Flop.Schema,
         filterable: [:inserted_at_date],
-        custom_fields: [
-          inserted_at_date: [
-            filter: {CustomFilters, :date_filter, [source: :inserted_at]},
-            ecto_type: :date,
-            operators: [:<=, :>=]
+        adapter_opts: [
+          custom_fields: [
+            inserted_at_date: [
+              filter: {CustomFilters, :date_filter, [source: :inserted_at]},
+              ecto_type: :date,
+              operators: [:<=, :>=]
+            ]
           ]
         ]
       }
@@ -441,15 +461,19 @@ defprotocol Flop.Schema do
         Flop.Schema,
         filterable: [:full_text, :pet_species],
         sortable: [:id],
-        join_fields: [
-          pet_species: [
-            binding: :pets,
-            field: :species,
-            ecto_type: :string
+        adapter_opts: [
+          join_fields: [
+            pet_species: [
+              binding: :pets,
+              field: :species,
+              ecto_type: :string
+            ]
           ],
-          full_text: [
-            filter: {__MODULE__, :full_text_filter, []},
-            ecto_type: :string
+          custom_fields: [
+            full_text: [
+              filter: {__MODULE__, :full_text_filter, []},
+              ecto_type: :string
+            ]
           ]
         ]
       }
@@ -485,29 +509,27 @@ defprotocol Flop.Schema do
   @fallback_to_any true
 
   @typedoc """
-  Defines the options that can be passed when deriving the Flop.Schema protocol.
+  Options that can be passed when deriving the Flop.Schema protocol.
 
-  - `:filterable` (required) - Defines the fields by which you can filter. You
-    can reference fields from the Ecto schema, join fields, compound fields and
-    custom fields here. Alias fields are not supported.
-  - `:sortable` (required) - Defines the fields by which you can sort. You
-    can reference fields from the Ecto schema, join fields, and alias fields
-    here. Custom fields and compound fields are not supported.
-  - `:default_limit` - Defines the default limit to apply if no `limit`,
-    `page_size`, `first` or `last` parameter is set.
-  - `:max_limit` - Defines the maximum limit that can be set via parameters.
-  - `:default_order` - Defines the default order if no order parameters are set.
-  - `:pagination_types` - Defines which pagination types are allowed for this
-    schema.
-  - `:default_pagination_type` - Defines the default pagination type to use if
-    no pagination parameters are set.
-  - `:join_fields` - Defines fields on named bindings.
-  - `:compound_fields` - Defines groups of fields that can be filtered by
-    combined, e.g. a family name plus a given name field.
-  - `:custom_fields` - Defines fields for custom fields for which you define
-    your own filter functions.
-  - `:alias_field` - Defines fields that reference aliases defined with
-    `Ecto.Query.API.selected_as/2`.
+  These are either general schema options or adapter-specific options nested
+  under the `:adapter_opts` key. For backward compatibility, the options of the
+  Ecto adapter can be set directly at the root level as well.
+
+  - `:filterable` (required) - A list of fields that can be used in filters.
+    Supports fields from the Ecto schema, join fields, compound fields and
+    custom fields. Alias fields are not supported.
+  - `:sortable` (required) - A list of fields that can be used for sorting.
+    Supports fields from the Ecto schema, join fields, and alias fields. Custom
+    fields and compound fields are not supported.
+  - `:default_limit` - The default limit applied if no `limit`, `page_size`,
+    `first` or `last` parameter is set.
+  - `:max_limit` - The maximum limit that can be set via parameters.
+  - `:default_order` - The default order applied when no order parameters are
+    set.
+  - `:pagination_types` - A list of allowed pagination types for this schema.
+  - `:default_pagination_type` - The default pagination type used if no
+    pagination parameters are set.
+  - `:adapter_opts` - Additional adapter-specific options.
   """
   @type option ::
           {:filterable, [atom]}
@@ -517,7 +539,21 @@ defprotocol Flop.Schema do
           | {:default_order, Flop.default_order()}
           | {:pagination_types, [Flop.pagination_type()]}
           | {:default_pagination_type, Flop.pagination_type()}
-          | {:join_fields, [{atom, [join_field_option()]}]}
+          | {:adapter_opts, [adapter_option]}
+          | adapter_option()
+
+  @typedoc """
+  Options specific to the adapter.
+
+  - `:join_fields` - A list of fields on named bindings.
+  - `:compound_fields` - Groups of fields that can be combined and filtered, for
+    example a family name plus a given name field.
+  - `:custom_fields` - Custom fields with user-defined filter functions.
+  - `:alias_field` - Fields that reference aliases defined with
+    `Ecto.Query.API.selected_as/2`.
+  """
+  @type adapter_option ::
+          {:join_fields, [{atom, [join_field_option()]}]}
           | {:compound_fields, [{atom, [atom]}]}
           | {:custom_fields, [{atom, [custom_field_option()]}]}
           | {:alias_fields, [atom]}
@@ -723,7 +759,7 @@ defprotocol Flop.Schema do
 
   Resolves join fields and compound fields according to the config.
 
-      # join_fields: [owner_name: {:owner, :name}]
+      # join_fields: [owner_name: [binding: :owner, field: :name]]
       iex> pet = %MyApp.Pet{name: "George", owner: %MyApp.Owner{name: "Carl"}}
       iex> Flop.Schema.get_field(pet, :name)
       "George"

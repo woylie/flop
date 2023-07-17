@@ -76,7 +76,9 @@ defmodule Owner do
     Flop.Schema,
     filterable: [:name],
     sortable: [:name, :pet_count],
-    alias_fields: [:pet_count]
+    adapter_opts: [
+      alias_fields: [:pet_count]
+    ]
   }
 
   schema "owners" do
@@ -114,8 +116,10 @@ defmodule User do
     Flop.Schema,
     filterable: [:full_name],
     sortable: [:full_name],
-    compound_fields: [
-      full_name: [:family_name, :given_name]
+    adapter_opts: [
+      compound_fields: [
+        full_name: [:family_name, :given_name]
+      ]
     ]
   }
 
@@ -153,11 +157,13 @@ defmodule Owner do
     Flop.Schema,
     filterable: [:name, :pet_age],
     sortable: [:name],
-    join_fields: [
-      pet_age: [
-        binding: :pets,
-        field: :age,
-        ecto_type: :integer
+    adapter_opts: [
+      join_fields: [
+        pet_age: [
+          binding: :pets,
+          field: :age,
+          ecto_type: :integer
+        ]
       ]
     ]
   }
@@ -221,15 +227,17 @@ defmodule Owner do
     Flop.Schema,
     filterable: [:name, :toy_description],
     sortable: [:name],
-    join_fields: [
-      pet_age: [
-        binding: :toys,
-        field: :description,
-        ecto_type: :string,
-        # only needed with cursor pagination when sorting
-        # by the join field, so that Flop can find the
-        # cursor value
-        path: [:pets, :toys]
+    adapter_opts: [
+      join_fields: [
+        pet_age: [
+          binding: :toys,
+          field: :description,
+          ecto_type: :string,
+          # only needed with cursor pagination when sorting
+          # by the join field, so that Flop can find the
+          # cursor value
+          path: [:pets, :toys]
+        ]
       ]
     ]
   }
@@ -293,10 +301,12 @@ defmodule Owner do
     Flop.Schema,
     filterable: [:name],
     sortable: [:name, :pet_count],
-    join_fields: [
-      pet_count: [
-        binding: :pet_count,
-        field: :count
+    adapter_opts: [
+      join_fields: [
+        pet_count: [
+          binding: :pet_count,
+          field: :count
+        ]
       ]
     ]
   }
@@ -352,10 +362,12 @@ defmodule Pet do
     Flop.Schema,
     filterable: [:name, :human_age],
     sortable: [:name],
-    custom_fields: [
-      human_age: [
-        filter: {CustomFilters, :human_age, []},
-        ecto_type: :integer
+    adapter_opts: [
+      custom_fields: [
+        human_age: [
+          filter: {CustomFilters, :human_age, []},
+          ecto_type: :integer
+        ]
       ]
     ]
   }
