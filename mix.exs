@@ -14,16 +14,17 @@ defmodule Flop.MixProject do
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
-        coveralls: :test,
         "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test,
         "coveralls.github": :test,
+        "coveralls.html": :test,
         "coveralls.json": :test,
+        "coveralls.post": :test,
         "ecto.create": :test,
         "ecto.drop": :test,
         "ecto.migrate": :test,
-        "ecto.reset": :test
+        "ecto.reset": :test,
+        coveralls: :test,
+        dialyzer: :test
       ],
       dialyzer: [
         ignore_warnings: ".dialyzer_ignore.exs",
@@ -55,7 +56,7 @@ defmodule Flop.MixProject do
   defp deps do
     [
       {:credo, "~> 1.7.0", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.3.0", only: [:dev], runtime: false},
+      {:dialyxir, "~> 1.3.0", only: [:dev, :test], runtime: false},
       {:ecto, "~> 3.9"},
       {:ecto_sql, "~> 3.9", only: :test},
       {:ex_doc, "~> 0.21", only: :dev, runtime: false},

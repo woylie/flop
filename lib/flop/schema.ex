@@ -846,7 +846,7 @@ defprotocol Flop.Schema do
   def max_limit(data)
 
   @doc false
-  @spec custom(any, any) :: Macro.t()
+  @spec custom(any, any) :: any
   def custom(data, arg)
 end
 
