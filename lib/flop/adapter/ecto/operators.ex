@@ -1,4 +1,4 @@
-defmodule Flop.Operators do
+defmodule Flop.Adapter.Ecto.Operators do
   @moduledoc false
 
   import Ecto.Query

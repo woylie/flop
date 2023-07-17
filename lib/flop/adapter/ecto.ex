@@ -4,7 +4,7 @@ defmodule Flop.Adapter.Ecto do
   @behaviour Flop.Adapter
 
   import Ecto.Query
-  import Flop.Operators
+  import Flop.Adapter.Ecto.Operators
 
   alias Ecto.Query
   alias Flop.FieldInfo
@@ -504,13 +504,11 @@ defmodule Flop.Adapter.Ecto do
 
     join_field_funcs =
       for {join_field, %{binding: binding, field: field}} <- join_fields do
-        bindings = Code.string_to_quoted!("[#{binding}: r]")
-
         quote do
           def custom(_, {:apply_order_by, q, {direction, unquote(join_field)}}) do
             order_by(
               q,
-              unquote(bindings),
+              [{^unquote(binding), r}],
               [{^direction, field(r, unquote(field))}]
             )
           end
