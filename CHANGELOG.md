@@ -2,10 +2,12 @@
 
 ## Unreleased
 
+## [0.22.0] - 2023-07-17
+
 This release includes a substantial refactoring to lay the groundwork for the
 upcoming adapter feature. While this release contains deprecations and changes,
-they are either backward compatible or affect functions that are unlikely used
-by end users. The primary aim has been to ensure a seamless transition and
+they are either backward compatible or affect functions that are unlikely to be
+used by end users. The primary aim has been to ensure a seamless transition and
 maintain compatibility with previous versions.
 
 ### Added
@@ -35,7 +37,7 @@ maintain compatibility with previous versions.
 
 ### Upgrade guide
 
-While the old configuration format is still supported, you are encouraged to
+While the old configuration format is still supported, you are invited to
 update your application to the new structure to prepare for future versions.
 
 To do this, place the field configuration for `Flop.Schema` under
