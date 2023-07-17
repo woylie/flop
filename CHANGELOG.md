@@ -20,6 +20,11 @@
 - `Flop.Schema.field_type/2` was deprecated in favor of
   `Flop.Schema.field_info/2`.
 
+### Removed
+
+- Removed `Flop.Schema.apply_order_by/3`.
+- Removed `Flop.Schema.cursor_dynamic/3`.
+
 ## [0.21.0] - 2023-07-02
 
 ### Added
