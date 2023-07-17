@@ -525,13 +525,9 @@ defprotocol Flop.Schema do
     schema.
   - `:default_pagination_type` - Defines the default pagination type to use if
     no pagination parameters are set.
-  - `:join_fields` - Defines fields on named bindings.
-  - `:compound_fields` - Defines groups of fields that can be filtered by
-    combined, e.g. a family name plus a given name field.
-  - `:custom_fields` - Defines fields for custom fields for which you define
-    your own filter functions.
-  - `:alias_field` - Defines fields that reference aliases defined with
-    `Ecto.Query.API.selected_as/2`.
+  - `:adapter_opts` - Defines additional adapter-specific options. For
+    backward-compatibility, the adapter options of the Ecto adapter can be
+    set without nesting them under `:adapter_opts`.
   """
   @type option ::
           {:filterable, [atom]}
@@ -541,7 +537,22 @@ defprotocol Flop.Schema do
           | {:default_order, Flop.default_order()}
           | {:pagination_types, [Flop.pagination_type()]}
           | {:default_pagination_type, Flop.pagination_type()}
-          | {:join_fields, [{atom, [join_field_option()]}]}
+          | {:adapter_opts, [adapter_option]}
+          | adapter_option()
+
+  @typedoc """
+  Defines options specific to the adapter.
+
+  - `:join_fields` - Defines fields on named bindings.
+  - `:compound_fields` - Defines groups of fields that can be filtered by
+    combined, e.g. a family name plus a given name field.
+  - `:custom_fields` - Defines fields for custom fields for which you define
+    your own filter functions.
+  - `:alias_field` - Defines fields that reference aliases defined with
+    `Ecto.Query.API.selected_as/2`.
+  """
+  @type adapter_option ::
+          {:join_fields, [{atom, [join_field_option()]}]}
           | {:compound_fields, [{atom, [atom]}]}
           | {:custom_fields, [{atom, [custom_field_option()]}]}
           | {:alias_fields, [atom]}
