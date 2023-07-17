@@ -360,90 +360,72 @@ defmodule Flop do
   end
 
   @typedoc """
-  Options that can be passed to most of the functions or that can be set via
-  the application environment.
+  These options can be passed to most functions or configured via the
+  application environment.
 
-  - `:cursor_value_func` - 2-arity function used to get the (unencoded)
-    cursor value from a record. Only used with cursor-based pagination. The
-    first argument is the record, the second argument is the list of fields used
-    in the `ORDER BY` clause. Needs to return a map with the order fields as
-    keys and the the record values of these fields as values. Defaults to
+  ## Options
+
+  ### General
+
+  - `:for` - The Ecto schema module for validation and query building.
+    `Flop.Schema` must be derived for this module.
+  - `:cursor_value_func` - A function used to extract the cursor value from a
+    record. It takes the record and the list of fields used in the `ORDER BY`
+    clause as arguments, and returns a map with the order fields as keys and the
+    corresponding record values as values. Default is
     `Flop.Cursor.get_cursor_from_node/2`.
-  - `:default_limit` - Sets a global default limit for queries that is used if
-    no default limit is set for a schema and no limit is set in the parameters.
-    Set to `false` to not set any default limit. Defaults to `50`.
-  - `:default_order` - Sets the default order for a query if none is passed in
-    the parameters or if ordering is disabled. Can be set in the schema or in
-    the options passed to the query functions.
-  - `:default_pagination_type` - The pagination type to use when setting default
-    parameters and the pagination type cannot be determined from the parameters.
-    Parameters for other pagination types can still be passed when setting this
-    option. To restrict which pagination types can be used, set the
-    `:pagination_types` option. Set to `false` to override a default.
-  - `:filtering` (boolean) - Can be set to `false` to silently ignore filter
-    parameters.
-  - `:for` - The schema module to be used for validation. `Flop.Schema` must be
-    derived for the given module. This option is optional and can not be set
-    globally. If it is not set, schema specific validation will be omitted. Used
-    by the validation functions. It is also used to determine which fields are
-    join and compound fields.
-  - `:max_limit` - Sets a global maximum limit for queries that is used if no
-    maximum limit is set for a schema. Set to `false` to not set any max limit.
-    Defaults to `1000`.
-  - `:count_query` - Allows you to set a separate base query for counting. Can
-    only be passed as an option to one of the query functions. See
-    `Flop.validate_and_run/3` and `Flop.count/3`.
-  - `:count` - Allows you to set the count, useful for when the count is already
-    computed elsewhere. Can only be passed as an option to one of the query
-    functions. See `Flop.validate_and_run/3` and `Flop.count/3`.
-  - `:pagination` (boolean) - Can be set to `false` to silently ignore
-    pagination parameters.
-  - `:pagination_types` - Defines which pagination types are allowed. Parameters
-    for other pagination types will not be cast. By default, all pagination
-    types are allowed. See also `t:Flop.pagination_type/0`.
-  - `:query_opts` - These options are passed to the `Ecto.Repo` query functions.
-    See the Ecto documentation for `c:Ecto.Repo.all/2`,
-    `c:Ecto.Repo.aggregate/3`, and the
-    ["Shared Options"](https://hexdocs.pm/ecto/3.8.4/Ecto.Repo.html#module-shared-options)
-    section of `Ecto.Repo`.
-  - `:ordering` (boolean) - Can be set to `false` to silently ignore order
-    parameters. Default orders are still applied.
-  - `:repo` - The Ecto Repo module to use for the database query. Used by all
-    functions that execute a database query.
-  - `:replace_invalid_params` - If `true`, invalid parameters will be replaced
-    with default values if possible or removed. Defaults to `false`.
-  - `extra_opts` (keyword list) - Additional options passed through to custom fields
+  - `:replace_invalid_params` - If set to `true`, invalid parameters are
+    replaced with default values or removed instead of causing errors. Default
+    is `false`.
 
-  All options can be passed directly to the functions. Some of the options can
-  be set on a schema level via `Flop.Schema`.
+  ### Defaults
 
-  All options except `:for`, `:default_order` and `:count_query` can be set
-  globally via the application environment.
+  - `:default_limit` - The default limit for queries. Used when no specific
+    limit is set in the parameters or schema.  Set to `false` to not set any
+    default limit. Default is `50`.
+  - `:default_order` - The default ordering for a query when no order is
+    specified in the parameters, or if ordering is disabled. Can be set in the
+    schema or in the options passed to the query functions.
+  - `:default_pagination_type` - The default pagination type when it cannot be
+    inferred from the parameters.
+  - `:max_limit` - The maximum limit for queries. Used when no maximum limit is
+    set in the parameters or schema. Set to `false` to not set any maximum
+    limit. Default is `1000`.
 
-      import Config
+  ### Modifying counts
 
-      config :flop,
-        default_limit: 25,
-        filtering: false,
-        cursor_value_func: &MyApp.Repo.get_cursor_value/2,
-        max_limit: 100,
-        ordering: false,
-        pagination_types: [:first, :last, :page],
-        repo: MyApp.Repo,
-        query_opts: [prefix: "some-prefix"]
+  - `:count_query` - A separate base query for counting. Can only be passed as
+    an option to one of the query functions. See `Flop.validate_and_run/3` and
+    `Flop.count/3`.
+  - `:count` - A precomputed count. Useful when the count is already known.
 
-  The look up order is:
+  ### Disabling features
 
-  1. option passed to function
-  2. option set for schema using `Flop.Schema` (only `:max_limit`,
-     `:default_limit`, `:default_order`, `:pagination_types` and
-     `:default_pagination_type`)
-  3. option set in config module, if one is used (except `:for`,
-     `:default_order` and `:count_query`; see section "Config modules"
-     in the module documentation)
-  4. option set in global config (except `:for`, `:default_order` and
-     `:count_query`)
-  5. default value (only `:cursor_value_func`)
+  - `:filtering` (boolean) - Enables or disables filtering. When set to `false`,
+    filter parameters are ignored.
+  - `:ordering` (boolean) - Enables or disables ordering. When set to `false`,
+    order parameters are ignored, but the default order is still applied.
+  - `:pagination` (boolean) - Enables or disables pagination. When set to
+    `false`, pagination parameters are ignored.
+  - `:pagination_types` - The allowed pagination types. Parameters for
+    disallowed pagination types will not be cast. By default, all types are
+    allowed. See also `t:Flop.pagination_type/0`.
+
+  ### Additional options
+
+  - `:extra_opts` (keyword list) - Extra options for custom fields.
+  - `:adapter_opts` - Adapter-specific options. For backward compatibility,
+    options for the Ecto adapter can be set directly at the root level.
+
+  ## Look-up order
+
+  Options are looked up in the following order:
+
+  1. Function arguments
+  2. Schema-level options
+  3. Module-level options in the config (backend) module
+  4. Global options in the application environment
+  5. Library defaults
   """
   @type option ::
           {:cursor_value_func, (any, [atom] -> map)}
@@ -459,14 +441,34 @@ defmodule Flop do
           | {:pagination, boolean}
           | {:pagination_types, [pagination_type()]}
           | {:replace_invalid_params, boolean}
-          | {:repo, module}
-          | {:query_opts, Keyword.t()}
           | {:extra_opts, Keyword.t()}
+          | {:adapter_opts, adapter_option()}
+          | adapter_option()
           | private_option()
 
   @typep private_option ::
-           {:adapter, module} | {:adapter_opts, keyword} | {:backend, module}
+           {:adapter, module} | {:backend, module}
 
+  @doc """
+  Options specific to the Ecto adapter.
+
+  - `:repo` - The Ecto Repo module used for database queries.
+  - `:query_opts` - Options passed to the `Ecto.Repo` query functions. Refer to
+    the Ecto documentation for `c:Ecto.Repo.all/2`, `c:Ecto.Repo.aggregate/3`,
+    and the ["Shared Options"](https://hexdocs.pm/ecto/Ecto.Repo.html#module-shared-options)
+    section of `Ecto.Repo`.
+  """
+  @type adapter_option :: {:repo, module} | {:query_opts, Keyword.t()}
+
+  @typedoc """
+  A map with the order fields and the order directions.
+
+  Each atom in `:order_by` corresponds to a field by which the data is ordered.
+  The list of order fields and order directions is zipped when the parameters
+  are applied. If no order directions are given or the list of order directions
+  is shorter than the list of order fields, `:asc` is used as a default order
+  direction.
+  """
   @type default_order ::
           %{
             required(:order_by) => [atom],
@@ -506,9 +508,9 @@ defmodule Flop do
   - `decoded_cursor`: Used internally to hold on to the decoded cursor between
     validation and query execution. Value is discarded when meta is built.
   - `limit`, `offset`: Used for offset-based pagination.
-  - `first` Used for cursor-based pagination. Can be used alone to begin
-    pagination or with `after`
-  - `last` Used for cursor-based pagination.
+  - `first`: Used for cursor-based pagination. Can be used alone to begin
+    pagination from the start or in conjunction with `after`.
+  - `last`: Used for cursor-based pagination.
   - `page`, `page_size`: Used for offset-based pagination as an alternative to
     `offset` and `limit`.
   - `order_by`: List of fields to order by. Fields can be restricted by
@@ -516,7 +518,10 @@ defmodule Flop do
   - `order_directions`: List of order directions applied to the fields defined
     in `order_by`. If empty or the list is shorter than the `order_by` list,
     `:asc` will be used as a default for each missing order direction.
-  - `filters`: List of filters, see `t:Flop.Filter.t/0`.
+  - `filters`: List of filters, see `t:Flop.Filter.t/0`. Each `Filter.t()`
+    represents a filter operation on a specific field.
+
+  Note: Pagination fields are mutually exclusive.
   """
   @type t :: %__MODULE__{
           after: String.t() | nil,

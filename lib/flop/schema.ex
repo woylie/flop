@@ -509,25 +509,27 @@ defprotocol Flop.Schema do
   @fallback_to_any true
 
   @typedoc """
-  Defines the options that can be passed when deriving the Flop.Schema protocol.
+  Options that can be passed when deriving the Flop.Schema protocol.
 
-  - `:filterable` (required) - Defines the fields by which you can filter. You
-    can reference fields from the Ecto schema, join fields, compound fields and
-    custom fields here. Alias fields are not supported.
-  - `:sortable` (required) - Defines the fields by which you can sort. You
-    can reference fields from the Ecto schema, join fields, and alias fields
-    here. Custom fields and compound fields are not supported.
-  - `:default_limit` - Defines the default limit to apply if no `limit`,
-    `page_size`, `first` or `last` parameter is set.
-  - `:max_limit` - Defines the maximum limit that can be set via parameters.
-  - `:default_order` - Defines the default order if no order parameters are set.
-  - `:pagination_types` - Defines which pagination types are allowed for this
-    schema.
-  - `:default_pagination_type` - Defines the default pagination type to use if
-    no pagination parameters are set.
-  - `:adapter_opts` - Defines additional adapter-specific options. For
-    backward-compatibility, the adapter options of the Ecto adapter can be
-    set without nesting them under `:adapter_opts`.
+  These are either general schema options or adapter-specific options nested
+  under the `:adapter_opts` key. For backward compatibility, the options of the
+  Ecto adapter can be set directly at the root level as well.
+
+  - `:filterable` (required) - A list of fields that can be used in filters.
+    Supports fields from the Ecto schema, join fields, compound fields and
+    custom fields. Alias fields are not supported.
+  - `:sortable` (required) - A list of fields that can be used for sorting.
+    Supports fields from the Ecto schema, join fields, and alias fields. Custom
+    fields and compound fields are not supported.
+  - `:default_limit` - The default limit applied if no `limit`, `page_size`,
+    `first` or `last` parameter is set.
+  - `:max_limit` - The maximum limit that can be set via parameters.
+  - `:default_order` - The default order applied when no order parameters are
+    set.
+  - `:pagination_types` - A list of allowed pagination types for this schema.
+  - `:default_pagination_type` - The default pagination type used if no
+    pagination parameters are set.
+  - `:adapter_opts` - Additional adapter-specific options.
   """
   @type option ::
           {:filterable, [atom]}
@@ -541,14 +543,13 @@ defprotocol Flop.Schema do
           | adapter_option()
 
   @typedoc """
-  Defines options specific to the adapter.
+  Options specific to the adapter.
 
-  - `:join_fields` - Defines fields on named bindings.
-  - `:compound_fields` - Defines groups of fields that can be filtered by
-    combined, e.g. a family name plus a given name field.
-  - `:custom_fields` - Defines fields for custom fields for which you define
-    your own filter functions.
-  - `:alias_field` - Defines fields that reference aliases defined with
+  - `:join_fields` - A list of fields on named bindings.
+  - `:compound_fields` - Groups of fields that can be combined and filtered, for
+    example a family name plus a given name field.
+  - `:custom_fields` - Custom fields with user-defined filter functions.
+  - `:alias_field` - Fields that reference aliases defined with
     `Ecto.Query.API.selected_as/2`.
   """
   @type adapter_option ::
