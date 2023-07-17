@@ -67,5 +67,5 @@ defmodule Flop.Adapter do
   This callback will be removed as soon as a better solution is found or made
   possible.
   """
-  @callback custom_func_builder(opts) :: any when opts: keyword
+  @callback custom_func_builder(opts) :: Macro.t() when opts: keyword
 end
