@@ -809,6 +809,7 @@ defprotocol Flop.Schema do
   @spec max_limit(any) :: pos_integer | nil
   def max_limit(data)
 
+  @doc false
   @spec custom(any, any) :: Macro.t()
   def custom(data, arg)
 end
