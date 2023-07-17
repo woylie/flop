@@ -3,6 +3,9 @@ defmodule Flop.Adapter do
 
   @type queryable :: term
   @type opts :: keyword
+  @type cursor_fields :: [
+          {Flop.order_direction(), atom, any, Flop.FieldInfo.t() | nil}
+        ]
 
   @callback init_backend_opts(keyword, keyword, module) :: keyword
 
@@ -30,9 +33,7 @@ defmodule Flop.Adapter do
   @callback apply_page_page_size(queryable, page, page_size, opts) :: queryable
             when page: pos_integer, page_size: pos_integer
 
-  @callback apply_cursor(queryable, decoded_cursor, order_directions, opts) ::
-              queryable
-            when decoded_cursor: map, order_directions: keyword
+  @callback apply_cursor(queryable, cursor_fields, opts) :: queryable
 
   @callback count(queryable, opts) :: non_neg_integer
 

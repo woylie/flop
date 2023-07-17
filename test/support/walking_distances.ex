@@ -3,7 +3,6 @@ defmodule MyApp.WalkingDistances do
   Defines an Ecto schema for testing.
   """
   use Ecto.Schema
-  import Ecto.Query
 
   alias Ecto.Changeset
   alias Flop.DistanceType
@@ -24,6 +23,7 @@ defmodule MyApp.WalkingDistances do
     field :trip, DistanceType
   end
 
-  def changeset(%__MODULE__{} = module, attr),
-    do: Changeset.cast(module, attr, [:trip])
+  def changeset(%__MODULE__{} = module, attr) do
+    Changeset.cast(module, attr, [:trip])
+  end
 end
