@@ -52,20 +52,4 @@ defmodule Flop.Adapter do
   @callback list(queryable, opts) :: [any]
 
   @callback get_field(any, atom, Flop.FieldInfo.t()) :: any
-
-  @doc """
-  Returns a quoted function to be compiled in the schema protocol
-  implementation.
-
-  Takes the schema options (with the nested adapter options) as argument.
-
-  This is a hacky workaround that is necessary because
-  `Ecto.Query.API.selected_as/1` does not accept variables, which means that we
-  need to compile a function that builds the `order_by` clause for configured
-  alias fields.
-
-  This callback will be removed as soon as a better solution is found or made
-  possible.
-  """
-  @callback custom_func_builder(opts) :: Macro.t() when opts: keyword
 end
