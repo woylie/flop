@@ -292,23 +292,9 @@ defmodule Flop.Adapter.Ecto do
   end
 
   @impl Flop.Adapter
-  def apply_cursor(q, %{} = decoded_cursor, ordering, opts) do
-    struct = if module = opts[:for], do: struct(module)
-
-    where_dynamic =
-      struct
-      |> prepare_cursor_fields(decoded_cursor, ordering)
-      |> cursor_dynamic()
-
+  def apply_cursor(q, cursor_fields, _opts) do
+    where_dynamic = cursor_dynamic(cursor_fields)
     Query.where(q, ^where_dynamic)
-  end
-
-  defp prepare_cursor_fields(struct, decoded_cursor, ordering) do
-    Enum.map(ordering, fn {direction, field} ->
-      field_info = struct && Flop.Schema.field_info(struct, field)
-      cursor_value = Map.get(decoded_cursor, field)
-      {direction, field, cursor_value, field_info}
-    end)
   end
 
   defp cursor_dynamic([]), do: true

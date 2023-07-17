@@ -1147,11 +1147,13 @@ defmodule Flop do
       )
       when is_integer(first) do
     adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
+    struct = if module = opts[:for], do: struct(module)
     orderings = prepare_order_fields_and_directions(order_by, order_directions)
     decoded_cursor = decoded_cursor || Cursor.decode!(after_)
+    cursor_fields = prepare_cursor_fields(struct, decoded_cursor, orderings)
 
     q
-    |> adapter.apply_cursor(decoded_cursor, orderings, opts)
+    |> adapter.apply_cursor(cursor_fields, opts)
     |> adapter.apply_limit_offset(first + 1, nil, opts)
   end
 
@@ -1187,6 +1189,7 @@ defmodule Flop do
       )
       when is_integer(last) do
     adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
+    struct = if module = opts[:for], do: struct(module)
 
     orderings =
       order_by
@@ -1194,14 +1197,26 @@ defmodule Flop do
       |> reverse_ordering()
 
     decoded_cursor = decoded_cursor || Cursor.decode!(before)
+    cursor_fields = prepare_cursor_fields(struct, decoded_cursor, orderings)
 
     q
-    |> adapter.apply_cursor(decoded_cursor, orderings, opts)
+    |> adapter.apply_cursor(cursor_fields, opts)
     # add 1 to limit, so that we know whether there are more items to show
     |> adapter.apply_limit_offset(last + 1, nil, opts)
   end
 
   def paginate(q, _, _), do: q
+
+  @spec prepare_cursor_fields(struct | nil, map, [{atom, atom}]) :: [
+          {order_direction(), atom, any, Flop.FieldInfo.t()}
+        ]
+  defp prepare_cursor_fields(struct, decoded_cursor, ordering) do
+    Enum.map(ordering, fn {direction, field} ->
+      field_info = struct && Flop.Schema.field_info(struct, field)
+      cursor_value = Map.get(decoded_cursor, field)
+      {direction, field, cursor_value, field_info}
+    end)
+  end
 
   @spec reverse_ordering([order_direction()]) :: [order_direction()]
   defp reverse_ordering(order_directions) do
