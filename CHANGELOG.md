@@ -25,6 +25,43 @@
 - Removed `Flop.Schema.apply_order_by/3`.
 - Removed `Flop.Schema.cursor_dynamic/3`.
 
+### Upgrade guide
+
+As mentioned, the old configuration format continues to work in this update, but
+if you want to get your application ready for future updates, nest the field
+configuration for `Flop.Schema` under `adapter_opts`:
+
+```diff
+@derive {
+  Flop.Schema,
+  filterable: [],
+  sortable: [],
+-  alias_fields: [],
+-  compound_fields: [],
+-  custom_fields: [],
+-  join_fields: []
++  adapter_opts: [
++    alias_fields: [],
++    compound_fields: [],
++    custom_fields: [],
++    join_fields: []
++  ]
+}
+```
+
+Also, nest the `repo` and `query_opts` options for `use Flop`:
+
+```diff
+use Flop,
+  default_limit: 50,
+-  repo: MyApp.Repo,
+-  query_opts: [prefix: "some-prefix"]
++  adapter_opts: [
++    repo: MyApp.Repo,
++    query_opts: [prefix: "some-prefix"]
++  ]
+```
+
 ## [0.21.0] - 2023-07-02
 
 ### Added
