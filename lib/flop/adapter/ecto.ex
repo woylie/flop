@@ -4,7 +4,7 @@ defmodule Flop.Adapter.Ecto do
   @behaviour Flop.Adapter
 
   import Ecto.Query
-  import Flop.Operators
+  import Flop.Adapter.Ecto.Operators
 
   alias Ecto.Query
   alias Flop.FieldInfo
