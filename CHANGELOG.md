@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [0.22.1] - 2023-07-18
+
+### Fixed
+
+- Updated version requirement for Ecto to `~> 3.10.3`. Flop 0.22.0 relies
+  on a feature added in that version and doesn't compile with lower versions.
+
 ## [0.22.0] - 2023-07-17
 
 This release includes a substantial refactoring to lay the groundwork for the
