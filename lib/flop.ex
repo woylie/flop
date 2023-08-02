@@ -2048,7 +2048,7 @@ defmodule Flop do
        do: asc
 
   defp new_order_direction(0, _current_direction, directions),
-    do: Logger.warn("Invalid `:directions` option: #{inspect(directions)}")
+    do: Logger.warning("Invalid `:directions` option: #{inspect(directions)}")
 
   defp new_order_direction(_, _, {asc, _desc}), do: asc
   defp new_order_direction(_, _, nil), do: :asc
