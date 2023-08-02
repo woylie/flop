@@ -1975,7 +1975,7 @@ defmodule Flop do
       iex> push_order(%Flop{order_by: [:id], before: "DEF"}, :name)
       %Flop{order_by: [:name, :id], order_directions: [:asc], before: nil}
   """
-  @spec push_order(Flop.t(), atom | String.t(), [option()]) :: Flop.t()
+  @spec push_order(Flop.t(), atom | String.t(), keyword) :: Flop.t()
   @doc since: "0.10.0"
   @doc group: :parameters
   def push_order(flop, field, opts \\ [])
