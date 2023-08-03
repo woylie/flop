@@ -1944,6 +1944,17 @@ defmodule FlopTest do
     end
   end
 
+  describe "push_order/3" do
+    test "raises error if invalid directions option is passed" do
+      for flop <- [%Flop{}, %Flop{order_by: [:name], order_directions: [:asc]}],
+          directions <- [{:up, :down}, "up,down"] do
+        assert_raise Flop.InvalidDirectionsError, fn ->
+          Flop.push_order(flop, :name, directions: directions)
+        end
+      end
+    end
+  end
+
   describe "__using__/1" do
     test "defines wrapper functions that pass default options" do
       insert_list(3, :pet)

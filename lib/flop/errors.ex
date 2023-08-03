@@ -72,3 +72,32 @@ defmodule Flop.InvalidParamsError do
     |> Enum.map_join("\n", fn s -> "    " <> s end)
   end
 end
+
+defmodule Flop.InvalidDirectionsError do
+  @moduledoc """
+  An error that is raised when invalid directions are passed.
+  """
+
+  @type t :: %__MODULE__{directions: any}
+
+  defexception [:directions]
+
+  def message(%{directions: directions}) do
+    """
+    invalid `:directions` option
+
+    Expected a 2-tuple of order directions, e.g. `{:asc, :desc}`.
+
+    Got: #{inspect(directions)}"
+
+    Valid order directions:
+
+    - :asc
+    - :asc_nulls_first
+    - :asc_nulls_last
+    - :desc
+    - :desc_nulls_first
+    - :desc_nulls_last
+    """
+  end
+end

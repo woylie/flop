@@ -2061,18 +2061,23 @@ defmodule Flop do
     do: reverse_direction(current_direction)
 
   defp new_order_direction(0, current_direction, {_asc, desc})
-       when current_direction in [:asc, :asc_nulls_first, :asc_nulls_last],
+       when is_asc_direction(current_direction) and is_direction(desc),
        do: desc
 
   defp new_order_direction(0, current_direction, {asc, _desc})
-       when current_direction in [:desc, :desc_nulls_first, :desc_nulls_last],
+       when is_desc_direction(current_direction) and is_direction(asc),
        do: asc
 
-  defp new_order_direction(0, _current_direction, directions),
-    do: Logger.warning("Invalid `:directions` option: #{inspect(directions)}")
+  defp new_order_direction(0, _current_direction, directions) do
+    raise Flop.InvalidDirectionsError, directions: directions
+  end
 
-  defp new_order_direction(_, _, {asc, _desc}), do: asc
   defp new_order_direction(_, _, nil), do: :asc
+  defp new_order_direction(_, _, {asc, _desc}) when is_direction(asc), do: asc
+
+  defp new_order_direction(_, _, directions) do
+    raise Flop.InvalidDirectionsError, directions: directions
+  end
 
   defp get_new_order(
          order_by,
