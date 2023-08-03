@@ -41,6 +41,25 @@ defmodule Flop.InvalidConfigError do
   end
 end
 
+defmodule Flop.InvalidCursorError do
+  @moduledoc """
+  An error that is raised when an invalid cursor is passed to the decode
+  function.
+  """
+
+  defexception [:cursor]
+
+  def message(%{cursor: cursor}) do
+    """
+    invalid cursor
+
+    Received an invalid pagination cursor:
+
+        #{inspect(cursor)}
+    """
+  end
+end
+
 defmodule Flop.InvalidParamsError do
   @moduledoc """
   An error that is raised if the parameter validation fails.

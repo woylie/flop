@@ -15,5 +15,11 @@ defmodule Flop.CursorTest do
       value = %{a: fn b -> b * 2 end}
       assert value |> Cursor.encode() |> Cursor.decode() == :error
     end
+
+    test "decode!/1 raises error for invalid cursor" do
+      assert_raise Flop.InvalidCursorError, fn ->
+        Cursor.decode!("AAAH")
+      end
+    end
   end
 end
