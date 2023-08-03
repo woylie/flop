@@ -1237,6 +1237,30 @@ defmodule Flop do
   defp reverse_direction(:desc_nulls_first), do: :asc_nulls_last
   defp reverse_direction(:desc_nulls_last), do: :asc_nulls_first
 
+  defguardp is_direction(value)
+            when value in [
+                   :asc,
+                   :asc_nulls_first,
+                   :asc_nulls_last,
+                   :desc,
+                   :desc_nulls_first,
+                   :desc_nulls_last
+                 ]
+
+  defguardp is_asc_direction(value)
+            when value in [
+                   :asc,
+                   :asc_nulls_first,
+                   :asc_nulls_last
+                 ]
+
+  defguardp is_desc_direction(value)
+            when value in [
+                   :desc,
+                   :desc_nulls_first,
+                   :desc_nulls_last
+                 ]
+
   ## Filter
 
   @doc """
