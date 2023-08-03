@@ -1225,15 +1225,41 @@ defmodule Flop do
 
   @spec reverse_ordering([order_direction()]) :: [order_direction()]
   defp reverse_ordering(order_directions) do
-    Enum.map(order_directions, fn
-      {:desc, field} -> {:asc, field}
-      {:desc_nulls_last, field} -> {:asc_nulls_first, field}
-      {:desc_nulls_first, field} -> {:asc_nulls_last, field}
-      {:asc, field} -> {:desc, field}
-      {:asc_nulls_last, field} -> {:desc_nulls_first, field}
-      {:asc_nulls_first, field} -> {:desc_nulls_last, field}
+    Enum.map(order_directions, fn {direction, field} ->
+      {reverse_direction(direction), field}
     end)
   end
+
+  defp reverse_direction(:asc), do: :desc
+  defp reverse_direction(:asc_nulls_first), do: :desc_nulls_last
+  defp reverse_direction(:asc_nulls_last), do: :desc_nulls_first
+  defp reverse_direction(:desc), do: :asc
+  defp reverse_direction(:desc_nulls_first), do: :asc_nulls_last
+  defp reverse_direction(:desc_nulls_last), do: :asc_nulls_first
+
+  defguardp is_direction(value)
+            when value in [
+                   :asc,
+                   :asc_nulls_first,
+                   :asc_nulls_last,
+                   :desc,
+                   :desc_nulls_first,
+                   :desc_nulls_last
+                 ]
+
+  defguardp is_asc_direction(value)
+            when value in [
+                   :asc,
+                   :asc_nulls_first,
+                   :asc_nulls_last
+                 ]
+
+  defguardp is_desc_direction(value)
+            when value in [
+                   :desc,
+                   :desc_nulls_first,
+                   :desc_nulls_last
+                 ]
 
   ## Filter
 
@@ -1906,13 +1932,18 @@ defmodule Flop do
   Updates the `order_by` and `order_directions` values of a `Flop` struct.
 
   - If the field is not in the current `order_by` value, it will be prepended to
-    the list. The order direction for the field will be set to `:asc`.
+    the list. By default, the order direction for the field will be set to
+    `:asc`.
   - If the field is already at the front of the `order_by` list, the order
     direction will be reversed.
   - If the field is already in the list, but not at the front, it will be moved
-    to the front and the order direction will be set to `:asc`.
+    to the front and the order direction will be set to `:asc` (or the custom
+    asc direction supplied in the `:directions` option).
+  - If the `:directions` option——a 2-element tuple——is passed, the first and
+    second elements will be used as custom sort declarations for ascending and
+    descending, respectively.
 
-  ## Example
+  ## Examples
 
       iex> flop = push_order(%Flop{}, :name)
       iex> flop.order_by
@@ -1940,6 +1971,21 @@ defmodule Flop do
       iex> flop.order_directions
       [:asc, :asc, :asc]
 
+  By default, the function toggles between `:asc` and `:desc`. You can override
+  this with the `:directions` option.
+
+      iex> directions = {:asc_nulls_last, :desc_nulls_last}
+      iex> flop = push_order(%Flop{}, :ttfb, directions: directions)
+      iex> flop.order_by
+      [:ttfb]
+      iex> flop.order_directions
+      [:asc_nulls_last]
+      iex> flop = push_order(flop, :ttfb, directions: directions)
+      iex> flop.order_by
+      [:ttfb]
+      iex> flop.order_directions
+      [:desc_nulls_last]
+
   If a string is passed as the second argument, it will be converted to an atom
   using `String.to_existing_atom/1`. If the atom does not exist, the `Flop`
   struct will be returned unchanged.
@@ -1959,17 +2005,24 @@ defmodule Flop do
       iex> push_order(%Flop{order_by: [:id], before: "DEF"}, :name)
       %Flop{order_by: [:name, :id], order_directions: [:asc], before: nil}
   """
-  @spec push_order(Flop.t(), atom | String.t()) :: Flop.t()
+  @spec push_order(Flop.t(), atom | String.t(), keyword) :: Flop.t()
   @doc since: "0.10.0"
   @doc group: :parameters
+  def push_order(flop, field, opts \\ [])
+
   def push_order(
         %Flop{order_by: order_by, order_directions: order_directions} = flop,
-        field
+        field,
+        opts
       )
       when is_atom(field) do
     previous_index = get_index(order_by, field)
     previous_direction = get_order_direction(order_directions, previous_index)
-    new_direction = new_order_direction(previous_index, previous_direction)
+
+    directions = Keyword.get(opts, :directions, nil)
+
+    new_direction =
+      new_order_direction(previous_index, previous_direction, directions)
 
     {order_by, order_directions} =
       get_new_order(
@@ -1989,8 +2042,8 @@ defmodule Flop do
     }
   end
 
-  def push_order(flop, field) when is_binary(field) do
-    push_order(flop, String.to_existing_atom(field))
+  def push_order(flop, field, opts) when is_binary(field) do
+    push_order(flop, String.to_existing_atom(field), opts)
   rescue
     _e in ArgumentError -> flop
   end
@@ -2004,13 +2057,27 @@ defmodule Flop do
   defp get_order_direction(directions, index),
     do: Enum.at(directions, index, :asc)
 
-  defp new_order_direction(0, :asc), do: :desc
-  defp new_order_direction(0, :asc_nulls_first), do: :desc_nulls_last
-  defp new_order_direction(0, :asc_nulls_last), do: :desc_nulls_first
-  defp new_order_direction(0, :desc), do: :asc
-  defp new_order_direction(0, :desc_nulls_first), do: :asc_nulls_last
-  defp new_order_direction(0, :desc_nulls_last), do: :asc_nulls_first
-  defp new_order_direction(_, _), do: :asc
+  defp new_order_direction(0, current_direction, nil),
+    do: reverse_direction(current_direction)
+
+  defp new_order_direction(0, current_direction, {_asc, desc})
+       when is_asc_direction(current_direction) and is_direction(desc),
+       do: desc
+
+  defp new_order_direction(0, current_direction, {asc, _desc})
+       when is_desc_direction(current_direction) and is_direction(asc),
+       do: asc
+
+  defp new_order_direction(0, _current_direction, directions) do
+    raise Flop.InvalidDirectionsError, directions: directions
+  end
+
+  defp new_order_direction(_, _, nil), do: :asc
+  defp new_order_direction(_, _, {asc, _desc}) when is_direction(asc), do: asc
+
+  defp new_order_direction(_, _, directions) do
+    raise Flop.InvalidDirectionsError, directions: directions
+  end
 
   defp get_new_order(
          order_by,
