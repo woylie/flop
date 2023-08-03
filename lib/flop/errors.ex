@@ -78,8 +78,6 @@ defmodule Flop.InvalidDirectionsError do
   An error that is raised when invalid directions are passed.
   """
 
-  @type t :: %__MODULE__{directions: any}
-
   defexception [:directions]
 
   def message(%{directions: directions}) do
