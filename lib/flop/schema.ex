@@ -989,38 +989,22 @@ defimpl Flop.Schema, for: Any do
 
   defp validate_default_pagination_type!(default_type, types) do
     unless is_nil(types) || default_type in types do
-      raise ArgumentError,
-            """
-            default pagination type not among allowed types
-
-            The default pagination type set on the schema is not among the
-            allowed pagination types.
-
-                @derive {
-                  Flop.Schema,
-                  # ...
-                  default_pagination_type: #{inspect(default_type)}
-                  pagination_types: #{inspect(types)}
-                }
-
-            You can fix this in of these ways:
-
-                1. add the default pagination type to the `pagination_types`
-                   option of the schema
-                2. change the `default_pagination_type` option to one of the
-                   types set with the `pagination_types` option
-                3. remove the `default_pagination_type` option from the schema
-                4. remove the `pagination_types` option from the schema
-            """
+      raise Flop.InvalidDefaultPaginationTypeError,
+        default_pagination_type: default_type,
+        pagination_types: types
     end
   end
 
-  defp validate_no_unknown_field!(fields, known_fields, type) do
-    unknown_fields = fields -- known_fields
+  defp validate_no_unknown_field!(fields, known_fields, option) do
+    all_fields = MapSet.new(fields)
+    known_fields = MapSet.new(known_fields)
+    unknown_fields = MapSet.difference(all_fields, known_fields)
 
-    if unknown_fields != [] do
-      raise ArgumentError,
-            "unknown #{type} field(s): #{inspect(unknown_fields)}"
+    unless Enum.empty?(unknown_fields) do
+      raise Flop.UnknownFieldError,
+        known_fields: MapSet.to_list(known_fields),
+        unknown_fields: MapSet.to_list(unknown_fields),
+        option: option
     end
   end
 
@@ -1036,13 +1020,9 @@ defimpl Flop.Schema, for: Any do
       |> MapSet.difference(sortable_fields)
 
     unless Enum.empty?(unsortable_fields) do
-      raise ArgumentError, """
-      invalid default order
-
-      Default order fields must be sortable, but these fields are not:
-
-          #{inspect(unsortable_fields)}
-      """
+      raise Flop.InvalidDefaultOrderError,
+        sortable_fields: MapSet.to_list(sortable_fields),
+        unsortable_fields: MapSet.to_list(unsortable_fields)
     end
   end
 

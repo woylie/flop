@@ -142,63 +142,50 @@ defmodule Flop.SchemaTest do
 
   describe "__deriving__/3" do
     test "raises if default_pagination_type is not allowed" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Bulgur do
-            @derive {
-              Flop.Schema,
-              filterable: [],
-              sortable: [],
-              default_pagination_type: :first,
-              pagination_types: [:page]
-            }
-            defstruct [:name]
-          end
+      assert_raise Flop.InvalidDefaultPaginationTypeError, fn ->
+        defmodule Bulgur do
+          @derive {
+            Flop.Schema,
+            filterable: [],
+            sortable: [],
+            default_pagination_type: :first,
+            pagination_types: [:page]
+          }
+          defstruct [:name]
         end
-
-      assert error.message =~ "default pagination type not among allowed types"
+      end
     end
 
     test "raises if filterable field is unknown" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Pita do
-            @derive {Flop.Schema, filterable: [:smell], sortable: []}
-            defstruct [:name]
-          end
+      assert_raise Flop.UnknownFieldError, fn ->
+        defmodule Pita do
+          @derive {Flop.Schema, filterable: [:smell], sortable: []}
+          defstruct [:name]
         end
-
-      assert error.message =~ "unknown filterable field"
+      end
     end
 
     test "raises if sortable field is unknown" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Marmelade do
-            @derive {Flop.Schema, filterable: [], sortable: [:smell]}
-            defstruct [:name]
-          end
+      assert_raise Flop.UnknownFieldError, fn ->
+        defmodule Marmelade do
+          @derive {Flop.Schema, filterable: [], sortable: [:smell]}
+          defstruct [:name]
         end
-
-      assert error.message =~ "unknown sortable field"
+      end
     end
 
     test "raises if default order field is not sortable" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule Broomstick do
-            @derive {
-              Flop.Schema,
-              filterable: [],
-              sortable: [:name],
-              default_order: %{order_by: [:age], order_directions: [:desc]}
-            }
-            defstruct [:name, :age]
-          end
+      assert_raise Flop.InvalidDefaultOrderError, fn ->
+        defmodule Broomstick do
+          @derive {
+            Flop.Schema,
+            filterable: [],
+            sortable: [:name],
+            default_order: %{order_by: [:age], order_directions: [:desc]}
+          }
+          defstruct [:name, :age]
         end
-
-      assert error.message =~ "invalid default order"
-      assert error.message =~ "must be sortable"
+      end
     end
 
     test "raises if compound field references unknown field" do
