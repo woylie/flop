@@ -1225,15 +1225,17 @@ defmodule Flop do
 
   @spec reverse_ordering([order_direction()]) :: [order_direction()]
   defp reverse_ordering(order_directions) do
-    Enum.map(order_directions, fn
-      {:desc, field} -> {:asc, field}
-      {:desc_nulls_last, field} -> {:asc_nulls_first, field}
-      {:desc_nulls_first, field} -> {:asc_nulls_last, field}
-      {:asc, field} -> {:desc, field}
-      {:asc_nulls_last, field} -> {:desc_nulls_first, field}
-      {:asc_nulls_first, field} -> {:desc_nulls_last, field}
+    Enum.map(order_directions, fn {direction, field} ->
+      {reverse_direction(direction), field}
     end)
   end
+
+  defp reverse_direction(:asc), do: :desc
+  defp reverse_direction(:asc_nulls_first), do: :desc_nulls_last
+  defp reverse_direction(:asc_nulls_last), do: :desc_nulls_first
+  defp reverse_direction(:desc), do: :asc
+  defp reverse_direction(:desc_nulls_first), do: :asc_nulls_last
+  defp reverse_direction(:desc_nulls_last), do: :asc_nulls_first
 
   ## Filter
 
@@ -2027,17 +2029,8 @@ defmodule Flop do
   defp get_order_direction(directions, index),
     do: Enum.at(directions, index, :asc)
 
-  @asc_desc_defaults %{
-    asc: :desc,
-    asc_nulls_first: :desc_nulls_last,
-    asc_nulls_last: :desc_nulls_first,
-    desc: :asc,
-    desc_nulls_first: :asc_nulls_last,
-    desc_nulls_last: :asc_nulls_first
-  }
-
   defp new_order_direction(0, current_direction, nil),
-    do: @asc_desc_defaults[current_direction]
+    do: reverse_direction(current_direction)
 
   defp new_order_direction(0, current_direction, {_asc, desc})
        when current_direction in [:asc, :asc_nulls_first, :asc_nulls_last],
