@@ -1943,7 +1943,7 @@ defmodule Flop do
     second elements will be used as custom sort declarations for ascending and
     descending, respectively.
 
-  ## Example
+  ## Examples
 
       iex> flop = push_order(%Flop{}, :name)
       iex> flop.order_by
@@ -1970,6 +1970,10 @@ defmodule Flop do
       [:age, :species, :name]
       iex> flop.order_directions
       [:asc, :asc, :asc]
+
+  By default, the function toggles between `:asc` and `:desc`. You can override
+  this with the `:directions` option.
+
       iex> directions = {:asc_nulls_last, :desc_nulls_last}
       iex> flop = push_order(%Flop{}, :ttfb, directions: directions)
       iex> flop.order_by
