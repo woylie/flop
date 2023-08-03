@@ -66,16 +66,13 @@ defmodule Flop.Cursor do
 
       iex> Flop.Cursor.decode!("g3QAAAABZAACaWRiAAACDg==")
       %{id: 526}
-
-      iex> Flop.Cursor.decode!("AAAH")
-      ** (RuntimeError) invalid cursor
   """
   @doc since: "0.9.0"
   @spec decode!(binary()) :: map()
   def decode!(cursor) do
     case decode(cursor) do
       {:ok, decoded} -> decoded
-      :error -> raise "invalid cursor"
+      :error -> raise Flop.InvalidCursorError, cursor: cursor
     end
   end
 

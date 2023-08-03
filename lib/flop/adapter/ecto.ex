@@ -446,7 +446,10 @@ defmodule Flop.Adapter.Ecto do
     # use nested adapter_opts if set
     opts = Flop.get_option(:adapter_opts, opts) || opts
 
-    repo = Flop.get_option(:repo, opts) || raise no_repo_error(flop_fn)
+    repo =
+      Flop.get_option(:repo, opts) ||
+        raise Flop.NoRepoError, function_name: flop_fn
+
     opts = query_opts(opts)
 
     apply(repo, repo_fn, args ++ [opts])
@@ -456,28 +459,6 @@ defmodule Flop.Adapter.Ecto do
     default_opts = Application.get_env(:flop, :query_opts, [])
     Keyword.merge(default_opts, Keyword.get(opts, :query_opts, []))
   end
-
-  # coveralls-ignore-start
-
-  defp no_repo_error(function_name),
-    do: """
-    No repo specified. You can specify the repo either by passing it
-    explicitly:
-
-        Flop.#{function_name}(MyApp.Item, %Flop{}, repo: MyApp.Repo)
-
-    Or configure a default repo in your config:
-
-        config :flop, repo: MyApp.Repo
-
-    Or configure a repo with a backend module:
-
-        defmodule MyApp.Flop do
-          use Flop, repo: MyApp.Repo
-        end
-    """
-
-  # coveralls-ignore-end
 
   ## Compile time shenanigans
 
