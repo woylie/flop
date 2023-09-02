@@ -15,8 +15,10 @@ defmodule Flop.Misc do
       iex> add_wildcard("bor_cht")
       "%bor\\\\_cht%"
   """
-  def add_wildcard(value) when is_binary(value) do
-    "%" <> String.replace(value, ["%", "_"], &"\\#{&1}") <> "%"
+  def add_wildcard(value, escape_char \\ "\\") when is_binary(value) do
+    "%" <>
+      String.replace(value, ["\\", "%", "_"], &"#{escape_char}#{&1}") <>
+      "%"
   end
 
   @doc """
