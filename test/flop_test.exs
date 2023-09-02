@@ -399,26 +399,34 @@ defmodule FlopTest do
       end
     end
 
-    test "escapes % and _ in (i)like queries" do
-      flop = %Flop{filters: [%Filter{field: :name, op: :like, value: "a%c"}]}
+    test "escapes % in (i)like queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a%c")
 
-      assert %Ecto.Query{wheres: [%{params: [{"%a\\%c%", :string}]}]} =
-               Flop.query(Pet, flop)
+      for op <- [:like, :ilike, :like_and, :like_or, :ilike_and, :ilike_or] do
+        flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a%c"}]}
+        assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+      end
+    end
 
-      flop = %Flop{filters: [%Filter{field: :name, op: :like, value: "a_c"}]}
+    test "escapes _ in (i)like queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a_c")
 
-      assert %Ecto.Query{wheres: [%{params: [{"%a\\_c%", :string}]}]} =
-               Flop.query(Pet, flop)
+      for op <- [:like, :ilike, :like_and, :like_or, :ilike_and, :ilike_or] do
+        flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a_c"}]}
+        assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+      end
+    end
 
-      flop = %Flop{filters: [%Filter{field: :name, op: :ilike, value: "a%c"}]}
+    test "escapes \\ in (i)like queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a\\c")
 
-      assert %Ecto.Query{wheres: [%{params: [{"%a\\%c%", :string}]}]} =
-               Flop.query(Pet, flop)
-
-      flop = %Flop{filters: [%Filter{field: :name, op: :ilike, value: "a_c"}]}
-
-      assert %Ecto.Query{wheres: [%{params: [{"%a\\_c%", :string}]}]} =
-               Flop.query(Pet, flop)
+      for op <- [:like, :ilike, :like_and, :like_or, :ilike_and, :ilike_or] do
+        flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a\\c"}]}
+        assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+      end
     end
 
     property "applies not like filter" do
