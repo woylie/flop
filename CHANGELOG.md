@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.23.0] - 2023-09-26
+
 ### Added
 
 - Added `directions` option to `Flop.push_order/3`.

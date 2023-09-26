@@ -39,7 +39,7 @@ file:
 ```elixir
 def deps do
   [
-    {:flop, "~> 0.22.1"}
+    {:flop, "~> 0.23.0"}
   ]
 end
 ```
