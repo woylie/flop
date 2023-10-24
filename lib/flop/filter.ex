@@ -239,17 +239,27 @@ defmodule Flop.Filter do
   """
   @spec allowed_operators(atom, atom) :: [op]
   def allowed_operators(module, field)
-      when is_atom(module) and is_atom(field) do
+      when is_atom(module) and is_atom(field) or is_binary(field) do
     module
     |> get_field_info(field)
     |> allowed_operators()
   end
 
-  defp get_field_info(module, field) do
+  defp get_field_info(module, field) when is_atom(field) do
     struct = struct(module)
 
     if Flop.Schema.impl_for(struct) != Flop.Schema.Any do
       Flop.Schema.field_info(struct, field)
+    else
+      module.__schema__(:type, field)
+    end
+  end
+
+  defp get_field_info(module, field) when is_binary(field) do
+    struct = struct(module)
+
+    if Flop.Schema.impl_for(struct) != Flop.Schema.Any do
+      Flop.Schema.field_info(struct, String.to_atom(field))
     else
       module.__schema__(:type, field)
     end
