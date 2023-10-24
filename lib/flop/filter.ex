@@ -236,6 +236,9 @@ defmodule Flop.Filter do
 
       iex> allowed_operators(Pet, :age)
       [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
+
+      iex> allowed_operators(Pet, "age")
+      [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
   """
   @spec allowed_operators(atom, atom) :: [op]
   def allowed_operators(module, field)
