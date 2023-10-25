@@ -253,7 +253,7 @@ defmodule Flop.Filter do
 
     if Flop.Schema.impl_for(struct) != Flop.Schema.Any do
       case is_binary(field) do
-        true -> Flop.Schema.field_info(struct, String.to_atom(field))
+        true -> Flop.Schema.field_info(struct, String.to_existing_atom(field))
         false -> Flop.Schema.field_info(struct, field)
       end
     else
