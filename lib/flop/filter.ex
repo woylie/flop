@@ -256,7 +256,9 @@ defmodule Flop.Filter do
   end
 
   @doc """
-  Returns the filters when they are all available to filtering.
+  Receive a filters list and return it if all params are allowed to be filtered.
+
+  If filters param is not a list, returns an error.
 
   For unavailable op, ir returns a list containing the field and its allowed operators
 
@@ -273,7 +275,7 @@ defmodule Flop.Filter do
         }
       ]}
   """
-
+  @spec validate_filters(atom, list) :: {:ok, list} | {:error, list}
   def validate_filters(module, filters) when is_list(filters) do
     Enum.reduce(filters, {:ok, []}, fn filter, {:ok, valid_filters} ->
       case validate_filter(module, filter) do
@@ -285,6 +287,9 @@ defmodule Flop.Filter do
       end
     end)
   end
+
+  def validate_filters(_module, _filters),
+    do: {:error, "Filters param is not a list."}
 
   defp valid_operation?(module, %{op: op, field: field} = _filter)
        when is_atom(op),
