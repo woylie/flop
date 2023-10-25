@@ -256,6 +256,60 @@ defmodule Flop.Filter do
   end
 
   @doc """
+  Returns the filters when they are all available to filtering.
+
+  For unavailable op, ir returns a list containing the field and its allowed operators
+
+      iex> validate_filters(Pet, [%{value: "Kitty", op: :==, field: :name}])
+      {:ok, [%{value: "Kitty", op: :==, field: :name}]}
+
+      iex> validate_filters(Pet, [%{value: "Kitty", op: :contains, field: :name}])
+      {:error,[
+        %{
+          field: :name,
+          allowed_operators: [:==, :!=, :=~, :empty, :not_empty, :<=, :<, :>=, :>,
+            :in, :not_in, :like, :not_like, :like_and, :like_or, :ilike, :not_ilike,
+            :ilike_and, :ilike_or]
+        }
+      ]}
+  """
+
+  def validate_filters(module, filters) when is_list(filters) do
+    Enum.reduce(filters, {:ok, []}, fn filter, {:ok, valid_filters} ->
+      case validate_filter(module, filter) do
+        {:ok, valid_filter} ->
+          {:ok, [valid_filter | valid_filters]}
+
+        {:error, error} ->
+          {:error, [error]}
+      end
+    end)
+  end
+
+  defp valid_operation?(module, %{op: op, field: field} = _filter)
+       when is_atom(op),
+       do: op in allowed_operators(module, field)
+
+  defp valid_operation?(_module, _), do: false
+
+  defp valid_field?(field) when is_atom(field), do: true
+  defp valid_field?(_), do: false
+
+  defp validate_filter(module, filter) do
+    %{field: field} = filter
+
+    if valid_field?(field) and valid_operation?(module, filter) do
+      {:ok, filter}
+    else
+      {:error,
+       %{
+         field: field,
+         allowed_operators: allowed_operators(module, field)
+       }}
+    end
+  end
+
+  @doc """
   Returns the allowed operators for the given Ecto type.
 
   If the given value is not a native Ecto type, a list with all operators is
