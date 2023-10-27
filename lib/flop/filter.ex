@@ -260,7 +260,7 @@ defmodule Flop.Filter do
 
   If filters param is not a list, returns an error.
 
-  For unavailable op, ir returns a list containing the field and its allowed operators
+  For unavailable op, it returns a list containing the field and its allowed operators
 
       iex> validate_filters(Pet, [%{value: "Kitty", op: :==, field: :name}])
       {:ok, [%{value: "Kitty", op: :==, field: :name}]}
