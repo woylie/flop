@@ -139,4 +139,79 @@ defmodule Flop.FilterTest do
              ]
     end
   end
+
+  describe "validate_filters/2" do
+    test "returns a list of filters if all filters are valid" do
+      assert Filter.validate_filters(Pet, [
+               %{value: "Kitty", op: :==, field: :name}
+             ]) == {:ok, [%{value: "Kitty", op: :==, field: :name}]}
+    end
+
+    test "returns an error containing the fields and the allowed operators" do
+      assert Filter.validate_filters(Pet, [
+               %{value: "Kitty", op: :contains, field: :name}
+             ]) ==
+               {:error,
+                [
+                  %{
+                    field: :name,
+                    allowed_operators: [
+                      :==,
+                      :!=,
+                      :=~,
+                      :empty,
+                      :not_empty,
+                      :<=,
+                      :<,
+                      :>=,
+                      :>,
+                      :in,
+                      :not_in,
+                      :like,
+                      :not_like,
+                      :like_and,
+                      :like_or,
+                      :ilike,
+                      :not_ilike,
+                      :ilike_and,
+                      :ilike_or
+                    ]
+                  }
+                ]}
+    end
+
+    test "returns an error even if one filter param is correct" do
+      assert Filter.validate_filters(Pet, [
+               %{value: "Kitty", op: :==, field: :name},
+               %{value: "Kitty", op: :contains, field: :name}
+             ]) ==
+               {:error,
+                [
+                  %{
+                    field: :name,
+                    allowed_operators: [
+                      :==,
+                      :!=,
+                      :=~,
+                      :empty,
+                      :not_empty,
+                      :<=,
+                      :<,
+                      :>=,
+                      :>,
+                      :in,
+                      :not_in,
+                      :like,
+                      :not_like,
+                      :like_and,
+                      :like_or,
+                      :ilike,
+                      :not_ilike,
+                      :ilike_and,
+                      :ilike_or
+                    ]
+                  }
+                ]}
+    end
+  end
 end
