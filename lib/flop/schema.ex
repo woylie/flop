@@ -421,8 +421,8 @@ defprotocol Flop.Schema do
 
           conditions =
             case op do
-              :>= -> dynamic([r], ^expr >= ^date)
-              :<= -> dynamic([r], ^expr <= ^date)
+              :>= -> dynamic([r], ^expr >= ^value)
+              :<= -> dynamic([r], ^expr <= ^value)
             end
 
           where(query, ^conditions)
