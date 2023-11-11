@@ -215,10 +215,14 @@ defmodule Flop.Filter do
   defp validate_op(changeset, nil, _), do: changeset
 
   defp validate_op(%Changeset{valid?: true} = changeset, field_info, op) do
-    if op in allowed_operators(field_info) do
+    allowed_operators = allowed_operators(field_info)
+
+    if op in allowed_operators do
       changeset
     else
-      add_error(changeset, :op, "is invalid")
+      add_error(changeset, :op, "is invalid",
+        allowed_operators: allowed_operators
+      )
     end
   end
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+- If an invalid operator is passed in a filter, the error will now include the
+  list of allowed operators for that field.
+
 ## [0.23.0] - 2023-09-26
 
 ### Added
