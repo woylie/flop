@@ -170,6 +170,11 @@ The newly implemented dynamic casting of filter values could impact your code:
   filter value must be convertible into a string via `to_string/1`. If
   `ecto_type` is set to a custom Ecto type that casts values into a struct, the
   `String.Chars` protocol must be implemented for that struct.
+- If you use the result of `Flop.Phoenix.to_query/2` in a `~p` sigil for
+  verified routes or in a route helper function, Phoenix converts filter values
+  into a string using the `Phoenix.Param` protocol. If you use `Date`,
+  `DateTime`, `NaiveDateTime`, `Time` filters, or filters using custom structs,
+  you need to implement that protocol for these structs in your application.
 
 Please review the newly added "Ecto type option" section in the `Flop.Schema`
 module documentation.
