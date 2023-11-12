@@ -592,7 +592,7 @@ defprotocol Flop.Schema do
     If omitted, all operators will be accepted.
 
   If both the `:ecto_type` and the `:operators` option are set, the `:operators`
-  option takes precendence and only the filter value validation is based on the
+  option takes precedence and only the filter value validation is based on the
   `:ecto_type`.
   """
   @type custom_field_option ::
