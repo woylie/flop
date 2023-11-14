@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.24.0] - 2023-11-14
+
 ### Changed
 
 - If an invalid operator is passed in a filter, the error will now include the
