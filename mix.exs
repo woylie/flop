@@ -57,8 +57,8 @@ defmodule Flop.MixProject do
     [
       {:credo, "~> 1.7.0", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4.0", only: [:dev, :test], runtime: false},
-      {:ecto, "~> 3.10.3"},
-      {:ecto_sql, "~> 3.9", only: :test},
+      {:ecto, "~> 3.11"},
+      {:ecto_sql, "~> 3.11", only: :test},
       {:ex_doc, "~> 0.21", only: :dev, runtime: false},
       {:ex_machina, "~> 2.4", only: :test},
       {:makeup_diff, "~> 0.1.0", only: :dev, runtime: false},

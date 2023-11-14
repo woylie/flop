@@ -263,10 +263,49 @@ defmodule Flop.Adapter.Ecto do
       module ->
         struct = struct(module)
 
-        Enum.reduce(directions, query, fn expr, acc_query ->
-          Flop.Schema.custom(struct, {:apply_order_by, acc_query, expr})
+        Enum.reduce(directions, query, fn {_, field} = expr, acc_query ->
+          field_info = Flop.Schema.field_info(struct, field)
+          apply_order_by_field(acc_query, expr, field_info, struct)
         end)
     end
+  end
+
+  defp apply_order_by_field(
+         q,
+         {direction, _},
+         %FieldInfo{
+           extra: %{type: :join, binding: binding, field: field}
+         },
+         _
+       ) do
+    order_by(q, [{^binding, r}], [{^direction, field(r, ^field)}])
+  end
+
+  defp apply_order_by_field(
+         q,
+         {direction, _},
+         %FieldInfo{
+           extra: %{type: :compound, fields: fields}
+         },
+         struct
+       ) do
+    Enum.reduce(fields, q, fn field, acc_query ->
+      field_info = Flop.Schema.field_info(struct, field)
+      apply_order_by_field(acc_query, {direction, field}, field_info, struct)
+    end)
+  end
+
+  defp apply_order_by_field(
+         q,
+         {direction, field},
+         %FieldInfo{extra: %{type: :alias}},
+         _
+       ) do
+    order_by(q, [{^direction, selected_as(^field)}])
+  end
+
+  defp apply_order_by_field(q, order_expr, _, _) do
+    order_by(q, ^order_expr)
   end
 
   @impl Flop.Adapter
@@ -458,66 +497,6 @@ defmodule Flop.Adapter.Ecto do
   defp query_opts(opts) do
     default_opts = Application.get_env(:flop, :query_opts, [])
     Keyword.merge(default_opts, Keyword.get(opts, :query_opts, []))
-  end
-
-  ## Compile time shenanigans
-
-  @impl Flop.Adapter
-  def custom_func_builder(opts) do
-    adapter_opts = Keyword.fetch!(opts, :adapter_opts)
-    compound_fields = Map.fetch!(adapter_opts, :compound_fields)
-    join_fields = Map.fetch!(adapter_opts, :join_fields)
-    alias_fields = Map.fetch!(adapter_opts, :alias_fields)
-
-    compound_field_funcs =
-      for {name, fields} <- compound_fields do
-        quote do
-          def custom(struct, {:apply_order_by, q, {direction, unquote(name)}}) do
-            Enum.reduce(unquote(fields), q, fn field, acc_q ->
-              Flop.Schema.custom(
-                struct,
-                {:apply_order_by, acc_q, {direction, field}}
-              )
-            end)
-          end
-        end
-      end
-
-    join_field_funcs =
-      for {join_field, %{binding: binding, field: field}} <- join_fields do
-        quote do
-          def custom(_, {:apply_order_by, q, {direction, unquote(join_field)}}) do
-            order_by(
-              q,
-              [{^unquote(binding), r}],
-              [{^direction, field(r, unquote(field))}]
-            )
-          end
-        end
-      end
-
-    alias_field_func =
-      for name <- alias_fields do
-        quote do
-          def custom(_, {:apply_order_by, q, {direction, unquote(name)}}) do
-            order_by(q, [{^direction, selected_as(unquote(name))}])
-          end
-        end
-      end
-
-    schema_field_func =
-      quote do
-        def custom(_, {:apply_order_by, q, direction}) do
-          order_by(q, ^direction)
-        end
-      end
-
-    [
-      compound_field_funcs,
-      join_field_funcs,
-      alias_field_func,
-      schema_field_func
-    ]
   end
 
   ## Filter query builder

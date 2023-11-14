@@ -844,10 +844,6 @@ defprotocol Flop.Schema do
   @doc since: "0.2.0"
   @spec max_limit(any) :: pos_integer | nil
   def max_limit(data)
-
-  @doc false
-  @spec custom(any, any) :: any
-  def custom(data, arg)
 end
 
 defimpl Flop.Schema, for: Any do
@@ -926,7 +922,6 @@ defimpl Flop.Schema, for: Any do
 
     field_info_func = build_field_info_func(adapter, adapter_opts, struct)
     get_field_func = build_get_field_func(struct, adapter, adapter_opts)
-    custom_func = adapter.custom_func_builder(options)
 
     quote do
       defimpl Flop.Schema, for: unquote(module) do
@@ -965,8 +960,6 @@ defimpl Flop.Schema, for: Any do
         def sortable(_) do
           unquote(sortable_fields)
         end
-
-        unquote(custom_func)
       end
     end
   end
