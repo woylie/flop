@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+- `Flop.push_order/3` now allows you to use a descending order as the initial
+  sort order.
+
 ## [0.24.0] - 2023-11-14
 
 ### Changed
