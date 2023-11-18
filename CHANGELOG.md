@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.24.1] - 2023-11-18
+
 ### Changed
 
 - `Flop.push_order/3` now allows you to use a descending order as the initial
