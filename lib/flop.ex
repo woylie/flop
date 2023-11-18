@@ -1986,6 +1986,20 @@ defmodule Flop do
       iex> flop.order_directions
       [:desc_nulls_last]
 
+  This also allows you to sort in descending order initially.
+
+      iex> directions = {:desc, :asc}
+      iex> flop = push_order(%Flop{}, :ttfb, directions: directions)
+      iex> flop.order_by
+      [:ttfb]
+      iex> flop.order_directions
+      [:desc]
+      iex> flop = push_order(flop, :ttfb, directions: directions)
+      iex> flop.order_by
+      [:ttfb]
+      iex> flop.order_directions
+      [:asc]
+
   If a string is passed as the second argument, it will be converted to an atom
   using `String.to_existing_atom/1`. If the atom does not exist, the `Flop`
   struct will be returned unchanged.
@@ -2061,11 +2075,19 @@ defmodule Flop do
     do: reverse_direction(current_direction)
 
   defp new_order_direction(0, current_direction, {_asc, desc})
-       when is_asc_direction(current_direction) and is_direction(desc),
+       when is_asc_direction(current_direction) and is_desc_direction(desc),
+       do: desc
+
+  defp new_order_direction(0, current_direction, {desc, _asc})
+       when is_asc_direction(current_direction) and is_desc_direction(desc),
        do: desc
 
   defp new_order_direction(0, current_direction, {asc, _desc})
-       when is_desc_direction(current_direction) and is_direction(asc),
+       when is_desc_direction(current_direction) and is_asc_direction(asc),
+       do: asc
+
+  defp new_order_direction(0, current_direction, {_desc, asc})
+       when is_desc_direction(current_direction) and is_asc_direction(asc),
        do: asc
 
   defp new_order_direction(0, _current_direction, directions) do
