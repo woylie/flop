@@ -1688,6 +1688,174 @@ defmodule Flop.Filter do
   end
 
   @doc """
+  Updates all filter values for the given field.
+
+  If no filter for the given field is set, the filter list will be returned
+  unchanged.
+
+  ## Examples
+
+  ### Flop.Filter struct
+
+      iex> update_value(
+      ...>   [
+      ...>     %Flop.Filter{field: :name, op: :==, value: "Joe"},
+      ...>     %Flop.Filter{field: :age, op: :>=, value: 30}
+      ...>   ],
+      ...>   :name,
+      ...>   fn
+      ...>     nil -> nil
+      ...>     value -> String.downcase(value)
+      ...>   end
+      ...> )
+      [
+        %Flop.Filter{field: :name, op: :==, value: "joe"},
+        %Flop.Filter{field: :age, op: :>=, value: 30}
+      ]
+
+      iex> update_value(
+      ...>   [%Flop.Filter{field: :age, op: :==, value: 8}],
+      ...>   :name,
+      ...>   fn
+      ...>     nil -> nil
+      ...>     value -> String.downcase(value)
+      ...>   end
+      ...> )
+      [%Flop.Filter{field: :age, op: :==, value: 8}]
+
+  ### Map with atom keys
+
+      iex> update_value(
+      ...>   [%{field: :name, op: :==, value: "Joe"}],
+      ...>   :name,
+      ...>   fn
+      ...>     nil -> nil
+      ...>     value -> String.downcase(value)
+      ...>   end
+      ...> )
+      [%{field: :name, op: :==, value: "joe"}]
+
+      iex> update_value(
+      ...>   [%{field: "name", op: "==", value: "Joe"}],
+      ...>   :name,
+      ...>   fn
+      ...>     nil -> nil
+      ...>     value -> String.downcase(value)
+      ...>   end
+      ...> )
+      [%{field: "name", op: "==", value: "joe"}]
+
+  ### Map with string keys
+
+      iex> update_value(
+      ...>   [%{"field" => :updated_at, "op" => :>=, "value" => "2023-10-01"}],
+      ...>   :updated_at,
+      ...>   fn
+      ...>     nil -> nil
+      ...>     value -> value <> " 00:00:00"
+      ...>   end
+      ...> )
+      [%{"field" => :updated_at, "op" => :>=, "value" => "2023-10-01 00:00:00"}]
+
+      iex> update_value(
+      ...>   [%{"field" => "updated_at", "op" => ">=", "value" => "2023-10-01"}],
+      ...>   :updated_at,
+      ...>   fn
+      ...>     nil -> nil
+      ...>     value -> value <> " 00:00:00"
+      ...>   end
+      ...> )
+      [%{"field" => "updated_at", "op" => ">=", "value" => "2023-10-01 00:00:00"}]
+
+  ### Indexed map
+
+      iex> update_value(
+      ...>   %{0 => %{field: "name", op: "==", value: "Joe"}},
+      ...>   :name,
+      ...>   fn
+      ...>     nil -> nil
+      ...>     value -> String.downcase(value)
+      ...>   end
+      ...> )
+      %{0 => %{field: "name", op: "==", value: "joe"}}
+
+      iex> update_value(
+      ...>   %{0 => %{field: :name, op: "==", value: "Joe"}},
+      ...>   :name,
+      ...>   fn
+      ...>     nil -> nil
+      ...>     value -> String.downcase(value)
+      ...>   end
+      ...> )
+      %{0 => %{field: :name, op: "==", value: "joe"}}
+
+      iex> update_value(
+      ...>   %{"0" => %{"field" => "updated_at", "op" => ">=", "value" => "2023-10-01"}},
+      ...>   :updated_at,
+      ...>   fn
+      ...>     nil -> nil
+      ...>     value -> value <> " 00:00:00"
+      ...>   end
+      ...> )
+      %{"0" => %{"field" => "updated_at", "op" => ">=", "value" => "2023-10-01 00:00:00"}}
+
+      iex> update_value(
+      ...>   %{"0" => %{"field" => :name, "op" => "==", "value" => "Joe"}},
+      ...>   :name,
+      ...>   fn
+      ...>     nil -> nil
+      ...>     value -> String.downcase(value)
+      ...>   end
+      ...> )
+      %{"0" => %{"field" => :name, "op" => "==", "value" => "joe"}}
+  """
+  @doc since: "0.25.0"
+  @spec update_value([t()] | [map] | map, atom, (any -> any)) :: t() | map | nil
+  def update_value(filters, field, fun)
+      when is_list(filters) and is_atom(field) and is_function(fun, 1) do
+    field_str = to_string(field)
+
+    Enum.map(filters, fn
+      %{field: ^field, value: value} = filter ->
+        %{filter | value: fun.(value)}
+
+      %{field: ^field_str, value: value} = filter ->
+        %{filter | value: fun.(value)}
+
+      %{"field" => ^field, "value" => value} = filter ->
+        %{filter | "value" => fun.(value)}
+
+      %{"field" => ^field_str, "value" => value} = filter ->
+        %{filter | "value" => fun.(value)}
+
+      filter ->
+        filter
+    end)
+  end
+
+  def update_value(filters, field, fun)
+      when is_map(filters) and is_atom(field) and is_function(fun, 1) do
+    field_str = to_string(field)
+
+    Enum.into(filters, %{}, fn
+      {idx, %{field: ^field, value: value} = filter} ->
+        {idx, %{filter | value: fun.(value)}}
+
+      {idx, %{field: ^field_str, value: value} = filter} ->
+        {idx, %{filter | value: fun.(value)}}
+
+      {idx, %{"field" => ^field, "value" => value} = filter} ->
+        {idx, %{filter | "value" => fun.(value)}}
+
+      {idx, %{"field" => ^field_str, "value" => value} = filter} ->
+        {idx, %{filter | "value" => fun.(value)}}
+
+      filter ->
+        filter
+    end)
+  end
+
+  @doc """
   Adds the given filter to the filter list and removes all existing filters for
   the same field from the list.
 
