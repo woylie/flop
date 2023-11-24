@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- Added `Flop.Filter.update_value/3` for updating the filter value for a field
+  in a list of filters.
+
 ## [0.24.1] - 2023-11-18
 
 ### Changed
