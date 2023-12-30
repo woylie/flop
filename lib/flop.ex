@@ -449,7 +449,7 @@ defmodule Flop do
   @typep private_option ::
            {:adapter, module} | {:backend, module}
 
-  @doc """
+  @typedoc """
   Options specific to the Ecto adapter.
 
   - `:repo` - The Ecto Repo module used for database queries.
