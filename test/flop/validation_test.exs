@@ -264,7 +264,7 @@ defmodule Flop.ValidationTest do
     end
 
     test "replaces malformed page with replace_invalid_params" do
-      params = %{page: "a", page_size: 10}
+      params = %{page: "a"}
 
       assert {:ok, %Flop{page: 1}} =
                validate(params, replace_invalid_params: true)
