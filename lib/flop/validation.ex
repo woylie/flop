@@ -376,11 +376,20 @@ defmodule Flop.Validation do
     end
   end
 
-  defp any_change_or_errors?(%Changeset{changes: changes, errors: errors}, field_a, field_b) do
+  defp any_change_or_errors?(
+         %Changeset{changes: changes, errors: errors},
+         field_a,
+         field_b
+       ) do
     case changes do
-      %{^field_a => value} when not is_nil(value) -> true
-      %{^field_b => value} when not is_nil(value) -> true
-      _ -> Keyword.has_key?(errors, field_a) || Keyword.has_key?(errors, field_b)
+      %{^field_a => value} when not is_nil(value) ->
+        true
+
+      %{^field_b => value} when not is_nil(value) ->
+        true
+
+      _ ->
+        Keyword.has_key?(errors, field_a) || Keyword.has_key?(errors, field_b)
     end
   end
 
