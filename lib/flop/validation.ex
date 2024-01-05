@@ -366,21 +366,30 @@ defmodule Flop.Validation do
     end
   end
 
-  defp get_pagination_type(%Changeset{changes: changes}, opts) do
+  defp get_pagination_type(%Changeset{} = changeset, opts) do
     cond do
-      any_set?(changes, :first, :after) -> :first
-      any_set?(changes, :last, :before) -> :last
-      any_set?(changes, :page, :page_size) -> :page
-      any_set?(changes, :limit, :offset) -> :offset
+      any_change_or_errors?(changeset, :first, :after) -> :first
+      any_change_or_errors?(changeset, :last, :before) -> :last
+      any_change_or_errors?(changeset, :page, :page_size) -> :page
+      any_change_or_errors?(changeset, :limit, :offset) -> :offset
       true -> Flop.get_option(:default_pagination_type, opts)
     end
   end
 
-  defp any_set?(%{} = map, field_a, field_b) do
-    case map do
-      %{^field_a => value} when not is_nil(value) -> true
-      %{^field_b => value} when not is_nil(value) -> true
-      _ -> false
+  defp any_change_or_errors?(
+         %Changeset{changes: changes, errors: errors},
+         field_a,
+         field_b
+       ) do
+    case changes do
+      %{^field_a => value} when not is_nil(value) ->
+        true
+
+      %{^field_b => value} when not is_nil(value) ->
+        true
+
+      _ ->
+        Keyword.has_key?(errors, field_a) || Keyword.has_key?(errors, field_b)
     end
   end
 
