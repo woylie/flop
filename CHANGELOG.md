@@ -2,10 +2,16 @@
 
 ## Unreleased
 
+## [0.25.0] - 2024-01-14
+
 ### Added
 
 - Added `Flop.Filter.update_value/3` for updating the filter value for a field
   in a list of filters.
+
+### Fixed
+
+- Determine pagination type if pagination parameter has errors.
 
 ## [0.24.1] - 2023-11-18
 
