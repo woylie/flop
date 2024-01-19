@@ -17,6 +17,8 @@ defmodule Flop.Adapter do
             when adapter_opts: map,
                  field: atom
 
+  @callback merge_query(queryable, queryable) :: queryable
+
   @callback apply_filter(queryable, Flop.Filter.t(), struct, keyword) ::
               queryable
 

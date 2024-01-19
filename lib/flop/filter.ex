@@ -23,11 +23,14 @@ defmodule Flop.Filter do
     restricted by deriving `Flop.Schema` in your Ecto schema.
   - `op`: The filter operator.
   - `value`: The comparison value of the filter.
+  - `or`: Specify if this filter should be processed as part of an "or group".
+      An "or group" is a group of filters that will be "or'd" together, then "and'd" with the rest of the filters.
   """
   @type t :: %__MODULE__{
           field: atom | String.t(),
           op: op,
-          value: any
+          value: any,
+          or: integer | nil
         }
 
   @typedoc """
@@ -130,6 +133,9 @@ defmodule Flop.Filter do
       values: @operators
 
     field :value, Any
+
+    field :or, :integer,
+      default: nil
   end
 
   @doc false
@@ -139,17 +145,19 @@ defmodule Flop.Filter do
 
     changeset =
       filter
-      |> cast(params, [:field, :op])
+      |> cast(params, [:field, :op, :or])
       |> validate_required([:field, :op])
       |> validate_filterable(module)
 
     if changeset.valid? do
       field = Changeset.fetch_field!(changeset, :field)
       op = Changeset.fetch_field!(changeset, :op)
+      or_group = Changeset.fetch_field!(changeset, :or)
       field_info = module && get_field_info(module, field)
 
       changeset
       |> validate_op(field_info, op)
+      |> validate_or(or_group)
       |> cast_value(field_info, op)
     else
       changeset
@@ -223,6 +231,16 @@ defmodule Flop.Filter do
       add_error(changeset, :op, "is invalid",
         allowed_operators: allowed_operators
       )
+    end
+  end
+
+  defp validate_or(changeset, nil), do: changeset
+
+  defp validate_or(%Changeset{valid?: true} = changeset, or_group) do
+    if is_integer(or_group) do
+      changeset
+    else
+      add_error(changeset, :or, "or group must be integer")
     end
   end
 

@@ -1289,7 +1289,31 @@ defmodule Flop do
         module -> struct(module)
       end
 
-    Enum.reduce(filters, q, &apply_filter(&2, &1, schema_struct, opts))
+    # Group filters by "or group".  Default group is nil.
+    or_groups = Enum.group_by(filters, & &1.or)
+    groups = or_groups
+      |> Enum.map(fn {group, _} -> group end)
+      |> Enum.reject(&is_nil(&1))
+      |> Enum.uniq()
+      |> Enum.sort()
+
+    if map_size(or_groups) == 1 and Map.has_key?(or_groups, nil) do
+      # If or_groups map only contains the nil group, process as normal.
+      Enum.reduce(filters, q, &apply_filter(&2, &1, schema_struct, opts))
+    else
+      # Apply filters each group separately and merge the results.
+      q = for group <- groups, reduce: q do
+        q ->
+          group_filters = Map.get(or_groups, group)
+          or_query = Enum.reduce(group_filters, nil, &apply_filter(&2, &1, schema_struct, opts ++ [or: true]))
+          adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
+          adapter.merge_query(q, or_query)
+      end
+
+      # Apply any filters in the nil group as normal.
+      remaining_filters = Map.get(or_groups, nil)
+      Enum.reduce(remaining_filters, q, &apply_filter(&2, &1, schema_struct, opts))
+    end
   end
 
   defp apply_filter(query, %Filter{field: nil}, _, _), do: query

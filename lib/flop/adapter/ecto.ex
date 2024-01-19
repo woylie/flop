@@ -232,6 +232,9 @@ defmodule Flop.Adapter.Ecto do
   end
 
   @impl Flop.Adapter
+  def merge_query(root_query, filter_query), do: Query.where(root_query, ^filter_query)
+
+  @impl Flop.Adapter
   def apply_filter(
         query,
         %Flop.Filter{field: field} = filter,
@@ -250,7 +253,15 @@ defmodule Flop.Adapter.Ecto do
         apply(mod, fun, [query, filter, opts])
 
       field_info ->
-        Query.where(query, ^build_op(schema_struct, field_info, filter))
+        if Keyword.get(opts, :or, false) do
+          query = if query do
+            dynamic([r], ^query or ^build_op(schema_struct, field_info, filter))
+          else
+            build_op(schema_struct, field_info, filter)
+          end
+        else
+          Query.where(query, ^build_op(schema_struct, field_info, filter))
+        end
     end
   end
 
