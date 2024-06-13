@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### Removed
+
+- The previously deprecated tuple syntax for defining join fields has been
+  removed in favor of a keyword list.
+
+### Upgrade Guide
+
+Replace the tuple syntax for join fields with a keyword list.
+
+```diff
+@derive {
+  Flop.Schema,
+  join_fields: [
+-    owner_name: {:owner, :name}
++    owner_name: [
++      binding: :owner,
++      field: :name
++    ]
+  ]
+}
+```
+
 ## [0.25.0] - 2024-01-14
 
 ### Added

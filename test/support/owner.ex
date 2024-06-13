@@ -11,7 +11,10 @@ defmodule MyApp.Owner do
     filterable: [:name, :pet_mood_as_reference, :pet_mood_as_enum],
     sortable: [:name, :age],
     join_fields: [
-      pet_age: {:pets, :age},
+      pet_age: [
+        binding: :pets,
+        field: :age
+      ],
       pet_mood_as_reference: [
         binding: :pets,
         field: :mood,

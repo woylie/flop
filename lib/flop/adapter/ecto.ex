@@ -699,21 +699,6 @@ defmodule Flop.Adapter.Ecto do
     Enum.into(fields, %{}, &normalize_join_field_opts/1)
   end
 
-  defp normalize_join_field_opts({name, {binding, field}}) do
-    Logger.warning(
-      "The tuple syntax for defining Flop join fields has been deprecated. Use a keyword list instead."
-    )
-
-    opts = %{
-      binding: binding,
-      field: field,
-      path: [binding, field],
-      ecto_type: nil
-    }
-
-    {name, opts}
-  end
-
   defp normalize_join_field_opts({name, opts}) when is_list(opts) do
     binding = Keyword.fetch!(opts, :binding)
     field = Keyword.fetch!(opts, :field)

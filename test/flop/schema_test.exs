@@ -19,7 +19,12 @@ defmodule Flop.SchemaTest do
                order_directions: [:desc, :asc]
              },
              compound_fields: [name_or_email: [:name, :email]],
-             join_fields: [topping_name: {:toppings, :name}],
+             join_fields: [
+               topping_name: [
+                 binding: :toppings,
+                 field: :name
+               ]
+             ],
              alias_fields: [:topping_count],
              custom_fields: [
                inserted_at: [
@@ -219,7 +224,12 @@ defmodule Flop.SchemaTest do
               Flop.Schema,
               filterable: [],
               sortable: [],
-              join_fields: [name: {:eater, :name}],
+              join_fields: [
+                name: [
+                  binding: :eater,
+                  field: :name
+                ]
+              ],
               compound_fields: [name: [:name, :nickname]]
             }
             defstruct [:name, :nickname]
@@ -255,7 +265,12 @@ defmodule Flop.SchemaTest do
               Flop.Schema,
               filterable: [],
               sortable: [],
-              join_fields: [owner_name: {:owner, :name}],
+              join_fields: [
+                owner_name: [
+                  binding: :owner,
+                  field: :name
+                ]
+              ],
               alias_fields: [:owner_name]
             }
             defstruct [:id]
@@ -295,7 +310,12 @@ defmodule Flop.SchemaTest do
               Flop.Schema,
               filterable: [],
               sortable: [],
-              join_fields: [owner_name: {:owner, :name}],
+              join_fields: [
+                owner_name: [
+                  binding: :owner,
+                  field: :name
+                ]
+              ],
               custom_fields: [
                 owner_name: [
                   filter: {__MODULE__, :some_function, []}
