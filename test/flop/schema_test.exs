@@ -51,38 +51,6 @@ defmodule Flop.SchemaTest do
     assert Schema.default_limit(%Panini{}) == 20
   end
 
-  test "field_type/2 returns :normal tuple for normal fields" do
-    assert Schema.field_type(%Panini{}, :name) == {:normal, :name}
-    assert Schema.field_type(%Panini{}, :age) == {:normal, :age}
-  end
-
-  test "field_type/2 returns config for compound fields" do
-    assert Schema.field_type(%Panini{}, :name_or_email) ==
-             {:compound, [:name, :email]}
-  end
-
-  test "field_type/2 returns config for join fields" do
-    assert Schema.field_type(%Panini{}, :topping_name) ==
-             {:join,
-              %{
-                binding: :toppings,
-                field: :name,
-                path: [:toppings, :name],
-                ecto_type: nil
-              }}
-  end
-
-  test "field_type/2 returns config for custom fields" do
-    assert Schema.field_type(%Panini{}, :inserted_at) ==
-             {:custom,
-              %{
-                filter: {Panini, :date_filter, [some: "option"]},
-                ecto_type: :date,
-                operators: nil,
-                bindings: []
-              }}
-  end
-
   test "max_limit/1 returns the max limit passed as option" do
     assert Schema.max_limit(%Panini{}) == 50
   end
@@ -96,12 +64,6 @@ defmodule Flop.SchemaTest do
   test "calling default_order/1 without deriving raises error" do
     assert_raise Protocol.UndefinedError, fn ->
       Schema.default_order(%{})
-    end
-  end
-
-  test "calling field_type/2 without deriving raises error" do
-    assert_raise Protocol.UndefinedError, fn ->
-      Schema.field_type(%{}, :field)
     end
   end
 

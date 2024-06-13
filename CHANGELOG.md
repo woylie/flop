@@ -6,6 +6,8 @@
 
 - The previously deprecated tuple syntax for defining join fields has been
   removed in favor of a keyword list.
+- The previously deprecated function `Flop.Schema.field_type/2` was removed in
+  favor of `Flop.Schema.field_info/2`.
 
 ### Upgrade Guide
 
