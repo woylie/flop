@@ -7,6 +7,8 @@ defmodule Flop.SchemaTest do
   doctest Flop.Schema, import: true
 
   defmodule Panini do
+    use Ecto.Schema
+
     @derive {Flop.Schema,
              filterable: [:name, :age],
              sortable: [:name, :age, :topping_count],
@@ -26,7 +28,11 @@ defmodule Flop.SchemaTest do
                ]
              ]}
 
-    defstruct [:name, :email, :age]
+    schema "paninis" do
+      field :name, :string
+      field :email, :string
+      field :age, :integer
+    end
   end
 
   test "default_order/1 returns the default order passed as an option" do
