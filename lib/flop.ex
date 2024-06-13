@@ -2501,7 +2501,12 @@ defmodule Flop do
         filterable: [:name, :owner_age],
         sortable: [:name, :owner_age],
         adapter_opts: [
-          join_fields: [owner_age: {:owner, :age}]
+          join_fields: [
+            owner_age: [
+              binding: :owner,
+              field: :age
+            ]
+          ]
         ]
       }
 

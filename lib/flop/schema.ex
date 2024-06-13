@@ -635,56 +635,6 @@ defprotocol Flop.Schema do
           | {:ecto_enum, [atom] | keyword}
 
   @doc """
-  Returns the field type in a schema.
-
-  - `{:normal, atom}` - An ordinary field on the schema. The second tuple
-    element is the field name.
-  - `{:compound, [atom]}` - A combination of fields defined with the
-    `compound_fields` option. The list of atoms refers to the list of fields
-    that are included.
-  - `{:join, map}` - A field from a named binding as defined with the
-    `join_fields` option. The map has keys for the `:binding`, `:field` and
-    `:path`.
-  - `{:custom, keyword}` - A filter field that uses a custom filter function.
-
-  ## Examples
-
-      iex> field_type(%MyApp.Pet{}, :age)
-      {:normal, :age}
-      iex> field_type(%MyApp.Pet{}, :full_name)
-      {:compound, [:family_name, :given_name]}
-      iex> field_type(%MyApp.Pet{}, :owner_name)
-      {
-        :join,
-        %{
-          binding: :owner,
-          field: :name,
-          path: [:owner, :name],
-          ecto_type: :string
-        }
-      }
-      iex> field_type(%MyApp.Pet{}, :reverse_name)
-      {
-        :custom,
-        %{
-          filter: {MyApp.Pet, :reverse_name_filter, []},
-          ecto_type: :string,
-          operators: nil,
-          bindings: []
-        }
-      }
-  """
-  @doc since: "0.11.0"
-  @spec field_type(any, atom) ::
-          {:normal, atom}
-          | {:compound, [atom]}
-          | {:join, map}
-          | {:alias, atom}
-          | {:custom, map}
-  @deprecated "use field_info/2 instead"
-  def field_type(data, field)
-
-  @doc """
   Returns the field information for the given field name.
 
   ## Examples
@@ -899,11 +849,6 @@ defimpl Flop.Schema, for: Any do
 
     validate_options!(options, adapter_opts, struct)
 
-    alias_fields = Map.fetch!(adapter_opts, :alias_fields)
-    compound_fields = Map.fetch!(adapter_opts, :compound_fields)
-    custom_fields = Map.fetch!(adapter_opts, :custom_fields)
-    join_fields = Map.fetch!(adapter_opts, :join_fields)
-
     filterable_fields = Keyword.get(options, :filterable)
     sortable_fields = Keyword.get(options, :sortable)
     default_limit = Keyword.get(options, :default_limit)
@@ -911,14 +856,6 @@ defimpl Flop.Schema, for: Any do
     pagination_types = Keyword.get(options, :pagination_types)
     default_pagination_type = Keyword.get(options, :default_pagination_type)
     default_order = Keyword.get(options, :default_order)
-
-    field_type_func =
-      build_field_type_func(
-        compound_fields,
-        join_fields,
-        alias_fields,
-        custom_fields
-      )
 
     field_info_func = build_field_info_func(adapter, adapter_opts, struct)
     get_field_func = build_get_field_func(struct, adapter, adapter_opts)
@@ -938,7 +875,6 @@ defimpl Flop.Schema, for: Any do
         end
 
         unquote(field_info_func)
-        unquote(field_type_func)
         unquote(get_field_func)
 
         def filterable(_) do
@@ -1052,54 +988,6 @@ defimpl Flop.Schema, for: Any do
     end
   end
 
-  def build_field_type_func(
-        compound_fields,
-        join_fields,
-        alias_fields,
-        custom_fields
-      ) do
-    compound_field_funcs = field_type_funcs(:compound, compound_fields)
-    join_field_funcs = field_type_funcs(:join, join_fields)
-    alias_field_funcs = field_type_funcs(:alias, alias_fields)
-    custom_field_funcs = field_type_funcs(:custom, custom_fields)
-
-    default_funcs =
-      quote do
-        def field_type(_, name) do
-          {:normal, name}
-        end
-      end
-
-    quote do
-      unquote(compound_field_funcs)
-      unquote(join_field_funcs)
-      unquote(alias_field_funcs)
-      unquote(custom_field_funcs)
-      unquote(default_funcs)
-    end
-  end
-
-  defp field_type_funcs(type, fields)
-       when type in [:compound, :join, :custom] do
-    for {name, value} <- fields do
-      quote do
-        def field_type(_, unquote(name)) do
-          {unquote(type), unquote(Macro.escape(value))}
-        end
-      end
-    end
-  end
-
-  defp field_type_funcs(:alias, fields) do
-    for name <- fields do
-      quote do
-        def field_type(_, unquote(name)) do
-          {:alias, unquote(name)}
-        end
-      end
-    end
-  end
-
   def build_get_field_func(struct, adapter, adapter_opts) do
     for {field, field_info} <- adapter.fields(struct, adapter_opts) do
       quote do
@@ -1134,13 +1022,6 @@ defimpl Flop.Schema, for: Any do
   end
 
   def field_info(struct, _) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
-
-  def field_type(struct, _) do
     raise Protocol.UndefinedError,
       protocol: @protocol,
       value: struct,

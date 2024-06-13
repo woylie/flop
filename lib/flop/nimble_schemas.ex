@@ -74,17 +74,13 @@ defmodule Flop.NimbleSchemas do
       default: [],
       keys: [
         *: [
-          type:
-            {:or,
-             [
-               keyword_list: [
-                 binding: [type: :atom, required: true],
-                 field: [type: :atom, required: true],
-                 ecto_type: [type: :any],
-                 path: [type: {:list, :atom}]
-               ],
-               tuple: [:atom, :atom]
-             ]}
+          type: :keyword_list,
+          keys: [
+            binding: [type: :atom, required: true],
+            field: [type: :atom, required: true],
+            ecto_type: [type: :any],
+            path: [type: {:list, :atom}]
+          ]
         ]
       ]
     ],

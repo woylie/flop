@@ -31,7 +31,10 @@ defmodule MyApp.Pet do
         pet_and_owner_name: [:name, :owner_name]
       ],
       join_fields: [
-        owner_age: {:owner, :age},
+        owner_age: [
+          binding: :owner,
+          field: :age
+        ],
         owner_name: [
           binding: :owner,
           field: :name,
