@@ -20,6 +20,7 @@ defmodule Flop.MixProject do
         "coveralls.github": :test,
         "coveralls.html": :test,
         "coveralls.json": :test,
+        "coveralls.json.all": :test,
         "coveralls.post": :test,
         "ecto.create": :test,
         "ecto.drop": :test,
@@ -109,7 +110,11 @@ defmodule Flop.MixProject do
   defp aliases do
     [
       "test.all": ["test", "test.adapters"],
-      "test.adapters": &test_adapters/1
+      "test.adapters": &test_adapters/1,
+      "coveralls.json.all": [
+        "test.adapters --cover",
+        "coveralls.json --import-cover cover"
+      ]
     ]
   end
 
@@ -124,7 +129,9 @@ defmodule Flop.MixProject do
       IO.puts("==> Running tests for ECTO_ADAPTER=#{adapter} mix test")
 
       {_, res} =
-        System.cmd("mix", ["test", ansi_option() | args],
+        System.cmd(
+          "mix",
+          ["test", ansi_option(), "--export-coverage=#{adapter}" | args],
           into: IO.binstream(:stdio, :line),
           env: [{"ECTO_ADAPTER", adapter}]
         )

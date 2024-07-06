@@ -72,7 +72,7 @@ jobs:
           mix local.hex --force
           mix deps.get
       - name: Run Tests
-        run: mix coveralls.json
+        run: mix coveralls.json.all
       - uses: codecov/codecov-action@v4
         with:
           files: ./cover/excoveralls.json
