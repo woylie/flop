@@ -3,7 +3,7 @@ defmodule Flop.MixProject do
 
   @source_url "https://github.com/woylie/flop"
   @version "0.25.0"
-  @adapters ~w(pg)
+  @adapters ~w(pg sqlite)
 
   def project do
     [
@@ -70,6 +70,7 @@ defmodule Flop.MixProject do
       {:excoveralls, "~> 0.10", only: :test},
       {:nimble_options, "~> 1.0"},
       {:postgrex, ">= 0.0.0", only: :test},
+      {:ecto_sqlite3, "~> 0.16.0", only: :test},
       {:stream_data, "~> 1.0", only: [:dev, :test]}
     ]
   end
