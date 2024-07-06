@@ -3,6 +3,7 @@ defmodule Flop.MixProject do
 
   @source_url "https://github.com/woylie/flop"
   @version "0.25.0"
+  @adapters ~w(pg)
 
   def project do
     [
@@ -13,6 +14,7 @@ defmodule Flop.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
+      test_paths: test_paths(System.get_env("ECTO_ADAPTER")),
       preferred_cli_env: [
         "coveralls.detail": :test,
         "coveralls.github": :test,
@@ -23,6 +25,8 @@ defmodule Flop.MixProject do
         "ecto.drop": :test,
         "ecto.migrate": :test,
         "ecto.reset": :test,
+        "test.all": :test,
+        "test.adapters": :test,
         coveralls: :test,
         dialyzer: :test
       ],
@@ -104,8 +108,34 @@ defmodule Flop.MixProject do
 
   defp aliases do
     [
-      "ecto.reset": ["ecto.drop", "ecto.create --quiet", "ecto.migrate"],
-      test: ["ecto.create --quiet", "ecto.migrate", "test"]
+      "test.all": ["test", "test.adapters"],
+      "test.adapters": &test_adapters/1
     ]
+  end
+
+  defp test_paths(adapter) when adapter in @adapters,
+    do: ["integration_test/#{adapter}"]
+
+  defp test_paths(nil), do: ["test"]
+  defp test_paths(other), do: raise("unknown adapter #{inspect(other)}")
+
+  defp test_adapters(args) do
+    for adapter <- @adapters do
+      IO.puts("==> Running tests for ECTO_ADAPTER=#{adapter} mix test")
+
+      {_, res} =
+        System.cmd("mix", ["test", ansi_option() | args],
+          into: IO.binstream(:stdio, :line),
+          env: [{"ECTO_ADAPTER", adapter}]
+        )
+
+      if res > 0 do
+        System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+      end
+    end
+  end
+
+  defp ansi_option do
+    if IO.ANSI.enabled?(), do: "--color", else: "--no-color"
   end
 end
