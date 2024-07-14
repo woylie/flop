@@ -13,30 +13,11 @@ on:
       - main
 
 jobs:
-  tests:
-    runs-on: ubuntu-20.04
-    name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
-    strategy:
-      matrix:
-        include:
-          - { elixir: 1.13, otp: 22 }
-          - { elixir: 1.13, otp: 23 }
-          - { elixir: 1.13, otp: 24 }
-          - { elixir: 1.14, otp: 23 }
-          - { elixir: 1.14, otp: 24 }
-          - { elixir: 1.14, otp: 25 }
-          - { elixir: 1.15, otp: 24 }
-          - { elixir: 1.15, otp: 25 }
-          - { elixir: 1.15, otp: 26 }
-          - { elixir: 1.16, otp: 24 }
-          - { elixir: 1.16, otp: 25 }
-          - { elixir: 1.16, otp: 26 }
-          - { elixir: 1.17, otp: 25 }
-          - { elixir: 1.17, otp: 26 }
-          - { elixir: 1.17, otp: 27 }
+  test-coverage:
+    runs-on: ubuntu-22.04
+    name: Test Coverage
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     services:
       postgres:
         image: postgres:12-alpine
@@ -50,7 +31,67 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        id: beam
+        with:
+          otp-version: ${{ env.OTP_VERSION }}
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+      - name: Restore dependencies and build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            _build
+            deps
+          key: ${{ runner.os }}-otp-${{ steps.beam.outputs.otp-version }}-elixir-${{ steps.beam.outputs.elixir-version }}-mix-${{ hashFiles('mix.lock') }}
+          restore-keys: ${{ runner.os }}-otp-${{ steps.beam.outputs.otp-version }}-elixir-${{ steps.beam.outputs.elixir-version }}-
+      - name: Install Dependencies
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - name: Compile
+        run: mix compile --warnings-as-errors
+      - name: Run Tests
+        run: mix coveralls.json.all --warnings-as-errors
+      - uses: codecov/codecov-action@v4
+        with:
+          files: ./cover/excoveralls.json
 
+  tests:
+    runs-on: ubuntu-22.04
+    name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
+    strategy:
+      matrix:
+        include:
+          - { elixir: 1.13, otp: 24 }
+          - { elixir: 1.14, otp: 24 }
+          - { elixir: 1.14, otp: 25 }
+          - { elixir: 1.15, otp: 24 }
+          - { elixir: 1.15, otp: 25 }
+          - { elixir: 1.15, otp: 26 }
+          - { elixir: 1.16, otp: 24 }
+          - { elixir: 1.16, otp: 25 }
+          - { elixir: 1.16, otp: 26 }
+          - { elixir: 1.17, otp: 25 }
+          - { elixir: 1.17, otp: 26 }
+          - { elixir: 1.17, otp: 27 }
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    services:
+      postgres:
+        image: postgres:12-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@v4
       - uses: erlef/setup-beam@v1
@@ -72,10 +113,7 @@ jobs:
           mix local.hex --force
           mix deps.get
       - name: Run Tests
-        run: mix coveralls.json.all
-      - uses: codecov/codecov-action@v4
-        with:
-          files: ./cover/excoveralls.json
+        run: mix test.all
 
   matrix-results:
     if: ${{ always() }}
