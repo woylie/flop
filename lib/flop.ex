@@ -489,8 +489,8 @@ defmodule Flop do
   @typedoc """
   Represents the pagination type.
 
-  - `:offset` - pagination using the `offset` and `limit` parameters
-  - `:page` - pagination using the `page` and `page_size` parameters
+  - `:offset` - offset-based pagination using the `offset` and `limit` parameters
+  - `:page` - offset-based pagination using the `page` and `page_size` parameters
   - `:first` - cursor-based pagination using the `first` and `after` parameters
   - `:last` - cursor-based pagination using the `last` and `before` parameters
   """

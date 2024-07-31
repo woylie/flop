@@ -95,9 +95,9 @@ defprotocol Flop.Schema do
 
   ## Restricting pagination types
 
-  By default, `page`/`page_size`, `offset`/`limit` and cursor-based pagination
-  (`first`/`after` and `last`/`before`) are enabled. If you wish to restrict the
-  pagination type for a schema, you can set the `pagination_types` option.
+  By default, all supported pagination types (`t:Flop.pagination_type/0`) are
+  enabled. If you wish to restrict the pagination type for a schema, you can
+  set the `:pagination_types` option.
 
       @derive {
         Flop.Schema,
@@ -106,8 +106,9 @@ defprotocol Flop.Schema do
         pagination_types: [:first, :last]
       }
 
-  See also `t:Flop.option/0` and `t:Flop.pagination_type/0`. Setting the value
-  to `nil` allows all pagination types.
+  Setting the value to `nil` (default) allows all pagination types.
+
+  See also `t:Flop.option/0`. 
 
   ## Alias fields
 
