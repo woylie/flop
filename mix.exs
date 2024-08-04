@@ -111,6 +111,8 @@ defmodule Flop.MixProject do
   defp aliases do
     [
       "test.all": ["test", "test.adapters"],
+      "test.postgres": &test_adapters(["pg"], &1),
+      "test.sqlite": &test_adapters(["sqlite"], &1),
       "test.adapters": &test_adapters/1,
       "coveralls.json.all": [
         "test.adapters --cover",
@@ -125,8 +127,8 @@ defmodule Flop.MixProject do
   defp test_paths(nil), do: ["test"]
   defp test_paths(other), do: raise("unknown adapter #{inspect(other)}")
 
-  defp test_adapters(args) do
-    for adapter <- @adapters do
+  defp test_adapters(adapters \\ @adapters, args) do
+    for adapter <- adapters do
       IO.puts("==> Running tests for ECTO_ADAPTER=#{adapter} mix test")
 
       {_, res} =
