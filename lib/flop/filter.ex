@@ -195,7 +195,7 @@ defmodule Flop.Filter do
   end
 
   defp expand_type({:ecto_enum, values}) do
-    {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)}
+    Ecto.ParameterizedType.init(Ecto.Enum, values: values)
   end
 
   defp expand_type(type), do: type
@@ -348,7 +348,7 @@ defmodule Flop.Filter do
     [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
   end
 
-  def allowed_operators({:parameterized, Ecto.Enum, _}) do
+  def allowed_operators({:parameterized, {Ecto.Enum, _}}) do
     [
       :==,
       :!=,

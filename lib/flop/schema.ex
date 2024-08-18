@@ -489,7 +489,7 @@ defprotocol Flop.Schema do
 
   For parameterized types, use the following syntax:
 
-  - `ecto_type: {:parameterized, Ecto.Enum, Ecto.Enum.init(values: [:one, :two])}`
+  - `ecto_type: Ecto.ParameterizedType.init(Ecto.Enum, values: [:one, :two])`
 
   If you're working with `Ecto.Enum` types, you can use a more convenient
   syntax:
@@ -613,7 +613,7 @@ defprotocol Flop.Schema do
   - `:string`
   - `:integer`
   - `Ecto.UUID`
-  - `{:parameterized, Ecto.Enum, Ecto.Enum.init(values: [:one, :two])}`
+  - `{:parameterized, {Ecto.Enum, Ecto.Enum.init(values: [:one, :two])}}`
 
   Or reference a schema field:
 
