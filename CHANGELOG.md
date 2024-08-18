@@ -9,6 +9,11 @@
 - The previously deprecated function `Flop.Schema.field_type/2` was removed in
   favor of `Flop.Schema.field_info/2`.
 
+### Fixed
+
+- Fixed a compatibility issue with Ecto 3.12 related to the initialization of
+  the `Ecto.Enum` type.
+
 ### Upgrade Guide
 
 Replace the tuple syntax for join fields with a keyword list.
