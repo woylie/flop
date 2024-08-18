@@ -970,7 +970,7 @@ defimpl Flop.Schema, for: Any do
           end
 
         %{ecto_type: {:ecto_enum, values}} ->
-          type = {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)}
+          type = Ecto.ParameterizedType.init(Ecto.Enum, values: values)
           field_info = %{field_info | ecto_type: type}
 
           quote do
