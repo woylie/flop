@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.26.0] - 2024-08-18
+
 ### Removed
 
 - The previously deprecated tuple syntax for defining join fields has been
