@@ -613,7 +613,7 @@ defprotocol Flop.Schema do
   - `:string`
   - `:integer`
   - `Ecto.UUID`
-  - `{:parameterized, {Ecto.Enum, Ecto.Enum.init(values: [:one, :two])}}`
+  - The result of `Ecto.ParameterizedType.init/2`.
 
   Or reference a schema field:
 
@@ -621,8 +621,7 @@ defprotocol Flop.Schema do
 
   Or build an adhoc Ecto.Enum:
 
-  - `{:ecto_enum, [:one, :two]}` (This has the same effect as the `:parameterized`
-    example above.)
+  - `{:ecto_enum, [:one, :two]}`
   - `{:ecto_enum, [one: 1, two: 2]}`
 
   Note that if you make an `Ecto.Enum` type this way, the filter value will be
