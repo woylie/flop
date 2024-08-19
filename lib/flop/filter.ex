@@ -368,6 +368,22 @@ defmodule Flop.Filter do
     ]
   end
 
+  # for backward compatibility with Ecto < 3.12.0
+  defp get_allowed_operators({:parameterized, Ecto.Enum, _}) do
+    [
+      :==,
+      :!=,
+      :empty,
+      :not_empty,
+      :<=,
+      :<,
+      :>=,
+      :>,
+      :in,
+      :not_in
+    ]
+  end
+
   defp get_allowed_operators(_) do
     [
       :==,

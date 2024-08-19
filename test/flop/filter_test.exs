@@ -52,6 +52,41 @@ defmodule Flop.FilterTest do
       end
     end
 
+    test "returns list of operators for enum" do
+      types = [
+        # by internal representation Ecto < 3.12.0
+        {:parameterized, Ecto.Enum, %{type: :string}},
+        # by internal representation Ecto >= 3.12.0
+        {:parameterized, {Ecto.Enum, %{type: :string}}},
+        # same with init function
+        Ecto.ParameterizedType.init(Ecto.Enum, values: [:one, :two]),
+        # by convenience format
+        {:ecto_enum, [:one, :two]},
+        # by reference
+        {:from_schema, MyApp.Pet, :mood}
+      ]
+
+      expected_ops = [
+        :==,
+        :!=,
+        :empty,
+        :not_empty,
+        :<=,
+        :<,
+        :>=,
+        :>,
+        :in,
+        :not_in
+      ]
+
+      for type <- types do
+        assert Filter.allowed_operators(type) == expected_ops
+
+        assert Filter.allowed_operators(%Flop.FieldInfo{ecto_type: type}) ==
+                 expected_ops
+      end
+    end
+
     test "returns a list of operators for unknown types" do
       assert [op | _] = Filter.allowed_operators(:unicorn)
       assert is_atom(op)
