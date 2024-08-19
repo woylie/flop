@@ -16,7 +16,7 @@ defmodule Flop.FilterTest do
   end
 
   describe "allowed_operators/1" do
-    test "returns a list of operators for each native Ecto type" do
+    test "returns a list of operators for each Ecto type" do
       types = [
         :id,
         :binary_id,
@@ -36,12 +36,19 @@ defmodule Flop.FilterTest do
         :naive_datetime_usec,
         :utc_datetime,
         :utc_datetime_usec,
-        {:parameterized, {Ecto.Enum, %{type: :string}}}
+        {:parameterized, {Ecto.Enum, %{type: :string}}},
+        {:ecto_enum, [:one, :two]},
+        {:from_schema, MyApp.Pet, :mood}
       ]
 
       for type <- types do
-        assert [op | _] = Filter.allowed_operators(type)
+        assert [op | _] = ops_for_type = Filter.allowed_operators(type)
         assert is_atom(op)
+
+        ops_for_field =
+          Filter.allowed_operators(%Flop.FieldInfo{ecto_type: type})
+
+        assert ops_for_type == ops_for_field
       end
     end
 
