@@ -20,5 +20,5 @@ defmodule Flop.CustomTypes.ExistingAtom do
   def type, do: :string
   def load(_), do: :error
   def dump(_), do: :error
-  # coveralls-ignore-end
+  # coveralls-ignore-stop
 end

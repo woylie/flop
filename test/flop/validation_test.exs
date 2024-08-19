@@ -1050,5 +1050,23 @@ defmodule Flop.ValidationTest do
       assert {:error, changeset} = validate(params, for: Owner)
       assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
     end
+
+    test "casts filter values as ecto enums when using parameterized type" do
+      field = :pet_mood_as_parameterized_type
+
+      params = %{filters: [%{field: field, op: :==, value: "happy"}]}
+      assert %{filters: [%{value: :happy}]} = validate!(params, for: Owner)
+
+      params = %{filters: [%{field: field, op: :==, value: :happy}]}
+      assert %{filters: [%{value: :happy}]} = validate!(params, for: Owner)
+
+      params = %{filters: [%{field: field, op: :==, value: "joyful"}]}
+      assert {:error, changeset} = validate(params, for: Owner)
+      assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+
+      params = %{filters: [%{field: field, op: :==, value: :joyful}]}
+      assert {:error, changeset} = validate(params, for: Owner)
+      assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+    end
   end
 end

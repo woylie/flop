@@ -195,7 +195,7 @@ defmodule Flop.Filter do
   end
 
   defp expand_type({:ecto_enum, values}) do
-    {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)}
+    Ecto.ParameterizedType.init(Ecto.Enum, values: values)
   end
 
   defp expand_type(type), do: type
@@ -275,14 +275,19 @@ defmodule Flop.Filter do
   end
 
   def allowed_operators(%FieldInfo{ecto_type: ecto_type}) do
-    ecto_type |> expand_type() |> allowed_operators()
+    ecto_type |> expand_type() |> get_allowed_operators()
   end
 
-  def allowed_operators(type) when type in [:decimal, :float, :id, :integer] do
+  def allowed_operators(type) do
+    type |> expand_type() |> get_allowed_operators()
+  end
+
+  defp get_allowed_operators(type)
+       when type in [:decimal, :float, :id, :integer] do
     [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
   end
 
-  def allowed_operators(type) when type in [:binary_id, :string] do
+  defp get_allowed_operators(type) when type in [:binary_id, :string] do
     [
       :==,
       :!=,
@@ -306,11 +311,11 @@ defmodule Flop.Filter do
     ]
   end
 
-  def allowed_operators(:boolean) do
+  defp get_allowed_operators(:boolean) do
     [:==, :!=, :=~, :empty, :not_empty]
   end
 
-  def allowed_operators({:array, _}) do
+  defp get_allowed_operators({:array, _}) do
     [
       :==,
       :!=,
@@ -327,28 +332,28 @@ defmodule Flop.Filter do
     ]
   end
 
-  def allowed_operators({:map, _}) do
+  defp get_allowed_operators({:map, _}) do
     [:==, :!=, :empty, :not_empty, :in, :not_in]
   end
 
-  def allowed_operators(:map) do
+  defp get_allowed_operators(:map) do
     [:==, :!=, :empty, :not_empty, :in, :not_in]
   end
 
-  def allowed_operators(type)
-      when type in [
-             :date,
-             :time,
-             :time_usec,
-             :naive_datetime,
-             :naive_datetime_usec,
-             :utc_datetime,
-             :utc_datetime_usec
-           ] do
+  defp get_allowed_operators(type)
+       when type in [
+              :date,
+              :time,
+              :time_usec,
+              :naive_datetime,
+              :naive_datetime_usec,
+              :utc_datetime,
+              :utc_datetime_usec
+            ] do
     [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
   end
 
-  def allowed_operators({:parameterized, Ecto.Enum, _}) do
+  defp get_allowed_operators({:parameterized, {Ecto.Enum, _}}) do
     [
       :==,
       :!=,
@@ -363,7 +368,23 @@ defmodule Flop.Filter do
     ]
   end
 
-  def allowed_operators(_) do
+  # for backward compatibility with Ecto < 3.12.0
+  defp get_allowed_operators({:parameterized, Ecto.Enum, _}) do
+    [
+      :==,
+      :!=,
+      :empty,
+      :not_empty,
+      :<=,
+      :<,
+      :>=,
+      :>,
+      :in,
+      :not_in
+    ]
+  end
+
+  defp get_allowed_operators(_) do
     [
       :==,
       :!=,
