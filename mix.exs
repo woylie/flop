@@ -124,7 +124,7 @@ defmodule Flop.MixProject do
   defp test_paths(adapter) when adapter in @adapters,
     do: ["integration_test/#{adapter}"]
 
-  defp test_paths(nil), do: ["test"]
+  defp test_paths(nil), do: ["test/base"]
   defp test_paths(other), do: raise("unknown adapter #{inspect(other)}")
 
   defp test_adapters(adapters \\ @adapters, args) do
