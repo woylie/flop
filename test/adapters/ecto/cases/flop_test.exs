@@ -749,6 +749,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       assert Enum.map(Flop.all(Pet, flop), & &1.name) == [name_1, name_2]
     end
 
+    @tag :prefix
     test "can apply a query prefix" do
       insert(:pet, %{}, prefix: "other_schema")
 
@@ -772,6 +773,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       assert Flop.count(Pet, flop) == 6
     end
 
+    @tag :prefix
     test "can apply a query prefix" do
       insert(:pet, %{}, prefix: "other_schema")
 
@@ -985,6 +987,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                Flop.meta(Pet, %Flop{page_size: 3, page: 2})
     end
 
+    @tag :prefix
     test "can apply a query prefix" do
       insert(:pet, %{}, prefix: "other_schema")
 
