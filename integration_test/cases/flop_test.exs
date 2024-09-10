@@ -1,14 +1,16 @@
 defmodule Flop.Integration.FlopTest do
-  use Flop.Integration.Case, async: Application.compile_env(:flop, :async_integration_tests, true)
+  use Flop.Integration.Case,
+    async: Application.compile_env(:flop, :async_integration_tests, true)
+
   use ExUnitProperties
-  
+
   doctest Flop, import: true
-  
+
   import Ecto.Query
   import Flop.Factory
   import Flop.Generators
   import Flop.TestUtil
-  
+
   alias __MODULE__.TestProvider
   alias Ecto.Query.QueryExpr
   alias Flop.Filter
@@ -16,19 +18,19 @@ defmodule Flop.Integration.FlopTest do
   alias Flop.Repo
   alias MyApp.Owner
   alias MyApp.Pet
-  
+
   @pet_count_range 1..200
-  
+
   defmodule TestProvider do
     use Flop, repo: Flop.Repo, default_limit: 35
   end
-  
+
   defmodule TestProviderNested do
     use Flop,
       adapter_opts: [repo: Flop.Repo],
       default_limit: 35
   end
-  
+
   describe "ordering" do
     test "adds order_by to query if set" do
       pets = insert_list(20, :pet)
@@ -166,7 +168,7 @@ defmodule Flop.Integration.FlopTest do
              ) == Enum.reverse(expected)
     end
   end
-  
+
   describe "filtering" do
     property "applies equality filter" do
       check all pet_count <- integer(@pet_count_range),
@@ -256,14 +258,14 @@ defmodule Flop.Integration.FlopTest do
         checkin_checkout()
       end
     end
-    
+
     # test "applies empty filter" do
     #   require Flop.Adapter.Ecto.Operators
-      
+
     #   field = :species
-        
+
     #   d1 = dynamic([r], is_nil(field(r, ^field)) == ^true); d2 = dynamic([r], Flop.Adapter.Ecto.Operators.empty(:other) == ^true)
-        
+
     #   assert where(Pet, ^d1) == where(Pet, ^d2)
     # end
 
@@ -728,7 +730,7 @@ defmodule Flop.Integration.FlopTest do
       assert Flop.query(Pet, flop) == Pet
     end
   end
-  
+
   describe "all/3" do
     test "returns all matching entries" do
       matching_pets = insert_list(6, :pet, age: 5)
@@ -754,7 +756,7 @@ defmodule Flop.Integration.FlopTest do
       refute Flop.all(Pet, %Flop{}, query_opts: [prefix: "other_schema"]) == []
     end
   end
-  
+
   describe "count/3" do
     test "returns count of matching entries" do
       _matching_pets = insert_list(6, :pet, age: 5)
@@ -838,7 +840,7 @@ defmodule Flop.Integration.FlopTest do
       assert Flop.count(q, flop) == 3
     end
   end
-  
+
   describe "meta/3" do
     test "returns the meta information for a query with limit/offset" do
       _matching_pets = insert_list(7, :pet, age: 5)
@@ -1005,7 +1007,7 @@ defmodule Flop.Integration.FlopTest do
       assert opts[:for] == Pet
     end
   end
-  
+
   describe "run/3" do
     test "returns data and meta data" do
       insert_list(3, :pet)
@@ -1013,7 +1015,7 @@ defmodule Flop.Integration.FlopTest do
       assert {[%Pet{}], %Meta{}} = Flop.run(Pet, flop)
     end
   end
-  
+
   describe "validate_and_run/3" do
     test "returns error if flop is invalid" do
       flop = %Flop{
@@ -1037,7 +1039,7 @@ defmodule Flop.Integration.FlopTest do
       assert {:ok, {[%Pet{}], %Meta{}}} = Flop.validate_and_run(Pet, flop)
     end
   end
-  
+
   describe "validate_and_run!/3" do
     test "raises if flop is invalid" do
       assert_raise Flop.InvalidParamsError, fn ->
@@ -1051,7 +1053,7 @@ defmodule Flop.Integration.FlopTest do
       assert {[%Pet{}], %Meta{}} = Flop.validate_and_run!(Pet, flop)
     end
   end
-  
+
   describe "offset-based pagination" do
     test "applies limit to query" do
       insert_list(6, :pet)
@@ -1096,7 +1098,7 @@ defmodule Flop.Integration.FlopTest do
       assert Repo.all(query) == Enum.slice(sorted_pets, 8..11)
     end
   end
-  
+
   describe "cursor pagination" do
     property "querying cursor by cursor forward includes all items in order" do
       check all pets <- uniq_list_of_pets(length: 1..25),
@@ -1719,7 +1721,7 @@ defmodule Flop.Integration.FlopTest do
                )
     end
   end
-  
+
   describe "__using__/1" do
     test "defines wrapper functions that pass default options" do
       insert_list(3, :pet)
@@ -1742,7 +1744,7 @@ defmodule Flop.Integration.FlopTest do
       assert Keyword.get(opts, :backend) == TestProvider
     end
   end
-  
+
   describe "__using__/1 with nested adapter options" do
     test "defines wrapper functions that pass default options" do
       insert_list(3, :pet)

@@ -23,10 +23,11 @@ defmodule Flop.Integration.Case do
   end
 end
 
-{:ok, _} = Ecto.Adapters.Postgres.ensure_all_started(Flop.Repo.config(), :temporary)
+{:ok, _} =
+  Ecto.Adapters.Postgres.ensure_all_started(Flop.Repo.config(), :temporary)
 
 # Load up the repository, start it, and run migrations
-_   = Ecto.Adapters.Postgres.storage_down(Flop.Repo.config())
+_ = Ecto.Adapters.Postgres.storage_down(Flop.Repo.config())
 :ok = Ecto.Adapters.Postgres.storage_up(Flop.Repo.config())
 
 {:ok, _pid} = Flop.Repo.start_link()

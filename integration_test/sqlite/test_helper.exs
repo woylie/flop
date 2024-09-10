@@ -15,18 +15,19 @@ end
 
 defmodule Flop.Integration.Case do
   use ExUnit.CaseTemplate
-  
+
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Flop.Repo)
   end
 end
 
-Code.require_file "migration.exs", __DIR__
+Code.require_file("migration.exs", __DIR__)
 
-{:ok, _} = Ecto.Adapters.SQLite3.ensure_all_started(Flop.Repo.config(), :temporary)
+{:ok, _} =
+  Ecto.Adapters.SQLite3.ensure_all_started(Flop.Repo.config(), :temporary)
 
 # Load up the repository, start it, and run migrations
-_   = Ecto.Adapters.SQLite3.storage_down(Flop.Repo.config())
+_ = Ecto.Adapters.SQLite3.storage_down(Flop.Repo.config())
 :ok = Ecto.Adapters.SQLite3.storage_up(Flop.Repo.config())
 
 {:ok, _pid} = Flop.Repo.start_link()
