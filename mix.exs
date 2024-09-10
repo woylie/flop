@@ -125,7 +125,16 @@ defmodule Flop.MixProject do
     do: ["test/adapters/ecto/#{adapter}"]
 
   defp test_paths(nil), do: ["test/base"]
-  defp test_paths(other), do: raise("unknown adapter #{inspect(other)}")
+
+  defp test_paths(adapter) do
+    raise """
+    unknown Ecto adapter
+
+    Expected ECTO_ADAPTER to be one of: #{inspect(@adapters)}
+
+    Got: #{inspect(adapter)}
+    """
+  end
 
   defp test_adapters(adapters \\ @adapters, args) do
     for adapter <- adapters do
