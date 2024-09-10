@@ -1,4 +1,4 @@
-defmodule Flop.Repo.Postgres.Migration do
+defmodule Flop.Repo.SQLite.Migration do
   use Ecto.Migration
 
   def change do

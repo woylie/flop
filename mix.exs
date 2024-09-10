@@ -3,7 +3,7 @@ defmodule Flop.MixProject do
 
   @source_url "https://github.com/woylie/flop"
   @version "0.26.1"
-  @adapters ~w(pg sqlite)
+  @adapters ~w(postgres sqlite)
 
   def project do
     [
@@ -111,7 +111,7 @@ defmodule Flop.MixProject do
   defp aliases do
     [
       "test.all": ["test", "test.adapters"],
-      "test.postgres": &test_adapters(["pg"], &1),
+      "test.postgres": &test_adapters(["postgres"], &1),
       "test.sqlite": &test_adapters(["sqlite"], &1),
       "test.adapters": &test_adapters/1,
       "coveralls.json.all": [
@@ -122,7 +122,7 @@ defmodule Flop.MixProject do
   end
 
   defp test_paths(adapter) when adapter in @adapters,
-    do: ["integration_test/#{adapter}"]
+    do: ["test/adapters/ecto/#{adapter}"]
 
   defp test_paths(nil), do: ["test/base"]
   defp test_paths(other), do: raise("unknown adapter #{inspect(other)}")
