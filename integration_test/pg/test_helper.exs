@@ -23,16 +23,19 @@ defmodule Flop.Integration.Case do
   end
 end
 
+Code.require_file("migration.exs", __DIR__)
+
 {:ok, _} =
   Ecto.Adapters.Postgres.ensure_all_started(Flop.Repo.config(), :temporary)
 
 # Load up the repository, start it, and run migrations
-_ = Ecto.Adapters.Postgres.storage_down(Flop.Repo.config())
-:ok = Ecto.Adapters.Postgres.storage_up(Flop.Repo.config())
+Ecto.Adapters.Postgres.storage_down(Flop.Repo.config())
+Ecto.Adapters.Postgres.storage_up(Flop.Repo.config())
 
 {:ok, _pid} = Flop.Repo.start_link()
 
-[_ | _] = Ecto.Migrator.run(Flop.Repo, :up, log: true, all: true)
+Ecto.Migrator.up(Flop.Repo, 0, Flop.Repo.Postgres.Migration, log: true)
+
 Ecto.Adapters.SQL.Sandbox.mode(Flop.Repo, :manual)
 
 {:ok, _} = Application.ensure_all_started(:ex_machina)
