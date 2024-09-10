@@ -8,7 +8,12 @@ defmodule MyApp.Owner do
 
   @derive {
     Flop.Schema,
-    filterable: [:name, :pet_mood_as_reference, :pet_mood_as_enum],
+    filterable: [
+      :name,
+      :pet_mood_as_reference,
+      :pet_mood_as_enum,
+      :pet_mood_as_parameterized_type
+    ],
     sortable: [:name, :age],
     join_fields: [
       pet_age: [
@@ -24,6 +29,12 @@ defmodule MyApp.Owner do
         binding: :pets,
         field: :mood,
         ecto_type: {:ecto_enum, [:happy, :playful]}
+      ],
+      pet_mood_as_parameterized_type: [
+        binding: :pets,
+        field: :mood,
+        ecto_type:
+          Ecto.ParameterizedType.init(Ecto.Enum, values: [:happy, :playful])
       ]
     ],
     compound_fields: [age_and_pet_age: [:age, :pet_age]],

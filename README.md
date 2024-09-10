@@ -39,7 +39,7 @@ file:
 ```elixir
 def deps do
   [
-    {:flop, "~> 0.25.0"}
+    {:flop, "~> 0.26.1"}
   ]
 end
 ```
@@ -272,7 +272,7 @@ argument can be used to override certain options depending on the context in
 which the function is called.
 
 ```elixir
-def list_pets(%{} = args, opts \\ [], %User{} = current_user) do
+def list_pets(%{} = params, opts \\ [], %User{} = current_user) do
   flop_opts =
     opts
     |> Keyword.take([
@@ -285,7 +285,7 @@ def list_pets(%{} = args, opts \\ [], %User{} = current_user) do
   Pet
   |> scope(current_user)
   |> apply_filters(opts)
-  |> Flop.validate_and_run(flop, flop_opts)
+  |> Flop.validate_and_run(params, flop_opts)
 end
 
 defp scope(q, %User{role: :admin}), do: q

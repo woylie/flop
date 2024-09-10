@@ -2,12 +2,45 @@
 
 ## Unreleased
 
+## [0.26.1] - 2024-08-19
+
+### Fixed
+
+- Fixed allowed operators for `Ecto.Enum` fields in Ecto 3.12.
+- Fixed type expansion when passing values with shortened syntax to
+  `Flop.Filter.expand_type/1`.
+- Updated documentation example for setting `ecto_type` to parameterized types.
+
+### Upgrade Guide
+
+If you pass a parameterized type as `ecto_type` option, ensure that you use
+`Ecto.ParameterizedType.init/2` instead of using the tuple representation as
+suggested in the documentation before. The tuple representation is an internal
+representation of Ecto and was changed in Ecto 3.12.
+
+```diff
+[
+-  ecto_type: {:parameterized, Ecto.Enum, Ecto.Enum.init(values: [:one, :two])}
++  ecto_type: Ecto.ParameterizedType.init(Ecto.Enum, values: [:one, :two])
+]
+```
+
+For `Ecto.Enum` specifically, you can also use the short syntax
+`{:ecto_enum, [:one, :two]}`.
+
+## [0.26.0] - 2024-08-18
+
 ### Removed
 
 - The previously deprecated tuple syntax for defining join fields has been
   removed in favor of a keyword list.
 - The previously deprecated function `Flop.Schema.field_type/2` was removed in
   favor of `Flop.Schema.field_info/2`.
+
+### Fixed
+
+- Fixed a compatibility issue with Ecto 3.12 related to the initialization of
+  the `Ecto.Enum` type.
 
 ### Upgrade Guide
 

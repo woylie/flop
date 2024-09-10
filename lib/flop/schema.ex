@@ -95,9 +95,9 @@ defprotocol Flop.Schema do
 
   ## Restricting pagination types
 
-  By default, `page`/`page_size`, `offset`/`limit` and cursor-based pagination
-  (`first`/`after` and `last`/`before`) are enabled. If you wish to restrict the
-  pagination type for a schema, you can set the `pagination_types` option.
+  By default, all supported pagination types (`t:Flop.pagination_type/0`) are
+  enabled. If you wish to restrict the pagination type for a schema, you can
+  set the `:pagination_types` option.
 
       @derive {
         Flop.Schema,
@@ -106,8 +106,9 @@ defprotocol Flop.Schema do
         pagination_types: [:first, :last]
       }
 
-  See also `t:Flop.option/0` and `t:Flop.pagination_type/0`. Setting the value
-  to `nil` allows all pagination types.
+  Setting the value to `nil` (default) allows all pagination types.
+
+  See also `t:Flop.option/0`. 
 
   ## Alias fields
 
@@ -488,7 +489,7 @@ defprotocol Flop.Schema do
 
   For parameterized types, use the following syntax:
 
-  - `ecto_type: {:parameterized, Ecto.Enum, Ecto.Enum.init(values: [:one, :two])}`
+  - `ecto_type: Ecto.ParameterizedType.init(Ecto.Enum, values: [:one, :two])`
 
   If you're working with `Ecto.Enum` types, you can use a more convenient
   syntax:
@@ -612,7 +613,7 @@ defprotocol Flop.Schema do
   - `:string`
   - `:integer`
   - `Ecto.UUID`
-  - `{:parameterized, Ecto.Enum, Ecto.Enum.init(values: [:one, :two])}`
+  - The result of `Ecto.ParameterizedType.init/2`.
 
   Or reference a schema field:
 
@@ -620,8 +621,7 @@ defprotocol Flop.Schema do
 
   Or build an adhoc Ecto.Enum:
 
-  - `{:ecto_enum, [:one, :two]}` (This has the same effect as the `:parameterized`
-    example above.)
+  - `{:ecto_enum, [:one, :two]}`
   - `{:ecto_enum, [one: 1, two: 2]}`
 
   Note that if you make an `Ecto.Enum` type this way, the filter value will be
@@ -969,7 +969,7 @@ defimpl Flop.Schema, for: Any do
           end
 
         %{ecto_type: {:ecto_enum, values}} ->
-          type = {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)}
+          type = Ecto.ParameterizedType.init(Ecto.Enum, values: values)
           field_info = %{field_info | ecto_type: type}
 
           quote do
