@@ -1,4 +1,4 @@
-defmodule Flop.Integration.FlopTest do
+defmodule Flop.Adapters.Ecto.FlopTest do
   use Flop.Integration.Case,
     async: Application.compile_env(:flop, :async_integration_tests, true)
 
