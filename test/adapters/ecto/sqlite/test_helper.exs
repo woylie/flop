@@ -36,4 +36,4 @@ _ = Ecto.Adapters.SQLite3.storage_down(Flop.Repo.config())
 :ok = Ecto.Migrator.up(Flop.Repo, 0, Flop.Repo.SQLite.Migration, log: false)
 
 {:ok, _} = Application.ensure_all_started(:ex_machina)
-ExUnit.start(exclude: [:prefix])
+ExUnit.start(exclude: [:composite_type, :prefix])

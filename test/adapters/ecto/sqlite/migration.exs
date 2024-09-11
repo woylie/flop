@@ -29,9 +29,5 @@ defmodule Flop.Repo.SQLite.Migration do
       add(:extra, {:map, :string})
       add(:owner_id, references(:owners))
     end
-
-    create table(:walking_distances) do
-      add(:trip, :distance)
-    end
   end
 end

@@ -1700,6 +1700,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    @tag :composite_type
     test "paging on composite type" do
       1..10
       |> Enum.map(
