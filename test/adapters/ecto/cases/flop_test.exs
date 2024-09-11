@@ -1071,7 +1071,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
         |> Enum.sort_by(&{&1.name, &1.species, &1.age})
         |> Enum.slice(4..10)
 
-      flop = %Flop{offset: 4, order_by: [:name, :species, :age]}
+      flop = %Flop{limit: 100, offset: 4, order_by: [:name, :species, :age]}
       query = Flop.query(Pet, flop)
       assert %QueryExpr{params: [{4, :integer}]} = query.offset
       assert Repo.all(query) == expected_pets
