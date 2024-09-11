@@ -19,6 +19,7 @@ defmodule Flop.MixProject do
         "coveralls.detail": :test,
         "coveralls.github": :test,
         "coveralls.html": :test,
+        "coveralls.html.all": :test,
         "coveralls.json": :test,
         "coveralls.json.all": :test,
         "coveralls.post": :test,
@@ -114,6 +115,10 @@ defmodule Flop.MixProject do
       "test.postgres": &test_adapters(["postgres"], &1),
       "test.sqlite": &test_adapters(["sqlite"], &1),
       "test.adapters": &test_adapters/1,
+      "coveralls.html.all": [
+        "test.adapters --cover",
+        "coveralls.html --import-cover cover"
+      ],
       "coveralls.json.all": [
         "test.adapters --cover",
         "coveralls.json --import-cover cover"
