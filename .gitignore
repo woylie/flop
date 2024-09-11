@@ -24,3 +24,6 @@ flop-*.tar
 
 # Ignore dialyzer PLT
 .plts
+
+# Test SQLite DB lives here
+/tmp/

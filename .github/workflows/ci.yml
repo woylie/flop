@@ -54,7 +54,7 @@ jobs:
       - name: Compile
         run: mix compile --warnings-as-errors
       - name: Run Tests
-        run: mix coveralls.json --warnings-as-errors
+        run: mix coveralls.json.all --warnings-as-errors
       - uses: codecov/codecov-action@v4
         with:
           files: ./cover/excoveralls.json
@@ -112,8 +112,10 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
-      - name: Run Tests
+      - name: Run Base Tests
         run: mix test
+      - name: Run Postgres Tests
+        run: mix test.postgres
 
   matrix-results:
     if: ${{ always() }}
