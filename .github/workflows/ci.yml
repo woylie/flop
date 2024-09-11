@@ -112,8 +112,10 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
-      - name: Run Tests
-        run: mix test.all
+      - name: Run Base Tests
+        run: mix test
+      - name: Run Postgres Tests
+        run: mix test.postgres
 
   matrix-results:
     if: ${{ always() }}

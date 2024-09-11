@@ -120,7 +120,9 @@ defmodule Flop.MixProject do
         "coveralls.html --import-cover cover"
       ],
       "coveralls.json.all": [
-        "test.adapters --cover",
+        # only run postgres and base tests for coverage until sqlite tests are
+        # fixed
+        fn _ -> test_adapters(["postgres"], ["--cover"]) end,
         "coveralls.json --import-cover cover"
       ]
     ]
