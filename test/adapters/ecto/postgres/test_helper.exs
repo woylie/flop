@@ -17,9 +17,10 @@ end
 
 defmodule Flop.Integration.Case do
   use ExUnit.CaseTemplate
+  alias Ecto.Adapters.SQL.Sandbox
 
   setup do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Flop.Repo)
+    :ok = Sandbox.checkout(Flop.Repo)
   end
 end
 
