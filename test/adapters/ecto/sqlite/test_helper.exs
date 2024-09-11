@@ -20,6 +20,10 @@ defmodule Flop.Integration.Case do
   setup do
     :ok = Sandbox.checkout(Flop.Repo)
   end
+
+  setup do
+    %{ecto_adapter: :sqlite}
+  end
 end
 
 Code.require_file("migration.exs", __DIR__)
