@@ -404,31 +404,64 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    test "escapes % in (i)like queries" do
+    test "escapes % in like queries" do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a%c")
 
-      for op <- [:like, :ilike, :like_and, :like_or, :ilike_and, :ilike_or] do
+      for op <- [:like, :like_and, :like_or] do
         flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a%c"}]}
         assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
       end
     end
 
-    test "escapes _ in (i)like queries" do
+    @tag :ilike
+    test "escapes % in ilike queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a%c")
+
+      for op <- [:ilike, :ilike_and, :ilike_or] do
+        flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a%c"}]}
+        assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+      end
+    end
+
+    test "escapes _ in like queries" do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a_c")
 
-      for op <- [:like, :ilike, :like_and, :like_or, :ilike_and, :ilike_or] do
+      for op <- [:like, :like_and, :like_or] do
         flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a_c"}]}
         assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
       end
     end
 
-    test "escapes \\ in (i)like queries" do
+    @tag :ilike
+    test "escapes _ in ilike queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a_c")
+
+      for op <- [:ilike, :ilike_and, :ilike_or] do
+        flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a_c"}]}
+        assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+      end
+    end
+
+    test "escapes \\ in like queries" do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a\\c")
 
-      for op <- [:like, :ilike, :like_and, :like_or, :ilike_and, :ilike_or] do
+      for op <- [:like, :like_and, :like_or] do
+        flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a\\c"}]}
+        assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+      end
+    end
+
+    @tag :ilike
+    test "escapes \\ in ilike queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a\\c")
+
+      for op <- [:ilike, :ilike_and, :ilike_or] do
         flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a\\c"}]}
         assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
       end
@@ -452,6 +485,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    @tag :ilike
     property "applies ilike filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
@@ -470,6 +504,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    @tag :ilike
     property "applies not ilike filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
@@ -533,6 +568,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    @tag :ilike
     property "applies ilike_and filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
@@ -552,6 +588,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    @tag :ilike
     property "applies ilike_or filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),

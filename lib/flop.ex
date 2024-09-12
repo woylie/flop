@@ -232,7 +232,7 @@ defmodule Flop do
       ...>   %{name: "Patty", age: 2, species: "C. aegagrus"}
       ...> ])
       iex>
-      iex> params = %{filters: [%{field: :name, op: :=~, value: "Mag"}]}
+      iex> params = %{filters: [%{field: :name, op: :like, value: "Mag"}]}
       iex> {:ok, {results, meta}} = Flop.validate_and_run(MyApp.Pet, params)
       iex> meta.total_count
       1
