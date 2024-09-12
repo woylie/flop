@@ -387,14 +387,14 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    property "applies like filter" do
+    property "applies like filter", %{ecto_adapter: ecto_adapter} do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
                 field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 query_value <- substring(value) do
-        expected = filter_items(pets, field, :like, query_value)
+        expected = filter_items(pets, field, :like, query_value, ecto_adapter)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :like, value: query_value}]
@@ -404,44 +404,78 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    test "escapes % in (i)like queries" do
+    test "escapes % in like queries" do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a%c")
 
-      for op <- [:like, :ilike, :like_and, :like_or, :ilike_and, :ilike_or] do
+      for op <- [:like, :like_and, :like_or] do
         flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a%c"}]}
         assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
       end
     end
 
-    test "escapes _ in (i)like queries" do
+    @tag :ilike
+    test "escapes % in ilike queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a%c")
+
+      for op <- [:ilike, :ilike_and, :ilike_or] do
+        flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a%c"}]}
+        assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+      end
+    end
+
+    test "escapes _ in like queries" do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a_c")
 
-      for op <- [:like, :ilike, :like_and, :like_or, :ilike_and, :ilike_or] do
+      for op <- [:like, :like_and, :like_or] do
         flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a_c"}]}
         assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
       end
     end
 
-    test "escapes \\ in (i)like queries" do
+    @tag :ilike
+    test "escapes _ in ilike queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a_c")
+
+      for op <- [:ilike, :ilike_and, :ilike_or] do
+        flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a_c"}]}
+        assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+      end
+    end
+
+    test "escapes \\ in like queries" do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a\\c")
 
-      for op <- [:like, :ilike, :like_and, :like_or, :ilike_and, :ilike_or] do
+      for op <- [:like, :like_and, :like_or] do
         flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a\\c"}]}
         assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
       end
     end
 
-    property "applies not like filter" do
+    @tag :ilike
+    test "escapes \\ in ilike queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a\\c")
+
+      for op <- [:ilike, :ilike_and, :ilike_or] do
+        flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a\\c"}]}
+        assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+      end
+    end
+
+    property "applies not like filter", %{ecto_adapter: ecto_adapter} do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
                 field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 query_value <- substring(value) do
-        expected = filter_items(pets, field, :not_like, query_value)
+        expected =
+          filter_items(pets, field, :not_like, query_value, ecto_adapter)
 
         assert query_pets_with_owners(%{
                  filters: [%{field: field, op: :not_like, value: query_value}]
@@ -451,6 +485,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    @tag :ilike
     property "applies ilike filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
@@ -469,6 +504,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    @tag :ilike
     property "applies not ilike filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
@@ -486,14 +522,21 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    property "applies like_and filter" do
+    property "applies like_and filter", %{ecto_adapter: ecto_adapter} do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
                 field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 search_text_or_list <- search_text_or_list(value) do
-        expected = filter_items(pets, field, :like_and, search_text_or_list)
+        expected =
+          filter_items(
+            pets,
+            field,
+            :like_and,
+            search_text_or_list,
+            ecto_adapter
+          )
 
         assert query_pets_with_owners(%{
                  filters: [
@@ -505,14 +548,15 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    property "applies like_or filter" do
+    property "applies like_or filter", %{ecto_adapter: ecto_adapter} do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
                 field <- filterable_pet_field(:string),
                 pet <- member_of(pets),
                 value = Pet.get_field(pet, field),
                 search_text_or_list <- search_text_or_list(value) do
-        expected = filter_items(pets, field, :like_or, search_text_or_list)
+        expected =
+          filter_items(pets, field, :like_or, search_text_or_list, ecto_adapter)
 
         assert query_pets_with_owners(%{
                  filters: [
@@ -524,6 +568,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    @tag :ilike
     property "applies ilike_and filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
@@ -543,6 +588,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    @tag :ilike
     property "applies ilike_or filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),

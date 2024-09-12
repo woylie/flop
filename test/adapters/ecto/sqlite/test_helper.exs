@@ -20,6 +20,10 @@ defmodule Flop.Integration.Case do
   setup do
     :ok = Sandbox.checkout(Flop.Repo)
   end
+
+  setup do
+    %{ecto_adapter: :sqlite}
+  end
 end
 
 Code.require_file("migration.exs", __DIR__)
@@ -36,4 +40,4 @@ _ = Ecto.Adapters.SQLite3.storage_down(Flop.Repo.config())
 :ok = Ecto.Migrator.up(Flop.Repo, 0, Flop.Repo.SQLite.Migration, log: false)
 
 {:ok, _} = Application.ensure_all_started(:ex_machina)
-ExUnit.start(exclude: [:composite_type, :prefix])
+ExUnit.start(exclude: [:composite_type, :ilike, :prefix])
