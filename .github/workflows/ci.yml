@@ -18,6 +18,7 @@ jobs:
     name: Test Coverage
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      MIX_ENV: test
     services:
       postgres:
         image: postgres:12-alpine
