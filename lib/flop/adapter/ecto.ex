@@ -34,7 +34,8 @@ defmodule Flop.Adapter.Ecto do
     :like_and,
     :like_or,
     :ilike_and,
-    :ilike_or
+    :ilike_or,
+    :or
   ]
 
   @backend_options [
@@ -158,7 +159,8 @@ defmodule Flop.Adapter.Ecto do
            :ilike_and,
            :ilike_or,
            :empty,
-           :not_empty
+           :not_empty,
+           :or
          ],
          extra: %{fields: fields, type: :compound}
        }}
@@ -501,13 +503,14 @@ defmodule Flop.Adapter.Ecto do
 
   ## Filter query builder
 
-  for op <- [:like_and, :like_or, :ilike_and, :ilike_or] do
+  for op <- [:like_and, :like_or, :ilike_and, :ilike_or, :or] do
     {field_op, combinator} =
       case op do
         :ilike_and -> {:ilike, :and}
         :ilike_or -> {:ilike, :or}
         :like_and -> {:like, :and}
         :like_or -> {:like, :or}
+        :or -> {:==, :or}
       end
 
     defp build_op(

@@ -274,6 +274,18 @@ defmodule Flop.Adapter.Ecto.Operators do
     {fragment, prelude, combinator}
   end
 
+  def op_config(:or) do
+    fragment =
+      quote do
+        field(r, ^var!(field)) == ^var!(value)
+      end
+
+    combinator = :or
+    prelude = prelude(:maybe_split_search_text)
+
+    {fragment, prelude, combinator}
+  end
+
   defp empty do
     quote do
       is_nil(field(r, ^var!(field))) == ^var!(value)
