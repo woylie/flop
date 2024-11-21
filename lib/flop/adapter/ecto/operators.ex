@@ -281,9 +281,8 @@ defmodule Flop.Adapter.Ecto.Operators do
       end
 
     combinator = :or
-    prelude = prelude(:maybe_split_search_text)
 
-    {fragment, prelude, combinator}
+    {fragment, nil, combinator}
   end
 
   defp empty do

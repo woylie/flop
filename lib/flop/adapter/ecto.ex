@@ -503,14 +503,13 @@ defmodule Flop.Adapter.Ecto do
 
   ## Filter query builder
 
-  for op <- [:like_and, :like_or, :ilike_and, :ilike_or, :or] do
+  for op <- [:like_and, :like_or, :ilike_and, :ilike_or] do
     {field_op, combinator} =
       case op do
         :ilike_and -> {:ilike, :and}
         :ilike_or -> {:ilike, :or}
         :like_and -> {:like, :and}
         :like_or -> {:like, :or}
-        :or -> {:==, :or}
       end
 
     defp build_op(
@@ -539,6 +538,25 @@ defmodule Flop.Adapter.Ecto do
         end)
       end)
     end
+  end
+
+  defp build_op(
+          schema_struct,
+          %FieldInfo{extra: %{type: :compound, fields: fields}},
+          %Filter{op: :or, value: value}
+        ) do
+    fields = Enum.map(fields, &get_field_info(schema_struct, &1))
+
+    Enum.reduce(fields, false, fn field, inner_dynamic ->
+      dynamic_for_field =
+        build_op(schema_struct, field, %Filter{
+          field: field,
+          op: :==,
+          value: value
+        })
+
+      dynamic([r], ^inner_dynamic or ^dynamic_for_field)
+    end)
   end
 
   defp build_op(
