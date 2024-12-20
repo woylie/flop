@@ -1,7 +1,7 @@
 name: CI
 
 env:
-  ELIXIR_VERSION: "1.17"
+  ELIXIR_VERSION: "1.18"
   OTP_VERSION: "27"
 
 on:
@@ -14,14 +14,14 @@ on:
 
 jobs:
   test-coverage:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: Test Coverage
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       MIX_ENV: test
     services:
       postgres:
-        image: postgres:12-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -61,12 +61,11 @@ jobs:
           files: ./cover/excoveralls.json
 
   tests:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
     strategy:
       matrix:
         include:
-          - { elixir: 1.13, otp: 24 }
           - { elixir: 1.14, otp: 24 }
           - { elixir: 1.14, otp: 25 }
           - { elixir: 1.15, otp: 24 }
@@ -78,11 +77,14 @@ jobs:
           - { elixir: 1.17, otp: 25 }
           - { elixir: 1.17, otp: 26 }
           - { elixir: 1.17, otp: 27 }
+          - { elixir: 1.18, otp: 25 }
+          - { elixir: 1.18, otp: 26 }
+          - { elixir: 1.18, otp: 27 }
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     services:
       postgres:
-        image: postgres:12-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -120,7 +122,7 @@ jobs:
 
   matrix-results:
     if: ${{ always() }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Tests
     needs:
       - tests
@@ -134,14 +136,14 @@ jobs:
           fi
 
   code-quality:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Code Quality
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     services:
       postgres:
-        image: postgres:12-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
