@@ -256,6 +256,11 @@ defmodule Flop.Adapter.Ecto do
 
   @impl Flop.Adapter
   def apply_order_by(query, directions, opts) do
+    if Ecto.Queryable.to_query(query).order_bys != [] do
+      Logger.warning("The query you passed to flop includes order_by.\
+        This may interfere with Flop's ordering and pagination features.")
+    end
+
     case opts[:for] do
       nil ->
         Query.order_by(query, ^directions)
