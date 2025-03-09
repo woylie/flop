@@ -6,6 +6,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
 
   doctest Flop, import: true
 
+  import ExUnit.CaptureLog
   import Ecto.Query
   import Flop.Factory
   import Flop.Generators
@@ -166,6 +167,15 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                %Flop{order_by: [:pet_count], order_directions: [:desc]},
                for: Owner
              ) == Enum.reverse(expected)
+    end
+
+    test "warns if query passed to Flop already included ordering" do
+      query = from p in Pet, order_by: :species
+
+      assert capture_log(fn ->
+               Flop.all(query, %Flop{order_by: [:species, :name]})
+             end) =~
+               "This may interfere with Flop's ordering and pagination features"
     end
   end
 
