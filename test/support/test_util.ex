@@ -160,6 +160,21 @@ defmodule Flop.TestUtil do
     end)
   end
 
+  defp apply_filter_to_compound_fields(
+         pet,
+         fields,
+         :or,
+         value,
+         ecto_adapter
+       ) do
+    filter_func = matches?(:or, value, ecto_adapter)
+
+    Enum.any?(fields, fn field ->
+      field_info = Flop.Schema.field_info(%Pet{}, field)
+      pet |> get_field(field_info) |> filter_func.()
+    end)
+  end
+
   defp apply_filter_to_compound_fields(pet, fields, op, value, ecto_adapter) do
     filter_func = matches?(op, value, ecto_adapter)
 
@@ -266,6 +281,8 @@ defmodule Flop.TestUtil do
     values = Enum.map(v, &String.downcase/1)
     &Enum.any?(values, fn v -> String.downcase(&1) =~ v end)
   end
+
+  defp matches?(:or, v, _), do: &(&1 == v)
 
   defp empty?(nil), do: true
   defp empty?([]), do: true
