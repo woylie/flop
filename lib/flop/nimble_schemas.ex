@@ -102,7 +102,11 @@ defmodule Flop.NimbleSchemas do
           keys: [
             filter: [
               type: {:tuple, [:atom, :atom, :keyword_list]},
-              required: true
+              required: false
+            ],
+            sorter: [
+              type: {:tuple, [:atom, :atom, :keyword_list]},
+              required: false
             ],
             ecto_type: [type: :any],
             bindings: [type: {:list, :atom}],
