@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "enabled": true,
+  "enabledManagers": [
+    "github-actions",
+    "mix"
+  ],
+  "reviewersFromCodeOwners": true,
+  "schedule": [
+    "every weekend"
+  ],
+  "timezone": "Europe/Copenhagen",
+  "lockFileMaintenance": {
+    "enabled": true
+  },
+  "automerge": true,
+  "rangeStrategy": "widen",
+  "ignoreDeps": [
+    "postgres"
+  ]
+}
