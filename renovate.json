@@ -20,7 +20,7 @@
   "rangeStrategy": "widen",
   "packageRules": [
     {
-      "matchDepTypes": ["devDependencies"],
+      "matchDepTypes": ["dev"],
       "rangeStrategy": "pin"
     }
   ],
