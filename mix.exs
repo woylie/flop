@@ -95,10 +95,17 @@ defmodule Flop.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["cheatsheets/schema.cheatmd", "README.md", "CHANGELOG.md"],
+      extra_section: "GUIDES",
+      extras: [
+        "guides/cheatsheets/schema.cheatmd",
+        "guides/recipes/partial_uuid_filter.md",
+        "README.md",
+        "CHANGELOG.md"
+      ],
       source_ref: @version,
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
       groups_for_extras: [
+        Recipes: ~r/recipes\/.?/,
         Cheatsheets: ~r/cheatsheets\/.?/
       ],
       groups_for_docs: [
