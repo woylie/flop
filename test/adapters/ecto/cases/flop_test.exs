@@ -97,6 +97,14 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       assert result == expected
     end
 
+    test "orders by custom fields" do
+      pets = insert_list(5, :pet)
+      expected = Enum.sort_by(pets, &Kernel.*(&1.age, 7), :asc)
+      result = Flop.all(Pet, %Flop{order_by: [:dog_age]}, for: Pet)
+
+      assert result == expected
+    end
+
     test "orders by compound fields" do
       pets = insert_list(20, :pet)
 
