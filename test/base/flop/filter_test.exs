@@ -177,7 +177,8 @@ defmodule Flop.FilterTest do
                :ilike_and,
                :ilike_or,
                :empty,
-               :not_empty
+               :not_empty,
+               :or
              ]
     end
   end
