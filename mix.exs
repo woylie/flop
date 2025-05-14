@@ -3,7 +3,7 @@ defmodule Flop.MixProject do
 
   @source_url "https://github.com/woylie/flop"
   @version "0.26.2"
-  @adapters ~w(postgres sqlite)
+  @adapters ~w(postgres sqlite mysql)
 
   def project do
     [
@@ -69,6 +69,7 @@ defmodule Flop.MixProject do
       {:ex_machina, "== 2.8.0", only: :test},
       {:makeup_diff, "== 0.1.1", only: :dev, runtime: false},
       {:excoveralls, "== 0.18.5", only: :test},
+      {:myxql, "== 0.7.1", only: :test},
       {:nimble_options, "~> 1.0"},
       {:postgrex, "== 0.20.0", only: :test},
       {:ecto_sqlite3, "== 0.19.0", only: :test},
@@ -119,6 +120,7 @@ defmodule Flop.MixProject do
   defp aliases do
     [
       "test.all": ["test", "test.adapters"],
+      "test.mysql": &test_adapters(["mysql"], &1),
       "test.postgres": &test_adapters(["postgres"], &1),
       "test.sqlite": &test_adapters(["sqlite"], &1),
       "test.adapters": &test_adapters/1,
