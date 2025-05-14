@@ -1,6 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: mix
+    open-pull-requests-limit: 0
     directory: "/"
     schedule:
       interval: weekly
@@ -24,6 +25,7 @@ updates:
         versions:
           - 0.15.8
   - package-ecosystem: github-actions
+    open-pull-requests-limit: 0
     directory: "/"
     schedule:
       interval: weekly
