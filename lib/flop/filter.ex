@@ -184,10 +184,12 @@ defmodule Flop.Filter do
   defp value_type(_, :like_or), do: Like
   defp value_type(nil, _), do: Any
   defp value_type(%FieldInfo{ecto_type: type}, op), do: value_type(type, op)
-  defp value_type(type, :in), do: {:array, type}
-  defp value_type(type, :not_in), do: {:array, type}
+  defp value_type({:array, type}, :in), do: type
+  defp value_type({:array, type}, :not_in), do: type
   defp value_type({:array, type}, :contains), do: type
   defp value_type({:array, type}, :not_contains), do: type
+  defp value_type(type, :in), do: {:array, type}
+  defp value_type(type, :not_in), do: {:array, type}
   defp value_type(type, _), do: type
 
   defp expand_type({:from_schema, module, field}) do

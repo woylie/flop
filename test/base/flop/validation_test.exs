@@ -888,6 +888,9 @@ defmodule Flop.ValidationTest do
         params = %{filters: [%{field: :age, value: ["five"]}]}
         assert {:error, changeset} = validate(params, for: Pet)
         assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+
+        params = %{filters: [%{field: :owner_tags, op: op, value: "a"}]}
+        assert {:ok, %{filters: [%{value: "a"}]}} = validate(params, for: Pet)
       end
     end
 
