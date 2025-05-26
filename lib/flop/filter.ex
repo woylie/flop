@@ -96,6 +96,7 @@ defmodule Flop.Filter do
           | :not_ilike
           | :ilike_and
           | :ilike_or
+          | :or
 
   @operators [
     :==,
@@ -118,7 +119,8 @@ defmodule Flop.Filter do
     :ilike,
     :not_ilike,
     :ilike_and,
-    :ilike_or
+    :ilike_or,
+    :or
   ]
 
   @primary_key false
