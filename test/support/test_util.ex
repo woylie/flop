@@ -319,22 +319,27 @@ defmodule Flop.TestUtil do
   Fruit ID.
   """
   def query_fruits_with_owners(params, opts \\ []) do
-    flop =
-      Flop.validate!(params,
-        for: Fruit,
-        max_limit: 999_999_999,
-        default_limit: 999_999_999
-      )
+    flop_opts = [
+      for: Fruit,
+      max_limit: 999_999_999,
+      default_limit: 999_999_999
+    ]
 
     sort? = opts[:sort] || true
+
+    params =
+      if sort?,
+        do: Map.merge(params, %{order_by: [:id], order_directions: [:asc]}),
+        else: params
+
+    flop = Flop.validate!(params, flop_opts)
 
     q =
       Fruit
       |> join(:left, [f], o in assoc(f, :owner), as: :owner)
       |> preload(:owner)
 
-    q = if sort?, do: order_by(q, [p], p.id), else: q
-    opts = opts |> Keyword.take([:extra_opts]) |> Keyword.put(:for, Fruit)
+    opts = Keyword.merge(flop_opts, Keyword.take(opts, [:extra_opts]))
     Flop.all(q, flop, opts)
   end
 

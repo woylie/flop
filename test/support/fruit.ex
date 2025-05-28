@@ -15,7 +15,7 @@ defmodule MyApp.Fruit do
              :owner_attributes,
              :owner_extra
            ],
-           sortable: [:name],
+           sortable: [:id, :name],
            join_fields: [
              owner_attributes: [
                binding: :owner,
