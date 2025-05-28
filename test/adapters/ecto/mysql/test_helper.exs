@@ -45,4 +45,4 @@ Ecto.Migrator.up(Flop.Repo, 0, Flop.Repo.Mysql.Migration, log: true)
 Ecto.Adapters.SQL.Sandbox.mode(Flop.Repo, :manual)
 
 {:ok, _} = Application.ensure_all_started(:ex_machina)
-ExUnit.start()
+ExUnit.start(exclude: [:prefix])
