@@ -187,6 +187,8 @@ defmodule Flop.Meta do
 
   defp filters_to_list(params), do: params
 
+  defp map_to_string_keys(value) when is_struct(value), do: value
+
   defp map_to_string_keys(%{} = params) do
     Enum.into(params, %{}, fn
       {key, value} when is_atom(key) ->
