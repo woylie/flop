@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## [0.26.2] - 2025-05-28
+
+### Added
+
+- Recipe for partial UUID filters.
+
+### Changed
+
+- Emit warning if ordering parameters are applied and the query already contains
+  an `ORDER BY` clause.
+
+### Fixed
+
+- Fix "protocol Enumerable not implemented for type X" error when there is a
+  validation error and a filter value is a struct.
+
 ## [0.26.1] - 2024-08-19
 
 ### Fixed
