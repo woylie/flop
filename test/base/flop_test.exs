@@ -29,6 +29,15 @@ defmodule FlopTest do
                  for: Pet
                )
 
+      assert {:error, %Meta{}} =
+               Flop.validate(
+                 %{
+                   limit: 10,
+                   filters: [%{field: :age, op: :>=, value: ~D[2015-01-01]}]
+                 },
+                 for: Pet
+               )
+
       assert meta.flop == %Flop{}
       assert meta.schema == Pet
 
