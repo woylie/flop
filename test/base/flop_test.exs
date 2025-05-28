@@ -29,15 +29,6 @@ defmodule FlopTest do
                  for: Pet
                )
 
-      assert {:error, %Meta{}} =
-               Flop.validate(
-                 %{
-                   limit: 10,
-                   filters: [%{field: :age, op: :>=, value: ~D[2015-01-01]}]
-                 },
-                 for: Pet
-               )
-
       assert meta.flop == %Flop{}
       assert meta.schema == Pet
 
@@ -54,6 +45,20 @@ defmodule FlopTest do
 
       assert [[], [op: [{"is invalid", _}]]] =
                Keyword.get(meta.errors, :filters)
+    end
+
+    test "returns error for struct values" do
+      assert {:error, %Meta{} = meta} =
+               Flop.validate(
+                 %{filters: [%{field: :age, op: :>=, value: ~D[2015-01-01]}]},
+                 for: Pet
+               )
+
+      assert meta.params == %{
+               "filters" => [
+                 %{"field" => :age, "op" => :>=, "value" => ~D[2015-01-01]}
+               ]
+             }
     end
 
     test "returns error if operator is not allowed for field" do
