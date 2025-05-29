@@ -176,6 +176,24 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                Flop.all(query, %Flop{order_by: [:species, :name]})
              end) =~
                "This may interfere with Flop's ordering and pagination features"
+
+      Flop.all(Pet, %Flop{order_by: [:species, :name]})
+    end
+
+    test "does not warn if no order parameters are set" do
+      query = from p in Pet, order_by: :species
+
+      assert capture_log(fn ->
+               Flop.all(query, %Flop{})
+             end) == ""
+    end
+
+    test "does not warn if query has no order by" do
+      query = Pet
+
+      assert capture_log(fn ->
+               Flop.all(query, %Flop{order_by: [:species, :name]})
+             end) == ""
     end
   end
 
