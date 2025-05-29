@@ -256,7 +256,7 @@ defmodule Flop.Adapter.Ecto do
 
   @impl Flop.Adapter
   def apply_order_by(query, directions, opts) do
-    if Ecto.Queryable.to_query(query).order_bys != [] do
+    if has_order_bys?(query) do
       Logger.warning(
         "The query you passed to flop includes order_by. This may interfere with Flop's ordering and pagination features."
       )
@@ -275,6 +275,10 @@ defmodule Flop.Adapter.Ecto do
         end)
     end
   end
+
+  defp has_order_bys?(query) when is_atom(query), do: false
+  defp has_order_bys?(%Ecto.Query{order_bys: []}), do: false
+  defp has_order_bys?(%Ecto.Query{order_bys: [_ | _]}), do: true
 
   defp apply_order_by_field(
          q,

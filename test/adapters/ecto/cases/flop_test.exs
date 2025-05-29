@@ -17,6 +17,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
   alias Flop.Filter
   alias Flop.Meta
   alias Flop.Repo
+  alias MyApp.Fruit
   alias MyApp.Owner
   alias MyApp.Pet
 
@@ -176,6 +177,45 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                Flop.all(query, %Flop{order_by: [:species, :name]})
              end) =~
                "This may interfere with Flop's ordering and pagination features"
+
+      Flop.all(Pet, %Flop{order_by: [:species, :name]})
+    end
+
+    test "does not warn if no order parameters are set" do
+      query = from p in Pet, order_by: :species
+
+      assert capture_log(fn ->
+               Flop.all(query, %Flop{})
+             end) == ""
+    end
+
+    test "does not warn if query has no order by" do
+      query = Pet
+
+      assert capture_log(fn ->
+               Flop.all(query, %Flop{order_by: [:species, :name]})
+             end) == ""
+    end
+
+    test "warns if query has order bys and default order is set" do
+      query = from f in Fruit, order_by: :id
+      opts = [for: Fruit]
+      flop = Flop.validate!(%{}, opts)
+
+      assert capture_log(fn ->
+               Flop.all(query, flop, opts)
+             end) =~
+               "This may interfere with Flop's ordering and pagination features"
+    end
+
+    test "does not warn if query has order bys and default order is disabled" do
+      query = from f in Fruit, order_by: :id
+      opts = [for: Fruit, default_order: false]
+      flop = Flop.validate!(%{}, opts)
+
+      assert capture_log(fn ->
+               Flop.all(query, flop, opts)
+             end) == ""
     end
   end
 
