@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.26.3] - 2025-05-29
+
 ### Fixed
 
 - Allow resetting default order set on schema pass passing
