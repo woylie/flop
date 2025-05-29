@@ -343,14 +343,20 @@ defmodule Flop.Validation do
     order_by = get_value(changeset, :order_by)
 
     if is_nil(order_by) || order_by == [] do
-      default_order = Flop.get_option(:default_order, opts)
+      case Flop.get_option(:default_order, opts) do
+        %{} = default_order ->
+          changeset
+          |> Changeset.put_change(:order_by, default_order[:order_by])
+          |> Changeset.put_change(
+            :order_directions,
+            default_order[:order_directions]
+          )
 
-      changeset
-      |> Changeset.put_change(:order_by, default_order[:order_by])
-      |> Changeset.put_change(
-        :order_directions,
-        default_order[:order_directions]
-      )
+        _ ->
+          changeset
+          |> Changeset.put_change(:order_by, nil)
+          |> Changeset.put_change(:order_directions, nil)
+      end
     else
       changeset
     end
