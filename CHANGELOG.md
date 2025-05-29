@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+### Fixed
+
+- Allow resetting default order set on schema pass passing
+  `default_order: false`.
+
+### Upgrade notes
+
+Flop 0.26.2 introduced a new warning when Flop order parameters are set and the
+query already has an order by clause. Order by parameters are added to the Flop
+struct either by passing the `order_by` and `order_directions` parameters to
+the validate function or by defining a `default_order` in the Ecto schema.
+
+To prevent the warning:
+
+1. Disable the handling of order parameters by passing `ordering: false`.
+2. Override the default order set in the schema by passing
+   `default_order: false`.
+
+Example:
+
+```elixir
+Flop.validate(params, for: Pet, ordering: false, default_order: false)
+```
+
 ## [0.26.2] - 2025-05-28
 
 ### Added
