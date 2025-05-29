@@ -6,7 +6,7 @@
 
 ### Fixed
 
-- Allow resetting default order set on schema pass passing
+- Allow resetting default order set on schema by passing
   `default_order: false`.
 
 ### Upgrade notes
@@ -25,7 +25,9 @@ To prevent the warning:
 Example:
 
 ```elixir
-Flop.validate(params, for: Pet, ordering: false, default_order: false)
+query = from p in Pet, order_by: :name
+flop = Flop.validate!(params, for: Pet, ordering: false, default_order: false)
+Flop.run(query, flop)
 ```
 
 ## [0.26.2] - 2025-05-28
