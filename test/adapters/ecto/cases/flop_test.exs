@@ -749,6 +749,23 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    @tag :or
+    property "applies :or operator on compound field" do
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- member_of([:pet_and_owner_name]),
+                pet <- member_of(pets),
+                value = Pet.get_field(pet, field) do
+        expected = filter_items(pets, field, :or, value)
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :or, value: value}]
+               }) == expected
+
+        checkin_checkout()
+      end
+    end
+
     property "custom field filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),

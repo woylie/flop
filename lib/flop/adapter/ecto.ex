@@ -34,7 +34,8 @@ defmodule Flop.Adapter.Ecto do
     :like_and,
     :like_or,
     :ilike_and,
-    :ilike_or
+    :ilike_or,
+    :or
   ]
 
   @backend_options [
@@ -158,7 +159,8 @@ defmodule Flop.Adapter.Ecto do
            :ilike_and,
            :ilike_or,
            :empty,
-           :not_empty
+           :not_empty,
+           :or
          ],
          extra: %{fields: fields, type: :compound}
        }}
@@ -546,6 +548,25 @@ defmodule Flop.Adapter.Ecto do
         end)
       end)
     end
+  end
+
+  defp build_op(
+          schema_struct,
+          %FieldInfo{extra: %{type: :compound, fields: fields}},
+          %Filter{op: :or, value: value}
+        ) do
+    fields = Enum.map(fields, &get_field_info(schema_struct, &1))
+
+    Enum.reduce(fields, false, fn field, inner_dynamic ->
+      dynamic_for_field =
+        build_op(schema_struct, field, %Filter{
+          field: field,
+          op: :==,
+          value: value
+        })
+
+      dynamic([r], ^inner_dynamic or ^dynamic_for_field)
+    end)
   end
 
   defp build_op(
