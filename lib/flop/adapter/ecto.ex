@@ -646,19 +646,22 @@ defmodule Flop.Adapter.Ecto do
     {fragment, prelude, combinator} = op_config(op)
 
     defp build_op(
-           _schema_struct,
-           %FieldInfo{extra: %{type: :normal, field: field}},
+           schema_struct,
+           %FieldInfo{extra: %{type: :normal, field: field}} = field_info,
            %Filter{op: unquote(op), value: value}
          ) do
+      value = convert_enum_value(schema_struct, field_info, value)
       unquote(prelude)
       build_dynamic(unquote(fragment), false, unquote(combinator))
     end
 
     defp build_op(
-           _schema_struct,
-           %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
+           schema_struct,
+           %FieldInfo{extra: %{type: :join, binding: binding, field: field}} =
+             field_info,
            %Filter{op: unquote(op), value: value}
          ) do
+      value = convert_enum_value(schema_struct, field_info, value)
       unquote(prelude)
       build_dynamic(unquote(fragment), true, unquote(combinator))
     end
@@ -668,6 +671,48 @@ defmodule Flop.Adapter.Ecto do
   defp array_or_map({:map, _}), do: :map
   defp array_or_map(:map), do: :map
   defp array_or_map(_), do: :other
+
+  defp convert_enum_value(
+         schema_struct,
+         %FieldInfo{extra: %{type: :normal, field: field}},
+         value
+       )
+       when not is_nil(schema_struct) do
+    ecto_type = schema_struct.__struct__.__schema__(:type, field)
+    dump_enum_value_if_needed(ecto_type, value)
+  end
+
+  defp convert_enum_value(
+         _schema_struct,
+         %FieldInfo{ecto_type: ecto_type},
+         value
+       )
+       when not is_nil(ecto_type) do
+    dump_enum_value_if_needed(ecto_type, value)
+  end
+
+  defp convert_enum_value(_schema_struct, _field_info, value), do: value
+
+  defp dump_enum_value_if_needed(ecto_type, value) do
+    case ecto_type do
+      {:parameterized, {Ecto.Enum, _}} -> dump_enum_value(ecto_type, value)
+      {:parameterized, Ecto.Enum, _} -> dump_enum_value(ecto_type, value)
+      _ -> value
+    end
+  end
+
+  defp dump_enum_value(ecto_type, value) when is_atom(value) do
+    case Ecto.Type.dump(ecto_type, value) do
+      {:ok, db_value} -> db_value
+      _ -> value
+    end
+  end
+
+  defp dump_enum_value(ecto_type, value) when is_list(value) do
+    Enum.map(value, &dump_enum_value(ecto_type, &1))
+  end
+
+  defp dump_enum_value(_ecto_type, value), do: value
 
   defp get_field_info(nil, field),
     do: %FieldInfo{extra: %{type: :normal, field: field}}

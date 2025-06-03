@@ -827,6 +827,146 @@ defmodule Flop.Adapters.Ecto.FlopTest do
     end
   end
 
+  describe "filtering on integer-based Ecto.Enum fields" do
+    setup do
+      pet1 = Flop.Repo.insert!(%Pet{name: "George", age: 8, size: :small})
+      pet2 = Flop.Repo.insert!(%Pet{name: "Carl", age: 10, size: :medium})
+      pet3 = Flop.Repo.insert!(%Pet{name: "Curry", age: 2, size: :large})
+
+      %{pets: [pet1, pet2, pet3]}
+    end
+
+    test "filters with == operator", %{pets: [pet1, pet2, _pet3]} do
+      flop = %Flop{
+        filters: [%Flop.Filter{field: :size, op: :==, value: :small}]
+      }
+
+      result = Flop.validate_and_run(Pet, flop, for: Pet)
+      assert {:ok, {[%Pet{id: ^pet1.id}], _meta}} = result
+
+      flop = %Flop{
+        filters: [%Flop.Filter{field: :size, op: :==, value: :medium}]
+      }
+
+      result = Flop.validate_and_run(Pet, flop, for: Pet)
+      assert {:ok, {[%Pet{id: ^pet2.id}], _meta}} = result
+    end
+
+    test "filters with != operator", %{pets: [_pet1, pet2, pet3]} do
+      flop = %Flop{
+        filters: [%Flop.Filter{field: :size, op: :!=, value: :small}]
+      }
+
+      result = Flop.validate_and_run(Pet, flop, for: Pet)
+      assert {:ok, {pets, _meta}} = result
+      assert length(pets) == 2
+      pet_ids = pets |> Enum.map(& &1.id) |> Enum.sort()
+      expected_ids = Enum.sort([pet2.id, pet3.id])
+      assert pet_ids == expected_ids
+    end
+
+    test "filters with :in operator", %{pets: [pet1, pet2, _pet3]} do
+      flop = %Flop{
+        filters: [%Flop.Filter{field: :size, op: :in, value: [:small, :medium]}]
+      }
+
+      result = Flop.validate_and_run(Pet, flop, for: Pet)
+      assert {:ok, {pets, _meta}} = result
+      assert length(pets) == 2
+      pet_ids = pets |> Enum.map(& &1.id) |> Enum.sort()
+      expected_ids = Enum.sort([pet1.id, pet2.id])
+      assert pet_ids == expected_ids
+    end
+
+    test "filters with :not_in operator", %{pets: [_pet1, _pet2, pet3]} do
+      flop = %Flop{
+        filters: [
+          %Flop.Filter{field: :size, op: :not_in, value: [:small, :medium]}
+        ]
+      }
+
+      result = Flop.validate_and_run(Pet, flop, for: Pet)
+      assert {:ok, {[%Pet{id: ^pet3.id}], _meta}} = result
+    end
+
+    test "filters with comparison operators", %{pets: [pet1, pet2, pet3]} do
+      flop = %Flop{
+        filters: [%Flop.Filter{field: :size, op: :<, value: :medium}]
+      }
+
+      result = Flop.validate_and_run(Pet, flop, for: Pet)
+      assert {:ok, {[%Pet{id: ^pet1.id}], _meta}} = result
+
+      flop = %Flop{
+        filters: [%Flop.Filter{field: :size, op: :>, value: :medium}]
+      }
+
+      result = Flop.validate_and_run(Pet, flop, for: Pet)
+      assert {:ok, {[%Pet{id: ^pet3.id}], _meta}} = result
+
+      flop = %Flop{
+        filters: [%Flop.Filter{field: :size, op: :<=, value: :medium}]
+      }
+
+      result = Flop.validate_and_run(Pet, flop, for: Pet)
+      assert {:ok, {pets, _meta}} = result
+      assert length(pets) == 2
+      pet_ids = pets |> Enum.map(& &1.id) |> Enum.sort()
+      expected_ids = Enum.sort([pet1.id, pet2.id])
+      assert pet_ids == expected_ids
+
+      flop = %Flop{
+        filters: [%Flop.Filter{field: :size, op: :>=, value: :medium}]
+      }
+
+      result = Flop.validate_and_run(Pet, flop, for: Pet)
+      assert {:ok, {pets, _meta}} = result
+      assert length(pets) == 2
+      pet_ids = pets |> Enum.map(& &1.id) |> Enum.sort()
+      expected_ids = Enum.sort([pet2.id, pet3.id])
+      assert pet_ids == expected_ids
+    end
+
+    test "handles empty and not_empty operators" do
+      pet_with_size =
+        Flop.Repo.insert!(%Pet{name: "WithSize", age: 5, size: :small})
+
+      pet_without_size = Flop.Repo.insert!(%Pet{name: "WithoutSize", age: 3})
+
+      flop = %Flop{
+        filters: [%Flop.Filter{field: :size, op: :not_empty, value: true}]
+      }
+
+      result = Flop.validate_and_run(Pet, flop, for: Pet)
+      assert {:ok, {pets, _meta}} = result
+
+      assert length(pets) >= 4
+      assert Enum.any?(pets, &(&1.id == pet_with_size.id))
+      refute Enum.any?(pets, &(&1.id == pet_without_size.id))
+
+      flop = %Flop{
+        filters: [%Flop.Filter{field: :size, op: :empty, value: true}]
+      }
+
+      result = Flop.validate_and_run(Pet, flop, for: Pet)
+      assert {:ok, {pets, _meta}} = result
+      assert Enum.any?(pets, &(&1.id == pet_without_size.id))
+      refute Enum.any?(pets, &(&1.id == pet_with_size.id))
+    end
+
+    test "handles invalid values gracefully" do
+      flop = %Flop{
+        filters: [%Flop.Filter{field: :size, op: :==, value: :invalid_size}]
+      }
+
+      result = Flop.validate_and_run(Pet, flop, for: Pet)
+
+      assert {:error,
+              %Flop.Meta{errors: [filters: [[value: [{"is invalid", []}]]]]}} =
+               result
+    end
+  end
+
   describe "all/3" do
     test "returns all matching entries" do
       matching_pets = insert_list(6, :pet, age: 5)

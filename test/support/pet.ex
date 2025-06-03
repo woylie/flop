@@ -18,6 +18,7 @@ defmodule MyApp.Pet do
       :owner_name,
       :owner_tags,
       :pet_and_owner_name,
+      :size,
       :species,
       :tags,
       :custom,
@@ -67,6 +68,7 @@ defmodule MyApp.Pet do
     field :name, :string
     field :species, :string
     field :mood, Ecto.Enum, values: [:happy, :relaxed, :playful]
+    field :size, Ecto.Enum, values: [small: 1, medium: 2, large: 3]
     field :tags, {:array, :string}, default: []
 
     belongs_to :owner, Owner
@@ -96,7 +98,7 @@ defmodule MyApp.Pet do
   def get_field(%__MODULE__{owner: nil}, :owner_tags), do: nil
 
   def get_field(%__MODULE__{} = pet, field)
-      when field in [:name, :age, :species, :tags],
+      when field in [:name, :age, :species, :size, :tags],
       do: Map.get(pet, field)
 
   def get_field(%__MODULE__{} = pet, field)

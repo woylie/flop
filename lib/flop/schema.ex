@@ -695,6 +695,7 @@ defprotocol Flop.Schema do
         :owner_name,
         :owner_tags,
         :pet_and_owner_name,
+        :size,
         :species,
         :tags,
         :custom,

@@ -19,6 +19,7 @@ defmodule Flop.Repo.SQLite.Migration do
       add(:owner_id, references(:owners))
       add(:species, :string)
       add(:mood, :string)
+      add(:size, :integer)
       add(:tags, {:array, :string})
     end
 

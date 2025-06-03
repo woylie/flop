@@ -18,6 +18,7 @@ defmodule Flop.Repo.Mysql.Migration do
       add(:owner_id, references(:owners))
       add(:species, :string)
       add(:mood, :string)
+      add(:size, :integer)
     end
 
     create table(:fruits) do
