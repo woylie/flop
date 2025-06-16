@@ -118,6 +118,9 @@ defmodule Flop.Generators do
   def value_by_field(:owner_name),
     do: string(:alphanumeric, min_length: 1)
 
+  def value_by_field(:pet_and_owner_name),
+    do: string(:alphanumeric, min_length: 1)
+
   def compare_value_by_field(:age), do: integer(1..30)
 
   def compare_value_by_field(:name),
