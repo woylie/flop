@@ -34,7 +34,9 @@ defmodule Flop.Adapter.Ecto do
     :like_and,
     :like_or,
     :ilike_and,
-    :ilike_or
+    :ilike_or,
+    :starts_with,
+    :ends_with
   ]
 
   @backend_options [
