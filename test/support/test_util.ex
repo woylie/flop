@@ -267,6 +267,16 @@ defmodule Flop.TestUtil do
     &Enum.any?(values, fn v -> String.downcase(&1) =~ v end)
   end
 
+  defp matches?(:starts_with, v, _) do
+    v = String.downcase(v)
+    &String.starts_with?(String.downcase(&1), v)
+  end
+
+  defp matches?(:ends_with, v, _) do
+    v = String.downcase(v)
+    &String.ends_with?(String.downcase(&1), v)
+  end
+
   defp empty?(nil), do: true
   defp empty?([]), do: true
   defp empty?(map) when map == %{}, do: true
