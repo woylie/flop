@@ -274,6 +274,26 @@ defmodule Flop.Adapter.Ecto.Operators do
     {fragment, prelude, combinator}
   end
 
+  def op_config(:starts_with) do
+    fragment =
+      quote do
+        ilike(field(r, ^var!(field)), ^var!(value))
+      end
+
+    prelude = prelude(:add_wildcard_suffix)
+    {fragment, prelude, nil}
+  end
+
+  def op_config(:ends_with) do
+    fragment =
+      quote do
+        ilike(field(r, ^var!(field)), ^var!(value))
+      end
+
+    prelude = prelude(:add_wildcard_prefix)
+    {fragment, prelude, nil}
+  end
+
   defp empty do
     quote do
       is_nil(field(r, ^var!(field))) == ^var!(value)
@@ -306,17 +326,6 @@ defmodule Flop.Adapter.Ecto.Operators do
     end
   end
 
-  defp prelude(:maybe_split_search_text) do
-    quote do
-      var!(value) =
-        if is_binary(var!(value)) do
-          Flop.Misc.split_search_text(var!(value))
-        else
-          Enum.map(var!(value), &Flop.Misc.add_wildcard/1)
-        end
-    end
-  end
-
   defp prelude(:add_wildcard_suffix) do
     quote do
       var!(value) = Flop.Misc.add_wildcard_suffix(var!(value))
@@ -329,23 +338,15 @@ defmodule Flop.Adapter.Ecto.Operators do
     end
   end
 
-  def op_config(:starts_with) do
-    fragment =
-      quote do
-        ilike(field(r, ^var!(field)), ^var!(value))
-      end
-
-    prelude = prelude(:add_wildcard_suffix)
-    {fragment, prelude, nil}
+  defp prelude(:maybe_split_search_text) do
+    quote do
+      var!(value) =
+        if is_binary(var!(value)) do
+          Flop.Misc.split_search_text(var!(value))
+        else
+          Enum.map(var!(value), &Flop.Misc.add_wildcard/1)
+        end
+    end
   end
 
-  def op_config(:ends_with) do
-    fragment =
-      quote do
-        ilike(field(r, ^var!(field)), ^var!(value))
-      end
-
-    prelude = prelude(:add_wildcard_prefix)
-    {fragment, prelude, nil}
-  end
 end
