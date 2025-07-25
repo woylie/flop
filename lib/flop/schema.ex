@@ -741,10 +741,10 @@ defprotocol Flop.Schema do
   def pagination_types(data)
 
   @doc """
-  Returns the allowed pagination types of a schema.
+  Returns the default pagination type of a schema.
 
-      iex> Flop.Schema.pagination_types(%MyApp.Fruit{})
-      [:first, :last, :offset]
+      iex> Flop.Schema.default_pagination_type(%MyApp.Owner{})
+      :page
   """
   @doc since: "0.21.0"
   @spec default_pagination_type(any) :: Flop.pagination_type() | nil
