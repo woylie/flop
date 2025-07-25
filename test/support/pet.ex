@@ -91,8 +91,8 @@ defmodule MyApp.Pet do
     where(query, [p], p.name == ^reversed)
   end
 
-  def dog_age_sorter(query, direction, _opts) do
-    order_by(query, [p], [{^direction, fragment("? * 7", p.age)}])
+  def dog_age_sorter(_opts) do
+    dynamic([p], fragment("? * 7", p.age))
   end
 
   def get_field(%__MODULE__{owner: %Owner{age: age}}, :owner_age), do: age

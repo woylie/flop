@@ -381,11 +381,11 @@ defprotocol Flop.Schema do
   tuples. Either option is only required if the custom field is marked as
   filterable or sortable.
 
-  The `filter` function has to accept three arguments: `t:Ecto.Query.t/0`,
-  `t:Flop.Filter.t/0`, `t:Keyword.t/0`. 
+  The `filter` function has to accept three arguments `t:Ecto.Query.t/0`,
+  `t:Flop.Filter.t/0`, `t:Keyword.t/0` and return an `t:Ecto.Query.t/0`.
 
-  The `sorter` function also has to accept three arguments: `t:Ecto.Query.t/0`,
-  `t:Flop.order_direction/0`, `t:Keyword.t/0`.
+  The `sorter` function only accepts a single argument: `t:Keyword.t/0` and
+  returns an `t:Ecto.Query.dynamic_expr/0`.
 
   The keyword list passed as the last argument to either function
   contains all the options set at compile time in the tuple of the custom
@@ -444,21 +444,17 @@ defprotocol Flop.Schema do
           where(query, ^conditions)
         end
       
-        def date_sorter(query, direction, opts) do
+        def date_sorter(opts) do
           source = Keyword.fetch!(opts, :source)
           timezone = Keyword.fetch!(opts, :timezone)
           
-          order_by(
-            query,
+          dynamic(
             [r],
-            [
-              {^direction, 
-               fragment(
-                 "((? AT TIME ZONE 'utc') AT TIME ZONE ?)::date",
-                 field(r, ^source),
-                 ^timezone
-               )}
-            ]
+            fragment(
+              "((? AT TIME ZONE 'utc') AT TIME ZONE ?)::date",
+              field(r, ^source),
+              ^timezone
+            )
           )
         end
       end
@@ -615,11 +611,12 @@ defprotocol Flop.Schema do
 
   - `:filter` - A module/function/options tuple referencing a
     custom filter function. The function must take the Ecto query, the
-    `Flop.Filter` struct, and the options from the tuple as arguments. Required
+    `Flop.Filter` struct, and the options from the tuple as arguments, and
+    return the updated Ecto query. Required
     if field is marked as `filterable`.
   - `:sorter` - A module/function/options tuple referencing a custom sorter
-    function. The function must take the Ecto query, the
-    `t:Flop.order_direction/0`, and the options from the tuple as arguments.
+    function. The function must take the options from the tuple as arguments
+    and return an `t:Ecto.Query.dynamic_expr/0`.
     Required if field is marked as `sortable`.
   - `:ecto_type` - The Ecto type of the field. The filter operator and value
     validation is based on this option.
