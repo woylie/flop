@@ -479,7 +479,10 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a%c")
 
-      flop = %Flop{filters: [%Filter{field: :name, op: :starts_with, value: "a%"}]}
+      flop = %Flop{
+        filters: [%Filter{field: :name, op: :starts_with, value: "a%"}]
+      }
+
       assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
     end
 
@@ -487,7 +490,10 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a%c")
 
-      flop = %Flop{filters: [%Filter{field: :name, op: :ends_with, value: "%c"}]}
+      flop = %Flop{
+        filters: [%Filter{field: :name, op: :ends_with, value: "%c"}]
+      }
+
       assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
     end
 
@@ -495,7 +501,10 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a_c")
 
-      flop = %Flop{filters: [%Filter{field: :name, op: :starts_with, value: "a_"}]}
+      flop = %Flop{
+        filters: [%Filter{field: :name, op: :starts_with, value: "a_"}]
+      }
+
       assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
     end
 
@@ -503,7 +512,10 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a_c")
 
-      flop = %Flop{filters: [%Filter{field: :name, op: :ends_with, value: "_c"}]}
+      flop = %Flop{
+        filters: [%Filter{field: :name, op: :ends_with, value: "_c"}]
+      }
+
       assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
     end
 
@@ -700,7 +712,9 @@ defmodule Flop.Adapters.Ecto.FlopTest do
         expected = filter_items(pets, field, :starts_with, query_value)
 
         assert query_pets_with_owners(%{
-                 filters: [%{field: field, op: :starts_with, value: query_value}]
+                 filters: [
+                   %{field: field, op: :starts_with, value: query_value}
+                 ]
                }) == expected
 
         checkin_checkout()
