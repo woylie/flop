@@ -210,6 +210,9 @@ These translate to the following query parameter strings:
 ?last=10&before=g3QAAAABZAACaWRiAAACDg==
 ```
 
+The cursor pagination arguments are based on the
+[GraphQL Cursor Connection Specification, section 4](https://relay.dev/graphql/connections.htm#sec-Arguments).
+
 ### Ordering
 
 To sort the results, specify fields to order by and the direction of sorting for
