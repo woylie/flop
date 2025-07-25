@@ -348,5 +348,4 @@ defmodule Flop.Adapter.Ecto.Operators do
         end
     end
   end
-
 end

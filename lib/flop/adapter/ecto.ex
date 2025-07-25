@@ -557,7 +557,16 @@ defmodule Flop.Adapter.Ecto do
          %FieldInfo{extra: %{type: :compound, fields: fields}},
          %Filter{op: op} = filter
        )
-       when op in [:=~, :like, :not_like, :ilike, :not_ilike, :starts_with, :ends_with, :not_empty] do
+       when op in [
+              :=~,
+              :like,
+              :not_like,
+              :ilike,
+              :not_ilike,
+              :starts_with,
+              :ends_with,
+              :not_empty
+            ] do
     fields
     |> Enum.map(&get_field_info(schema_struct, &1))
     |> Enum.reduce(false, fn field, dynamic ->
