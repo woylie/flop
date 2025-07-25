@@ -58,7 +58,10 @@ defprotocol Flop.Schema do
       [
         order_by: [
           {"has an invalid entry",
-           [validation: :subset, enum: [:name, :age, :owner_name, :owner_age]]}
+           [
+             validation: :subset,
+             enum: [:name, :age, :owner_name, :owner_age, :dog_age
+           ]]}
         ]
       ]
 
@@ -367,34 +370,42 @@ defprotocol Flop.Schema do
 
   ## Custom fields
 
-  Custom fields allow for precise control over filter queries, making it
-  possible to implement filter logic that the built-in filtering options cannot
-  satisfy.
+  For complex filtering and sorting rules that cannot be expressed with Flop's
+  built-in features, custom fields can be used as an escape hatch.
 
-  For example, you might need to handle dates and times in a particular way that
-  takes into account different time zones, or perform database-specific queries
-  using fragments.
+  This can be useful for queries specific to the used database engine that
+  require fragments, or to cast or process values before running the query.
 
-  Custom field filters are referenced by a tuple
-  `{mod :: module, function :: atom, opts :: keyword}`. The referenced function
-  receives three arguments: the Ecto query, the Flop filter, and an options
-  keyword list.
+  In the custom field configuration, you can reference a `filter` function and
+  a `sorter` function with `{mod :: module, function :: atom, opts :: keyword}`
+  tuples. Either option is only required if the custom field is marked as
+  filterable or sortable.
 
-  If runtime options are necessary (like the timezone of the request or the user
-  ID of the current user), use the `extra_opts` option when calling Flop
-  functions.
+  The `filter` function has to accept three arguments: `t:Ecto.Query.t/0`,
+  `t:Flop.Filter.t/0`, `t:Keyword.t/0`. 
 
-  Note that as of now, custom fields only support filtering, not sorting.
+  The `sorter` function also has to accept three arguments: `t:Ecto.Query.t/0`,
+  `t:Flop.order_direction/0`, `t:Keyword.t/0`.
 
-  Schema:
+  The keyword list passed as the last argument to either function
+  contains all the options set at compile time in the tuple of the custom
+  field configuration (e.g. field names), plus all options passed at runtime
+  as `extra_opts` to the Flop functions (e.g. the timezone of the request or
+  the ID of the current user).
+
+  ### Example
+
+  #### Schema
 
       @derive {
         Flop.Schema,
         filterable: [:inserted_at_date],
+        sortable: [:inserted_at_date],
         adapter_opts: [
           custom_fields: [
             inserted_at_date: [
-              filter: {CustomFilters, :date_filter, [source: :inserted_at]},
+              filter: {CustomFields, :date_filter, [source: :inserted_at]},
+              sorter: {CustomFields, :date_sorter, [source: :inserted_at]},
               ecto_type: :date,
               operators: [:<=, :>=]
             ]
@@ -405,20 +416,24 @@ defprotocol Flop.Schema do
   If you pass the `:ecto_type` option like above, the filter value will be
   automatically cast.
 
-  Filter module:
+  #### Custom field module
 
-      defmodule CustomFilters do
+      defmodule CustomFields do
         import Ecto.Query
 
         def date_filter(query, %Flop.Filter{value: value, op: op}, opts) do
           source = Keyword.fetch!(opts, :source)
           timezone = Keyword.fetch!(opts, :timezone)
 
-          expr = dynamic(
-            [r],
-            fragment("((? AT TIME ZONE 'utc') AT TIME ZONE ?)::date",
-            field(r, ^source), ^timezone)
-          )
+          expr =
+            dynamic(
+              [r],
+              fragment(
+                "((? AT TIME ZONE 'utc') AT TIME ZONE ?)::date",
+                field(r, ^source),
+                ^timezone
+              )
+            )
 
           conditions =
             case op do
@@ -428,9 +443,27 @@ defprotocol Flop.Schema do
 
           where(query, ^conditions)
         end
+      
+        def date_sorter(query, direction, opts) do
+          source = Keyword.fetch!(opts, :source)
+          timezone = Keyword.fetch!(opts, :timezone)
+          
+          order_by(
+            query,
+            [r],
+            [
+              {^direction, 
+               fragment(
+                 "((? AT TIME ZONE 'utc') AT TIME ZONE ?)::date",
+                 field(r, ^source),
+                 ^timezone
+               )}
+            ]
+          )
+        end
       end
 
-  Query:
+  #### Query
 
       Flop.validate_and_run(
         MyApp.Pet,
@@ -441,8 +474,8 @@ defprotocol Flop.Schema do
 
   If your custom filter requires certain named bindings, you can use the
   `:bindings` option to specify them. Then, using `Flop.with_named_bindings/4`,
-  these bindings can be conditionally added to your query based on filter
-  conditions.
+  these bindings can be conditionally added to your query based on filter and
+  sorting conditions.
 
   ## Ecto type option
 
@@ -580,9 +613,14 @@ defprotocol Flop.Schema do
   @typedoc """
   Defines the options for a custom field.
 
-  - `:filter` (required) - A module/function/options tuple referencing a
+  - `:filter` - A module/function/options tuple referencing a
     custom filter function. The function must take the Ecto query, the
-    `Flop.Filter` struct, and the options from the tuple as arguments.
+    `Flop.Filter` struct, and the options from the tuple as arguments. Required
+    if field is marked as `filterable`.
+  - `:sorter` - A module/function/options tuple referencing a custom sorter
+    function. The function must take the Ecto query, the
+    `t:Flop.order_direction/0`, and the options from the tuple as arguments.
+    Required if field is marked as `sortable`.
   - `:ecto_type` - The Ecto type of the field. The filter operator and value
     validation is based on this option.
   - `:bindings` - If the custom filter function requires certain named bindings
@@ -598,6 +636,7 @@ defprotocol Flop.Schema do
   """
   @type custom_field_option ::
           {:filter, {module, atom, keyword}}
+          | {:sorter, {module, atom, keyword}}
           | {:ecto_type, ecto_type()}
           | {:bindings, [atom]}
           | {:operators, [Flop.Filter.op()]}
@@ -677,6 +716,7 @@ defprotocol Flop.Schema do
         extra: %{
           type: :custom,
           filter: {MyApp.Pet, :reverse_name_filter, []},
+          sorter: nil,
           bindings: []
         }
       }
@@ -754,7 +794,7 @@ defprotocol Flop.Schema do
   Returns the sortable fields of a schema.
 
       iex> Flop.Schema.sortable(%MyApp.Pet{})
-      [:name, :age, :owner_name, :owner_age]
+      [:name, :age, :owner_name, :owner_age, :dog_age]
   """
   @spec sortable(any) :: [atom]
   def sortable(data)
