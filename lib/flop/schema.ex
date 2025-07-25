@@ -583,9 +583,14 @@ defprotocol Flop.Schema do
   @typedoc """
   Defines the options for a custom field.
 
-  - `:filter` (required) - A module/function/options tuple referencing a
+  - `:filter` - A module/function/options tuple referencing a
     custom filter function. The function must take the Ecto query, the
-    `Flop.Filter` struct, and the options from the tuple as arguments.
+    `Flop.Filter` struct, and the options from the tuple as arguments. Required
+    if field is marked as `filterable`.
+  - `:sorter` - A module/function/options tuple referencing a custom sorter
+    function. The function must take the Ecto query, the
+    `t:Flop.order_direction/0`, and the options from the tuple as arguments.
+    Required if field is marked as `sortable`.
   - `:ecto_type` - The Ecto type of the field. The filter operator and value
     validation is based on this option.
   - `:bindings` - If the custom filter function requires certain named bindings
@@ -601,6 +606,7 @@ defprotocol Flop.Schema do
   """
   @type custom_field_option ::
           {:filter, {module, atom, keyword}}
+          | {:sorter, {module, atom, keyword}}
           | {:ecto_type, ecto_type()}
           | {:bindings, [atom]}
           | {:operators, [Flop.Filter.op()]}
