@@ -210,6 +210,9 @@ These translate to the following query parameter strings:
 ?last=10&before=g3QAAAABZAACaWRiAAACDg==
 ```
 
+The cursor pagination arguments are based on the
+[GraphQL Cursor Connection Specification, section 4](https://relay.dev/graphql/connections.htm#sec-Arguments).
+
 ### Ordering
 
 To sort the results, specify fields to order by and the direction of sorting for
@@ -422,3 +425,43 @@ args = nest_filters(args, [:name, :species], operators: %{name: :ilike_and})
 provides Phoenix components for pagination, sortable tables, and filter forms,
 usable with both Phoenix LiveView and in dead views. It also defines helper
 functions to build URLs with Flop query parameters.
+
+## Development
+
+Pull requests are welcome, but for non-trivial changes like new features or
+API changes, please open an issue first and describe what you plan to do.
+Otherwise, you risk spending time on development work that might not be
+accepted.
+
+The database tests require running Postgres and MySQL instances. There is a
+docker compose configuration you can use:
+
+```bash
+docker compose up
+```
+
+Please ensure that the following checks pass before requesting a review:
+
+```bash
+mix format --check-formatted
+mix credo
+mix compile --warnings-as-errors
+mix test --warnings-as-errors
+mix test.postgres --warnings-as-errors
+mix dialyzer
+```
+
+Note that the tests are split up. `mix test` only tests common functionality
+without database interaction, and `mix test.{adapter}` runs tests that involve
+database queries.
+
+- `mix test` - common functionality
+- `mix test.postgres`
+- `mix test.mysql`
+- `mix test.sqlite`
+- `mix test.all` - all database adapters
+
+At the moment, only `mix test` and `mix test.postgres` are required to pass.
+
+For general contribution guidelines, refer to
+https://github.com/woylie/.github/blob/main/CONTRIBUTING.md.
