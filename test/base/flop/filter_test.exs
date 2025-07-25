@@ -129,7 +129,9 @@ defmodule Flop.FilterTest do
                :ilike,
                :not_ilike,
                :ilike_and,
-               :ilike_or
+               :ilike_or,
+               :starts_with,
+               :ends_with
              ]
 
       assert Filter.allowed_operators(SchemaWithoutDerive, :age) == [
@@ -176,6 +178,8 @@ defmodule Flop.FilterTest do
                :not_ilike,
                :ilike_and,
                :ilike_or,
+               :starts_with,
+               :ends_with,
                :empty,
                :not_empty
              ]

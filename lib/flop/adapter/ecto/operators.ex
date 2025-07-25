@@ -274,6 +274,26 @@ defmodule Flop.Adapter.Ecto.Operators do
     {fragment, prelude, combinator}
   end
 
+  def op_config(:starts_with) do
+    fragment =
+      quote do
+        ilike(field(r, ^var!(field)), ^var!(value))
+      end
+
+    prelude = prelude(:add_wildcard_suffix)
+    {fragment, prelude, nil}
+  end
+
+  def op_config(:ends_with) do
+    fragment =
+      quote do
+        ilike(field(r, ^var!(field)), ^var!(value))
+      end
+
+    prelude = prelude(:add_wildcard_prefix)
+    {fragment, prelude, nil}
+  end
+
   defp empty do
     quote do
       is_nil(field(r, ^var!(field))) == ^var!(value)
@@ -303,6 +323,18 @@ defmodule Flop.Adapter.Ecto.Operators do
   defp prelude(:add_wildcard) do
     quote do
       var!(value) = Flop.Misc.add_wildcard(var!(value))
+    end
+  end
+
+  defp prelude(:add_wildcard_suffix) do
+    quote do
+      var!(value) = Flop.Misc.add_wildcard_suffix(var!(value))
+    end
+  end
+
+  defp prelude(:add_wildcard_prefix) do
+    quote do
+      var!(value) = Flop.Misc.add_wildcard_prefix(var!(value))
     end
   end
 

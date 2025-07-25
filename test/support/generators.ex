@@ -182,6 +182,32 @@ defmodule Flop.Generators do
   end
 
   @doc """
+  Generates a random prefix for the given string. Empty prefixes are filtered.
+  """
+  def prefix(s) when is_binary(s) do
+    str_length = String.length(s)
+
+    gen all end_at <- integer(0..(str_length - 1)),
+            query_value = String.slice(s, 0..end_at),
+            query_value != " " do
+      query_value
+    end
+  end
+
+  @doc """
+  Generates a random suffix for the given string. Empty suffixes are filtered.
+  """
+  def suffix(s) when is_binary(s) do
+    str_length = String.length(s)
+
+    gen all start_at <- integer(0..(str_length - 1)),
+            query_value = String.slice(s, start_at..(str_length - 1)),
+            query_value != " " do
+      query_value
+    end
+  end
+
+  @doc """
   Generates a search string consisting of two random substrings
   or a list of search strings consisting of two random substrings from the given
   string.

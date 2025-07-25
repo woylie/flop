@@ -62,6 +62,8 @@ defmodule Flop.Filter do
   | `:ilike_and`    | `"Rubi Rosa"`       | `WHERE column ILIKE '%Rubi%' AND column ILIKE '%Rosa%'` |
   | `:ilike_or`     | `["Rubi", "Rosa"]`  | `WHERE column ILIKE '%Rubi%' OR column ILIKE '%Rosa%'`  |
   | `:ilike_or`     | `"Rubi Rosa"`       | `WHERE column ILIKE '%Rubi%' OR column ILIKE '%Rosa%'`  |
+  | `:starts_with`  | `"Gia"`             | `WHERE column ILIKE 'Gia%'`                             |
+  | `:ends_with`    | `"Hoang"`           | `WHERE column ILIKE '%Hoang'`                           |
 
   The filter operators `:empty` and `:not_empty` will regard empty arrays as
   empty values if the field is known to be an array field.
@@ -96,6 +98,8 @@ defmodule Flop.Filter do
           | :not_ilike
           | :ilike_and
           | :ilike_or
+          | :starts_with
+          | :ends_with
 
   @operators [
     :==,
@@ -118,7 +122,9 @@ defmodule Flop.Filter do
     :ilike,
     :not_ilike,
     :ilike_and,
-    :ilike_or
+    :ilike_or,
+    :starts_with,
+    :ends_with
   ]
 
   @primary_key false
@@ -307,7 +313,9 @@ defmodule Flop.Filter do
       :ilike,
       :not_ilike,
       :ilike_and,
-      :ilike_or
+      :ilike_or,
+      :starts_with,
+      :ends_with
     ]
   end
 

@@ -475,6 +475,50 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    test "escapes % in starts_with queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a%c")
+
+      flop = %Flop{
+        filters: [%Filter{field: :name, op: :starts_with, value: "a%"}]
+      }
+
+      assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+    end
+
+    test "escapes % in ends_with queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a%c")
+
+      flop = %Flop{
+        filters: [%Filter{field: :name, op: :ends_with, value: "%c"}]
+      }
+
+      assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+    end
+
+    test "escapes _ in starts_with queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a_c")
+
+      flop = %Flop{
+        filters: [%Filter{field: :name, op: :starts_with, value: "a_"}]
+      }
+
+      assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+    end
+
+    test "escapes _ in ends_with queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a_c")
+
+      flop = %Flop{
+        filters: [%Filter{field: :name, op: :ends_with, value: "_c"}]
+      }
+
+      assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+    end
+
     test "escapes _ in like queries" do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a_c")
@@ -652,6 +696,42 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                  filters: [
                    %{field: field, op: :ilike_or, value: search_text_or_list}
                  ]
+               }) == expected
+
+        checkin_checkout()
+      end
+    end
+
+    property "applies starts_with filter" do
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
+                pet <- member_of(pets),
+                value = Pet.get_field(pet, field),
+                query_value <- prefix(value) do
+        expected = filter_items(pets, field, :starts_with, query_value)
+
+        assert query_pets_with_owners(%{
+                 filters: [
+                   %{field: field, op: :starts_with, value: query_value}
+                 ]
+               }) == expected
+
+        checkin_checkout()
+      end
+    end
+
+    property "applies ends_with filter" do
+      check all pet_count <- integer(@pet_count_range),
+                pets = insert_list_and_sort(pet_count, :pet_with_owner),
+                field <- filterable_pet_field(:string),
+                pet <- member_of(pets),
+                value = Pet.get_field(pet, field),
+                query_value <- suffix(value) do
+        expected = filter_items(pets, field, :ends_with, query_value)
+
+        assert query_pets_with_owners(%{
+                 filters: [%{field: field, op: :ends_with, value: query_value}]
                }) == expected
 
         checkin_checkout()
