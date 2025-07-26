@@ -55,11 +55,11 @@ defmodule MyApp.Pet do
         ],
         reverse_name: [
           filter: {__MODULE__, :reverse_name_filter, []},
-          sorter: {__MODULE__, :reverse_name_sorter, []},
+          field_dynamic: {__MODULE__, :reverse_name_field, []},
           ecto_type: :string
         ],
         dog_age: [
-          sorter: {__MODULE__, :dog_age_sorter, []}
+          field_dynamic: {__MODULE__, :dog_age_field, []}
         ]
       ]
     ]
@@ -94,11 +94,11 @@ defmodule MyApp.Pet do
     where(query, [p], p.name == ^reversed)
   end
 
-  def reverse_name_sorter(_opts) do
+  def reverse_name_field(_opts) do
     dynamic([p], fragment("reverse(?)", p.name))
   end
 
-  def dog_age_sorter(_opts) do
+  def dog_age_field(_opts) do
     dynamic([p], fragment("? * 7", p.age))
   end
 

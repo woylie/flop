@@ -1909,7 +1909,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                "cursor pagination on custom fields requires filter function"
     end
 
-    test "raises if custom field without sorter is used" do
+    test "raises if custom field without field_dynamic is used" do
       error =
         assert_raise RuntimeError, fn ->
           Flop.run(
@@ -1920,7 +1920,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
         end
 
       assert error.message =~
-               "sorting by custom field requires sorter function"
+               "sorting by custom field requires field_dynamic function"
     end
 
     test "nil values for cursors are ignored when not using for option" do

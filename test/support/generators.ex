@@ -156,7 +156,7 @@ defmodule Flop.Generators do
         %Flop.FieldInfo{extra: %{type: :alias}} -> true
         %Flop.FieldInfo{extra: %{type: :compound}} -> true
         %Flop.FieldInfo{extra: %{type: :custom, filter: nil}} -> true
-        %Flop.FieldInfo{extra: %{type: :custom, sorter: nil}} -> true
+        %Flop.FieldInfo{extra: %{type: :custom, field_dynamic: nil}} -> true
         _ -> false
       end
     end)
