@@ -1354,7 +1354,7 @@ defmodule Flop do
       iex> msg
       "has an invalid entry"
       iex> enum
-      [:name, :age, :owner_name, :owner_age, :dog_age]
+      [:name, :age, :owner_name, :owner_age, :dog_age, :reverse_name]
 
   Note that currently, trying to use an existing field that is not allowed as
   seen above will result in the error message `has an invalid entry`, while

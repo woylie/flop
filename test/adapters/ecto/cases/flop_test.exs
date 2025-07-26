@@ -1320,6 +1320,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
         checkin_checkout()
+        flop_opts = [for: Pet, cursor_value_func: &Pet.cursor_value_func/2]
 
         # insert pets into DB, retrieve them so we have the IDs
         Enum.each(pets, &Repo.insert!(&1))
@@ -1328,7 +1329,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
           Flop.all(
             pets_with_owners_query(),
             %Flop{order_by: cursor_fields, order_directions: directions},
-            for: Pet
+            flop_opts
           )
 
         # retrieve first cursor, ensure returned pet matches first one in list
@@ -1342,7 +1343,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
               order_by: cursor_fields,
               order_directions: directions
             },
-            for: Pet
+            flop_opts
           )
 
         assert returned_pet == first_pet
@@ -1367,7 +1368,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                            order_by: cursor_fields,
                            order_directions: directions
                          },
-                         for: Pet
+                         flop_opts
                        )
 
               {[returned_pet | pet_list], new_cursor}
@@ -1389,7 +1390,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                      order_by: cursor_fields,
                      order_directions: directions
                    },
-                   for: Pet
+                   flop_opts
                  )
       end
     end
@@ -1399,6 +1400,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
         checkin_checkout()
+        flop_opts = [for: Pet, cursor_value_func: &Pet.cursor_value_func/2]
         Enum.each(pets, &Repo.insert!(&1))
         pet_count = length(pets)
 
@@ -1410,7 +1412,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
               order_by: cursor_fields,
               order_directions: directions
             },
-            for: Pet
+            flop_opts
           )
 
         {:ok, {with_last, _meta}} =
@@ -1421,7 +1423,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
               order_by: cursor_fields,
               order_directions: directions
             },
-            for: Pet
+            flop_opts
           )
 
         assert with_first == with_last
@@ -1433,6 +1435,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
         checkin_checkout()
+        flop_opts = [for: Pet, cursor_value_func: &Pet.cursor_value_func/2]
 
         # insert pets into DB, retrieve them so we have the IDs
         Enum.each(pets, &Repo.insert!(&1))
@@ -1441,7 +1444,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
           Flop.all(
             pets_with_owners_query(),
             %Flop{order_by: cursor_fields, order_directions: directions},
-            for: Pet
+            flop_opts
           )
 
         pets = Enum.reverse(pets)
@@ -1457,7 +1460,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
               order_by: cursor_fields,
               order_directions: directions
             },
-            for: Pet
+            flop_opts
           )
 
         assert returned_pet == last_pet
@@ -1477,7 +1480,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                            order_by: cursor_fields,
                            order_directions: directions
                          },
-                         for: Pet
+                         flop_opts
                        )
 
               {[returned_pet | pet_list], new_cursor}
@@ -1498,7 +1501,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                      order_by: cursor_fields,
                      order_directions: directions
                    },
-                   for: Pet
+                   flop_opts
                  )
       end
     end
@@ -1876,6 +1879,48 @@ defmodule Flop.Adapters.Ecto.FlopTest do
 
       assert error.message =~
                "alias fields are not supported in cursor pagination"
+    end
+
+    test "raises if custom field without filter is used" do
+      insert_list(2, :pet)
+
+      assert {_, %Meta{end_cursor: end_cursor}} =
+               Flop.run(
+                 Pet,
+                 %Flop{first: 1, order_by: [:dog_age, :id]},
+                 for: Pet
+               )
+
+      error =
+        assert_raise RuntimeError,
+                     fn ->
+                       Flop.run(
+                         Pet,
+                         %Flop{
+                           first: 1,
+                           after: end_cursor,
+                           order_by: [:dog_age, :id]
+                         },
+                         for: Pet
+                       )
+                     end
+
+      assert error.message =~
+               "cursor pagination on custom fields requires filter function"
+    end
+
+    test "raises if custom field without sorter is used" do
+      error =
+        assert_raise RuntimeError, fn ->
+          Flop.run(
+            Pet,
+            %Flop{first: 1, order_by: [:custom, :id]},
+            for: Pet
+          )
+        end
+
+      assert error.message =~
+               "sorting by custom field requires sorter function"
     end
 
     test "nil values for cursors are ignored when not using for option" do

@@ -152,13 +152,18 @@ defmodule Flop.Generators do
     schema
     |> Flop.Schema.sortable()
     |> Enum.reject(fn field ->
-      %Flop.FieldInfo{extra: %{type: field_type}} =
-        Flop.Schema.field_info(schema, field)
-
-      field_type in [:alias, :compound, :custom]
+      case Flop.Schema.field_info(schema, field) do
+        %Flop.FieldInfo{extra: %{type: :alias}} -> true
+        %Flop.FieldInfo{extra: %{type: :compound}} -> true
+        %Flop.FieldInfo{extra: %{type: :custom, filter: nil}} -> true
+        %Flop.FieldInfo{extra: %{type: :custom, sorter: nil}} -> true
+        _ -> false
+      end
     end)
     |> Enum.shuffle()
     |> constant()
+
+    constant([:reverse_name])
   end
 
   def order_directions(%{} = schema) do
