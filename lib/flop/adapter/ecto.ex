@@ -84,7 +84,7 @@ defmodule Flop.Adapter.Ecto do
               type: {:tuple, [:atom, :atom, :keyword_list]},
               required: false
             ],
-            sorter: [
+            field_dynamic: [
               type: {:tuple, [:atom, :atom, :keyword_list]},
               required: false
             ],
@@ -335,14 +335,19 @@ defmodule Flop.Adapter.Ecto do
   defp apply_order_by_field(
          q,
          {direction, _},
-         %FieldInfo{extra: %{type: :custom, sorter: {mod, fun, sorter_opts}}},
+         %FieldInfo{
+           extra: %{
+             type: :custom,
+             field_dynamic: {mod, fun, field_dynamic_opts}
+           }
+         },
          _struct,
          opts
        ) do
     opts =
       opts
       |> Keyword.get(:extra_opts, [])
-      |> Keyword.merge(sorter_opts)
+      |> Keyword.merge(field_dynamic_opts)
 
     order_by(q, [r], ^[{direction, apply(mod, fun, [opts])}])
   end
@@ -355,9 +360,9 @@ defmodule Flop.Adapter.Ecto do
          _opts
        ) do
     raise """
-    sorting by custom field requires sorter function
+    sorting by custom field requires field_dynamic function
 
-    To sort by a custom field, a sorter function needs to be configured, but
+    To sort by a custom field, a field_dynamic function needs to be configured, but
     non was set for the field `:#{field}`.
     """
   end
@@ -417,7 +422,7 @@ defmodule Flop.Adapter.Ecto do
     raise """
     cursor pagination on custom fields requires filter function
 
-    To use a custom field as a cursor field, both a `filter` and a `sorter`
+    To use a custom field as a cursor field, both a `filter` and a `field_dynamic`
     function need to be configured for the field, but no `filter` function
     was configured for the field `:#{field}`.
     """
@@ -445,14 +450,14 @@ defmodule Flop.Adapter.Ecto do
               ecto_type: _ecto_type,
               extra: %{
                 type: :custom,
-                sorter: {mod, fun, sorter_opts}
+                field_dynamic: {mod, fun, field_dynamic_opts}
               }
             }}
          ],
          extra_opts
        )
        when direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
-    opts = Keyword.merge(extra_opts, sorter_opts)
+    opts = Keyword.merge(extra_opts, field_dynamic_opts)
 
     dynamic([r], ^apply(mod, fun, [opts]) > ^cursor_value)
   end
@@ -465,14 +470,14 @@ defmodule Flop.Adapter.Ecto do
               ecto_type: _ecto_type,
               extra: %{
                 type: :custom,
-                sorter: {mod, fun, sorter_opts}
+                field_dynamic: {mod, fun, field_dynamic_opts}
               }
             }}
          ],
          extra_opts
        )
        when direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
-    opts = Keyword.merge(extra_opts, sorter_opts)
+    opts = Keyword.merge(extra_opts, field_dynamic_opts)
 
     dynamic([r], ^apply(mod, fun, [opts]) < ^cursor_value)
   end
@@ -485,7 +490,7 @@ defmodule Flop.Adapter.Ecto do
               ecto_type: _ecto_type,
               extra: %{
                 type: :custom,
-                sorter: {mod, fun, sorter_opts}
+                field_dynamic: {mod, fun, field_dynamic_opts}
               }
             }}
            | [{_, _, _, _} | _] = tail
@@ -493,7 +498,7 @@ defmodule Flop.Adapter.Ecto do
          extra_opts
        )
        when direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
-    opts = Keyword.merge(extra_opts, sorter_opts)
+    opts = Keyword.merge(extra_opts, field_dynamic_opts)
     field_dynamic = apply(mod, fun, [opts])
 
     dynamic(
@@ -512,7 +517,7 @@ defmodule Flop.Adapter.Ecto do
               ecto_type: _ecto_type,
               extra: %{
                 type: :custom,
-                sorter: {mod, fun, sorter_opts}
+                field_dynamic: {mod, fun, field_dynamic_opts}
               }
             }}
            | [{_, _, _, _} | _] = tail
@@ -520,7 +525,7 @@ defmodule Flop.Adapter.Ecto do
          extra_opts
        )
        when direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
-    opts = Keyword.merge(extra_opts, sorter_opts)
+    opts = Keyword.merge(extra_opts, field_dynamic_opts)
     field_dynamic = apply(mod, fun, [opts])
 
     dynamic(
@@ -885,7 +890,7 @@ defmodule Flop.Adapter.Ecto do
   defp normalize_custom_field_opts({name, opts}) when is_list(opts) do
     opts = %{
       filter: Keyword.get(opts, :filter),
-      sorter: Keyword.get(opts, :sorter),
+      field_dynamic: Keyword.get(opts, :field_dynamic),
       ecto_type: Keyword.get(opts, :ecto_type),
       operators: Keyword.get(opts, :operators),
       bindings: Keyword.get(opts, :bindings, [])
@@ -1001,24 +1006,24 @@ defmodule Flop.Adapter.Ecto do
     illegal_sortable_fields =
       custom_fields
       |> Enum.filter(fn {key, field} ->
-        is_nil(field[:sorter]) and key in sortable
+        is_nil(field[:field_dynamic]) and key in sortable
       end)
       |> Enum.map(&elem(&1, 0))
 
     if illegal_sortable_fields != [] do
       raise ArgumentError, """
-      custom field without sorter function marked as sortable
+      custom field without field_dynamic function marked as sortable
 
-      The following custom fields were marked as sortable, but no `sorter`
+      The following custom fields were marked as sortable, but no `field_dynamic`
       function was configured:
 
           #{inspect(illegal_sortable_fields)}
 
-      Add the `sorter` option to your custom field configuration to fix this.
+      Add the `field_dynamic` option to your custom field configuration to fix this.
 
           custom_fields: [
             my_custom_field: [
-              sorter: {MyModule, :my_sorter, []}
+              field_dynamic: {MyModule, :my_field_dynamic, []}
             ]
           ]
       """
