@@ -32,18 +32,26 @@ defmodule Flop.Validation do
 
   defp maybe_remove_invalid_filters(changeset, true) do
     changeset =
-      Changeset.update_change(changeset, :filters, fn
-        nil ->
-          nil
-
-        changesets when is_list(changesets) ->
-          Enum.filter(changesets, fn %Changeset{valid?: valid?} -> valid? end)
-      end)
+      if Keyword.has_key?(changeset.errors, :filters) do
+        %{changeset | errors: Keyword.delete(changeset.errors, :filters)}
+      else
+        filter_valid_filters(changeset)
+      end
 
     if changeset.errors == [], do: %{changeset | valid?: true}, else: changeset
   end
 
   defp maybe_remove_invalid_filters(changeset, _), do: changeset
+
+  defp filter_valid_filters(changeset) do
+    Changeset.update_change(changeset, :filters, fn
+      nil ->
+        nil
+
+      changesets when is_list(changesets) ->
+        Enum.filter(changesets, fn %Changeset{valid?: valid?} -> valid? end)
+    end)
+  end
 
   defp cast_pagination(changeset, params, opts) do
     if Flop.get_option(:pagination, opts, true) do
