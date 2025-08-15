@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## Fixed
+
+- Remove malformed filters if `replace_invalid_params` is `true` (e.g. if the
+  parameters include `%{"filters" => ""}` instead of a filters list.
+
 ## [0.26.3] - 2025-05-29
 
 ### Fixed
