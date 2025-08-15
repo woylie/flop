@@ -817,6 +817,13 @@ defmodule Flop.ValidationTest do
                validate(params, for: Pet, replace_invalid_params: true)
     end
 
+    test "removes malformed filters with replace_invalid_params" do
+      params = %{filters: [""]}
+
+      assert {:ok, %Flop{filters: []}} =
+               validate(params, for: Pet, replace_invalid_params: true)
+    end
+
     test "validates filter operator" do
       params = %{filters: [%{field: "a", op: :=, value: "b"}]}
       assert {:error, changeset} = validate(params)
