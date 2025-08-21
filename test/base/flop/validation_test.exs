@@ -880,6 +880,27 @@ defmodule Flop.ValidationTest do
       assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
     end
 
+    test "validates filter value for integer primary keys" do
+      params = %{filters: [%{field: :id, value: "1"}]}
+      assert {:ok, %Flop{filters: [%{value: 1}]}} = validate(params, for: Pet)
+
+      params = %{filters: [%{field: :id, value: "foo"}]}
+      assert {:error, changeset} = validate(params, for: Pet)
+      assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+    end
+
+    test "validates filter value for binary_id primary keys" do
+      binary_id = "9ace1339-4856-4264-b830-731955b834b3"
+      params = %{filters: [%{field: :id, value: binary_id}]}
+
+      assert {:ok, %Flop{filters: [%{value: ^binary_id}]}} =
+               validate(params, for: Fruit)
+
+      params = %{filters: [%{field: :id, value: "foo"}]}
+      assert {:error, changeset} = validate(params, for: Fruit)
+      assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+    end
+
     test "casts filter values for in/not_in operators as arrays" do
       for op <- [:in, :not_in] do
         params = %{filters: [%{field: :age, op: op, value: 5}]}
