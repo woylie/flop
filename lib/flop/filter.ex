@@ -194,6 +194,7 @@ defmodule Flop.Filter do
   defp value_type(type, :not_in), do: {:array, type}
   defp value_type({:array, type}, :contains), do: type
   defp value_type({:array, type}, :not_contains), do: type
+  defp value_type(:binary_id, _), do: Ecto.UUID
   defp value_type(type, _), do: type
 
   defp expand_type({:from_schema, module, field}) do
