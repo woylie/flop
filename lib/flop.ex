@@ -566,8 +566,11 @@ defmodule Flop do
 
     polymorphic_embeds_many(:filters,
       types: [
-        filter: [module: Flop.Filter, identify_by_fields: [:field]],
-        combinator: [module: Flop.Combinator, identify_by_fields: [:type]]
+        filter: [module: Flop.Filter, identify_by_fields: [:field, :value]],
+        combinator: [
+          module: Flop.Combinator,
+          identify_by_fields: [:type, :filters]
+        ]
       ],
       on_replace: :delete
     )
