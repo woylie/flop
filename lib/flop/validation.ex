@@ -1,9 +1,10 @@
 defmodule Flop.Validation do
   @moduledoc false
 
+  import PolymorphicEmbed
+
   alias Ecto.Changeset
   alias Flop.Cursor
-  alias Flop.Filter
 
   @spec changeset(map, [Flop.option()]) :: Changeset.t()
   def changeset(%{} = params, opts) do
@@ -79,8 +80,8 @@ defmodule Flop.Validation do
 
   defp cast_filters(changeset, opts) do
     if Flop.get_option(:filtering, opts, true) do
-      Changeset.cast_embed(changeset, :filters,
-        with: &Filter.changeset(&1, &2, opts)
+      cast_polymorphic_embed(changeset, :filters,
+        with: Flop.Combinator.filter_or_combinator(opts)
       )
     else
       changeset

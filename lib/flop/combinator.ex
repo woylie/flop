@@ -43,11 +43,25 @@ defmodule Flop.Combinator do
 
     polymorphic_embeds_many(:filters,
       types: [
-        filter: [module: Flop.Filter, identify_by_fields: [:field, :value]],
-        combinator: [module: __MODULE__, identify_by_fields: [:type, :filters]]
+        filter: [module: Flop.Filter, identify_by_fields: [:field]],
+        combinator: [module: __MODULE__, identify_by_fields: [:type]]
       ],
       on_replace: :delete
     )
+  end
+
+  @doc false
+  @spec filter_or_combinator(keyword) :: [
+          {:filter | :combinator, (t(), map() -> Changeset.t())}
+        ]
+  def filter_or_combinator(opts) do
+    [
+      filter: &Flop.Filter.changeset/3,
+      combinator: &changeset/3
+    ]
+    |> Enum.map(fn {type, changeset_fn} ->
+      {type, fn struct, params -> changeset_fn.(struct, params, opts) end}
+    end)
   end
 
   @doc false
@@ -56,7 +70,7 @@ defmodule Flop.Combinator do
     combinator
     |> cast(params, [:type])
     |> validate_required([:type])
-    |> cast_polymorphic_embed(:filters, with: filter_changeset_opts(opts))
+    |> cast_polymorphic_embed(:filters, with: filter_or_combinator(opts))
     |> validate_filters_not_empty()
   end
 
@@ -89,15 +103,5 @@ defmodule Flop.Combinator do
       true ->
         changeset
     end
-  end
-
-  defp filter_changeset_opts(opts) do
-    [
-      filter: &Flop.Filter.changeset/3,
-      combinator: &changeset/3
-    ]
-    |> Enum.map(fn {type, changeset_fn} ->
-      {type, fn struct, params -> changeset_fn.(struct, params, opts) end}
-    end)
   end
 end
