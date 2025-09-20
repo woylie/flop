@@ -1076,4 +1076,97 @@ defmodule Flop.ValidationTest do
       assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
     end
   end
+
+  describe "polymorphic filters with combinators" do
+    test "fails validation for invalid combinator type" do
+      params = %{
+        filters: [
+          %{
+            type: :invalid_type,
+            filters: [
+              %{field: :name, op: :==, value: "Harry"}
+            ]
+          }
+        ]
+      }
+
+      assert {:error, changeset} = validate(params, for: Pet)
+      refute changeset.valid?
+    end
+
+    test "fails validation for combinator with insufficient filters" do
+      params = %{
+        filters: [
+          %{
+            type: :and,
+            filters: [
+              %{field: :name, op: :==, value: "Harry"}
+            ]
+          }
+        ]
+      }
+
+      assert {:error, changeset} = validate(params, for: Pet)
+      refute changeset.valid?
+    end
+
+    test "fails validation for invalid field in nested filter" do
+      params = %{
+        filters: [
+          %{
+            type: :and,
+            filters: [
+              %{field: :invalid_field, op: :==, value: "test"},
+              %{field: :name, op: :==, value: "Harry"}
+            ]
+          }
+        ]
+      }
+
+      assert {:error, changeset} = validate(params, for: Pet)
+      refute changeset.valid?
+    end
+
+    test "validates combinators with nested filters" do
+      params = %{
+        filters: [
+          %{field: :species, op: :==, value: "C. lupus"},
+          %{
+            type: :or,
+            filters: [
+              %{field: :name, op: :==, value: "Harry"},
+              %{field: :name, op: :==, value: "Maggie"},
+              %{field: :name, op: :==, value: "Percy"}
+            ]
+          }
+        ]
+      }
+
+      assert {:ok, %Flop{filters: filters}} = validate(params, for: Pet)
+
+      assert length(filters) == 2
+      [filter, combinator] = filters
+
+      assert filter.__struct__ == Flop.Filter
+      assert filter.field == :species
+      assert filter.value == "C. lupus"
+
+      assert combinator.__struct__ == Flop.Combinator
+      assert combinator.type == :or
+      assert length(combinator.filters) == 3
+
+      [nested1, nested2, nested3] = combinator.filters
+      assert nested1.__struct__ == Flop.Filter
+      assert nested1.field == :name
+      assert nested1.value == "Harry"
+
+      assert nested2.__struct__ == Flop.Filter
+      assert nested2.field == :name
+      assert nested2.value == "Maggie"
+
+      assert nested3.__struct__ == Flop.Filter
+      assert nested3.field == :name
+      assert nested3.value == "Percy"
+    end
+  end
 end
