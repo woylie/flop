@@ -37,9 +37,7 @@ defmodule Flop.Combinator do
 
   @primary_key false
   embedded_schema do
-    field :type, Ecto.Enum,
-      default: :and,
-      values: @combinator_types
+    field :type, Ecto.Enum, values: @combinator_types
 
     polymorphic_embeds_many(:filters,
       types: [

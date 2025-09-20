@@ -110,18 +110,5 @@ defmodule Flop.CombinatorTest do
       assert nested_combinator.type == :or
       assert length(nested_combinator.filters) == 2
     end
-
-    test "defaults to :and type when not specified" do
-      params = %{
-        filters: [
-          %{field: :name, op: :==, value: "Harry"},
-          %{field: :age, op: :>, value: 5}
-        ]
-      }
-
-      {:ok, combinator} = validate(params)
-
-      assert combinator.type == :and
-    end
   end
 end
