@@ -142,6 +142,7 @@ defmodule Flop.Filter do
   @spec changeset(__MODULE__.t(), map, keyword) :: Changeset.t()
   def changeset(filter, %{} = params, opts \\ []) do
     module = Keyword.get(opts, :for)
+    repo = Flop.get_option(:repo, opts)
 
     changeset =
       filter
@@ -156,14 +157,14 @@ defmodule Flop.Filter do
 
       changeset
       |> validate_op(field_info, op)
-      |> cast_value(field_info, op)
+      |> cast_value(field_info, op, repo)
     else
       changeset
     end
   end
 
-  defp cast_value(%Changeset{params: params} = changeset, field_info, op) do
-    type = field_info |> value_type(op) |> expand_type()
+  defp cast_value(%Changeset{params: params} = changeset, field_info, op, repo) do
+    type = field_info |> value_type(op, repo) |> expand_type()
     value = filter_empty_values(type, params["value"])
 
     case Ecto.Type.cast(type, value) do
@@ -182,6 +183,25 @@ defmodule Flop.Filter do
     if is_binary(v) and String.trim_leading(v) == "", do: nil, else: v
   end
 
+  defp value_type(%FieldInfo{ecto_type: type}, op, repo) do
+    value_type(type, op, repo)
+  end
+
+  defp value_type(:binary_id, _op, nil = _repo), do: :binary_id
+
+  defp value_type(:binary_id, _op, repo) do
+    if Code.ensure_loaded?(repo) do
+      case repo.__adapter__().loaders(:binary_id, :binary_id) do
+        [type, _] -> type
+        [type] -> type
+      end
+    else
+      :binary_id
+    end
+  end
+
+  defp value_type(type, op, _repo), do: value_type(type, op)
+
   defp value_type(_, :empty), do: :boolean
   defp value_type(_, :not_empty), do: :boolean
   defp value_type(_, :ilike_and), do: Like
@@ -189,12 +209,10 @@ defmodule Flop.Filter do
   defp value_type(_, :like_and), do: Like
   defp value_type(_, :like_or), do: Like
   defp value_type(nil, _), do: Any
-  defp value_type(%FieldInfo{ecto_type: type}, op), do: value_type(type, op)
   defp value_type(type, :in), do: {:array, type}
   defp value_type(type, :not_in), do: {:array, type}
   defp value_type({:array, type}, :contains), do: type
   defp value_type({:array, type}, :not_contains), do: type
-  defp value_type(:binary_id, _), do: Ecto.UUID
   defp value_type(type, _), do: type
 
   defp expand_type({:from_schema, module, field}) do

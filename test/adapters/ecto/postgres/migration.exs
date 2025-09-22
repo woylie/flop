@@ -27,7 +27,8 @@ defmodule Flop.Repo.Postgres.Migration do
       add(:tags, {:array, :string})
     end
 
-    create table(:fruits) do
+    create table(:fruits, primary_key: false) do
+      add(:id, :binary_id, primary_key: true)
       add(:family, :string)
       add(:name, :string)
       add(:attributes, :map)

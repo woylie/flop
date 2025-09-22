@@ -689,6 +689,7 @@ defprotocol Flop.Schema do
 
       iex> Flop.Schema.filterable(%MyApp.Pet{})
       [
+        :id,
         :age,
         :full_name,
         :mood,
