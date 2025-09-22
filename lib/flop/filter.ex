@@ -142,7 +142,6 @@ defmodule Flop.Filter do
   @spec changeset(__MODULE__.t(), map, keyword) :: Changeset.t()
   def changeset(filter, %{} = params, opts \\ []) do
     module = Keyword.get(opts, :for)
-    repo = Flop.get_option(:repo, opts)
 
     changeset =
       filter
@@ -151,6 +150,7 @@ defmodule Flop.Filter do
       |> validate_filterable(module)
 
     if changeset.valid? do
+      repo = get_repo(opts)
       field = Changeset.fetch_field!(changeset, :field)
       op = Changeset.fetch_field!(changeset, :op)
       field_info = module && get_field_info(module, field)
@@ -187,16 +187,28 @@ defmodule Flop.Filter do
     value_type(type, op, repo)
   end
 
-  defp value_type(:binary_id, _op, nil = _repo), do: :binary_id
+  defp value_type({:array, :binary_id}, op, repo)
+       when op in [:contains, :not_contains] do
+    value_type(:binary_id, op, repo)
+  end
 
-  defp value_type(:binary_id, _op, repo) do
-    if Code.ensure_loaded?(repo) do
-      case repo.__adapter__().loaders(:binary_id, :binary_id) do
-        [type, _] -> type
-        [type] -> type
+  defp value_type(:binary_id, op, repo) do
+    type =
+      if repo != nil and Code.ensure_loaded?(repo) do
+        case repo.__adapter__().loaders(:binary_id, :binary_id) do
+          [type, _] -> type
+          [type] -> type
+        end
+      else
+        :binary_id
       end
-    else
-      :binary_id
+
+    case op do
+      :empty -> :boolean
+      :not_empty -> :boolean
+      :in -> {:array, type}
+      :not_in -> {:array, type}
+      _ -> type
     end
   end
 
@@ -224,6 +236,12 @@ defmodule Flop.Filter do
   end
 
   defp expand_type(type), do: type
+
+  defp get_repo(opts) do
+    # use nested adapter_opts if set
+    opts = Flop.get_option(:adapter_opts, opts) || opts
+    Flop.get_option(:repo, opts)
+  end
 
   @spec validate_filterable(Changeset.t(), module | nil) :: Changeset.t()
   defp validate_filterable(changeset, nil), do: changeset
