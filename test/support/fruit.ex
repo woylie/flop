@@ -8,10 +8,12 @@ defmodule MyApp.Fruit do
 
   @derive {Flop.Schema,
            filterable: [
+             :id,
              :name,
              :family,
              :attributes,
              :extra,
+             :references,
              :owner_attributes,
              :owner_extra
            ],
@@ -37,11 +39,13 @@ defmodule MyApp.Fruit do
            },
            pagination_types: [:first, :last, :offset]}
 
+  @primary_key {:id, :binary_id, autogenerate: true}
   schema "fruits" do
     field :name, :string
     field :family, :string
     field :attributes, :map
     field :extra, {:map, :string}
+    field :references, {:array, :binary_id}
 
     belongs_to :owner, Owner
   end

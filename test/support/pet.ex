@@ -10,6 +10,7 @@ defmodule MyApp.Pet do
   @derive {
     Flop.Schema,
     filterable: [
+      :id,
       :age,
       :full_name,
       :mood,
@@ -63,6 +64,7 @@ defmodule MyApp.Pet do
     ]
   }
 
+  @primary_key {:id, :id, autogenerate: true}
   schema "pets" do
     field :age, :integer
     field :family_name, :string

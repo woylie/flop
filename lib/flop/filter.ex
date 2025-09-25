@@ -150,20 +150,21 @@ defmodule Flop.Filter do
       |> validate_filterable(module)
 
     if changeset.valid? do
+      repo = get_repo(opts)
       field = Changeset.fetch_field!(changeset, :field)
       op = Changeset.fetch_field!(changeset, :op)
       field_info = module && get_field_info(module, field)
 
       changeset
       |> validate_op(field_info, op)
-      |> cast_value(field_info, op)
+      |> cast_value(field_info, op, repo)
     else
       changeset
     end
   end
 
-  defp cast_value(%Changeset{params: params} = changeset, field_info, op) do
-    type = field_info |> value_type(op) |> expand_type()
+  defp cast_value(%Changeset{params: params} = changeset, field_info, op, repo) do
+    type = field_info |> value_type(op, repo) |> expand_type()
     value = filter_empty_values(type, params["value"])
 
     case Ecto.Type.cast(type, value) do
@@ -182,19 +183,44 @@ defmodule Flop.Filter do
     if is_binary(v) and String.trim_leading(v) == "", do: nil, else: v
   end
 
-  defp value_type(_, :empty), do: :boolean
-  defp value_type(_, :not_empty), do: :boolean
-  defp value_type(_, :ilike_and), do: Like
-  defp value_type(_, :ilike_or), do: Like
-  defp value_type(_, :like_and), do: Like
-  defp value_type(_, :like_or), do: Like
+  defp value_type(_, :empty, _), do: :boolean
+  defp value_type(_, :not_empty, _), do: :boolean
+  defp value_type(_, :ilike_and, _), do: Like
+  defp value_type(_, :ilike_or, _), do: Like
+  defp value_type(_, :like_and, _), do: Like
+  defp value_type(_, :like_or, _), do: Like
+
+  defp value_type(%FieldInfo{ecto_type: type}, op, repo) do
+    value_type(type, op, repo)
+  end
+
+  defp value_type({:array, :binary_id}, op, repo) do
+    value_type({:array, binary_id_type_module(repo)}, op)
+  end
+
+  defp value_type(:binary_id, op, repo) do
+    repo
+    |> binary_id_type_module()
+    |> value_type(op)
+  end
+
+  defp value_type(type, op, _repo), do: value_type(type, op)
+
   defp value_type(nil, _), do: Any
-  defp value_type(%FieldInfo{ecto_type: type}, op), do: value_type(type, op)
   defp value_type(type, :in), do: {:array, type}
   defp value_type(type, :not_in), do: {:array, type}
   defp value_type({:array, type}, :contains), do: type
   defp value_type({:array, type}, :not_contains), do: type
   defp value_type(type, _), do: type
+
+  defp binary_id_type_module(repo) do
+    if repo && Code.ensure_loaded?(repo) do
+      [type | _] = repo.__adapter__().loaders(:binary_id, :binary_id)
+      type
+    else
+      :binary_id
+    end
+  end
 
   defp expand_type({:from_schema, module, field}) do
     module.__schema__(:type, field)
@@ -205,6 +231,12 @@ defmodule Flop.Filter do
   end
 
   defp expand_type(type), do: type
+
+  defp get_repo(opts) do
+    # use nested adapter_opts if set
+    opts = Flop.get_option(:adapter_opts, opts) || opts
+    Flop.get_option(:repo, opts)
+  end
 
   @spec validate_filterable(Changeset.t(), module | nil) :: Changeset.t()
   defp validate_filterable(changeset, nil), do: changeset

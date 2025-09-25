@@ -1225,6 +1225,34 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       flop = %{page_size: 2, page: 2}
       assert {:ok, {[%Pet{}], %Meta{}}} = Flop.validate_and_run(Pet, flop)
     end
+
+    test "validates filter value for binary_id primary keys" do
+      %{id: binary_id} = insert(:fruit)
+      flop = %{filters: [%{field: :id, value: binary_id}]}
+
+      assert {:ok, {[%Fruit{id: ^binary_id}], %Flop.Meta{}}} =
+               Flop.validate_and_run(Fruit, flop, for: Fruit)
+
+      flop = %{filters: [%{field: :id, value: "foo"}]}
+      assert {:error, meta} = Flop.validate_and_run(Fruit, flop, for: Fruit)
+      assert meta.errors == [filters: [[value: [{"is invalid", []}]]]]
+    end
+
+    test "validates filter value for an array of binary_ids" do
+      fruit_ids = Enum.map(1..3, fn _ -> Ecto.UUID.generate() end)
+      %{id: binary_id} = insert(:fruit, references: fruit_ids)
+
+      flop = %{
+        filters: [%{field: :references, value: hd(fruit_ids), op: :contains}]
+      }
+
+      assert {:ok, {[%Fruit{id: ^binary_id}], %Flop.Meta{}}} =
+               Flop.validate_and_run(Fruit, flop, for: Fruit)
+
+      flop = %{filters: [%{field: :references, value: "foo", op: :contains}]}
+      assert {:error, meta} = Flop.validate_and_run(Fruit, flop, for: Fruit)
+      assert meta.errors == [filters: [[value: [{"is invalid", []}]]]]
+    end
   end
 
   describe "validate_and_run!/3" do
