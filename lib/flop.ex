@@ -278,6 +278,8 @@ defmodule Flop do
   """
   use Ecto.Schema
 
+  import PolymorphicEmbed
+
   alias Ecto.Changeset
   alias Ecto.Queryable
   alias Flop.Adapter
@@ -562,7 +564,16 @@ defmodule Flop do
     field :page_size, :integer
     field :decoded_cursor, :map
 
-    embeds_many :filters, Filter
+    polymorphic_embeds_many(:filters,
+      types: [
+        filter: [module: Flop.Filter, identify_by_fields: [:field, :value]],
+        combinator: [
+          module: Flop.Combinator,
+          identify_by_fields: [:type, :filters]
+        ]
+      ],
+      on_replace: :delete
+    )
   end
 
   @doc """
