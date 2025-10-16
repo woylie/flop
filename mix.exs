@@ -15,7 +15,25 @@ defmodule Flop.MixProject do
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
       test_paths: test_paths(System.get_env("ECTO_ADAPTER")),
-      preferred_cli_env: [
+      dialyzer: [
+        ignore_warnings: ".dialyzer_ignore.exs",
+        list_unused_filters: true,
+        plt_file: {:no_warn, ".plts/dialyzer.plt"}
+      ],
+      name: "Flop",
+      source_url: @source_url,
+      homepage_url: @source_url,
+      description: description(),
+      package: package(),
+      docs: docs(),
+      aliases: aliases(),
+      consolidate_protocols: Mix.env() != :test
+    ]
+  end
+
+  def cli do
+    [
+      preferred_envs: [
         "coveralls.detail": :test,
         "coveralls.github": :test,
         "coveralls.html": :test,
@@ -31,20 +49,7 @@ defmodule Flop.MixProject do
         "test.adapters": :test,
         coveralls: :test,
         dialyzer: :test
-      ],
-      dialyzer: [
-        ignore_warnings: ".dialyzer_ignore.exs",
-        list_unused_filters: true,
-        plt_file: {:no_warn, ".plts/dialyzer.plt"}
-      ],
-      name: "Flop",
-      source_url: @source_url,
-      homepage_url: @source_url,
-      description: description(),
-      package: package(),
-      docs: docs(),
-      aliases: aliases(),
-      consolidate_protocols: Mix.env() != :test
+      ]
     ]
   end
 
