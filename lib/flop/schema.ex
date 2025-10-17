@@ -60,8 +60,8 @@ defprotocol Flop.Schema do
           {"has an invalid entry",
            [
              validation: :subset,
-             enum: [:name, :age, :owner_name, :owner_age, :dog_age
-           ]]}
+             enum: [:name, :age, :owner_name, :owner_age, :dog_age, :reverse_name]
+           ]}
         ]
       ]
 
@@ -377,14 +377,15 @@ defprotocol Flop.Schema do
   require fragments, or to cast or process values before running the query.
 
   In the custom field configuration, you can reference a `filter` function and
-  a `sorter` function with `{mod :: module, function :: atom, opts :: keyword}`
+  a `field_dynamic` function with
+  `{mod :: module, function :: atom, opts :: keyword}`
   tuples. Either option is only required if the custom field is marked as
   filterable or sortable.
 
   The `filter` function has to accept three arguments `t:Ecto.Query.t/0`,
   `t:Flop.Filter.t/0`, `t:Keyword.t/0` and return an `t:Ecto.Query.t/0`.
 
-  The `sorter` function only accepts a single argument: `t:Keyword.t/0` and
+  The `field_dynamic` function only accepts `t:Keyword.t/0` as argument and
   returns an `t:Ecto.Query.dynamic_expr/0`.
 
   The keyword list passed as the last argument to either function
@@ -405,7 +406,7 @@ defprotocol Flop.Schema do
           custom_fields: [
             inserted_at_date: [
               filter: {CustomFields, :date_filter, [source: :inserted_at]},
-              sorter: {CustomFields, :date_sorter, [source: :inserted_at]},
+              field_dynamic: {CustomFields, :date_field, [source: :inserted_at]},
               ecto_type: :date,
               operators: [:<=, :>=]
             ]
@@ -444,7 +445,7 @@ defprotocol Flop.Schema do
           where(query, ^conditions)
         end
       
-        def date_sorter(opts) do
+        def date_field(opts) do
           source = Keyword.fetch!(opts, :source)
           timezone = Keyword.fetch!(opts, :timezone)
           
@@ -609,16 +610,26 @@ defprotocol Flop.Schema do
   @typedoc """
   Defines the options for a custom field.
 
+  - `:field_dynamic` - A module/function/options tuple referencing a function
+    that takes the options from the tuple as argument and returns 
+    an `t:Ecto.Query.dynamic_expr/0` that expresses the field. This function
+    is used when sorting by the custom field. It is also used for filtering
+    unless the `:filter` option is set. Required if the field is marked as
+    `sortable`, or if the marked is marked as `filterable` and the `:filter`
+    option is not set. It is also required if the field is used as cursor
+    field.
   - `:filter` - A module/function/options tuple referencing a
-    custom filter function. The function must take the Ecto query, the
-    `Flop.Filter` struct, and the options from the tuple as arguments, and
-    return the updated Ecto query. Required
-    if field is marked as `filterable`.
-  - `:sorter` - A module/function/options tuple referencing a custom sorter
-    function. The function must take the options from the tuple as arguments
-    and return an `t:Ecto.Query.dynamic_expr/0`.
-    Required if field is marked as `sortable`.
-  - `:ecto_type` - The Ecto type of the field. The filter operator and value
+    custom filter function. The function must take an `t:Ecto.Query.t()`, a
+    `t:Flop.Filter.t()`, and the options from the tuple as arguments, and
+    return the updated Ecto query. This option can be used for complex filter
+    conditions that require pre-processing of the filter value or full control
+    over the operator application. Since the function needs to handle all
+    supported operators by itself, it is recommended to just use
+    `:field_dynamic`, if possible. Note that for cursor pagination, the `where`
+    clauses are always built using the `:field_dynamic` function, even if a
+    `:filter` function is configured. Required if the field is marked as
+    `filterable` and the `:field_dynamic` option is not set.
+  - `:ecto_type` - The Ecto type of the field. .The filter operator and value
     validation is based on this option.
   - `:bindings` - If the custom filter function requires certain named bindings
     to be present in the Ecto query, you can specify them here. These bindings
@@ -633,7 +644,7 @@ defprotocol Flop.Schema do
   """
   @type custom_field_option ::
           {:filter, {module, atom, keyword}}
-          | {:sorter, {module, atom, keyword}}
+          | {:field_dynamic, {module, atom, keyword}}
           | {:ecto_type, ecto_type()}
           | {:bindings, [atom]}
           | {:operators, [Flop.Filter.op()]}
@@ -713,7 +724,7 @@ defprotocol Flop.Schema do
         extra: %{
           type: :custom,
           filter: {MyApp.Pet, :reverse_name_filter, []},
-          sorter: nil,
+          field_dynamic: {MyApp.Pet, :reverse_name_field, []},
           bindings: []
         }
       }
@@ -792,7 +803,7 @@ defprotocol Flop.Schema do
   Returns the sortable fields of a schema.
 
       iex> Flop.Schema.sortable(%MyApp.Pet{})
-      [:name, :age, :owner_name, :owner_age, :dog_age]
+      [:name, :age, :owner_name, :owner_age, :dog_age, :reverse_name]
   """
   @spec sortable(any) :: [atom]
   def sortable(data)

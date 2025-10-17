@@ -359,7 +359,7 @@ defmodule Flop.SchemaTest do
              "custom field without filter function marked as filterable"
   end
 
-  test "raises error if sortable custom field has no sorter" do
+  test "raises error if sortable custom field has no field_dynamic" do
     error =
       assert_raise ArgumentError, fn ->
         defmodule Parsley do
@@ -376,6 +376,6 @@ defmodule Flop.SchemaTest do
       end
 
     assert error.message =~
-             "custom field without sorter function marked as sortable"
+             "custom field without field_dynamic function marked as sortable"
   end
 end
