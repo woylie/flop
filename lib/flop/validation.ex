@@ -1,9 +1,10 @@
 defmodule Flop.Validation do
   @moduledoc false
 
+  import PolymorphicEmbed
+
   alias Ecto.Changeset
   alias Flop.Cursor
-  alias Flop.Filter
 
   @spec changeset(map, [Flop.option()]) :: Changeset.t()
   def changeset(%{} = params, opts) do
@@ -48,8 +49,13 @@ defmodule Flop.Validation do
       nil ->
         nil
 
-      changesets when is_list(changesets) ->
-        Enum.filter(changesets, fn %Changeset{valid?: valid?} -> valid? end)
+      structs when is_list(structs) ->
+        Enum.filter(structs, fn
+          %Changeset{valid?: valid?} -> valid?
+          %Flop.Filter{} -> true
+          %Flop.Combinator{} -> true
+          _ -> false
+        end)
     end)
   end
 
@@ -79,9 +85,36 @@ defmodule Flop.Validation do
 
   defp cast_filters(changeset, opts) do
     if Flop.get_option(:filtering, opts, true) do
-      Changeset.cast_embed(changeset, :filters,
-        with: &Filter.changeset(&1, &2, opts)
+      changeset
+      |> maybe_preprocess_malformed_filters(opts)
+      |> cast_polymorphic_embed(:filters,
+        with: Flop.Combinator.filter_or_combinator(opts)
       )
+    else
+      changeset
+    end
+  end
+
+  defp maybe_preprocess_malformed_filters(changeset, opts) do
+    if Keyword.get(opts, :replace_invalid_params, false) do
+      params = changeset.params || %{}
+
+      {filters, key} =
+        if params[:filters] do
+          {params[:filters], :filters}
+        else
+          {params["filters"], "filters"}
+        end
+
+      if is_list(filters) do
+        processed_filters = Enum.filter(filters, &is_map/1)
+
+        updated_params = %{params | key => processed_filters}
+
+        %{changeset | params: updated_params}
+      else
+        changeset
+      end
     else
       changeset
     end
