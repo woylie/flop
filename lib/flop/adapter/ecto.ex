@@ -804,13 +804,13 @@ defmodule Flop.Adapter.Ecto do
 
   defp build_op(
          %module{},
-         %FieldInfo{extra: %{type: type, field: field}} = field_info,
+         %FieldInfo{extra: %{type: type}} = field_info,
          %Filter{op: op, value: value}
        )
        when op in [:empty, :not_empty] do
     ecto_type =
       case type do
-        :normal -> module.__schema__(:type, field)
+        :normal -> module.__schema__(:type, field_info.extra.field)
         :custom -> field_info.ecto_type
         :join -> field_info.ecto_type
       end
