@@ -76,7 +76,7 @@ defmodule Flop.MixProject do
       {:excoveralls, "0.18.5", only: :test},
       {:myxql, "0.8.0", only: :test},
       {:nimble_options, "~> 1.0"},
-      {:postgrex, "0.20.0", only: :test},
+      {:postgrex, "== 0.21.1", only: :test},
       {:ecto_sqlite3, "0.22.0", only: :test},
       {:stream_data, "1.2.0", only: [:dev, :test]}
     ]
