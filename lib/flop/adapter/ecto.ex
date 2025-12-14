@@ -247,9 +247,9 @@ defmodule Flop.Adapter.Ecto do
         opts
       ) do
     case get_field_info(schema_struct, field) do
-      %FieldInfo{extra: %{type: :custom} = custom_opts} ->
-        {mod, fun, custom_filter_opts} = Map.fetch!(custom_opts, :filter)
-
+      %FieldInfo{
+        extra: %{type: :custom, filter: {mod, fun, custom_filter_opts}}
+      } ->
         opts =
           opts
           |> Keyword.get(:extra_opts, [])
@@ -415,16 +415,19 @@ defmodule Flop.Adapter.Ecto do
 
   defp cursor_dynamic(
          [
-           {_, field, _, %FieldInfo{extra: %{type: :custom, filter: nil}}} | _
+           {_, field, _,
+            %FieldInfo{extra: %{type: :custom, field_dynamic: nil}}}
+           | _
          ],
          _
        ) do
     raise """
-    cursor pagination on custom fields requires filter function
+    cursor pagination on custom fields requires field_dynamic function
 
-    To use a custom field as a cursor field, both a `filter` and a `field_dynamic`
-    function need to be configured for the field, but no `filter` function
-    was configured for the field `:#{field}`.
+    To use a custom field as a cursor field, a `field_dynamic` function needs to
+    be configured for the field, but none was configured for the field:
+
+        :#{field}
     """
   end
 
@@ -801,7 +804,7 @@ defmodule Flop.Adapter.Ecto do
 
   defp build_op(
          %module{},
-         %FieldInfo{extra: %{type: :normal, field: field}},
+         %FieldInfo{extra: %{type: type, field: field}} = field_info,
          %Filter{op: op, value: value}
        )
        when op in [:empty, :not_empty] do
@@ -1038,15 +1041,23 @@ defmodule Flop.Adapter.Ecto do
 
     if illegal_filterable_fields != [] do
       raise ArgumentError, """
-      custom field without filter function marked as filterable
+      custom field without field_dynamic or filter function marked as filterable
 
-      The following custom fields were marked as filterable, but no `filter`
-      function was configured:
+      The following custom fields were marked as filterable, o
+      `field_dynamic` or `filter` function was configured:
 
           #{inspect(illegal_filterable_fields)}
 
-      Add the `filter` option to your custom field configuration to fix this.
+      To fix this, add one of the options to your custom field configuration:
           
+          custom_fields: [
+            my_custom_field: [
+              field_dynamic: {MyModule, :my_filter, []}
+            ]
+          ]
+
+      Or:
+
           custom_fields: [
             my_custom_field: [
               filter: {MyModule, :my_filter, []}
