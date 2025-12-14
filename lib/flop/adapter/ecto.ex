@@ -1043,7 +1043,7 @@ defmodule Flop.Adapter.Ecto do
       raise ArgumentError, """
       custom field without field_dynamic or filter function marked as filterable
 
-      The following custom fields were marked as filterable, o
+      The following custom fields were marked as filterable, but no
       `field_dynamic` or `filter` function was configured:
 
           #{inspect(illegal_filterable_fields)}
