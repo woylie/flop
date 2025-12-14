@@ -1049,7 +1049,8 @@ defmodule Flop.Adapter.Ecto do
     illegal_filterable_fields =
       custom_fields
       |> Enum.filter(fn {key, field} ->
-        is_nil(field[:filter]) and key in filterable
+        key in filterable and is_nil(field[:field_dynamic]) and
+          is_nil(field[:filter])
       end)
       |> Enum.map(&elem(&1, 0))
 
