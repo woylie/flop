@@ -846,7 +846,7 @@ defmodule Flop.Adapter.Ecto do
          ) do
       unquote(prelude)
       field_dynamic = build_field_dynamic(field_info)
-      build_dynamic(unquote(fragment), false, unquote(combinator))
+      build_dynamic(unquote(fragment), unquote(combinator))
     end
   end
 

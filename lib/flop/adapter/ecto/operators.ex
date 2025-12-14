@@ -3,37 +3,31 @@ defmodule Flop.Adapter.Ecto.Operators do
 
   import Ecto.Query
 
-  defmacro build_dynamic(fragment, binding?, _combinator = nil) do
-    binding_arg = binding_arg(binding?)
-
+  defmacro build_dynamic(fragment, _combinator = nil) do
     quote do
-      dynamic(unquote(binding_arg), unquote(fragment))
+      dynamic([], unquote(fragment))
     end
   end
 
-  defmacro build_dynamic(fragment, binding?, :and) do
-    binding_arg = binding_arg(binding?)
-
+  defmacro build_dynamic(fragment, :and) do
     quote do
       filter_condition =
         Enum.reduce(var!(value), true, fn substring, dynamic ->
-          dynamic(unquote(binding_arg), ^dynamic and unquote(fragment))
+          dynamic([], ^dynamic and unquote(fragment))
         end)
 
-      dynamic(unquote(binding_arg), ^filter_condition)
+      dynamic([], ^filter_condition)
     end
   end
 
-  defmacro build_dynamic(fragment, binding?, :or) do
-    binding_arg = binding_arg(binding?)
-
+  defmacro build_dynamic(fragment, :or) do
     quote do
       filter_condition =
         Enum.reduce(var!(value), false, fn substring, dynamic ->
-          dynamic(unquote(binding_arg), ^dynamic or unquote(fragment))
+          dynamic([], ^dynamic or unquote(fragment))
         end)
 
-      dynamic(unquote(binding_arg), ^filter_condition)
+      dynamic([], ^filter_condition)
     end
   end
 
@@ -47,18 +41,6 @@ defmodule Flop.Adapter.Ecto.Operators do
     Enum.reduce(values, false, fn value, dynamic ->
       dynamic([r], ^dynamic or ^inner_func.(value))
     end)
-  end
-
-  defp binding_arg(true) do
-    quote do
-      [{^var!(binding), r}]
-    end
-  end
-
-  defp binding_arg(false) do
-    quote do
-      [r]
-    end
   end
 
   def op_config(:==) do
