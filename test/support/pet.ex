@@ -22,8 +22,7 @@ defmodule MyApp.Pet do
       :species,
       :tags,
       :custom,
-      :reverse_name,
-      :dog_age
+      :reverse_name
     ],
     sortable: [:name, :age, :owner_name, :owner_age, :dog_age, :reverse_name],
     max_limit: 1000,

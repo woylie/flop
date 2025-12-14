@@ -233,14 +233,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
                 # all except compound fields
                 field <-
-                  member_of([
-                    :age,
-                    :name,
-                    :owner_age,
-                    :owner_name,
-                    :species,
-                    :dog_age
-                  ]),
+                  member_of([:age, :name, :owner_age, :owner_name, :species]),
                 pet <- member_of(pets),
                 query_value <- pet |> Pet.get_field(field) |> constant(),
                 query_value != "" do
@@ -1886,6 +1879,34 @@ defmodule Flop.Adapters.Ecto.FlopTest do
 
       assert error.message =~
                "alias fields are not supported in cursor pagination"
+    end
+
+    test "raises if custom field without filter is used" do
+      insert_list(2, :pet)
+
+      assert {_, %Meta{end_cursor: end_cursor}} =
+               Flop.run(
+                 Pet,
+                 %Flop{first: 1, order_by: [:dog_age, :id]},
+                 for: Pet
+               )
+
+      error =
+        assert_raise RuntimeError,
+                     fn ->
+                       Flop.run(
+                         Pet,
+                         %Flop{
+                           first: 1,
+                           after: end_cursor,
+                           order_by: [:dog_age, :id]
+                         },
+                         for: Pet
+                       )
+                     end
+
+      assert error.message =~
+               "cursor pagination on custom fields requires filter function"
     end
 
     test "raises if custom field without field_dynamic is used" do

@@ -356,7 +356,7 @@ defmodule Flop.SchemaTest do
       end
 
     assert error.message =~
-             "custom field without field_dynamic or filter function marked as filterable"
+             "custom field without filter function marked as filterable"
   end
 
   test "raises error if sortable custom field has no field_dynamic" do
