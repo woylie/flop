@@ -324,16 +324,6 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    # test "applies empty filter" do
-    #   require Flop.Adapter.Ecto.Operators
-
-    #   field = :species
-
-    #   d1 = dynamic([r], is_nil(field(r, ^field)) == ^true); d2 = dynamic([r], Flop.Adapter.Ecto.Operators.empty(:other) == ^true)
-
-    #   assert where(Pet, ^d1) == where(Pet, ^d2)
-    # end
-
     test "applies empty and not_empty filter with string values" do
       check all pet_count <- integer(@pet_count_range),
                 pets =
