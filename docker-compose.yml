@@ -7,7 +7,7 @@ services:
     ports:
       - "5432:5432"
   mysql:
-    image: mysql:9.3
+    image: mysql:9.5
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: true
     ports:
