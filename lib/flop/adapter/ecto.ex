@@ -246,20 +246,19 @@ defmodule Flop.Adapter.Ecto do
         schema_struct,
         opts
       ) do
-    extra_opts = Keyword.get(opts, :extra_opts, [])
-
     case get_field_info(schema_struct, field) do
       %FieldInfo{
         extra: %{type: :custom, filter: {mod, fun, custom_filter_opts}}
       } ->
-        opts = Keyword.merge(extra_opts, custom_filter_opts)
+        opts =
+          opts
+          |> Keyword.get(:extra_opts, [])
+          |> Keyword.merge(custom_filter_opts)
+
         apply(mod, fun, [query, filter, opts])
 
       field_info ->
-        Query.where(
-          query,
-          ^build_op(schema_struct, field_info, filter, extra_opts)
-        )
+        Query.where(query, ^build_op(schema_struct, field_info, filter))
     end
   end
 
@@ -711,8 +710,7 @@ defmodule Flop.Adapter.Ecto do
     defp build_op(
            schema_struct,
            %FieldInfo{extra: %{type: :compound, fields: fields}},
-           %Filter{op: unquote(op), value: value},
-           extra_opts
+           %Filter{op: unquote(op), value: value}
          ) do
       fields = Enum.map(fields, &get_field_info(schema_struct, &1))
 
@@ -725,16 +723,11 @@ defmodule Flop.Adapter.Ecto do
       reduce_dynamic(unquote(combinator), value, fn substring ->
         Enum.reduce(fields, false, fn field, inner_dynamic ->
           dynamic_for_field =
-            build_op(
-              schema_struct,
-              field,
-              %Filter{
-                field: field,
-                op: unquote(field_op),
-                value: substring
-              },
-              extra_opts
-            )
+            build_op(schema_struct, field, %Filter{
+              field: field,
+              op: unquote(field_op),
+              value: substring
+            })
 
           dynamic([r], ^inner_dynamic or ^dynamic_for_field)
         end)
@@ -745,8 +738,7 @@ defmodule Flop.Adapter.Ecto do
   defp build_op(
          schema_struct,
          %FieldInfo{extra: %{type: :compound, fields: fields}},
-         %Filter{op: op} = filter,
-         extra_opts
+         %Filter{op: op} = filter
        )
        when op in [
               :=~,
@@ -762,7 +754,7 @@ defmodule Flop.Adapter.Ecto do
     |> Enum.map(&get_field_info(schema_struct, &1))
     |> Enum.reduce(false, fn field, dynamic ->
       dynamic_for_field =
-        build_op(schema_struct, field, %{filter | field: field}, extra_opts)
+        build_op(schema_struct, field, %{filter | field: field})
 
       dynamic([r], ^dynamic or ^dynamic_for_field)
     end)
@@ -771,14 +763,13 @@ defmodule Flop.Adapter.Ecto do
   defp build_op(
          schema_struct,
          %FieldInfo{extra: %{type: :compound, fields: fields}},
-         %Filter{op: :empty} = filter,
-         extra_opts
+         %Filter{op: :empty} = filter
        ) do
     fields
     |> Enum.map(&get_field_info(schema_struct, &1))
     |> Enum.reduce(true, fn field, dynamic ->
       dynamic_for_field =
-        build_op(schema_struct, field, %{filter | field: field}, extra_opts)
+        build_op(schema_struct, field, %{filter | field: field})
 
       dynamic([r], ^dynamic and ^dynamic_for_field)
     end)
@@ -787,8 +778,7 @@ defmodule Flop.Adapter.Ecto do
   defp build_op(
          _schema_struct,
          %FieldInfo{extra: %{type: :compound}},
-         %Filter{op: op, value: _value} = _filter,
-         _extra_opts
+         %Filter{op: op, value: _value} = _filter
        )
        when op in [
               :==,
@@ -815,8 +805,7 @@ defmodule Flop.Adapter.Ecto do
   defp build_op(
          %module{},
          %FieldInfo{extra: %{type: type}} = field_info,
-         %Filter{op: op, value: value},
-         extra_opts
+         %Filter{op: op, value: value}
        )
        when op in [:empty, :not_empty] do
     ecto_type =
@@ -828,7 +817,9 @@ defmodule Flop.Adapter.Ecto do
 
     value = value in [true, "true"]
     value = if op == :not_empty, do: !value, else: value
-    field_dynamic = build_field_dynamic(field_info, extra_opts)
+
+    # todo: handle runtime opts
+    field_dynamic = build_field_dynamic(field_info)
 
     case array_or_map(ecto_type) do
       :array ->
@@ -851,11 +842,10 @@ defmodule Flop.Adapter.Ecto do
     defp build_op(
            _schema_struct,
            %FieldInfo{} = field_info,
-           %Filter{op: unquote(op), value: value},
-           extra_opts
+           %Filter{op: unquote(op), value: value}
          ) do
       unquote(prelude)
-      field_dynamic = build_field_dynamic(field_info, extra_opts)
+      field_dynamic = build_field_dynamic(field_info)
       build_dynamic(unquote(fragment), unquote(combinator))
     end
   end
@@ -872,29 +862,22 @@ defmodule Flop.Adapter.Ecto do
     Flop.Schema.field_info(struct, field)
   end
 
-  defp build_field_dynamic(
-         %FieldInfo{extra: %{type: :normal, field: field}},
-         _extra_opts
-       ) do
+  defp build_field_dynamic(%FieldInfo{
+         extra: %{type: :normal, field: field}
+       }) do
     dynamic([r], field(r, ^field))
   end
 
-  defp build_field_dynamic(
-         %FieldInfo{
-           extra: %{type: :custom, field_dynamic: {mod, fun, custom_field_opts}}
-         },
-         extra_opts
-       ) do
-    opts = Keyword.merge(extra_opts, custom_field_opts)
-    apply(mod, fun, [opts])
+  defp build_field_dynamic(%FieldInfo{
+         extra: %{type: :custom, field_dynamic: {mod, fun, custom_field_opts}}
+       }) do
+    # todo: handle runtime opts
+    apply(mod, fun, [custom_field_opts])
   end
 
-  defp build_field_dynamic(
-         %FieldInfo{
-           extra: %{type: :join, binding: binding, field: field}
-         },
-         _extra_opts
-       ) do
+  defp build_field_dynamic(%FieldInfo{
+         extra: %{type: :join, binding: binding, field: field}
+       }) do
     dynamic([], field(as(^binding), ^field))
   end
 
