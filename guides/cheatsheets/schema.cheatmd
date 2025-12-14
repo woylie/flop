@@ -366,7 +366,7 @@ defmodule Pet do
       custom_fields: [
         human_age: [
           filter: {CustomFields, :filter_by_human_age, []},
-          sorter: {CustomFields, :sort_by_human_age, []},
+          field_dynamic: {CustomFields, :sort_by_human_age, []},
           ecto_type: :integer
         ]
       ]

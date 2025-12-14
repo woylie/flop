@@ -625,6 +625,12 @@ defmodule Flop do
   `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`, but
   not by this function.
 
+  This function will apply the `default_limit` of the given schema or repo
+  unless you provide a custom limit or pass `default_limit: false` as an option.
+
+      iex> Flop.all(MyApp.Pet, %Flop{}, for: MyApp.Pet, default_limit: false)
+      []
+
   Also note that you will need to pass the `for` option in order for Flop to be
   able to find your join, compound, alias and custom field configuration.
 
@@ -1348,7 +1354,7 @@ defmodule Flop do
       iex> msg
       "has an invalid entry"
       iex> enum
-      [:name, :age, :owner_name, :owner_age, :dog_age]
+      [:name, :age, :owner_name, :owner_age, :dog_age, :reverse_name]
 
   Note that currently, trying to use an existing field that is not allowed as
   seen above will result in the error message `has an invalid entry`, while

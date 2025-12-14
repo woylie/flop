@@ -21,7 +21,7 @@ jobs:
       MIX_ENV: test
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -33,14 +33,14 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: erlef/setup-beam@v1
         id: beam
         with:
           otp-version: ${{ env.OTP_VERSION }}
           elixir-version: ${{ env.ELIXIR_VERSION }}
       - name: Restore dependencies and build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             _build
@@ -85,7 +85,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -97,14 +97,14 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: erlef/setup-beam@v1
         id: beam
         with:
           otp-version: ${{ matrix.otp }}
           elixir-version: ${{ matrix.elixir }}
       - name: Restore dependencies and build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             _build
@@ -144,7 +144,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -157,7 +157,7 @@ jobs:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: erlef/setup-beam@v1
         id: beam
         with:
@@ -165,7 +165,7 @@ jobs:
           elixir-version: ${{ env.ELIXIR_VERSION }}
 
       - name: Restore dependencies and build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             _build
@@ -173,7 +173,7 @@ jobs:
           key: ${{ runner.os }}-otp-${{ steps.beam.outputs.otp-version }}-elixir-${{ steps.beam.outputs.elixir-version }}-mix-${{ hashFiles('mix.lock') }}
           restore-keys: ${{ runner.os }}-otp-${{ steps.beam.outputs.otp-version }}-elixir-${{ steps.beam.outputs.elixir-version }}-
       - name: Restore PLT cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: plt_cache
         with:
           key: |

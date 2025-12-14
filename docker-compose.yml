@@ -1,13 +1,13 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
   mysql:
-    image: mysql:9.3
+    image: mysql:9.5
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: true
     ports:
