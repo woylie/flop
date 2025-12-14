@@ -320,6 +320,26 @@ defmodule Flop.Adapter.Ecto.Operators do
     end
   end
 
+  defmacro empty_dynamic(:array) do
+    quote do
+      is_nil(^var!(field_dynamic)) or
+        ^var!(field_dynamic) == ^[]
+    end
+  end
+
+  defmacro empty_dynamic(:map) do
+    quote do
+      is_nil(^var!(field_dynamic)) or
+        ^var!(field_dynamic) == ^%{}
+    end
+  end
+
+  defmacro empty_dynamic(:other) do
+    quote do
+      is_nil(^var!(field_dynamic))
+    end
+  end
+
   defp prelude(:add_wildcard) do
     quote do
       var!(value) = Flop.Misc.add_wildcard(var!(value))

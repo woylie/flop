@@ -834,6 +834,29 @@ defmodule Flop.Adapter.Ecto do
          _schema_struct,
          %FieldInfo{
            ecto_type: ecto_type,
+           extra: %{type: :custom, field_dynamic: {mod, fun, dynamic_opts}}
+         },
+         %Filter{op: op, value: value},
+         extra_opts
+       )
+       when op in [:empty, :not_empty] do
+    value = value in [true, "true"]
+    value = if op == :not_empty, do: !value, else: value
+
+    dynamic_opts = Keyword.merge(extra_opts, dynamic_opts)
+    field_dynamic = apply(mod, fun, dynamic_opts)
+
+    case array_or_map(ecto_type) do
+      :array -> dynamic([], empty_dynamic(:array) == ^value)
+      :map -> dynamic([], empty_dynamic(:map) == ^value)
+      :other -> dynamic([], empty_dynamic(:other) == ^value)
+    end
+  end
+
+  defp build_op(
+         _schema_struct,
+         %FieldInfo{
+           ecto_type: ecto_type,
            extra: %{type: :join, binding: binding, field: field}
          },
          %Filter{op: op, value: value},
