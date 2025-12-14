@@ -749,7 +749,8 @@ defprotocol Flop.Schema do
         :species,
         :tags,
         :custom,
-        :reverse_name
+        :reverse_name,
+        :dog_age
       ]
   """
   @spec filterable(any) :: [atom]
