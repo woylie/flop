@@ -13,6 +13,10 @@ defmodule FlopTest do
     use Flop, repo: Flop.Repo, default_limit: 35
   end
 
+  defmodule TestProviderWithoutLimit do
+    use Flop, repo: Flop.Repo, default_limit: false
+  end
+
   describe "validate/1" do
     test "returns Flop struct" do
       assert Flop.validate(%Flop{}) == {:ok, %Flop{limit: 50}}
@@ -118,6 +122,18 @@ defmodule FlopTest do
                  %{"field" => :age, "op" => "approx"}
                ]
              }
+    end
+
+    test "requires limit for pagination" do
+      assert {:error, %Meta{} = meta} =
+               TestProviderWithoutLimit.validate(%{})
+
+      assert [{"can't be blank", _}] = meta.errors[:limit]
+    end
+
+    test "does not require limit if pagination is disabled" do
+      assert {:ok, _} =
+               TestProviderWithoutLimit.validate(%{}, pagination: false)
     end
   end
 
