@@ -801,7 +801,6 @@ end
 
 defimpl Flop.Schema, for: Any do
   alias Flop.NimbleSchemas
-  require Logger
 
   @instructions """
   Flop.Schema protocol must always be explicitly implemented.
@@ -866,8 +865,6 @@ defimpl Flop.Schema, for: Any do
     quote do
       defimpl Flop.Schema, for: unquote(module) do
         import Ecto.Query
-
-        require Logger
 
         def default_limit(_) do
           unquote(default_limit)
