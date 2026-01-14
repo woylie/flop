@@ -287,7 +287,6 @@ defmodule Flop do
   alias Flop.Meta
   alias Flop.NimbleSchemas
 
-  require Ecto.Query
   require Logger
 
   @default_opts [default_limit: 50, max_limit: 1000]
