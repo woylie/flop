@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Allow overriding the global `default_limit` by setting `default_limit: false` in the schema
+
 ## Fixed
 
 - Remove malformed filters if `replace_invalid_params` is `true` (e.g. if the
