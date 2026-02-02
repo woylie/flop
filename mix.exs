@@ -66,17 +66,17 @@ defmodule Flop.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:credo, "1.7.14", only: [:dev, :test], runtime: false},
+      {:credo, "1.7.16", only: [:dev, :test], runtime: false},
       {:dialyxir, "1.4.7", only: [:dev, :test], runtime: false},
       {:ecto, "~> 3.11"},
-      {:ecto_sql, "3.13.3", only: :test},
-      {:ex_doc, "0.39.3", only: :dev, runtime: false},
+      {:ecto_sql, "3.13.4", only: :test},
+      {:ex_doc, "0.40.1", only: :dev, runtime: false},
       {:ex_machina, "2.8.0", only: :test},
       {:makeup_diff, "0.1.1", only: :dev, runtime: false},
       {:excoveralls, "0.18.5", only: :test},
       {:myxql, "0.8.0", only: :test},
       {:nimble_options, "~> 1.0"},
-      {:postgrex, "0.21.1", only: :test},
+      {:postgrex, "0.22.0", only: :test},
       {:ecto_sqlite3, "0.22.0", only: :test},
       {:stream_data, "1.2.0", only: [:dev, :test]}
     ]
