@@ -8,7 +8,7 @@ defmodule Flop.NimbleSchemas do
       default: []
     ],
     cursor_value_func: [type: {:fun, 2}],
-    default_limit: [type: :integer, default: 50],
+    default_limit: [type: {:or, [:pos_integer, {:in, [false]}]}, default: 50],
     max_limit: [type: :integer, default: 1000],
     default_pagination_type: [
       type: {:in, [:offset, :page, :first, :last]},
@@ -61,7 +61,7 @@ defmodule Flop.NimbleSchemas do
         ]
       ]
     ],
-    default_limit: [type: :integer],
+    default_limit: [type: {:or, [:pos_integer, {:in, [false]}]}],
     max_limit: [type: :integer],
     pagination_types: [
       type: {:list, {:in, [:offset, :page, :first, :last]}}
