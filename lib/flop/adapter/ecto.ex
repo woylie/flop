@@ -137,11 +137,14 @@ defmodule Flop.Adapter.Ecto do
 
   @impl Flop.Adapter
   def fields(struct, opts) do
-    alias_fields(opts) ++
-      compound_fields(opts) ++
-      custom_fields(opts) ++
-      join_fields(opts) ++
-      schema_fields(struct)
+    Enum.uniq_by(
+      alias_fields(opts) ++
+        compound_fields(opts) ++
+        custom_fields(opts) ++
+        join_fields(opts) ++
+        schema_fields(struct),
+      fn {name, _} -> name end
+    )
   end
 
   defp alias_fields(%{alias_fields: alias_fields}) do
