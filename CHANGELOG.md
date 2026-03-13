@@ -2,12 +2,16 @@
 
 ## Unreleased
 
-- Allow overriding the global `default_limit` by setting `default_limit: false` in the schema
+### Changed
 
-## Fixed
+- Allow overriding the global `default_limit` by setting `default_limit: false`
+  in the schema.
+
+### Fixed
 
 - Remove malformed filters if `replace_invalid_params` is `true` (e.g. if the
   parameters include `%{"filters" => ""}` instead of a filters list.
+- Fix redundant function clause warnings in Elixir 1.20.
 
 ## [0.26.3] - 2025-05-29
 

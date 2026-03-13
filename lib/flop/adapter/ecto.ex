@@ -889,28 +889,30 @@ defmodule Flop.Adapter.Ecto do
       build_dynamic(unquote(fragment), false, unquote(combinator))
     end
 
-    defp build_op(
-           _schema_struct,
-           %FieldInfo{
-             extra: %{type: :custom, field_dynamic: {mod, fun, dynamic_opts}}
-           },
-           %Filter{op: unquote(op), value: value},
-           extra_opts
-         ) do
-      unquote(prelude)
-      dynamic_opts = Keyword.merge(extra_opts, dynamic_opts)
-      field_dynamic = apply(mod, fun, [dynamic_opts])
-      build_dynamic(unquote(fragment_dynamic), false, unquote(combinator))
-    end
+    if op not in [:empty, :not_empty] do
+      defp build_op(
+             _schema_struct,
+             %FieldInfo{
+               extra: %{type: :custom, field_dynamic: {mod, fun, dynamic_opts}}
+             },
+             %Filter{op: unquote(op), value: value},
+             extra_opts
+           ) do
+        unquote(prelude)
+        dynamic_opts = Keyword.merge(extra_opts, dynamic_opts)
+        field_dynamic = apply(mod, fun, [dynamic_opts])
+        build_dynamic(unquote(fragment_dynamic), false, unquote(combinator))
+      end
 
-    defp build_op(
-           _schema_struct,
-           %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
-           %Filter{op: unquote(op), value: value},
-           _extra_opts
-         ) do
-      unquote(prelude)
-      build_dynamic(unquote(fragment), true, unquote(combinator))
+      defp build_op(
+             _schema_struct,
+             %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
+             %Filter{op: unquote(op), value: value},
+             _extra_opts
+           ) do
+        unquote(prelude)
+        build_dynamic(unquote(fragment), true, unquote(combinator))
+      end
     end
   end
 
