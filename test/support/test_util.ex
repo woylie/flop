@@ -317,14 +317,11 @@ defmodule Flop.TestUtil do
         default_limit: 999_999_999
       )
 
-    sort? = opts[:sort] || true
-
     q =
       Pet
       |> join(:left, [p], o in assoc(p, :owner), as: :owner)
       |> preload(:owner)
-
-    q = if sort?, do: order_by(q, [p], p.id), else: q
+      |> order_by([p], p.id)
 
     opts = opts |> Keyword.take([:extra_opts]) |> Keyword.put(:for, Pet)
 
@@ -342,13 +339,7 @@ defmodule Flop.TestUtil do
       default_limit: 999_999_999
     ]
 
-    sort? = opts[:sort] || true
-
-    params =
-      if sort?,
-        do: Map.merge(params, %{order_by: [:id], order_directions: [:asc]}),
-        else: params
-
+    params = Map.merge(params, %{order_by: [:id], order_directions: [:asc]})
     flop = Flop.validate!(params, flop_opts)
 
     q =
