@@ -74,11 +74,11 @@ defmodule Flop.MixProject do
       {:ex_machina, "2.8.0", only: :test},
       {:makeup_diff, "0.1.1", only: :dev, runtime: false},
       {:excoveralls, "0.18.5", only: :test},
-      {:myxql, "0.8.0", only: :test},
+      {:myxql, "0.8.1", only: :test},
       {:nimble_options, "~> 1.0"},
       {:postgrex, "0.22.0", only: :test},
       {:ecto_sqlite3, "0.22.0", only: :test},
-      {:stream_data, "1.2.0", only: [:dev, :test]}
+      {:stream_data, "1.3.0", only: [:dev, :test]}
     ]
   end
 
