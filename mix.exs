@@ -15,6 +15,7 @@ defmodule Flop.MixProject do
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
       test_paths: test_paths(System.get_env("ECTO_ADAPTER")),
+      test_ignore_filters: [&String.ends_with?(&1, "migration.exs")],
       dialyzer: [
         ignore_warnings: ".dialyzer_ignore.exs",
         list_unused_filters: true,
