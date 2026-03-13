@@ -670,13 +670,15 @@ defmodule Flop.Adapter.Ecto do
       build_dynamic(unquote(fragment), false, unquote(combinator))
     end
 
-    defp build_op(
-           _schema_struct,
-           %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
-           %Filter{op: unquote(op), value: value}
-         ) do
-      unquote(prelude)
-      build_dynamic(unquote(fragment), true, unquote(combinator))
+    if op not in [:empty, :not_empty] do
+      defp build_op(
+             _schema_struct,
+             %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
+             %Filter{op: unquote(op), value: value}
+           ) do
+        unquote(prelude)
+        build_dynamic(unquote(fragment), true, unquote(combinator))
+      end
     end
   end
 
