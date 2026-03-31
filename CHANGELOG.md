@@ -2,16 +2,20 @@
 
 ## Unreleased
 
-### Changed
+### Added
 
-- Allow overriding the global `default_limit` by setting `default_limit: false`
-  in the schema.
+- `starts_with` and `ends_with` filter operators.
 
 ### Fixed
 
+- Allow overriding the global `default_limit` by setting `default_limit: false`
+  in the schema.
 - Remove malformed filters if `replace_invalid_params` is `true` (e.g. if the
   parameters include `%{"filters" => ""}` instead of a filters list.
-- Fix redundant function clause warnings in Elixir 1.20.
+- Don't require limit if pagination is disabled.
+- Cast binary IDs as the Ecto type defined by the Ecto adapter.
+- Fix redundant function clause warnings and unused require warnings in
+  Elixir 1.20.
 
 ## [0.26.3] - 2025-05-29
 
