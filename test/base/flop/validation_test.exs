@@ -655,6 +655,30 @@ defmodule Flop.ValidationTest do
     end
   end
 
+  describe "mixing pagination types" do
+    test "clears all conflicting fields regardless of data when replace_invalid_params is true" do
+      cases = [
+        %{offset: 10, page: "invalid"},
+        %{offset: 10, page: 10},
+        %{first: 10, last: 10, page: 10}
+      ]
+
+      Enum.each(cases, fn params ->
+        assert {:ok, %Flop{} = flop} =
+                 validate(params, replace_invalid_params: true)
+
+        # all conflicting pagination fields reset
+        assert flop.offset == nil
+        assert flop.page == nil
+        assert flop.first == nil
+        assert flop.last == nil
+
+        # default limit
+        assert flop.limit == 50
+      end)
+    end
+  end
+
   describe "order parameters" do
     test "applies default order" do
       # struct without configured default order
