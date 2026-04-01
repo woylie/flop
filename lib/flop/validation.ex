@@ -92,10 +92,16 @@ defmodule Flop.Validation do
   @spec validate_exclusive(Changeset.t(), [[atom]], keyword) :: Changeset.t()
   defp validate_exclusive(changeset, field_groups, opts) do
     changes = changeset.changes
+    errors = changeset.errors
 
     changed_field_groups =
       Enum.filter(field_groups, fn fields ->
-        Enum.any?(fields, &Map.has_key?(changes, &1))
+        Enum.any?(
+          fields,
+          fn field ->
+            Map.has_key?(changes, field) || Keyword.has_key?(errors, field)
+          end
+        )
       end)
 
     if length(changed_field_groups) > 1 do
@@ -104,7 +110,14 @@ defmodule Flop.Validation do
       if opts[:replace_invalid_params] do
         field_groups
         |> List.flatten()
-        |> Enum.reduce(changeset, &Changeset.delete_change(&2, &1))
+        |> Enum.reduce(
+          changeset,
+          fn field, acc ->
+            acc
+            |> Changeset.delete_change(field)
+            |> Map.update!(:errors, &Keyword.delete(&1, field))
+          end
+        )
       else
         Changeset.add_error(
           changeset,
