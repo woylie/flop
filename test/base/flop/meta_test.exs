@@ -20,7 +20,9 @@ defmodule Flop.MetaTest do
              ]
     end
 
-    test "drops entries with non-integer string keys" do
+    test "preserves the original map when any key is non-integer" do
+      # Round-trips the malformed shape into meta.params so the caller can
+      # see exactly what they sent, instead of partially normalising it.
       params = %{
         "filters" => %{
           "0" => %{"field" => "name", "value" => "a"},
@@ -30,7 +32,10 @@ defmodule Flop.MetaTest do
 
       meta = Flop.Meta.with_errors(params, [], [])
 
-      assert meta.params["filters"] == [%{"field" => "name", "value" => "a"}]
+      assert meta.params["filters"] == %{
+               "0" => %{"field" => "name", "value" => "a"},
+               "bogus_xyz" => "x"
+             }
     end
 
     test "does not raise on a filter map keyed entirely by field names" do
@@ -38,7 +43,7 @@ defmodule Flop.MetaTest do
 
       meta = Flop.Meta.with_errors(params, [], [])
 
-      assert meta.params["filters"] == []
+      assert meta.params["filters"] == %{"transport_type_code" => "SEA"}
     end
 
     test "leaves list-form filters untouched" do
@@ -58,7 +63,8 @@ defmodule Flop.MetaTest do
       assert {:error, %Flop.Meta{} = meta} =
                Flop.validate(%{"filters" => %{"transport_type_code" => "SEA"}})
 
-      assert is_list(meta.params["filters"])
+      # Original shape preserved so callers can see what they sent.
+      assert meta.params["filters"] == %{"transport_type_code" => "SEA"}
     end
   end
 end
