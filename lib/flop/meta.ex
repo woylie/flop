@@ -176,21 +176,28 @@ defmodule Flop.Meta do
   end
 
   defp filters_to_list(%{"filters" => filters} = params) when is_map(filters) do
-    filters =
-      filters
-      |> Enum.flat_map(fn {index, filter} ->
-        case parse_filter_index(index) do
-          {:ok, n} -> [{n, filter}]
-          :error -> []
-        end
-      end)
-      |> Enum.sort_by(fn {index, _} -> index end)
-      |> Enum.map(fn {_, filter} -> filter end)
-
-    Map.put(params, "filters", filters)
+    case parse_filter_map(filters) do
+      :error -> params
+      pairs -> Map.put(params, "filters", sort_filter_pairs(pairs))
+    end
   end
 
   defp filters_to_list(params), do: params
+
+  defp parse_filter_map(filters) do
+    Enum.reduce_while(filters, [], fn {index, filter}, acc ->
+      case parse_filter_index(index) do
+        {:ok, n} -> {:cont, [{n, filter} | acc]}
+        :error -> {:halt, :error}
+      end
+    end)
+  end
+
+  defp sort_filter_pairs(pairs) do
+    pairs
+    |> Enum.sort_by(fn {n, _} -> n end)
+    |> Enum.map(fn {_, filter} -> filter end)
+  end
 
   defp parse_filter_index(index) when is_integer(index), do: {:ok, index}
 
