@@ -178,7 +178,12 @@ defmodule Flop.Meta do
   defp filters_to_list(%{"filters" => filters} = params) when is_map(filters) do
     filters =
       filters
-      |> Enum.map(fn {index, filter} -> {String.to_integer(index), filter} end)
+      |> Enum.flat_map(fn {index, filter} ->
+        case parse_filter_index(index) do
+          {:ok, n} -> [{n, filter}]
+          :error -> []
+        end
+      end)
       |> Enum.sort_by(fn {index, _} -> index end)
       |> Enum.map(fn {_, filter} -> filter end)
 
@@ -186,6 +191,17 @@ defmodule Flop.Meta do
   end
 
   defp filters_to_list(params), do: params
+
+  defp parse_filter_index(index) when is_integer(index), do: {:ok, index}
+
+  defp parse_filter_index(index) when is_binary(index) do
+    case Integer.parse(index) do
+      {n, ""} -> {:ok, n}
+      _ -> :error
+    end
+  end
+
+  defp parse_filter_index(_), do: :error
 
   defp map_to_string_keys(value) when is_struct(value), do: value
 
