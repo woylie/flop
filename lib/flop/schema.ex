@@ -1039,7 +1039,7 @@ defimpl Flop.Schema, for: Any do
 
   def build_get_field_func(struct, adapter, adapter_opts) do
     for {field, field_info} <- adapter.fields(struct, adapter_opts) do
-      quote do
+      quote generated: true do
         def get_field(struct, unquote(field)) do
           unquote(adapter).get_field(
             struct,
