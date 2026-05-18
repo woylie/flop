@@ -110,14 +110,7 @@ defmodule Flop.Validation do
       if opts[:replace_invalid_params] do
         field_groups
         |> List.flatten()
-        |> Enum.reduce(
-          changeset,
-          fn field, acc ->
-            acc
-            |> Changeset.delete_change(field)
-            |> Map.update!(:errors, &Keyword.delete(&1, field))
-          end
-        )
+        |> Enum.reduce(changeset, &delete_change_and_errors(&2, &1))
       else
         Changeset.add_error(
           changeset,
@@ -128,6 +121,12 @@ defmodule Flop.Validation do
     else
       changeset
     end
+  end
+
+  defp delete_change_and_errors(changeset, field) do
+    changeset
+    |> Changeset.delete_change(field)
+    |> Map.update!(:errors, &Keyword.delete(&1, field))
   end
 
   defp validate_pagination(changeset, opts) do
