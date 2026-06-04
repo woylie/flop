@@ -872,20 +872,14 @@ defmodule Flop.Adapter.Ecto do
 
     if illegal_sortable_fields != [] do
       raise ArgumentError, """
-      custom field without sorter function marked as sortable
+      cannot sort by custom fields without sorter configuration
 
-      The following custom fields were marked as sortable, but no `sorter`
-      function was configured:
+      Custom fields must have a `sorter` field configured to be sortable. These custom fields were
+      configured as sortable:
 
           #{inspect(illegal_sortable_fields)}
 
-      Add the `sorter` option to your custom field configuration to fix this.
-
-          custom_fields: [
-            my_custom_field: [
-              sorter: {MyModule, :my_sorter, []}
-            ]
-          ]
+      Define a custom `sorter` callback or use alias fields if you want to implement custom sorting.
       """
     end
 
@@ -898,20 +892,14 @@ defmodule Flop.Adapter.Ecto do
 
     if illegal_filterable_fields != [] do
       raise ArgumentError, """
-      custom field without filter function marked as filterable
+      cannot filter by custom fields without filter configuration
 
-      The following custom fields were marked as filterable, but no `filter`
-      function was configured:
+      Custom fields must have a `filter` field configured to be filterable. These custom fields were
+      configured as filterable:
 
           #{inspect(illegal_filterable_fields)}
 
-      Add the `filter` option to your custom field configuration to fix this.
-          
-          custom_fields: [
-            my_custom_field: [
-              filter: {MyModule, :my_filter, []}
-            ]
-          ]
+      Define a custom `filter` callback to use this field in filters.
       """
     end
 

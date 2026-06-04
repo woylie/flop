@@ -339,27 +339,7 @@ defmodule Flop.SchemaTest do
     end
   end
 
-  test "raises error if filterable custom field has no filter" do
-    error =
-      assert_raise ArgumentError, fn ->
-        defmodule Parsley do
-          @derive {
-            Flop.Schema,
-            filterable: [:inserted_at],
-            sortable: [],
-            custom_fields: [
-              inserted_at: []
-            ]
-          }
-          defstruct [:id, :inserted_at]
-        end
-      end
-
-    assert error.message =~
-             "custom field without filter function marked as filterable"
-  end
-
-  test "raises error if sortable custom field has no sorter" do
+  test "raises error if custom field is added to sortable list" do
     error =
       assert_raise ArgumentError, fn ->
         defmodule Parsley do
@@ -368,14 +348,13 @@ defmodule Flop.SchemaTest do
             filterable: [],
             sortable: [:inserted_at],
             custom_fields: [
-              inserted_at: []
+              inserted_at: [filter: {__MODULE__, :some_function, []}]
             ]
           }
           defstruct [:id, :inserted_at]
         end
       end
 
-    assert error.message =~
-             "custom field without sorter function marked as sortable"
+    assert error.message =~ "cannot sort by custom field"
   end
 end
