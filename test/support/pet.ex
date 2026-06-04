@@ -22,10 +22,9 @@ defmodule MyApp.Pet do
       :species,
       :tags,
       :custom,
-      :reverse_name,
-      :dog_age
+      :reverse_name
     ],
-    sortable: [:name, :age, :owner_name, :owner_age, :dog_age, :reverse_name],
+    sortable: [:name, :age, :owner_name, :owner_age],
     max_limit: 1000,
     adapter_opts: [
       compound_fields: [
@@ -56,11 +55,7 @@ defmodule MyApp.Pet do
         ],
         reverse_name: [
           filter: {__MODULE__, :reverse_name_filter, []},
-          field_dynamic: {__MODULE__, :reverse_name_field, []},
           ecto_type: :string
-        ],
-        dog_age: [
-          field_dynamic: {__MODULE__, :dog_age_field, []}
         ]
       ]
     ]
@@ -95,28 +90,12 @@ defmodule MyApp.Pet do
     where(query, [p], p.name == ^reversed)
   end
 
-  def reverse_name_field(_opts) do
-    dynamic([p], fragment("reverse(?)", p.name))
-  end
-
-  def dog_age_field(_opts) do
-    dynamic([p], fragment("? * 7", p.age))
-  end
-
-  def cursor_value_func(pet, fields) do
-    Map.new(fields, fn field -> {field, get_field(pet, field)} end)
-  end
-
   def get_field(%__MODULE__{owner: %Owner{age: age}}, :owner_age), do: age
   def get_field(%__MODULE__{owner: nil}, :owner_age), do: nil
   def get_field(%__MODULE__{owner: %Owner{name: name}}, :owner_name), do: name
   def get_field(%__MODULE__{owner: nil}, :owner_name), do: nil
   def get_field(%__MODULE__{owner: %Owner{tags: tags}}, :owner_tags), do: tags
   def get_field(%__MODULE__{owner: nil}, :owner_tags), do: nil
-  def get_field(%__MODULE__{age: age}, :dog_age), do: age * 7
-
-  def get_field(%__MODULE__{name: name}, :reverse_name),
-    do: String.reverse(name)
 
   def get_field(%__MODULE__{} = pet, field)
       when field in [:name, :age, :species, :tags],

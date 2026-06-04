@@ -82,11 +82,7 @@ defmodule Flop.Adapter.Ecto do
           keys: [
             filter: [
               type: {:tuple, [:atom, :atom, :keyword_list]},
-              required: false
-            ],
-            field_dynamic: [
-              type: {:tuple, [:atom, :atom, :keyword_list]},
-              required: false
+              required: true
             ],
             ecto_type: [type: :any],
             bindings: [type: {:list, :atom}],
@@ -249,20 +245,19 @@ defmodule Flop.Adapter.Ecto do
         schema_struct,
         opts
       ) do
-    extra_opts = Keyword.get(opts, :extra_opts, [])
-
     case get_field_info(schema_struct, field) do
-      %FieldInfo{
-        extra: %{type: :custom, filter: {mod, fun, custom_filter_opts}}
-      } ->
-        filter_opts = Keyword.merge(extra_opts, custom_filter_opts)
-        apply(mod, fun, [query, filter, filter_opts])
+      %FieldInfo{extra: %{type: :custom} = custom_opts} ->
+        {mod, fun, custom_filter_opts} = Map.fetch!(custom_opts, :filter)
+
+        opts =
+          opts
+          |> Keyword.get(:extra_opts, [])
+          |> Keyword.merge(custom_filter_opts)
+
+        apply(mod, fun, [query, filter, opts])
 
       field_info ->
-        Query.where(
-          query,
-          ^build_op(schema_struct, field_info, filter, extra_opts)
-        )
+        Query.where(query, ^build_op(schema_struct, field_info, filter))
     end
   end
 
@@ -283,7 +278,7 @@ defmodule Flop.Adapter.Ecto do
 
         Enum.reduce(directions, query, fn {_, field} = expr, acc_query ->
           field_info = Flop.Schema.field_info(struct, field)
-          apply_order_by_field(acc_query, expr, field_info, struct, opts)
+          apply_order_by_field(acc_query, expr, field_info, struct)
         end)
     end
   end
@@ -294,22 +289,11 @@ defmodule Flop.Adapter.Ecto do
 
   defp apply_order_by_field(
          q,
-         {direction, field},
-         %FieldInfo{extra: %{type: :alias}},
-         _struct,
-         _opts
-       ) do
-    order_by(q, [{^direction, selected_as(^field)}])
-  end
-
-  defp apply_order_by_field(
-         q,
          {direction, _},
          %FieldInfo{
            extra: %{type: :join, binding: binding, field: field}
          },
-         _struct,
-         _opts
+         _
        ) do
     order_by(q, [{^binding, r}], [{^direction, field(r, ^field)}])
   end
@@ -320,58 +304,24 @@ defmodule Flop.Adapter.Ecto do
          %FieldInfo{
            extra: %{type: :compound, fields: fields}
          },
-         struct,
-         opts
+         struct
        ) do
     Enum.reduce(fields, q, fn field, acc_query ->
       field_info = Flop.Schema.field_info(struct, field)
-
-      apply_order_by_field(
-        acc_query,
-        {direction, field},
-        field_info,
-        struct,
-        opts
-      )
+      apply_order_by_field(acc_query, {direction, field}, field_info, struct)
     end)
   end
 
   defp apply_order_by_field(
          q,
-         {direction, _},
-         %FieldInfo{
-           extra: %{
-             type: :custom,
-             field_dynamic: {mod, fun, field_dynamic_opts}
-           }
-         },
-         _struct,
-         opts
+         {direction, field},
+         %FieldInfo{extra: %{type: :alias}},
+         _
        ) do
-    opts =
-      opts
-      |> Keyword.get(:extra_opts, [])
-      |> Keyword.merge(field_dynamic_opts)
-
-    order_by(q, [r], ^[{direction, apply(mod, fun, [opts])}])
+    order_by(q, [{^direction, selected_as(^field)}])
   end
 
-  defp apply_order_by_field(
-         _q,
-         {_, field},
-         %FieldInfo{extra: %{type: :custom}},
-         _struct,
-         _opts
-       ) do
-    raise """
-    sorting by custom field requires field_dynamic function
-
-    To sort by a custom field, a field_dynamic function needs to be configured, but
-    non was set for the field `:#{field}`.
-    """
-  end
-
-  defp apply_order_by_field(q, order_expr, _field_info, _struct, _opts) do
+  defp apply_order_by_field(q, order_expr, _, _) do
     order_by(q, ^order_expr)
   end
 
@@ -398,159 +348,40 @@ defmodule Flop.Adapter.Ecto do
   end
 
   @impl Flop.Adapter
-  def apply_cursor(q, cursor_fields, opts) do
-    extra_opts = Keyword.get(opts, :extra_opts, [])
-    where_dynamic = cursor_dynamic(cursor_fields, extra_opts)
+  def apply_cursor(q, cursor_fields, _opts) do
+    where_dynamic = cursor_dynamic(cursor_fields)
     Query.where(q, ^where_dynamic)
   end
 
-  defp cursor_dynamic([], _), do: true
+  defp cursor_dynamic([]), do: true
 
-  defp cursor_dynamic(
-         [{_, _, _, %FieldInfo{extra: %{type: :compound}}} | t],
-         extra_opts
-       ) do
+  defp cursor_dynamic([{_, _, _, %FieldInfo{extra: %{type: :compound}}} | t]) do
     Logger.warning(
       "Flop: Cursor pagination is not supported for compound fields. Ignored."
     )
 
-    cursor_dynamic(t, extra_opts)
+    cursor_dynamic(t)
   end
 
-  defp cursor_dynamic(
-         [
-           {_, field, _,
-            %FieldInfo{extra: %{type: :custom, field_dynamic: nil}}}
-           | _
-         ],
-         _
-       ) do
-    raise """
-    cursor pagination on custom fields requires field_dynamic function
-
-    To use a custom field as a cursor field, a `field_dynamic` function needs to
-    be configured for the field, but none was configured for the field:
-
-        :#{field}
-    """
-  end
-
-  defp cursor_dynamic([{_, _, _, %FieldInfo{extra: %{type: :alias}}} | _], _) do
+  defp cursor_dynamic([{_, _, _, %FieldInfo{extra: %{type: :alias}}} | _]) do
     raise "alias fields are not supported in cursor pagination"
   end
 
   # no cursor value, last cursor field
-  defp cursor_dynamic([{_, _, nil, _}], _) do
+  defp cursor_dynamic([{_, _, nil, _}]) do
     true
   end
 
   # no cursor value, more cursor fields to come
-  defp cursor_dynamic([{_, _, nil, _} | [{_, _, _, _} | _] = tail], extra_opts) do
-    cursor_dynamic(tail, extra_opts)
-  end
-
-  # custom field ascending, last cursor field
-  defp cursor_dynamic(
-         [
-           {direction, _, cursor_value,
-            %FieldInfo{
-              ecto_type: _ecto_type,
-              extra: %{
-                type: :custom,
-                field_dynamic: {mod, fun, field_dynamic_opts}
-              }
-            }}
-         ],
-         extra_opts
-       )
-       when direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
-    opts = Keyword.merge(extra_opts, field_dynamic_opts)
-
-    dynamic([r], ^apply(mod, fun, [opts]) > ^cursor_value)
-  end
-
-  # custom field descending, last cursor field
-  defp cursor_dynamic(
-         [
-           {direction, _, cursor_value,
-            %FieldInfo{
-              ecto_type: _ecto_type,
-              extra: %{
-                type: :custom,
-                field_dynamic: {mod, fun, field_dynamic_opts}
-              }
-            }}
-         ],
-         extra_opts
-       )
-       when direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
-    opts = Keyword.merge(extra_opts, field_dynamic_opts)
-
-    dynamic([r], ^apply(mod, fun, [opts]) < ^cursor_value)
-  end
-
-  # custom field ascending, more cursor fields to come
-  defp cursor_dynamic(
-         [
-           {direction, _, cursor_value,
-            %FieldInfo{
-              ecto_type: _ecto_type,
-              extra: %{
-                type: :custom,
-                field_dynamic: {mod, fun, field_dynamic_opts}
-              }
-            }}
-           | [{_, _, _, _} | _] = tail
-         ],
-         extra_opts
-       )
-       when direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
-    opts = Keyword.merge(extra_opts, field_dynamic_opts)
-    field_dynamic = apply(mod, fun, [opts])
-
-    dynamic(
-      [r],
-      ^field_dynamic >= ^cursor_value and
-        (^field_dynamic > ^cursor_value or
-           ^cursor_dynamic(tail, extra_opts))
-    )
-  end
-
-  # custom field descending, more cursor fields to come
-  defp cursor_dynamic(
-         [
-           {direction, _, cursor_value,
-            %FieldInfo{
-              ecto_type: _ecto_type,
-              extra: %{
-                type: :custom,
-                field_dynamic: {mod, fun, field_dynamic_opts}
-              }
-            }}
-           | [{_, _, _, _} | _] = tail
-         ],
-         extra_opts
-       )
-       when direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
-    opts = Keyword.merge(extra_opts, field_dynamic_opts)
-    field_dynamic = apply(mod, fun, [opts])
-
-    dynamic(
-      [r],
-      ^field_dynamic <= ^cursor_value and
-        (^field_dynamic < ^cursor_value or
-           ^cursor_dynamic(tail, extra_opts))
-    )
+  defp cursor_dynamic([{_, _, nil, _} | [{_, _, _, _} | _] = tail]) do
+    cursor_dynamic(tail)
   end
 
   # join field ascending, last cursor field
-  defp cursor_dynamic(
-         [
-           {direction, _, cursor_value,
-            %FieldInfo{extra: %{binding: binding, field: field, type: :join}}}
-         ],
-         _
-       )
+  defp cursor_dynamic([
+         {direction, _, cursor_value,
+          %FieldInfo{extra: %{binding: binding, field: field, type: :join}}}
+       ])
        when direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
     dynamic(
       [{^binding, r}],
@@ -559,13 +390,10 @@ defmodule Flop.Adapter.Ecto do
   end
 
   # join field descending, last cursor field
-  defp cursor_dynamic(
-         [
-           {direction, _, cursor_value,
-            %FieldInfo{extra: %{binding: binding, field: field, type: :join}}}
-         ],
-         _
-       )
+  defp cursor_dynamic([
+         {direction, _, cursor_value,
+          %FieldInfo{extra: %{binding: binding, field: field, type: :join}}}
+       ])
        when direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
     dynamic(
       [{^binding, r}],
@@ -574,82 +402,70 @@ defmodule Flop.Adapter.Ecto do
   end
 
   # join field ascending, more cursor fields to come
-  defp cursor_dynamic(
-         [
-           {direction, _, cursor_value,
-            %FieldInfo{extra: %{binding: binding, field: field, type: :join}}}
-           | [{_, _, _, _} | _] = tail
-         ],
-         extra_opts
-       )
+  defp cursor_dynamic([
+         {direction, _, cursor_value,
+          %FieldInfo{extra: %{binding: binding, field: field, type: :join}}}
+         | [{_, _, _, _} | _] = tail
+       ])
        when direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
     dynamic(
       [{^binding, r}],
       field(r, ^field) >= type(^cursor_value, field(r, ^field)) and
         (field(r, ^field) > type(^cursor_value, field(r, ^field)) or
-           ^cursor_dynamic(tail, extra_opts))
+           ^cursor_dynamic(tail))
     )
   end
 
   # join field descending, more cursor fields to come
-  defp cursor_dynamic(
-         [
-           {direction, _, cursor_value,
-            %FieldInfo{extra: %{binding: binding, field: field, type: :join}}}
-           | [{_, _, _, _} | _] = tail
-         ],
-         extra_opts
-       )
+  defp cursor_dynamic([
+         {direction, _, cursor_value,
+          %FieldInfo{extra: %{binding: binding, field: field, type: :join}}}
+         | [{_, _, _, _} | _] = tail
+       ])
        when direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
     dynamic(
       [{^binding, r}],
       field(r, ^field) <= type(^cursor_value, field(r, ^field)) and
         (field(r, ^field) < type(^cursor_value, field(r, ^field)) or
-           ^cursor_dynamic(tail, extra_opts))
+           ^cursor_dynamic(tail))
     )
   end
 
   # any other field type ascending, last cursor field
-  defp cursor_dynamic([{direction, field, cursor_value, _}], _)
+  defp cursor_dynamic([{direction, field, cursor_value, _}])
        when direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
     dynamic([r], field(r, ^field) > type(^cursor_value, field(r, ^field)))
   end
 
   # any other field type descending, last cursor field
-  defp cursor_dynamic([{direction, field, cursor_value, _}], _)
+  defp cursor_dynamic([{direction, field, cursor_value, _}])
        when direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
     dynamic([r], field(r, ^field) < type(^cursor_value, field(r, ^field)))
   end
 
   # any other field type ascending, more cursor fields to come
-  defp cursor_dynamic(
-         [
-           {direction, field, cursor_value, _} | [{_, _, _, _} | _] = tail
-         ],
-         extra_opts
-       )
+  defp cursor_dynamic([
+         {direction, field, cursor_value, _} | [{_, _, _, _} | _] = tail
+       ])
        when direction in [:asc, :asc_nulls_first, :asc_nulls_last] do
     dynamic(
       [r],
       field(r, ^field) >= type(^cursor_value, field(r, ^field)) and
         (field(r, ^field) > type(^cursor_value, field(r, ^field)) or
-           ^cursor_dynamic(tail, extra_opts))
+           ^cursor_dynamic(tail))
     )
   end
 
   # any other field type descending, more cursor fields to come
-  defp cursor_dynamic(
-         [
-           {direction, field, cursor_value, _} | [{_, _, _, _} | _] = tail
-         ],
-         extra_opts
-       )
+  defp cursor_dynamic([
+         {direction, field, cursor_value, _} | [{_, _, _, _} | _] = tail
+       ])
        when direction in [:desc, :desc_nulls_first, :desc_nulls_last] do
     dynamic(
       [r],
       field(r, ^field) <= type(^cursor_value, field(r, ^field)) and
         (field(r, ^field) < type(^cursor_value, field(r, ^field)) or
-           ^cursor_dynamic(tail, extra_opts))
+           ^cursor_dynamic(tail))
     )
   end
 
@@ -714,8 +530,7 @@ defmodule Flop.Adapter.Ecto do
     defp build_op(
            schema_struct,
            %FieldInfo{extra: %{type: :compound, fields: fields}},
-           %Filter{op: unquote(op), value: value},
-           extra_opts
+           %Filter{op: unquote(op), value: value}
          ) do
       fields = Enum.map(fields, &get_field_info(schema_struct, &1))
 
@@ -728,16 +543,11 @@ defmodule Flop.Adapter.Ecto do
       reduce_dynamic(unquote(combinator), value, fn substring ->
         Enum.reduce(fields, false, fn field, inner_dynamic ->
           dynamic_for_field =
-            build_op(
-              schema_struct,
-              field,
-              %Filter{
-                field: field,
-                op: unquote(field_op),
-                value: substring
-              },
-              extra_opts
-            )
+            build_op(schema_struct, field, %Filter{
+              field: field,
+              op: unquote(field_op),
+              value: substring
+            })
 
           dynamic([r], ^inner_dynamic or ^dynamic_for_field)
         end)
@@ -748,8 +558,7 @@ defmodule Flop.Adapter.Ecto do
   defp build_op(
          schema_struct,
          %FieldInfo{extra: %{type: :compound, fields: fields}},
-         %Filter{op: op} = filter,
-         extra_opts
+         %Filter{op: op} = filter
        )
        when op in [
               :=~,
@@ -765,7 +574,7 @@ defmodule Flop.Adapter.Ecto do
     |> Enum.map(&get_field_info(schema_struct, &1))
     |> Enum.reduce(false, fn field, dynamic ->
       dynamic_for_field =
-        build_op(schema_struct, field, %{filter | field: field}, extra_opts)
+        build_op(schema_struct, field, %{filter | field: field})
 
       dynamic([r], ^dynamic or ^dynamic_for_field)
     end)
@@ -774,14 +583,13 @@ defmodule Flop.Adapter.Ecto do
   defp build_op(
          schema_struct,
          %FieldInfo{extra: %{type: :compound, fields: fields}},
-         %Filter{op: :empty} = filter,
-         extra_opts
+         %Filter{op: :empty} = filter
        ) do
     fields
     |> Enum.map(&get_field_info(schema_struct, &1))
     |> Enum.reduce(true, fn field, dynamic ->
       dynamic_for_field =
-        build_op(schema_struct, field, %{filter | field: field}, extra_opts)
+        build_op(schema_struct, field, %{filter | field: field})
 
       dynamic([r], ^dynamic and ^dynamic_for_field)
     end)
@@ -790,8 +598,7 @@ defmodule Flop.Adapter.Ecto do
   defp build_op(
          _schema_struct,
          %FieldInfo{extra: %{type: :compound}},
-         %Filter{op: op, value: _value} = _filter,
-         _extra_opts
+         %Filter{op: op, value: _value} = _filter
        )
        when op in [
               :==,
@@ -818,8 +625,7 @@ defmodule Flop.Adapter.Ecto do
   defp build_op(
          %module{},
          %FieldInfo{extra: %{type: :normal, field: field}},
-         %Filter{op: op, value: value},
-         _extra_opts
+         %Filter{op: op, value: value}
        )
        when op in [:empty, :not_empty] do
     ecto_type = module.__schema__(:type, field)
@@ -837,33 +643,9 @@ defmodule Flop.Adapter.Ecto do
          _schema_struct,
          %FieldInfo{
            ecto_type: ecto_type,
-           extra: %{type: :custom, field_dynamic: {mod, fun, dynamic_opts}}
-         },
-         %Filter{op: op, value: value},
-         extra_opts
-       )
-       when op in [:empty, :not_empty] do
-    value = value in [true, "true"]
-    value = if op == :not_empty, do: !value, else: value
-
-    dynamic_opts = Keyword.merge(extra_opts, dynamic_opts)
-    field_dynamic = apply(mod, fun, [dynamic_opts])
-
-    case array_or_map(ecto_type) do
-      :array -> dynamic([], empty_dynamic(:array) == ^value)
-      :map -> dynamic([], empty_dynamic(:map) == ^value)
-      :other -> dynamic([], empty_dynamic(:other) == ^value)
-    end
-  end
-
-  defp build_op(
-         _schema_struct,
-         %FieldInfo{
-           ecto_type: ecto_type,
            extra: %{type: :join, binding: binding, field: field}
          },
-         %Filter{op: op, value: value},
-         _extra_opts
+         %Filter{op: op, value: value}
        )
        when op in [:empty, :not_empty] do
     value = value in [true, "true"]
@@ -877,13 +659,12 @@ defmodule Flop.Adapter.Ecto do
   end
 
   for op <- @operators do
-    {fragment, fragment_dynamic, prelude, combinator} = op_config(op)
+    {fragment, prelude, combinator} = op_config(op)
 
     defp build_op(
            _schema_struct,
            %FieldInfo{extra: %{type: :normal, field: field}},
-           %Filter{op: unquote(op), value: value},
-           _extra_opts
+           %Filter{op: unquote(op), value: value}
          ) do
       unquote(prelude)
       build_dynamic(unquote(fragment), false, unquote(combinator))
@@ -892,23 +673,8 @@ defmodule Flop.Adapter.Ecto do
     if op not in [:empty, :not_empty] do
       defp build_op(
              _schema_struct,
-             %FieldInfo{
-               extra: %{type: :custom, field_dynamic: {mod, fun, dynamic_opts}}
-             },
-             %Filter{op: unquote(op), value: value},
-             extra_opts
-           ) do
-        unquote(prelude)
-        dynamic_opts = Keyword.merge(extra_opts, dynamic_opts)
-        field_dynamic = apply(mod, fun, [dynamic_opts])
-        build_dynamic(unquote(fragment_dynamic), false, unquote(combinator))
-      end
-
-      defp build_op(
-             _schema_struct,
              %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
-             %Filter{op: unquote(op), value: value},
-             _extra_opts
+             %Filter{op: unquote(op), value: value}
            ) do
         unquote(prelude)
         build_dynamic(unquote(fragment), true, unquote(combinator))
@@ -948,8 +714,7 @@ defmodule Flop.Adapter.Ecto do
 
   defp normalize_custom_field_opts({name, opts}) when is_list(opts) do
     opts = %{
-      filter: Keyword.get(opts, :filter),
-      field_dynamic: Keyword.get(opts, :field_dynamic),
+      filter: Keyword.fetch!(opts, :filter),
       ecto_type: Keyword.get(opts, :ecto_type),
       operators: Keyword.get(opts, :operators),
       bindings: Keyword.get(opts, :bindings, [])
@@ -1059,67 +824,23 @@ defmodule Flop.Adapter.Ecto do
          %{custom_fields: custom_fields} = adapter_opts,
          opts
        ) do
-    filterable = Keyword.fetch!(opts, :filterable)
     sortable = Keyword.fetch!(opts, :sortable)
 
-    illegal_sortable_fields =
+    illegal_fields =
       custom_fields
-      |> Enum.filter(fn {key, field} ->
-        is_nil(field[:field_dynamic]) and key in sortable
-      end)
-      |> Enum.map(&elem(&1, 0))
+      |> Map.keys()
+      |> Enum.filter(&(&1 in sortable))
 
-    if illegal_sortable_fields != [] do
+    if illegal_fields != [] do
       raise ArgumentError, """
-      custom field without field_dynamic function marked as sortable
+      cannot sort by custom fields
 
-      The following custom fields were marked as sortable, but no `field_dynamic`
-      function was configured:
+      Custom fields are not allowed to be sortable. These custom fields were
+      configured as sortable:
 
-          #{inspect(illegal_sortable_fields)}
+          #{inspect(illegal_fields)}
 
-      Add the `field_dynamic` option to your custom field configuration to fix this.
-
-          custom_fields: [
-            my_custom_field: [
-              field_dynamic: {MyModule, :my_field_dynamic, []}
-            ]
-          ]
-      """
-    end
-
-    illegal_filterable_fields =
-      custom_fields
-      |> Enum.filter(fn {key, field} ->
-        key in filterable and is_nil(field[:field_dynamic]) and
-          is_nil(field[:filter])
-      end)
-      |> Enum.map(&elem(&1, 0))
-
-    if illegal_filterable_fields != [] do
-      raise ArgumentError, """
-      custom field without field_dynamic or filter function marked as filterable
-
-      The following custom fields were marked as filterable, but no
-      `field_dynamic` or `filter` function was configured:
-
-          #{inspect(illegal_filterable_fields)}
-
-      To fix this, add one of the options to your custom field configuration:
-          
-          custom_fields: [
-            my_custom_field: [
-              field_dynamic: {MyModule, :my_filter, []}
-            ]
-          ]
-
-      Or:
-
-          custom_fields: [
-            my_custom_field: [
-              filter: {MyModule, :my_filter, []}
-            ]
-          ]
+      Use alias fields if you want to implement custom sorting.
       """
     end
 
