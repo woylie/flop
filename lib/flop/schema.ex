@@ -60,8 +60,8 @@ defprotocol Flop.Schema do
           {"has an invalid entry",
            [
              validation: :subset,
-             enum: [:name, :age, :owner_name, :owner_age, :dog_age, :reverse_name]
-           ]}
+             enum: [:name, :age, :owner_name, :owner_age, :dog_age
+           ]]}
         ]
       ]
 
@@ -713,7 +713,7 @@ defprotocol Flop.Schema do
         extra: %{
           type: :custom,
           filter: {MyApp.Pet, :reverse_name_filter, []},
-          sorter: {MyApp.Pet, :reverse_name_sorter, []},
+          sorter: nil,
           bindings: []
         }
       }
@@ -792,7 +792,7 @@ defprotocol Flop.Schema do
   Returns the sortable fields of a schema.
 
       iex> Flop.Schema.sortable(%MyApp.Pet{})
-      [:name, :age, :owner_name, :owner_age, :dog_age, :reverse_name]
+      [:name, :age, :owner_name, :owner_age, :dog_age]
   """
   @spec sortable(any) :: [atom]
   def sortable(data)
