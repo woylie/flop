@@ -67,7 +67,12 @@ defmodule Flop.Adapter.Ecto.Operators do
         field(r, ^var!(field)) == ^var!(value)
       end
 
-    {fragment, nil, nil}
+    fragment_dynamic =
+      quote do
+        ^var!(field_dynamic) == ^var!(value)
+      end
+
+    {fragment, fragment_dynamic, nil, nil}
   end
 
   def op_config(:!=) do
@@ -76,7 +81,12 @@ defmodule Flop.Adapter.Ecto.Operators do
         field(r, ^var!(field)) != ^var!(value)
       end
 
-    {fragment, nil, nil}
+    fragment_dynamic =
+      quote do
+        ^var!(field_dynamic) != ^var!(value)
+      end
+
+    {fragment, fragment_dynamic, nil, nil}
   end
 
   def op_config(:>=) do
@@ -85,7 +95,12 @@ defmodule Flop.Adapter.Ecto.Operators do
         field(r, ^var!(field)) >= ^var!(value)
       end
 
-    {fragment, nil, nil}
+    fragment_dynamic =
+      quote do
+        ^var!(field_dynamic) >= ^var!(value)
+      end
+
+    {fragment, fragment_dynamic, nil, nil}
   end
 
   def op_config(:<=) do
@@ -94,7 +109,12 @@ defmodule Flop.Adapter.Ecto.Operators do
         field(r, ^var!(field)) <= ^var!(value)
       end
 
-    {fragment, nil, nil}
+    fragment_dynamic =
+      quote do
+        ^var!(field_dynamic) <= ^var!(value)
+      end
+
+    {fragment, fragment_dynamic, nil, nil}
   end
 
   def op_config(:>) do
@@ -103,7 +123,12 @@ defmodule Flop.Adapter.Ecto.Operators do
         field(r, ^var!(field)) > ^var!(value)
       end
 
-    {fragment, nil, nil}
+    fragment_dynamic =
+      quote do
+        ^var!(field_dynamic) > ^var!(value)
+      end
+
+    {fragment, fragment_dynamic, nil, nil}
   end
 
   def op_config(:<) do
@@ -112,12 +137,18 @@ defmodule Flop.Adapter.Ecto.Operators do
         field(r, ^var!(field)) < ^var!(value)
       end
 
-    {fragment, nil, nil}
+    fragment_dynamic =
+      quote do
+        ^var!(field_dynamic) < ^var!(value)
+      end
+
+    {fragment, fragment_dynamic, nil, nil}
   end
 
   def op_config(:empty) do
     fragment = empty()
-    {fragment, nil, nil}
+    fragment_dynamic = empty_dynamic()
+    {fragment, fragment_dynamic, nil, nil}
   end
 
   def op_config(:not_empty) do
@@ -126,7 +157,12 @@ defmodule Flop.Adapter.Ecto.Operators do
         not unquote(empty())
       end
 
-    {fragment, nil, nil}
+    fragment_dynamic =
+      quote do
+        not unquote(empty_dynamic())
+      end
+
+    {fragment, fragment_dynamic, nil, nil}
   end
 
   def op_config(:in) do
@@ -135,7 +171,12 @@ defmodule Flop.Adapter.Ecto.Operators do
         field(r, ^var!(field)) in ^var!(value)
       end
 
-    {fragment, nil, nil}
+    fragment_dynamic =
+      quote do
+        ^var!(field_dynamic) in ^var!(value)
+      end
+
+    {fragment, fragment_dynamic, nil, nil}
   end
 
   def op_config(:contains) do
@@ -144,7 +185,12 @@ defmodule Flop.Adapter.Ecto.Operators do
         ^var!(value) in field(r, ^var!(field))
       end
 
-    {fragment, nil, nil}
+    fragment_dynamic =
+      quote do
+        ^var!(value) in ^var!(field_dynamic)
+      end
+
+    {fragment, fragment_dynamic, nil, nil}
   end
 
   def op_config(:not_contains) do
@@ -153,7 +199,12 @@ defmodule Flop.Adapter.Ecto.Operators do
         ^var!(value) not in field(r, ^var!(field))
       end
 
-    {fragment, nil, nil}
+    fragment_dynamic =
+      quote do
+        ^var!(value) not in ^var!(field_dynamic)
+      end
+
+    {fragment, fragment_dynamic, nil, nil}
   end
 
   def op_config(:like) do
@@ -162,8 +213,13 @@ defmodule Flop.Adapter.Ecto.Operators do
         like(field(r, ^var!(field)), ^var!(value))
       end
 
+    fragment_dynamic =
+      quote do
+        like(^var!(field_dynamic), ^var!(value))
+      end
+
     prelude = prelude(:add_wildcard)
-    {fragment, prelude, nil}
+    {fragment, fragment_dynamic, prelude, nil}
   end
 
   def op_config(:not_like) do
@@ -172,8 +228,13 @@ defmodule Flop.Adapter.Ecto.Operators do
         not like(field(r, ^var!(field)), ^var!(value))
       end
 
+    fragment_dynamic =
+      quote do
+        not like(^var!(field_dynamic), ^var!(value))
+      end
+
     prelude = prelude(:add_wildcard)
-    {fragment, prelude, nil}
+    {fragment, fragment_dynamic, prelude, nil}
   end
 
   def op_config(:=~) do
@@ -182,8 +243,13 @@ defmodule Flop.Adapter.Ecto.Operators do
         ilike(field(r, ^var!(field)), ^var!(value))
       end
 
+    fragment_dynamic =
+      quote do
+        ilike(^var!(field_dynamic), ^var!(value))
+      end
+
     prelude = prelude(:add_wildcard)
-    {fragment, prelude, nil}
+    {fragment, fragment_dynamic, prelude, nil}
   end
 
   def op_config(:ilike) do
@@ -192,8 +258,13 @@ defmodule Flop.Adapter.Ecto.Operators do
         ilike(field(r, ^var!(field)), ^var!(value))
       end
 
+    fragment_dynamic =
+      quote do
+        ilike(^var!(field_dynamic), ^var!(value))
+      end
+
     prelude = prelude(:add_wildcard)
-    {fragment, prelude, nil}
+    {fragment, fragment_dynamic, prelude, nil}
   end
 
   def op_config(:not_ilike) do
@@ -202,8 +273,13 @@ defmodule Flop.Adapter.Ecto.Operators do
         not ilike(field(r, ^var!(field)), ^var!(value))
       end
 
+    fragment_dynamic =
+      quote do
+        not ilike(^var!(field_dynamic), ^var!(value))
+      end
+
     prelude = prelude(:add_wildcard)
-    {fragment, prelude, nil}
+    {fragment, fragment_dynamic, prelude, nil}
   end
 
   def op_config(:not_in) do
@@ -211,6 +287,12 @@ defmodule Flop.Adapter.Ecto.Operators do
       quote do
         field(r, ^var!(field)) not in ^var!(processed_value) and
           not (^var!(reject_nil?) and is_nil(field(r, ^var!(field))))
+      end
+
+    fragment_dynamic =
+      quote do
+        ^var!(field_dynamic) not in ^var!(processed_value) and
+          not (^var!(reject_nil?) and is_nil(^var!(field_dynamic)))
       end
 
     prelude =
@@ -223,7 +305,7 @@ defmodule Flop.Adapter.Ecto.Operators do
             else: var!(value)
       end
 
-    {fragment, prelude, nil}
+    {fragment, fragment_dynamic, prelude, nil}
   end
 
   def op_config(:like_and) do
@@ -232,10 +314,15 @@ defmodule Flop.Adapter.Ecto.Operators do
         like(field(r, ^var!(field)), ^substring)
       end
 
+    fragment_dynamic =
+      quote do
+        like(^var!(field_dynamic), ^substring)
+      end
+
     combinator = :and
     prelude = prelude(:maybe_split_search_text)
 
-    {fragment, prelude, combinator}
+    {fragment, fragment_dynamic, prelude, combinator}
   end
 
   def op_config(:like_or) do
@@ -244,10 +331,15 @@ defmodule Flop.Adapter.Ecto.Operators do
         like(field(r, ^var!(field)), ^substring)
       end
 
+    fragment_dynamic =
+      quote do
+        like(^var!(field_dynamic), ^substring)
+      end
+
     combinator = :or
     prelude = prelude(:maybe_split_search_text)
 
-    {fragment, prelude, combinator}
+    {fragment, fragment_dynamic, prelude, combinator}
   end
 
   def op_config(:ilike_and) do
@@ -256,10 +348,15 @@ defmodule Flop.Adapter.Ecto.Operators do
         ilike(field(r, ^var!(field)), ^substring)
       end
 
+    fragment_dynamic =
+      quote do
+        ilike(^var!(field_dynamic), ^substring)
+      end
+
     combinator = :and
     prelude = prelude(:maybe_split_search_text)
 
-    {fragment, prelude, combinator}
+    {fragment, fragment_dynamic, prelude, combinator}
   end
 
   def op_config(:ilike_or) do
@@ -268,10 +365,15 @@ defmodule Flop.Adapter.Ecto.Operators do
         ilike(field(r, ^var!(field)), ^substring)
       end
 
+    fragment_dynamic =
+      quote do
+        ilike(^var!(field_dynamic), ^substring)
+      end
+
     combinator = :or
     prelude = prelude(:maybe_split_search_text)
 
-    {fragment, prelude, combinator}
+    {fragment, fragment_dynamic, prelude, combinator}
   end
 
   def op_config(:starts_with) do
@@ -280,8 +382,13 @@ defmodule Flop.Adapter.Ecto.Operators do
         ilike(field(r, ^var!(field)), ^var!(value))
       end
 
+    fragment_dynamic =
+      quote do
+        ilike(^var!(field_dynamic), ^var!(value))
+      end
+
     prelude = prelude(:add_wildcard_suffix)
-    {fragment, prelude, nil}
+    {fragment, fragment_dynamic, prelude, nil}
   end
 
   def op_config(:ends_with) do
@@ -290,13 +397,24 @@ defmodule Flop.Adapter.Ecto.Operators do
         ilike(field(r, ^var!(field)), ^var!(value))
       end
 
+    fragment_dynamic =
+      quote do
+        ilike(^var!(field_dynamic), ^var!(value))
+      end
+
     prelude = prelude(:add_wildcard_prefix)
-    {fragment, prelude, nil}
+    {fragment, fragment_dynamic, prelude, nil}
   end
 
   defp empty do
     quote do
       is_nil(field(r, ^var!(field))) == ^var!(value)
+    end
+  end
+
+  defp empty_dynamic do
+    quote do
+      is_nil(^var!(field_dynamic)) == ^var!(value)
     end
   end
 
@@ -317,6 +435,26 @@ defmodule Flop.Adapter.Ecto.Operators do
   defmacro empty(:other) do
     quote do
       is_nil(field(r, ^var!(field)))
+    end
+  end
+
+  defmacro empty_dynamic(:array) do
+    quote do
+      is_nil(^var!(field_dynamic)) or
+        ^var!(field_dynamic) == ^[]
+    end
+  end
+
+  defmacro empty_dynamic(:map) do
+    quote do
+      is_nil(^var!(field_dynamic)) or
+        ^var!(field_dynamic) == ^%{}
+    end
+  end
+
+  defmacro empty_dynamic(:other) do
+    quote do
+      is_nil(^var!(field_dynamic))
     end
   end
 

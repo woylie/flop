@@ -27,7 +27,7 @@ defmodule Flop.TestUtil do
   def filter_items([], _, _, _, _), do: []
 
   def filter_items(
-        [struct | _] = items,
+        [%schema{} = struct | _] = items,
         field,
         op,
         value,
@@ -56,6 +56,13 @@ defmodule Flop.TestUtil do
           items,
           &apply_filter_to_compound_fields(&1, fields, op, value, ecto_adapter)
         )
+
+      %FieldInfo{extra: %{type: :custom, field_dynamic: {_, _, _}}} ->
+        filter_func = matches?(op, value, ecto_adapter)
+
+        Enum.filter(items, fn item ->
+          item |> schema.get_field(field) |> filter_func.()
+        end)
     end
   end
 

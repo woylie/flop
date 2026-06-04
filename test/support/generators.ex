@@ -114,11 +114,13 @@ defmodule Flop.Generators do
     do: string(:alphanumeric, min_length: 1)
 
   def value_by_field(:owner_age), do: integer()
+  def value_by_field(:dog_age), do: integer()
 
   def value_by_field(:owner_name),
     do: string(:alphanumeric, min_length: 1)
 
   def compare_value_by_field(:age), do: integer(1..30)
+  def compare_value_by_field(:dog_age), do: integer(7..210)
 
   def compare_value_by_field(:name),
     do: string(?a..?z, min_length: 1, max_length: 3)
@@ -151,8 +153,19 @@ defmodule Flop.Generators do
   def cursor_fields(%{} = schema) do
     schema
     |> Flop.Schema.sortable()
+    |> Enum.reject(fn field ->
+      case Flop.Schema.field_info(schema, field) do
+        %Flop.FieldInfo{extra: %{type: :alias}} -> true
+        %Flop.FieldInfo{extra: %{type: :compound}} -> true
+        %Flop.FieldInfo{extra: %{type: :custom, filter: nil}} -> true
+        %Flop.FieldInfo{extra: %{type: :custom, field_dynamic: nil}} -> true
+        _ -> false
+      end
+    end)
     |> Enum.shuffle()
     |> constant()
+
+    constant([:reverse_name])
   end
 
   def order_directions(%{} = schema) do
