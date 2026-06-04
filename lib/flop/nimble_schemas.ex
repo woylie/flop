@@ -104,7 +104,7 @@ defmodule Flop.NimbleSchemas do
               type: {:tuple, [:atom, :atom, :keyword_list]},
               required: false
             ],
-            field_dynamic: [
+            sorter: [
               type: {:tuple, [:atom, :atom, :keyword_list]},
               required: false
             ],
