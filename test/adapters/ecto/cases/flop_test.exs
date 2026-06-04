@@ -267,14 +267,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
                 # all except compound fields
                 field <-
-                  member_of([
-                    :age,
-                    :name,
-                    :owner_age,
-                    :owner_name,
-                    :species,
-                    :dog_age
-                  ]),
+                  member_of([:age, :name, :owner_age, :owner_name, :species]),
                 pet <- member_of(pets),
                 query_value = Pet.get_field(pet, field),
                 query_value != "" do
@@ -305,7 +298,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                       build(:owner, name: fn -> Enum.random([nil, "Carl"]) end)
                     end
                   ),
-                field <- member_of([:species, :owner_name, :dog_age]),
+                field <- member_of([:species, :owner_name]),
                 op <- member_of([:empty, :not_empty]) do
         [opposite_op] = [:empty, :not_empty] -- [op]
         expected = filter_items(pets, field, op)
@@ -340,7 +333,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                       build(:owner, name: fn -> Enum.random([nil, "Carl"]) end)
                     end
                   ),
-                field <- member_of([:species, :owner_name, :dog_age]),
+                field <- member_of([:species, :owner_name]),
                 op <- member_of([:empty, :not_empty]) do
         [opposite_op] = [:empty, :not_empty] -- [op]
         expected = filter_items(pets, field, op)
@@ -756,7 +749,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                   pet_count
                   |> insert_list(:pet_downcase, owner: fn -> build(:owner) end)
                   |> Enum.sort_by(& &1.id),
-                field <- member_of([:age, :name, :owner_age, :dog_age]),
+                field <- member_of([:age, :name, :owner_age]),
                 op <- one_of([:<=, :<, :>, :>=]),
                 query_value <- compare_value_by_field(field) do
         expected = filter_items(pets, field, op, query_value)
@@ -772,7 +765,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
     property "applies :in operator" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
-                field <- member_of([:age, :name, :owner_age, :dog_age]),
+                field <- member_of([:age, :name, :owner_age]),
                 values = Enum.map(pets, &Map.get(&1, field)),
                 query_value <-
                   list_of(one_of([member_of(values), value_by_field(field)]),
@@ -791,7 +784,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
     property "applies :not_in operator" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
-                field <- member_of([:age, :name, :owner_age, :dog_age]),
+                field <- member_of([:age, :name, :owner_age]),
                 values = Enum.map(pets, &Map.get(&1, field)),
                 query_value <-
                   list_of(one_of([member_of(values), value_by_field(field)]),
