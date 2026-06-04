@@ -24,7 +24,7 @@ defmodule MyApp.Pet do
       :custom,
       :reverse_name
     ],
-    sortable: [:name, :age, :owner_name, :owner_age, :dog_age],
+    sortable: [:name, :age, :owner_name, :owner_age],
     max_limit: 1000,
     adapter_opts: [
       compound_fields: [
@@ -56,9 +56,6 @@ defmodule MyApp.Pet do
         reverse_name: [
           filter: {__MODULE__, :reverse_name_filter, []},
           ecto_type: :string
-        ],
-        dog_age: [
-          sorter: {__MODULE__, :dog_age_sorter, []}
         ]
       ]
     ]
@@ -91,10 +88,6 @@ defmodule MyApp.Pet do
   def reverse_name_filter(query, %Flop.Filter{value: value}, _) do
     reversed = value
     where(query, [p], p.name == ^reversed)
-  end
-
-  def dog_age_sorter(query, direction, _opts) do
-    order_by(query, [p], [{^direction, fragment("? * 7", p.age)}])
   end
 
   def get_field(%__MODULE__{owner: %Owner{age: age}}, :owner_age), do: age

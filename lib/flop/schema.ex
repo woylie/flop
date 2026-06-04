@@ -677,7 +677,6 @@ defprotocol Flop.Schema do
         extra: %{
           type: :custom,
           filter: {MyApp.Pet, :reverse_name_filter, []},
-          sorter: nil,
           bindings: []
         }
       }

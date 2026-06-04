@@ -151,12 +151,6 @@ defmodule Flop.Generators do
   def cursor_fields(%{} = schema) do
     schema
     |> Flop.Schema.sortable()
-    |> Enum.reject(fn field ->
-      %Flop.FieldInfo{extra: %{type: field_type}} =
-        Flop.Schema.field_info(schema, field)
-
-      field_type in [:alias, :compound, :custom]
-    end)
     |> Enum.shuffle()
     |> constant()
   end
