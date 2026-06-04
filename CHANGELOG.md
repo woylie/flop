@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.26.4] - 2026-06-04
+
 ### Added
 
 - `starts_with` and `ends_with` filter operators.
