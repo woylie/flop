@@ -847,7 +847,7 @@ defmodule Flop.Adapter.Ecto do
     value = if op == :not_empty, do: !value, else: value
 
     dynamic_opts = Keyword.merge(extra_opts, dynamic_opts)
-    field_dynamic = apply(mod, fun, [dynamic_opts])
+    field_dynamic = apply(mod, fun, dynamic_opts)
 
     case array_or_map(ecto_type) do
       :array -> dynamic([], empty_dynamic(:array) == ^value)
@@ -877,7 +877,7 @@ defmodule Flop.Adapter.Ecto do
   end
 
   for op <- @operators do
-    {fragment, fragment_dynamic, prelude, combinator} = op_config(op)
+    {fragment, prelude, combinator} = op_config(op)
 
     defp build_op(
            _schema_struct,
@@ -890,20 +890,6 @@ defmodule Flop.Adapter.Ecto do
     end
 
     if op not in [:empty, :not_empty] do
-      defp build_op(
-             _schema_struct,
-             %FieldInfo{
-               extra: %{type: :custom, field_dynamic: {mod, fun, dynamic_opts}}
-             },
-             %Filter{op: unquote(op), value: value},
-             extra_opts
-           ) do
-        unquote(prelude)
-        dynamic_opts = Keyword.merge(extra_opts, dynamic_opts)
-        field_dynamic = apply(mod, fun, [dynamic_opts])
-        build_dynamic(unquote(fragment_dynamic), false, unquote(combinator))
-      end
-
       defp build_op(
              _schema_struct,
              %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
