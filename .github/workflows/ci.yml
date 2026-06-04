@@ -1,8 +1,8 @@
 name: CI
 
 env:
-  ELIXIR_VERSION: "1.19"
-  OTP_VERSION: "27"
+  ELIXIR_VERSION: "1.20"
+  OTP_VERSION: "29"
 
 on:
   push:
@@ -66,9 +66,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - { elixir: 1.15, otp: 24 }
-          - { elixir: 1.15, otp: 25 }
-          - { elixir: 1.15, otp: 26 }
           - { elixir: 1.16, otp: 24 }
           - { elixir: 1.16, otp: 25 }
           - { elixir: 1.16, otp: 26 }
@@ -81,6 +78,9 @@ jobs:
           - { elixir: 1.19, otp: 26 }
           - { elixir: 1.19, otp: 27 }
           - { elixir: 1.19, otp: 28 }
+          - { elixir: "1.20", otp: 27 }
+          - { elixir: "1.20", otp: 28 }
+          - { elixir: "1.20", otp: 29 }
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     services:
