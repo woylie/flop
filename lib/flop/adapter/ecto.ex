@@ -349,7 +349,7 @@ defmodule Flop.Adapter.Ecto do
       |> Keyword.get(:extra_opts, [])
       |> Keyword.merge(custom_sorter_opts)
 
-    order_by(q, [r], ^[{direction, apply(mod, fun, [opts])}])
+    apply(mod, fun, [q, direction, opts])
   end
 
   defp apply_order_by_field(q, order_expr, _field_info, _struct, _opts) do
