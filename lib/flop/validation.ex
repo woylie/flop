@@ -1,8 +1,11 @@
 defmodule Flop.Validation do
   @moduledoc false
 
+  import Flop.Misc, only: [expand_type: 1]
+
   alias Ecto.Changeset
   alias Flop.Cursor
+  alias Flop.FieldInfo
   alias Flop.Filter
 
   @spec changeset(map, [Flop.option()]) :: Changeset.t()
@@ -324,7 +327,7 @@ defmodule Flop.Validation do
     end
   end
 
-  defp validate_cursor(changeset, field, _opts) do
+  defp validate_cursor(changeset, field, opts) do
     encoded_cursor = get_value(changeset, field)
     order_fields = get_value(changeset, :order_by)
 
@@ -333,7 +336,8 @@ defmodule Flop.Validation do
         changeset,
         field,
         encoded_cursor,
-        order_fields
+        order_fields,
+        opts
       )
     else
       changeset
@@ -344,17 +348,61 @@ defmodule Flop.Validation do
          changeset,
          field,
          encoded_cursor,
-         order_fields
+         order_fields,
+         opts
        ) do
     case Cursor.decode(encoded_cursor) do
       {:ok, cursor_map} ->
-        if Enum.sort(Map.keys(cursor_map)) == Enum.sort(order_fields),
-          do: Changeset.put_change(changeset, :decoded_cursor, cursor_map),
-          else:
-            Changeset.add_error(changeset, field, "does not match order fields")
+        if Enum.sort(Map.keys(cursor_map)) == Enum.sort(order_fields) do
+          cast_cursor_values(changeset, field, cursor_map, opts)
+        else
+          Changeset.add_error(changeset, field, "does not match order fields")
+        end
 
       :error ->
         Changeset.add_error(changeset, field, "is invalid")
+    end
+  end
+
+  defp cast_cursor_values(changeset, field, cursor_map, opts) do
+    case cast_cursor_map(cursor_map, opts[:for]) do
+      {:ok, cast_cursor_map} ->
+        Changeset.put_change(changeset, :decoded_cursor, cast_cursor_map)
+
+      :error ->
+        Changeset.add_error(changeset, field, "is invalid")
+    end
+  end
+
+  defp cast_cursor_map(cursor_map, nil), do: {:ok, cursor_map}
+
+  defp cast_cursor_map(cursor_map, module) do
+    struct = struct(module)
+    sortable_fields = Flop.Schema.sortable(struct)
+
+    Enum.reduce_while(cursor_map, {:ok, %{}}, fn {field, value}, {:ok, acc} ->
+      case cast_cursor_value(struct, field, value, sortable_fields) do
+        {:ok, cast_value} -> {:cont, {:ok, Map.put(acc, field, cast_value)}}
+        :error -> {:halt, :error}
+      end
+    end)
+  end
+
+  defp cast_cursor_value(struct, field, value, sortable_fields) do
+    if field in sortable_fields do
+      %FieldInfo{ecto_type: ecto_type} = Flop.Schema.field_info(struct, field)
+      cast_cursor_value(expand_type(ecto_type), value)
+    else
+      {:ok, value}
+    end
+  end
+
+  defp cast_cursor_value(nil, value), do: {:ok, value}
+
+  defp cast_cursor_value(type, value) do
+    case Ecto.Type.cast(type, value) do
+      {:ok, cast_value} -> {:ok, cast_value}
+      _ -> :error
     end
   end
 

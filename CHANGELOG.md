@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed
+
+- Validate cursor values against the Ecto types of the `order_by` fields.
+  Cursors with incompatible value types used to pass validation and cause an
+  `Ecto.Query.CastError` when the query was run. They now result in a
+  validation error on `:after`/`:before`, or are removed if
+  `replace_invalid_params` is `true`.
+
 ## [0.26.4] - 2026-06-04
 
 ### Added

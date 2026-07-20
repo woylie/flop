@@ -500,6 +500,52 @@ defmodule Flop.ValidationTest do
       assert {:ok, %Flop{after: nil}} =
                validate(params, replace_invalid_params: true)
     end
+
+    test "validates after cursor value types against the schema" do
+      # incompatible value type for an integer field
+      cursor = Cursor.encode(%{age: "not-an-int"})
+      params = %{first: 2, after: cursor, order_by: [:age]}
+      assert {:error, changeset} = validate(params, for: Pet)
+      assert errors_on(changeset)[:after] == ["is invalid"]
+
+      # castable values are normalized
+      cursor = Cursor.encode(%{age: "4"})
+      params = %{first: 2, after: cursor, order_by: [:age]}
+
+      assert {:ok, %Flop{decoded_cursor: %{age: 4}}} =
+               validate(params, for: Pet)
+
+      # nil values are allowed (nullable order fields)
+      cursor = Cursor.encode(%{age: nil})
+      params = %{first: 2, after: cursor, order_by: [:age]}
+
+      assert {:ok, %Flop{decoded_cursor: %{age: nil}}} =
+               validate(params, for: Pet)
+
+      # join fields with an ecto_type are cast
+      cursor = Cursor.encode(%{owner_name: 99})
+      params = %{first: 2, after: cursor, order_by: [:owner_name]}
+      assert {:error, changeset} = validate(params, for: Pet)
+      assert errors_on(changeset)[:after] == ["is invalid"]
+
+      # join fields without an ecto_type are not cast
+      cursor = Cursor.encode(%{owner_age: "anything"})
+      params = %{first: 2, after: cursor, order_by: [:owner_age]}
+      assert {:ok, _} = validate(params, for: Pet)
+
+      # without a schema, values are not cast
+      cursor = Cursor.encode(%{age: "not-an-int"})
+      params = %{first: 2, after: cursor, order_by: [:age]}
+      assert {:ok, _} = validate(params)
+    end
+
+    test "replaces after cursor with invalid value types with replace_invalid_params" do
+      cursor = Cursor.encode(%{age: "not-an-int"})
+      params = %{first: 2, after: cursor, order_by: [:age]}
+
+      assert {:ok, %Flop{after: nil, decoded_cursor: nil}} =
+               validate(params, for: Pet, replace_invalid_params: true)
+    end
   end
 
   describe "last/before parameters" do
@@ -652,6 +698,27 @@ defmodule Flop.ValidationTest do
 
       assert {:ok, %Flop{before: nil}} =
                validate(params, replace_invalid_params: true)
+    end
+
+    test "validates before cursor value types against the schema" do
+      cursor = Cursor.encode(%{age: "not-an-int"})
+      params = %{last: 2, before: cursor, order_by: [:age]}
+      assert {:error, changeset} = validate(params, for: Pet)
+      assert errors_on(changeset)[:before] == ["is invalid"]
+
+      cursor = Cursor.encode(%{age: "4"})
+      params = %{last: 2, before: cursor, order_by: [:age]}
+
+      assert {:ok, %Flop{decoded_cursor: %{age: 4}}} =
+               validate(params, for: Pet)
+    end
+
+    test "replaces before cursor with invalid value types with replace_invalid_params" do
+      cursor = Cursor.encode(%{age: "not-an-int"})
+      params = %{last: 2, before: cursor, order_by: [:age]}
+
+      assert {:ok, %Flop{before: nil, decoded_cursor: nil}} =
+               validate(params, for: Pet, replace_invalid_params: true)
     end
   end
 
