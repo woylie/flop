@@ -2,6 +2,24 @@ defmodule Flop.Misc do
   @moduledoc false
 
   @doc """
+  Resolves the Ecto type of a field configuration to a type that can be passed
+  to `Ecto.Type.cast/2`.
+
+      iex> expand_type({:from_schema, MyApp.Pet, :age})
+      :integer
+
+      iex> expand_type(:string)
+      :string
+  """
+  def expand_type({:from_schema, module, field}),
+    do: module.__schema__(:type, field)
+
+  def expand_type({:ecto_enum, values}),
+    do: Ecto.ParameterizedType.init(Ecto.Enum, values: values)
+
+  def expand_type(type), do: type
+
+  @doc """
   Adds wildcard at the beginning and end of a string for partial matches.
 
   Escapes `%` and `_` within the given string.

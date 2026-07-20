@@ -6,6 +6,7 @@ defmodule Flop.Filter do
   use Ecto.Schema
 
   import Ecto.Changeset
+  import Flop.Misc, only: [expand_type: 1]
   import Flop.Schema
 
   alias Ecto.Changeset
@@ -221,16 +222,6 @@ defmodule Flop.Filter do
       :binary_id
     end
   end
-
-  defp expand_type({:from_schema, module, field}) do
-    module.__schema__(:type, field)
-  end
-
-  defp expand_type({:ecto_enum, values}) do
-    Ecto.ParameterizedType.init(Ecto.Enum, values: values)
-  end
-
-  defp expand_type(type), do: type
 
   defp get_repo(opts) do
     # use nested adapter_opts if set

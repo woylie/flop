@@ -1,6 +1,8 @@
 defmodule Flop.Validation do
   @moduledoc false
 
+  import Flop.Misc, only: [expand_type: 1]
+
   alias Ecto.Changeset
   alias Flop.Cursor
   alias Flop.FieldInfo
@@ -403,14 +405,6 @@ defmodule Flop.Validation do
       _ -> :error
     end
   end
-
-  defp expand_type({:from_schema, module, field}),
-    do: module.__schema__(:type, field)
-
-  defp expand_type({:ecto_enum, values}),
-    do: Ecto.ParameterizedType.init(Ecto.Enum, values: values)
-
-  defp expand_type(type), do: type
 
   defp put_default_limit(changeset, field, opts) do
     default_limit = Flop.get_option(:default_limit, opts)
