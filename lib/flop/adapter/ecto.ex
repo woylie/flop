@@ -305,7 +305,7 @@ defmodule Flop.Adapter.Ecto do
 
         Enum.reduce(directions, query, fn {_, field} = expr, acc_query ->
           field_info = Flop.Schema.field_info(struct, field)
-          apply_order_by_field(acc_query, expr, field_info, struct)
+          apply_order_by_field(acc_query, expr, field_info, struct, opts)
         end)
     end
   end
@@ -320,7 +320,8 @@ defmodule Flop.Adapter.Ecto do
          %FieldInfo{
            extra: %{type: :join, binding: binding, field: field}
          },
-         _
+         _,
+         _opts
        ) do
     order_by(q, [{^binding, r}], [{^direction, field(r, ^field)}])
   end
@@ -331,11 +332,19 @@ defmodule Flop.Adapter.Ecto do
          %FieldInfo{
            extra: %{type: :compound, fields: fields}
          },
-         struct
+         struct,
+         opts
        ) do
     Enum.reduce(fields, q, fn field, acc_query ->
       field_info = Flop.Schema.field_info(struct, field)
-      apply_order_by_field(acc_query, {direction, field}, field_info, struct)
+
+      apply_order_by_field(
+        acc_query,
+        {direction, field},
+        field_info,
+        struct,
+        opts
+      )
     end)
   end
 
@@ -343,12 +352,34 @@ defmodule Flop.Adapter.Ecto do
          q,
          {direction, field},
          %FieldInfo{extra: %{type: :alias}},
-         _
+         _,
+         _opts
        ) do
     order_by(q, [{^direction, selected_as(^field)}])
   end
 
-  defp apply_order_by_field(q, order_expr, _, _) do
+  defp apply_order_by_field(
+         q,
+         {direction, _},
+         %FieldInfo{
+           extra: %{
+             type: :custom,
+             field_dynamic: {mod, fun, compile_time_opts}
+           }
+         },
+         _struct,
+         opts
+       ) do
+    callback_opts =
+      opts
+      |> Keyword.get(:extra_opts, [])
+      |> Keyword.merge(compile_time_opts)
+
+    field_dynamic = apply(mod, fun, [callback_opts])
+    order_by(q, [r], ^[{direction, field_dynamic}])
+  end
+
+  defp apply_order_by_field(q, order_expr, _, _, _opts) do
     order_by(q, ^order_expr)
   end
 
@@ -393,6 +424,16 @@ defmodule Flop.Adapter.Ecto do
     with offset or page based pagination.
 
     Use Flop.validate/2 to turn this exception into a validation error.
+    """
+  end
+
+  defp cursor_dynamic([{_, _, _, %FieldInfo{extra: %{type: :custom}}} | _]) do
+    raise ArgumentError, """
+    cursor pagination is not supported for custom fields
+
+    The order fields of a Flop used for cursor pagination must be normal or
+    join fields. Custom fields can only be used with offset or page based
+    pagination.
     """
   end
 
