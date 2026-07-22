@@ -110,7 +110,11 @@ defmodule Flop.Adapter.Ecto do
           keys: [
             filter: [
               type: {:tuple, [:atom, :atom, :keyword_list]},
-              required: true
+              required: false
+            ],
+            field_dynamic: [
+              type: {:tuple, [:atom, :atom, :keyword_list]},
+              required: false
             ],
             ecto_type: [type: :any, required: true],
             bindings: [type: {:list, :atom}],
@@ -791,12 +795,12 @@ defmodule Flop.Adapter.Ecto do
   end
 
   defp normalize_custom_field_opts({name, opts}) when is_list(opts) do
-    opts = %{
-      filter: Keyword.fetch!(opts, :filter),
-      ecto_type: Keyword.fetch!(opts, :ecto_type),
-      operators: Keyword.get(opts, :operators),
-      bindings: Keyword.get(opts, :bindings, [])
-    }
+    opts =
+      opts
+      |> Map.new()
+      |> Map.put(:ecto_type, Keyword.fetch!(opts, :ecto_type))
+      |> Map.put_new(:operators, nil)
+      |> Map.put_new(:bindings, [])
 
     {name, opts}
   end
@@ -902,23 +906,59 @@ defmodule Flop.Adapter.Ecto do
          %{custom_fields: custom_fields} = adapter_opts,
          opts
        ) do
+    filterable = Keyword.fetch!(opts, :filterable)
     sortable = Keyword.fetch!(opts, :sortable)
 
-    illegal_fields =
+    illegal_filterable_fields =
       custom_fields
-      |> Map.keys()
-      |> Enum.filter(&(&1 in sortable))
+      |> Enum.filter(fn {key, field} ->
+        is_nil(field[:filter]) and key in filterable
+      end)
+      |> Enum.map(&elem(&1, 0))
 
-    if illegal_fields != [] do
+    if illegal_filterable_fields != [] do
       raise ArgumentError, """
-      cannot sort by custom fields
+      custom field without filter function marked as filterable
 
-      Custom fields are not allowed to be sortable. These custom fields were
-      configured as sortable:
+      The following custom fields were marked as filterable, but no `filter`
+      function was configured:
 
-          #{inspect(illegal_fields)}
+          #{inspect(illegal_filterable_fields)}
 
-      Use alias fields if you want to implement custom sorting.
+      Add the `filter` option to your custom field configuration to fix this.
+
+          custom_fields: [
+            my_custom_field: [
+              filter: {MyModule, :my_filter, []}
+            ]
+          ]
+      """
+    end
+
+    illegal_sortable_fields =
+      custom_fields
+      |> Enum.filter(fn {key, field} ->
+        is_nil(field[:field_dynamic]) and key in sortable
+      end)
+      |> Enum.map(&elem(&1, 0))
+
+    if illegal_sortable_fields != [] do
+      raise ArgumentError, """
+      custom field without field_dynamic function marked as sortable
+
+      The following custom fields were marked as sortable, but no
+      `field_dynamic` function was configured:
+
+          #{inspect(illegal_sortable_fields)}
+
+      Add the `field_dynamic` option to your custom field configuration to fix
+      this.
+
+          custom_fields: [
+            my_custom_field: [
+              field_dynamic: {MyModule, :my_field_dynamic, []}
+            ]
+          ]
       """
     end
 
