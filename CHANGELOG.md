@@ -11,6 +11,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Support SQLite.
+- Added ordering for custom fields with
+  `field_dynamic: {module, function, opts}`. The callback returns an
+  `Ecto.Query.DynamicExpr`; custom filtering continues to use `filter`, and
+  custom fields remain unsupported for cursor pagination.
 
 ### Fixed
 
