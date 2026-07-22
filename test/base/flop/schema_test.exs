@@ -488,10 +488,12 @@ defmodule Flop.SchemaTest do
       assert Schema.sortable(struct(FieldDynamicOnlyCustomField)) ==
                [:inserted_at]
 
+      expected_field_dynamic =
+        {FieldDynamicOnlyCustomField, :field_dynamic, [option: true]}
+
       assert %Flop.FieldInfo{
                extra: %{
-                 field_dynamic:
-                   {FieldDynamicOnlyCustomField, :field_dynamic, [option: true]},
+                 field_dynamic: ^expected_field_dynamic,
                  type: :custom
                }
              } =
