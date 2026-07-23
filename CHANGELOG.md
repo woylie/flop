@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.26.5] - 2026-07-23
+
 ### Fixed
 
 - Validate cursor values against the Ecto types of the `order_by` fields.
