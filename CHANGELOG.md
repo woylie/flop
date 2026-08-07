@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## [0.26.6] - 2026-08-07
+
+### Fixed
+
+- Reject pagination cursors larger than 8 KB and cursors that contain a
+  compressed Erlang term before decoding them. The maximum cursor size is
+  configurable.
+- Cast filter values as strings for the `:=~`, `:like`, `:not_like`, `:ilike`,
+  `:not_ilike`, `:starts_with` and `:ends_with` operators when the field type is
+  unknown. Invalid values will result in validation errors now.
+
 ## [0.26.5] - 2026-07-23
 
 ### Fixed
