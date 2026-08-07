@@ -376,6 +376,9 @@ defmodule Flop do
   - `:replace_invalid_params` - If set to `true`, invalid parameters are
     replaced with default values or removed instead of causing errors. Default
     is `false`.
+  - `:max_cursor_size` - The maximum pagination cursor size in bytes that is
+    accepted. Defaults to `8192`. See module documentation of `Flop.Cursor` for
+    more information.
 
   ### Defaults
 
@@ -440,6 +443,7 @@ defmodule Flop do
           | {:pagination, boolean}
           | {:pagination_types, [pagination_type()]}
           | {:replace_invalid_params, boolean}
+          | {:max_cursor_size, pos_integer}
           | {:extra_opts, Keyword.t()}
           | {:adapter_opts, adapter_option()}
           | adapter_option()
