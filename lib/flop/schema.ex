@@ -452,11 +452,7 @@ defprotocol Flop.Schema do
 
   For join and custom fields, Flop cannot automatically determine the Ecto type.
   Therefore, you need to specify the `ecto_type` option. This helps Flop cast
-  filter values for join and custom fields properly. If this option is not set,
-  Flop will accept any filter value, potentially leading to an
-  `Ecto.Query.CastError` if an invalid filter value is used. Additionally,
-  without this option, Flop cannot identify empty lists and maps as empty values
-  for array and map fields.
+  filter values for join and custom fields properly.
 
       @derive {
         Flop.Schema,
@@ -564,7 +560,7 @@ defprotocol Flop.Schema do
 
   - `:binding` (required) - Any named binding
   - `:field` (required)
-  - `:ecto_type` - The Ecto type of the field. The filter operator and value
+  - `:ecto_type` (required) - The Ecto type of the field. The filter operator and value
     validation is based on this option.
   - `:path` - This option is used by `Flop.Schema.get_field/2` to retrieve the
     field value from a row. That function is also used by the default cursor
@@ -583,8 +579,8 @@ defprotocol Flop.Schema do
   - `:filter` (required) - A module/function/options tuple referencing a
     custom filter function. The function must take the Ecto query, the
     `Flop.Filter` struct, and the options from the tuple as arguments.
-  - `:ecto_type` - The Ecto type of the field. The filter operator and value
-    validation is based on this option.
+  - `:ecto_type` (required) - The Ecto type of the field. The filter operator
+    and value validation is based on this option.
   - `:bindings` - If the custom filter function requires certain named bindings
     to be present in the Ecto query, you can specify them here. These bindings
     will be conditionally added by `Flop.with_named_bindings/4` if the filter

@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+### Changed
+
+- The `ecto_type` options is now required for join fields and custom fields.
+
+### How to upgrade
+
+Add the `ecto_type` options to all `Flop.Schema` derivations that don't have it
+already:
+
+```diff
+  @derive {
+    Flop.Schema,
+    filterable: [],
+    sortable: [],
+    adapter_opts: [
+      join_fields: [
+        owner_age: [
+          binding: :owner,
+          field: :age,
++         ecto_type: :integer
+        ]
+      ],
+      custom_fields: [
+        partial_id: [
+          filter: {__MODULE__, :partial_id_filter, []},
++         ecto_type: :string
+        ]
+      ]
+    ]
+  }
+```
+
 ## [0.26.6] - 2026-08-07
 
 ### Fixed

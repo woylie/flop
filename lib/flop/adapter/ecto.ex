@@ -56,7 +56,7 @@ defmodule Flop.Adapter.Ecto do
                keyword_list: [
                  binding: [type: :atom, required: true],
                  field: [type: :atom, required: true],
-                 ecto_type: [type: :any],
+                 ecto_type: [type: :any, required: true],
                  path: [type: {:list, :atom}]
                ],
                tuple: [:atom, :atom]
@@ -84,7 +84,7 @@ defmodule Flop.Adapter.Ecto do
               type: {:tuple, [:atom, :atom, :keyword_list]},
               required: true
             ],
-            ecto_type: [type: :any],
+            ecto_type: [type: :any, required: true],
             bindings: [type: {:list, :atom}],
             operators: [type: {:list, :atom}]
           ]
@@ -715,7 +715,7 @@ defmodule Flop.Adapter.Ecto do
   defp normalize_custom_field_opts({name, opts}) when is_list(opts) do
     opts = %{
       filter: Keyword.fetch!(opts, :filter),
-      ecto_type: Keyword.get(opts, :ecto_type),
+      ecto_type: Keyword.fetch!(opts, :ecto_type),
       operators: Keyword.get(opts, :operators),
       bindings: Keyword.get(opts, :bindings, [])
     }
@@ -735,7 +735,7 @@ defmodule Flop.Adapter.Ecto do
       binding: binding,
       field: field,
       path: opts[:path] || [binding, field],
-      ecto_type: Keyword.get(opts, :ecto_type)
+      ecto_type: Keyword.fetch!(opts, :ecto_type)
     }
 
     {name, opts}
