@@ -33,11 +33,15 @@ defmodule Flop.Misc do
       iex> add_wildcard("bor_cht")
       "%bor\\\\_cht%"
   """
-  def add_wildcard(value, escape_char \\ "\\") when is_binary(value) do
+  def add_wildcard(value, escape_char \\ "\\")
+
+  def add_wildcard(value, escape_char) when is_binary(value) do
     "%" <>
       String.replace(value, ["\\", "%", "_"], &"#{escape_char}#{&1}") <>
       "%"
   end
+
+  def add_wildcard(value, _), do: raise_pattern_value_error(value)
 
   @doc """
   Splits a search text into tokens.
@@ -61,9 +65,13 @@ defmodule Flop.Misc do
       iex> add_wildcard_suffix("bor_cht")
       "bor\\\\_cht%"
   """
-  def add_wildcard_suffix(value, escape_char \\ "\\") when is_binary(value) do
+  def add_wildcard_suffix(value, escape_char \\ "\\")
+
+  def add_wildcard_suffix(value, escape_char) when is_binary(value) do
     String.replace(value, ["\\", "%", "_"], &"#{escape_char}#{&1}") <> "%"
   end
+
+  def add_wildcard_suffix(value, _), do: raise_pattern_value_error(value)
 
   @doc """
   Adds wildcard at the beginning of a string for suffix matches.
@@ -79,7 +87,24 @@ defmodule Flop.Misc do
       iex> add_wildcard_prefix("bor_cht")
       "%bor\\\\_cht"
   """
-  def add_wildcard_prefix(value, escape_char \\ "\\") when is_binary(value) do
+  def add_wildcard_prefix(value, escape_char \\ "\\")
+
+  def add_wildcard_prefix(value, escape_char) when is_binary(value) do
     "%" <> String.replace(value, ["\\", "%", "_"], &"#{escape_char}#{&1}")
+  end
+
+  def add_wildcard_prefix(value, _), do: raise_pattern_value_error(value)
+
+  defp raise_pattern_value_error(value) do
+    raise ArgumentError, """
+    invalid filter value for pattern operator
+
+    Operators such as :like, :ilike, :starts_with and :ends_with build a LIKE
+    pattern from the filter value, which requires a string.
+
+    Got:
+
+        #{inspect(value)}
+    """
   end
 end
