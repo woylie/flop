@@ -34,7 +34,8 @@ defmodule MyApp.Pet do
       join_fields: [
         owner_age: [
           binding: :owner,
-          field: :age
+          field: :age,
+          ecto_type: :integer
         ],
         owner_name: [
           binding: :owner,
@@ -51,7 +52,8 @@ defmodule MyApp.Pet do
       custom_fields: [
         custom: [
           filter: {__MODULE__, :test_custom_filter, [some: :options]},
-          operators: [:==]
+          operators: [:==],
+          ecto_type: :string
         ],
         reverse_name: [
           filter: {__MODULE__, :reverse_name_filter, []},

@@ -18,7 +18,7 @@ defmodule Flop.FieldInfo do
     depend on the specific adapter.
   """
   @type t :: %__MODULE__{
-          ecto_type: Flop.Schema.ecto_type() | nil,
+          ecto_type: Flop.Schema.ecto_type(),
           operators: [Flop.Filter.op()] | nil,
           extra: map
         }

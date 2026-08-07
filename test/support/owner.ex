@@ -18,7 +18,8 @@ defmodule MyApp.Owner do
     join_fields: [
       pet_age: [
         binding: :pets,
-        field: :age
+        field: :age,
+        ecto_type: :integer
       ],
       pet_mood_as_reference: [
         binding: :pets,

@@ -153,11 +153,6 @@ defmodule Flop.FilterTest do
                Filter.allowed_operators(:string)
     end
 
-    test "returns a list of operators for a join field without ecto_type" do
-      assert Filter.allowed_operators(Pet, :owner_age) ==
-               Filter.allowed_operators(:unknown)
-    end
-
     test "returns a list of operators for a custom field with ecto_type" do
       assert Filter.allowed_operators(Pet, :reverse_name) ==
                Filter.allowed_operators(:string)

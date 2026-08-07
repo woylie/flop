@@ -22,7 +22,8 @@ defmodule Flop.SchemaTest do
              join_fields: [
                topping_name: [
                  binding: :toppings,
-                 field: :name
+                 field: :name,
+                 ecto_type: :string
                ]
              ],
              alias_fields: [:topping_count],
@@ -189,7 +190,8 @@ defmodule Flop.SchemaTest do
               join_fields: [
                 name: [
                   binding: :eater,
-                  field: :name
+                  field: :name,
+                  ecto_type: :string
                 ]
               ],
               compound_fields: [name: [:name, :nickname]]
@@ -230,7 +232,8 @@ defmodule Flop.SchemaTest do
               join_fields: [
                 owner_name: [
                   binding: :owner,
-                  field: :name
+                  field: :name,
+                  ecto_type: :string
                 ]
               ],
               alias_fields: [:owner_name]
@@ -253,7 +256,8 @@ defmodule Flop.SchemaTest do
               compound_fields: [name: [:name, :nickname]],
               custom_fields: [
                 name: [
-                  filter: {__MODULE__, :some_function, []}
+                  filter: {__MODULE__, :some_function, []},
+                  ecto_type: :string
                 ]
               ]
             }
@@ -275,12 +279,14 @@ defmodule Flop.SchemaTest do
               join_fields: [
                 owner_name: [
                   binding: :owner,
-                  field: :name
+                  field: :name,
+                  ecto_type: :string
                 ]
               ],
               custom_fields: [
                 owner_name: [
-                  filter: {__MODULE__, :some_function, []}
+                  filter: {__MODULE__, :some_function, []},
+                  ecto_type: :string
                 ]
               ]
             }
@@ -302,7 +308,8 @@ defmodule Flop.SchemaTest do
               alias_fields: [:name],
               custom_fields: [
                 name: [
-                  filter: {__MODULE__, :some_function, []}
+                  filter: {__MODULE__, :some_function, []},
+                  ecto_type: :string
                 ]
               ]
             }
@@ -348,7 +355,10 @@ defmodule Flop.SchemaTest do
             filterable: [],
             sortable: [:inserted_at],
             custom_fields: [
-              inserted_at: [filter: {__MODULE__, :some_function, []}]
+              inserted_at: [
+                filter: {__MODULE__, :some_function, []},
+                ecto_type: :utc_datetime
+              ]
             ]
           }
           defstruct [:id, :inserted_at]

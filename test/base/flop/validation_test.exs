@@ -528,11 +528,6 @@ defmodule Flop.ValidationTest do
       assert {:error, changeset} = validate(params, for: Pet)
       assert errors_on(changeset)[:after] == ["is invalid"]
 
-      # join fields without an ecto_type are not cast
-      cursor = Cursor.encode(%{owner_age: "anything"})
-      params = %{first: 2, after: cursor, order_by: [:owner_age]}
-      assert {:ok, _} = validate(params, for: Pet)
-
       # without a schema, values are not cast
       cursor = Cursor.encode(%{age: "not-an-int"})
       params = %{first: 2, after: cursor, order_by: [:age]}
@@ -1036,7 +1031,8 @@ defmodule Flop.ValidationTest do
       assert {:ok, %Flop{filters: [%{value: 5}]}} = validate(params, for: Pet)
 
       params = %{filters: [%{field: :owner_age, value: "five"}]}
-      assert {:ok, %{filters: [%{value: "five"}]}} = validate(params, for: Pet)
+      assert {:error, changeset} = validate(params, for: Pet)
+      assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
     end
 
     test "casts filter value (i)like_and/or as string or array of strings" do

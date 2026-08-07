@@ -15,6 +15,7 @@ defmodule MyApp.Vegetable do
            pagination_types: [:page],
            custom_fields: [
              with_bindings: [
+               ecto_type: :string,
                filter: {__MODULE__, :custom_filter, []},
                bindings: [:curious]
              ]
