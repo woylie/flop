@@ -102,6 +102,28 @@ defmodule FlopTest do
              ] = Keyword.get(meta.errors, :filters)
     end
 
+    test "returns error for non-string value with a pattern operator" do
+      for op <- [:=~, :like, :not_like, :ilike, :not_ilike],
+          value <- [["8"], %{"a" => "8"}, 8] do
+        assert {:error, %Meta{} = meta} =
+                 Flop.validate(%{
+                   filters: [%{field: :name, op: op, value: value}]
+                 })
+
+        assert [[value: [{"is invalid", _}]]] =
+                 Keyword.get(meta.errors, :filters)
+      end
+    end
+
+    test "accepts string value with a pattern operator on an untyped field" do
+      assert {:ok, %Flop{filters: [filter]}} =
+               Flop.validate(%{
+                 filters: [%{field: :name, op: :like, value: "8"}]
+               })
+
+      assert filter.value == "8"
+    end
+
     test "returns filter params as list if passed as a map" do
       assert {:error, %Meta{} = meta} =
                Flop.validate(

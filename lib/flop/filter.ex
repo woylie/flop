@@ -128,6 +128,18 @@ defmodule Flop.Filter do
     :ends_with
   ]
 
+  # Operators that use like/ilike patterns. The `*_and`/`*_or` operators are
+  # not included because they are cast with `Flop.CustomTypes.Like`.
+  @pattern_operators [
+    :=~,
+    :like,
+    :not_like,
+    :ilike,
+    :not_ilike,
+    :starts_with,
+    :ends_with
+  ]
+
   @primary_key false
   embedded_schema do
     field :field, ExistingAtom
@@ -207,6 +219,7 @@ defmodule Flop.Filter do
 
   defp value_type(type, op, _repo), do: value_type(type, op)
 
+  defp value_type(nil, op) when op in @pattern_operators, do: :string
   defp value_type(nil, _), do: Any
   defp value_type(type, :in), do: {:array, type}
   defp value_type(type, :not_in), do: {:array, type}
