@@ -51,5 +51,22 @@ defmodule Flop.CursorTest do
 
       assert Cursor.decode!(cursor, max_cursor_size: 100_000) == value
     end
+
+    test "rejects a compressed term" do
+      payload = %{name: String.duplicate("a", 1_000_000)}
+
+      cursor =
+        payload
+        |> :erlang.term_to_binary(compressed: 9)
+        |> Base.url_encode64()
+
+      # cursor is below maximum size when compressed, but exceeds it when
+      # uncompressed
+      assert byte_size(cursor) < 8_192
+      assert byte_size(:erlang.term_to_binary(payload)) > 1_000_000
+
+      assert Cursor.decode(cursor) == :error
+      assert_raise Flop.InvalidCursorError, fn -> Cursor.decode!(cursor) end
+    end
   end
 end

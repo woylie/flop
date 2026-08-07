@@ -71,14 +71,15 @@ defmodule Flop.Cursor do
   - `:max_cursor_size` - The maximum cursor size in bytes that is accepted.
     Defaults to `#{@default_max_cursor_size}`.
 
-  Cursors larger than the configured maximum size are rejected without being
-  decoded. See the module documentation for details.
+  Cursors larger than the configured maximum size as well as compressed terms
+  are rejected without being decoded. See the module documentation for details.
   """
   @doc since: "0.8.0"
   @spec decode(binary(), keyword) :: {:ok, map()} | :error
   def decode(cursor, opts \\ []) when is_binary(cursor) do
     with :ok <- validate_size(cursor, opts),
          {:ok, binary} <- Base.url_decode64(cursor),
+         :ok <- validate_uncompressed(binary),
          {:ok, term} <- safe_binary_to_term(binary) do
       sanitize(term)
 
@@ -109,6 +110,11 @@ defmodule Flop.Cursor do
     max_size = Flop.get_option(:max_cursor_size, opts, @default_max_cursor_size)
     if byte_size(cursor) <= max_size, do: :ok, else: :error
   end
+
+  # 131: version number, 80: tag for Zlib-compressed payload
+  # https://www.erlang.org/doc/apps/erts/erl_ext_dist.html
+  defp validate_uncompressed(<<131, 80, _::binary>>), do: :error
+  defp validate_uncompressed(_), do: :ok
 
   defp safe_binary_to_term(term) do
     {:ok, :erlang.binary_to_term(term, [:safe])}
