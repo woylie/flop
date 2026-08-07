@@ -99,7 +99,7 @@ defmodule Flop.Cursor do
   """
   @doc since: "0.9.0"
   @spec decode!(binary(), keyword) :: map()
-  def decode!(cursor, opts \\ []) do
+  def decode!(cursor, opts \\ []) when is_binary(cursor) do
     case decode(cursor, opts) do
       {:ok, decoded} -> decoded
       :error -> raise Flop.InvalidCursorError, cursor: cursor
