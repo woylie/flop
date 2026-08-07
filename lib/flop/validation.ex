@@ -351,7 +351,7 @@ defmodule Flop.Validation do
          order_fields,
          opts
        ) do
-    case Cursor.decode(encoded_cursor) do
+    case Cursor.decode(encoded_cursor, opts) do
       {:ok, cursor_map} ->
         if Enum.sort(Map.keys(cursor_map)) == Enum.sort(order_fields) do
           cast_cursor_values(changeset, field, cursor_map, opts)

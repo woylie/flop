@@ -1,7 +1,27 @@
 defmodule Flop.Cursor do
   @moduledoc """
   Functions for encoding, decoding and extracting cursor values.
+
+  ## Cursor size
+
+  Because cursors arrive as unvalidated request parameters that need to be
+  decoded before they can be applied, the `decode` functions reject cursors
+  larger than 8 KB before decoding them. A cursor contains the order
+  field values of a single record, so the default is far above what Flop itself
+  produces. If your application produces unusually large cursor values, you can
+  increase the maximum size either globally via application environment:
+
+      config :flop, max_cursor_size: 16_384
+
+  Or by passing the option directly to the `decode` functions:
+
+      Flop.Cursor.decode("g3QAAAABZAACaWRiAAACDg==", max_cursor_size: 16_384)
+
+  The option can also be passed to any of the `validate` functions, or to
+  `use Flop`.
   """
+
+  @default_max_cursor_size 8_192
 
   @doc """
   Encodes a cursor value.
@@ -45,11 +65,20 @@ defmodule Flop.Cursor do
 
       iex> Flop.Cursor.decode("g3QAAAABZAAGYmFybmV5ZAAGcnViYmVs")
       :error
+
+  ## Options
+
+  - `:max_cursor_size` - The maximum cursor size in bytes that is accepted.
+    Defaults to `#{@default_max_cursor_size}`.
+
+  Cursors larger than the configured maximum size are rejected without being
+  decoded. See the module documentation for details.
   """
   @doc since: "0.8.0"
-  @spec decode(binary()) :: {:ok, map()} | :error
-  def decode(cursor) do
-    with {:ok, binary} <- Base.url_decode64(cursor),
+  @spec decode(binary(), keyword) :: {:ok, map()} | :error
+  def decode(cursor, opts \\ []) when is_binary(cursor) do
+    with :ok <- validate_size(cursor, opts),
+         {:ok, binary} <- Base.url_decode64(cursor),
          {:ok, term} <- safe_binary_to_term(binary) do
       sanitize(term)
 
@@ -68,12 +97,17 @@ defmodule Flop.Cursor do
       %{id: 526}
   """
   @doc since: "0.9.0"
-  @spec decode!(binary()) :: map()
-  def decode!(cursor) do
-    case decode(cursor) do
+  @spec decode!(binary(), keyword) :: map()
+  def decode!(cursor, opts \\ []) do
+    case decode(cursor, opts) do
       {:ok, decoded} -> decoded
       :error -> raise Flop.InvalidCursorError, cursor: cursor
     end
+  end
+
+  defp validate_size(cursor, opts) do
+    max_size = Flop.get_option(:max_cursor_size, opts, @default_max_cursor_size)
+    if byte_size(cursor) <= max_size, do: :ok, else: :error
   end
 
   defp safe_binary_to_term(term) do
