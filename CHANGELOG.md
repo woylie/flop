@@ -11,6 +11,9 @@
   configured in the schema.
 - Reject compound and alias fields as order fields for cursor pagination during
   validation. They can still be used with offset and page based pagination.
+- Raise an `ArgumentError` instead of ignoring the filter when an unsupported
+  operator is applied to a compound field. This only affects unvalidated
+  filters.
 
 ### Fixed
 

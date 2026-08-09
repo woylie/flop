@@ -266,6 +266,21 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    test "raises for an unsupported compound operator on an unvalidated flop" do
+      flop = %Flop{
+        filters: [%Filter{field: :full_name, op: :==, value: "o"}]
+      }
+
+      error =
+        assert_raise ArgumentError, fn ->
+          Flop.filter(Pet, flop, for: Pet)
+        end
+
+      assert error.message =~ "operator :== is not supported for compound"
+      assert error.message =~ ":full_name"
+      assert error.message =~ ":like"
+    end
+
     property "applies inequality filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
