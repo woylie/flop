@@ -863,8 +863,6 @@ defimpl Flop.Schema, for: Any do
 
     quote do
       defimpl Flop.Schema, for: unquote(module) do
-        import Ecto.Query
-
         def default_limit(_) do
           unquote(default_limit)
         end
