@@ -17,6 +17,32 @@ defmodule FlopTest do
     use Flop, repo: Flop.Repo, default_limit: false
   end
 
+  defmodule StubRepo do
+    def all(_query, opts) do
+      send(self(), {__MODULE__, :all, opts})
+      []
+    end
+  end
+
+  defmodule OtherStubRepo do
+    def all(_query, opts) do
+      send(self(), {__MODULE__, :all, opts})
+      []
+    end
+  end
+
+  defmodule BackendWithQueryOpts do
+    use Flop, repo: FlopTest.StubRepo, query_opts: [prefix: "backend"]
+  end
+
+  defmodule BackendWithNestedAdapterOpts do
+    use Flop,
+      adapter_opts: [
+        repo: FlopTest.StubRepo,
+        query_opts: [prefix: "backend", timeout: 1000]
+      ]
+  end
+
   describe "validate/1" do
     test "returns Flop struct" do
       assert Flop.validate(%Flop{}) == {:ok, %Flop{limit: 50}}
@@ -188,6 +214,71 @@ defmodule FlopTest do
 
       assert [[], [op: [{"is invalid", _}]]] =
                Keyword.get(error.errors, :filters)
+    end
+  end
+
+  describe "adapter options with a backend module" do
+    test "merges query_opts passed at the call site over the backend's" do
+      BackendWithQueryOpts.all(Pet, %Flop{}, query_opts: [timeout: 30_000])
+      assert_received {StubRepo, :all, opts}
+      assert Enum.sort(opts) == [prefix: "backend", timeout: 30_000]
+    end
+
+    test "a repo passed at the call site overrides the backend's" do
+      BackendWithQueryOpts.all(Pet, %Flop{}, repo: OtherStubRepo)
+      assert_received {OtherStubRepo, :all, opts}
+      assert Enum.sort(opts) == [prefix: "backend"]
+    end
+
+    test "merges nested adapter_opts over the backend's" do
+      BackendWithQueryOpts.all(Pet, %Flop{},
+        adapter_opts: [repo: OtherStubRepo, query_opts: [timeout: 30_000]]
+      )
+
+      assert_received {OtherStubRepo, :all, opts}
+      assert Enum.sort(opts) == [prefix: "backend", timeout: 30_000]
+    end
+
+    test "applies call site options without a backend" do
+      Flop.all(Pet, %Flop{}, repo: StubRepo, query_opts: [timeout: 30_000])
+      assert_received {StubRepo, :all, opts}
+      assert Enum.sort(opts) == [timeout: 30_000]
+    end
+
+    test "merges over a backend declared with nested adapter_opts" do
+      BackendWithNestedAdapterOpts.all(Pet, %Flop{},
+        query_opts: [timeout: 30_000]
+      )
+
+      assert_received {StubRepo, :all, opts}
+      assert Enum.sort(opts) == [prefix: "backend", timeout: 30_000]
+    end
+  end
+
+  describe "adapter_opts/1" do
+    test "call site options win over the backend" do
+      opts = [backend: BackendWithQueryOpts, repo: OtherStubRepo]
+      assert Flop.adapter_opts(opts)[:repo] == OtherStubRepo
+    end
+
+    test "a root key wins over the same key nested in adapter_opts" do
+      opts = [repo: OtherStubRepo, adapter_opts: [repo: StubRepo]]
+      assert Flop.adapter_opts(opts)[:repo] == OtherStubRepo
+    end
+
+    test "query_opts merge key by key across all levels" do
+      opts = [
+        backend: BackendWithNestedAdapterOpts,
+        adapter_opts: [query_opts: [timeout: 2000]],
+        query_opts: [prefix: "call site"]
+      ]
+
+      assert Enum.sort(Flop.adapter_opts(opts)[:query_opts]) ==
+               [prefix: "call site", timeout: 2000]
+    end
+
+    test "falls back to the application environment" do
+      assert Flop.adapter_opts([])[:repo] == Flop.Repo
     end
   end
 

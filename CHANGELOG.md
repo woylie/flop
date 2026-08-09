@@ -4,7 +4,7 @@
 
 ### Changed
 
-- The `ecto_type` options is now required for join fields and custom fields.
+- The `ecto_type` option is now required for join fields and custom fields.
 - Raise a `Flop.UnknownFieldError` instead of a `FunctionClauseError` when
   `Flop.Schema.field_info/2`, `Flop.Schema.get_field/2` or
   `Flop.Filter.allowed_operators/2` is called with a field that is not
@@ -19,6 +19,8 @@
 - Fall back to the first page or to offset `0` in `Flop.set_page/2` and
   `Flop.set_offset/2` if the given string is not a number, instead of raising
   an `ArgumentError`.
+- Merge adapter options passed at the call site with the options set on the
+  backend module, instead of discarding them.
 
 ### Security
 

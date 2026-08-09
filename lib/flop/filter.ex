@@ -244,9 +244,7 @@ defmodule Flop.Filter do
   end
 
   defp get_repo(opts) do
-    # use nested adapter_opts if set
-    opts = Flop.get_option(:adapter_opts, opts) || opts
-    Flop.get_option(:repo, opts)
+    Flop.adapter_opts(opts)[:repo]
   end
 
   @spec validate_filterable(Changeset.t(), module | nil) :: Changeset.t()

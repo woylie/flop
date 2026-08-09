@@ -1239,6 +1239,34 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       assert meta.errors == [filters: [[value: [{"is invalid", []}]]]]
     end
 
+    test "resolves the repo for binary_id validation like it does for queries",
+         %{ecto_adapter: ecto_adapter} do
+      flop = %{filters: [%{field: :id, value: "foo"}]}
+
+      # the cast type for binary_id depends on the repo adapter
+      case ecto_adapter do
+        :postgres ->
+          assert {:error, meta} =
+                   Flop.validate(flop, for: Fruit, backend: TestProvider)
+
+          assert meta.errors == [filters: [[value: [{"is invalid", []}]]]]
+
+        _ ->
+          assert {:ok, %Flop{}} =
+                   Flop.validate(flop, for: Fruit, backend: TestProvider)
+      end
+
+      # TestProvider uses postgrex, which casts binary IDs as UUID. NotARealRepo
+      # is not defined, which means the value is cast as :binary_id. If
+      # this assertion passes, the repo was successfully set via the option.
+      assert {:ok, %Flop{}} =
+               Flop.validate(flop,
+                 for: Fruit,
+                 backend: TestProvider,
+                 repo: NotARealRepo
+               )
+    end
+
     test "validates filter value for an array of binary_ids" do
       fruit_ids = Enum.map(1..3, fn _ -> Ecto.UUID.generate() end)
       %{id: binary_id} = insert(:fruit, references: fruit_ids)

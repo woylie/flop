@@ -430,6 +430,24 @@ defmodule Flop do
   3. Module-level options in the config (backend) module
   4. Global options in the application environment
   5. Library defaults
+
+  ## Adapter option look-up
+
+  Adapter options follow the same order, but the levels are merged instead of
+  the first match winning, so that you can set a repo on a backend module and
+  override it for a single call.
+
+      defmodule MyApp.Flop do
+        use Flop, repo: MyApp.Repo, query_opts: [prefix: "public"]
+      end
+
+      # queries MyApp.ReplicaRepo with prefix: "public"
+      MyApp.Flop.all(MyApp.Pet, flop, repo: MyApp.ReplicaRepo)
+
+  `:query_opts` is itself a keyword list and is merged key by key, so the
+  example above keeps the prefix set on the backend module. Every other adapter
+  option is replaced by the more specific level. Within one level, an option set
+  at the root wins over the same option nested under `:adapter_opts`.
   """
   @type option ::
           {:cursor_value_func, (any, [atom] -> map)}
@@ -447,7 +465,7 @@ defmodule Flop do
           | {:replace_invalid_params, boolean}
           | {:max_cursor_size, pos_integer}
           | {:extra_opts, Keyword.t()}
-          | {:adapter_opts, adapter_option()}
+          | {:adapter_opts, [adapter_option()]}
           | adapter_option()
           | private_option()
 
@@ -2208,6 +2226,58 @@ defmodule Flop do
 
   defp global_option(key) when is_atom(key) do
     Application.get_env(:flop, key)
+  end
+
+  @doc false
+  @spec adapter_opts([option()]) :: keyword
+  def adapter_opts(opts) do
+    levels = [
+      global_adapter_opts(),
+      backend_adapter_opts(opts[:backend]),
+      Keyword.get(opts, :adapter_opts, []),
+      Keyword.take(opts, [:repo, :query_opts])
+    ]
+
+    levels
+    |> Enum.map(&reject_nil_values/1)
+    |> Enum.reduce([], &merge_adapter_opts(&2, &1))
+  end
+
+  # a nil value means the option was not set, matching `get_option/3`, which
+  # falls through to the next level rather than returning nil
+  defp reject_nil_values(opts) do
+    Enum.reject(opts, fn {_key, value} -> is_nil(value) end)
+  end
+
+  defp global_adapter_opts do
+    Enum.reduce(
+      [:repo, :query_opts],
+      Application.get_env(:flop, :adapter_opts, []),
+      fn key, acc ->
+        case global_option(key) do
+          nil -> acc
+          value -> merge_adapter_opts(acc, [{key, value}])
+        end
+      end
+    )
+  end
+
+  defp backend_adapter_opts(nil), do: []
+
+  defp backend_adapter_opts(module) when is_atom(module) do
+    backend_option(module, :adapter_opts) || []
+  end
+
+  # `:query_opts` is itself a keyword list, so a more specific level merges into
+  # the one below it. Every other option replaces the one below.
+  defp merge_adapter_opts(lower, higher) do
+    Keyword.merge(lower, higher, fn
+      :query_opts, lower_opts, higher_opts ->
+        Keyword.merge(lower_opts, higher_opts)
+
+      _key, _lower, higher ->
+        higher
+    end)
   end
 
   @doc """
