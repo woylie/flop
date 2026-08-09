@@ -496,6 +496,30 @@ defprotocol Flop.Schema do
 
   - `ecto_type: {:from_schema, MyApp.Pet, :mood}`
 
+  Naming a module here makes it a compile-time dependency of your schema, so
+  changing `MyApp.Pet` recompiles every schema that references it. This is not
+  specific to Flop: `Ecto.Schema` reads the `@derive` attribute at compile time,
+  which turns any module named in it into a compile-time dependency. Setting the
+  type directly (`ecto_type: :string`) avoids it. If you want the reference and
+  not the dependency, build the module name without an alias:
+
+      @pet Module.concat(["MyApp", "Pet"])
+
+      @derive {
+        Flop.Schema,
+        filterable: [:pet_mood],
+        sortable: [],
+        adapter_opts: [
+          join_fields: [
+            pet_mood: [
+              binding: :pets,
+              field: :mood,
+              ecto_type: {:from_schema, @pet, :mood}
+            ]
+          ]
+        ]
+      }
+
   Note that `Flop.Phoenix` encodes all filters in query string using
   `Plug.Conn.Query`. It is expected that filter values can be converted to
   strings with `to_string/1`. If you are using an Ecto custom type that casts
@@ -614,6 +638,9 @@ defprotocol Flop.Schema do
   Or reference a schema field:
 
   `{:from_schema, MyApp.Pet, :mood}`
+
+  This makes the referenced module a compile-time dependency of your schema. See
+  the module documentation for the reason and for a way to avoid it.
 
   Or build an adhoc Ecto.Enum:
 
