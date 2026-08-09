@@ -152,6 +152,7 @@ defmodule Flop.Validation do
       replace_invalid_params?
     )
     |> put_default_limit(:first, opts)
+    |> validate_cursor_order_fields(opts)
     |> Changeset.validate_required([:first, :order_by])
     |> Changeset.validate_length(:order_by, min: 1)
     |> validate_and_maybe_delete(
@@ -173,6 +174,7 @@ defmodule Flop.Validation do
       replace_invalid_params?
     )
     |> put_default_limit(:last, opts)
+    |> validate_cursor_order_fields(opts)
     |> Changeset.validate_required([:last, :order_by])
     |> Changeset.validate_length(:order_by, min: 1)
     |> validate_and_maybe_delete(
@@ -298,6 +300,63 @@ defmodule Flop.Validation do
     else
       changeset
     end
+  end
+
+  defp validate_cursor_order_fields(changeset, opts) do
+    sortable_fields = Flop.get_option(:sortable, opts)
+    module = opts[:for]
+
+    if module && sortable_fields do
+      order_by = get_value(changeset, :order_by) || []
+      struct = struct(module)
+
+      unsupported =
+        Enum.filter(order_by, fn field ->
+          field in sortable_fields and unsupported_cursor_field?(struct, field)
+        end)
+
+      remove_unsupported_cursor_fields(
+        changeset,
+        unsupported,
+        opts[:replace_invalid_params]
+      )
+    else
+      changeset
+    end
+  end
+
+  defp unsupported_cursor_field?(struct, field) do
+    case Flop.Schema.field_info(struct, field) do
+      %FieldInfo{extra: %{type: type}} when type in [:compound, :alias] -> true
+      _ -> false
+    end
+  end
+
+  defp remove_unsupported_cursor_fields(changeset, [], _), do: changeset
+
+  defp remove_unsupported_cursor_fields(changeset, unsupported, true) do
+    order_by = get_value(changeset, :order_by) || []
+    order_directions = get_value(changeset, :order_directions) || []
+
+    {new_order_by, new_order_directions} =
+      remove_unsortable_fields(
+        order_by,
+        order_directions,
+        order_by -- unsupported
+      )
+
+    changeset
+    |> Changeset.put_change(:order_by, new_order_by)
+    |> Changeset.put_change(:order_directions, new_order_directions)
+  end
+
+  defp remove_unsupported_cursor_fields(changeset, unsupported, _) do
+    Changeset.add_error(
+      changeset,
+      :order_by,
+      "cursor pagination is not supported for compound and alias fields",
+      unsupported_fields: unsupported
+    )
   end
 
   defp remove_unsortable_fields(order_by, order_directions, sortable_fields) do

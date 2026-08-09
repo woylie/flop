@@ -355,16 +355,18 @@ defmodule Flop.Adapter.Ecto do
 
   defp cursor_dynamic([]), do: true
 
-  defp cursor_dynamic([{_, _, _, %FieldInfo{extra: %{type: :compound}}} | t]) do
-    Logger.warning(
-      "Flop: Cursor pagination is not supported for compound fields. Ignored."
-    )
+  # only reachable with an unvalidated Flop struct
+  defp cursor_dynamic([{_, _, _, %FieldInfo{extra: %{type: type}}} | _])
+       when type in [:compound, :alias] do
+    raise ArgumentError, """
+    cursor pagination is not supported for #{type} fields
 
-    cursor_dynamic(t)
-  end
+    The order fields of a Flop used for cursor pagination must be normal or
+    join fields. #{String.capitalize(to_string(type))} fields can only be used
+    with offset or page based pagination.
 
-  defp cursor_dynamic([{_, _, _, %FieldInfo{extra: %{type: :alias}}} | _]) do
-    raise "alias fields are not supported in cursor pagination"
+    Use Flop.validate/2 to turn this exception into a validation error.
+    """
   end
 
   # no cursor value, last cursor field

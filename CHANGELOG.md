@@ -9,6 +9,8 @@
   `Flop.Schema.field_info/2`, `Flop.Schema.get_field/2` or
   `Flop.Filter.allowed_operators/2` is called with a field that is not
   configured in the schema.
+- Reject compound and alias fields as order fields for cursor pagination during
+  validation. They can still be used with offset and page based pagination.
 
 ### Fixed
 

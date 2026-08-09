@@ -20,6 +20,24 @@ defmodule Flop.ValidationTest do
       pagination_types: [:first, :last]
   end
 
+  defmodule Thing do
+    use Ecto.Schema
+
+    @derive {Flop.Schema,
+             filterable: [],
+             sortable: [:name, :full_name, :thing_count],
+             adapter_opts: [
+               compound_fields: [full_name: [:family_name, :given_name]],
+               alias_fields: [:thing_count]
+             ]}
+
+    schema "things" do
+      field :name, :string
+      field :family_name, :string
+      field :given_name, :string
+    end
+  end
+
   defp validate(params, opts \\ []) do
     params
     |> Validation.changeset(opts)
@@ -714,6 +732,74 @@ defmodule Flop.ValidationTest do
 
       assert {:ok, %Flop{before: nil, decoded_cursor: nil}} =
                validate(params, for: Pet, replace_invalid_params: true)
+    end
+  end
+
+  describe "cursor order fields" do
+    @cursor Cursor.encode(%{name: "a"})
+
+    test "rejects a compound field as cursor order field" do
+      params = %{first: 2, after: @cursor, order_by: [:full_name]}
+      assert {:error, changeset} = validate(params, for: Thing)
+
+      assert errors_on(changeset)[:order_by] == [
+               "cursor pagination is not supported for compound and alias fields"
+             ]
+    end
+
+    test "rejects an alias field as cursor order field" do
+      params = %{first: 2, after: @cursor, order_by: [:thing_count]}
+      assert {:error, changeset} = validate(params, for: Thing)
+      assert errors_on(changeset)[:order_by] != nil
+    end
+
+    test "rejects them for last/before as well" do
+      params = %{last: 2, before: @cursor, order_by: [:full_name]}
+      assert {:error, changeset} = validate(params, for: Thing)
+      assert errors_on(changeset)[:order_by] != nil
+    end
+
+    test "names the offending fields in the error" do
+      params = %{first: 2, after: @cursor, order_by: [:full_name, :thing_count]}
+      assert {:error, changeset} = validate(params, for: Thing)
+
+      assert {_, opts} = changeset.errors[:order_by]
+      assert opts[:unsupported_fields] == [:full_name, :thing_count]
+    end
+
+    test "removes them with replace_invalid_params" do
+      params = %{
+        first: 2,
+        after: @cursor,
+        order_by: [:full_name, :name, :thing_count],
+        order_directions: [:desc, :asc, :desc]
+      }
+
+      assert {:ok, %Flop{} = flop} =
+               validate(params, for: Thing, replace_invalid_params: true)
+
+      assert flop.order_by == [:name]
+      assert flop.order_directions == [:asc]
+    end
+
+    test "allows them for offset pagination" do
+      params = %{limit: 2, offset: 0, order_by: [:full_name, :thing_count]}
+
+      assert {:ok, %Flop{order_by: [:full_name, :thing_count]}} =
+               validate(params, for: Thing)
+    end
+
+    test "allows them for page pagination" do
+      params = %{page: 1, page_size: 2, order_by: [:full_name, :thing_count]}
+
+      assert {:ok, %Flop{order_by: [:full_name, :thing_count]}} =
+               validate(params, for: Thing)
+    end
+
+    test "allows normal fields for cursor pagination" do
+      params = %{first: 2, after: @cursor, order_by: [:name]}
+
+      assert {:ok, %Flop{order_by: [:name]}} = validate(params, for: Thing)
     end
   end
 
