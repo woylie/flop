@@ -5,6 +5,10 @@
 ### Changed
 
 - The `ecto_type` options is now required for join fields and custom fields.
+- Raise a `Flop.UnknownFieldError` instead of a `FunctionClauseError` when
+  `Flop.Schema.field_info/2`, `Flop.Schema.get_field/2` or
+  `Flop.Filter.allowed_operators/2` is called with a field that is not
+  configured in the schema.
 
 ### Fixed
 

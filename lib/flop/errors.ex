@@ -235,11 +235,19 @@ defmodule Flop.UnknownFieldError do
     }
   end
 
-  def message(%{
-        known_fields: known_fields,
-        unknown_fields: unknown_fields,
-        option: option
-      }) do
+  def message(%{unknown_fields: unknown_fields, option: nil} = err) do
+    """
+    unknown field(s)
+
+    These fields are not configured in your Flop schema:
+
+        #{inspect(unknown_fields, pretty: true, width: 76)}
+
+    #{known_fields(err)}
+    """
+  end
+
+  def message(%{unknown_fields: unknown_fields, option: option} = err) do
     """
     unknown #{option} field(s)
 
@@ -247,9 +255,15 @@ defmodule Flop.UnknownFieldError do
 
         #{inspect(unknown_fields, pretty: true, width: 76)}
 
+    #{known_fields(err)}
+    """
+  end
+
+  defp known_fields(%{known_fields: known_fields}) do
+    """
     The known fields in your schema are:
 
-        #{inspect(known_fields, pretty: true, width: 76)}
+        #{inspect(known_fields, pretty: true, width: 76)}\
     """
   end
 end

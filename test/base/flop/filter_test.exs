@@ -179,5 +179,14 @@ defmodule Flop.FilterTest do
                :not_empty
              ]
     end
+
+    test "raises error for unknown field" do
+      error =
+        assert_raise Flop.UnknownFieldError, fn ->
+          Filter.allowed_operators(Pet, :nonexistent)
+        end
+
+      assert Exception.message(error) =~ ":nonexistent"
+    end
   end
 end
