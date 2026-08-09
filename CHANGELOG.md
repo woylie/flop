@@ -16,6 +16,12 @@
   `Flop.set_offset/2` if the given string is not a number, instead of raising
   an `ArgumentError`.
 
+### Security
+
+- Remove the debug log on validation errors. It logged the changeset, which
+  contains the user-supplied filter values. The errors are returned to the
+  caller in the `Flop.Meta` struct, so nothing is lost.
+
 ### How to upgrade
 
 Add the `ecto_type` options to all `Flop.Schema` derivations that don't have it
