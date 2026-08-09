@@ -914,7 +914,7 @@ defimpl Flop.Schema, for: Any do
   defp validate_default_pagination_type!(nil, _), do: :ok
 
   defp validate_default_pagination_type!(default_type, types) do
-    unless is_nil(types) || default_type in types do
+    if not is_nil(types) and default_type not in types do
       raise Flop.InvalidDefaultPaginationTypeError,
         default_pagination_type: default_type,
         pagination_types: types
@@ -926,7 +926,7 @@ defimpl Flop.Schema, for: Any do
     known_fields = MapSet.new(known_fields)
     unknown_fields = MapSet.difference(all_fields, known_fields)
 
-    unless Enum.empty?(unknown_fields) do
+    if not Enum.empty?(unknown_fields) do
       raise Flop.UnknownFieldError,
         known_fields: MapSet.to_list(known_fields),
         unknown_fields: MapSet.to_list(unknown_fields),
@@ -945,7 +945,7 @@ defimpl Flop.Schema, for: Any do
       |> MapSet.new()
       |> MapSet.difference(sortable_fields)
 
-    unless Enum.empty?(unsortable_fields) do
+    if not Enum.empty?(unsortable_fields) do
       raise Flop.InvalidDefaultOrderError,
         sortable_fields: MapSet.to_list(sortable_fields),
         unsortable_fields: MapSet.to_list(unsortable_fields)
