@@ -1890,7 +1890,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                )
 
       error =
-        assert_raise RuntimeError,
+        assert_raise ArgumentError,
                      fn ->
                        Flop.run(
                          q,
@@ -1904,7 +1904,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                      end
 
       assert error.message =~
-               "alias fields are not supported in cursor pagination"
+               "cursor pagination is not supported for alias fields"
     end
 
     test "nil values for cursors are ignored when not using for option" do
