@@ -12,6 +12,9 @@
   `nil`, instead of raising a `Protocol.UndefinedError`.
 - Build the meta struct in `Flop.meta/3` if neither a page size nor a limit is
   set, instead of raising an `ArithmeticError`.
+- Fall back to the first page or to offset `0` in `Flop.set_page/2` and
+  `Flop.set_offset/2` if the given string is not a number, instead of raising
+  an `ArgumentError`.
 
 ### How to upgrade
 
