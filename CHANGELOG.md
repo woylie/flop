@@ -6,6 +6,13 @@
 
 - The `ecto_type` options is now required for join fields and custom fields.
 
+### Fixed
+
+- Return an empty list from `Flop.aliases/2` if the `order_by` parameter is
+  `nil`, instead of raising a `Protocol.UndefinedError`.
+- Build the meta struct in `Flop.meta/3` if neither a page size nor a limit is
+  set, instead of raising an `ArithmeticError`.
+
 ### How to upgrade
 
 Add the `ecto_type` options to all `Flop.Schema` derivations that don't have it

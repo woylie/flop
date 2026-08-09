@@ -938,8 +938,8 @@ defmodule Flop do
     total_count = count(q, flop, opts)
     page_size = flop.page_size || flop.limit
     total_pages = get_total_pages(total_count, page_size)
-    current_offset = get_current_offset(flop)
-    current_page = get_current_page(flop, total_pages)
+    current_offset = get_current_offset(flop, page_size)
+    current_page = get_current_page(flop, page_size, total_pages)
 
     {has_previous_page?, previous_offset, previous_page} =
       get_previous(current_offset, current_page, page_size)
@@ -972,9 +972,12 @@ defmodule Flop do
     }
   end
 
-  defp get_previous(offset, current_page, limit) do
+  defp get_previous(offset, current_page, page_size) do
     has_previous? = offset > 0
-    previous_offset = if has_previous?, do: max(0, offset - limit), else: nil
+
+    previous_offset =
+      if has_previous? && page_size, do: max(0, offset - page_size), else: nil
+
     previous_page = if current_page > 1, do: current_page - 1, else: nil
 
     {has_previous?, previous_offset, previous_page}
@@ -997,18 +1000,20 @@ defmodule Flop do
   defp get_total_pages(_, nil), do: 1
   defp get_total_pages(total_count, limit), do: ceil(total_count / limit)
 
-  defp get_current_offset(%Flop{offset: nil, page: nil}), do: 0
+  defp get_current_offset(%Flop{offset: nil, page: nil}, _), do: 0
+  defp get_current_offset(%Flop{offset: nil}, nil = _page_size), do: 0
 
-  defp get_current_offset(%Flop{offset: nil, page: page, page_size: page_size}),
+  defp get_current_offset(%Flop{offset: nil, page: page}, page_size),
     do: (page - 1) * page_size
 
-  defp get_current_offset(%Flop{offset: offset}), do: offset
+  defp get_current_offset(%Flop{offset: offset}, _), do: offset
 
-  defp get_current_page(%Flop{offset: nil, page: nil}, _), do: 1
-  defp get_current_page(%Flop{offset: nil, page: page}, _), do: page
+  defp get_current_page(%Flop{offset: nil, page: nil}, _, _), do: 1
+  defp get_current_page(%Flop{offset: nil, page: page}, _, _), do: page
+  defp get_current_page(%Flop{}, nil = _page_size, _), do: 1
 
-  defp get_current_page(%Flop{limit: limit, offset: offset, page: nil}, total),
-    do: min(ceil(offset / limit) + 1, total)
+  defp get_current_page(%Flop{offset: offset}, page_size, total),
+    do: min(ceil(offset / page_size) + 1, total)
 
   ## Ordering
 
@@ -2726,6 +2731,12 @@ defmodule Flop do
       iex> aliases(%Flop{order_by: [:name]}, MyApp.Owner)
       []
 
+  The same applies if the `order_by` parameter is `nil`, which is the case if
+  no order was requested and no default order is configured.
+
+      iex> aliases(%Flop{order_by: nil}, MyApp.Owner)
+      []
+
   You can use this to dynamically build the select clause needed for the query.
 
   For more information about alias fields, refer to the module documentation of
@@ -2735,6 +2746,8 @@ defmodule Flop do
   @doc group: :queries
   @spec aliases(Flop.t(), module) :: [atom]
   def aliases(%Flop{order_by: order_by}, module) when is_atom(module) do
+    order_by = order_by || []
+
     if order_by == [] do
       []
     else

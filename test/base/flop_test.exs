@@ -191,6 +191,34 @@ defmodule FlopTest do
     end
   end
 
+  describe "meta/3" do
+    test "returns meta struct without limit" do
+      assert %Meta{} = meta = Flop.meta([], %Flop{offset: 10}, count: 100)
+      assert meta.current_offset == 10
+      assert meta.current_page == 1
+      assert meta.page_size == nil
+      assert meta.previous_offset == nil
+      assert meta.total_pages == 1
+    end
+
+    test "returns meta struct without page size" do
+      assert %Meta{} = meta = Flop.meta([], %Flop{page: 3}, count: 100)
+      assert meta.current_offset == 0
+      assert meta.current_page == 3
+    end
+  end
+
+  describe "aliases/2" do
+    test "returns alias fields" do
+      assert Flop.aliases(%Flop{order_by: [:name, :pet_count]}, MyApp.Owner) ==
+               [:pet_count]
+    end
+
+    test "returns empty list if order_by is nil" do
+      assert Flop.aliases(%Flop{order_by: nil}, MyApp.Owner) == []
+    end
+  end
+
   describe "named_bindings/3" do
     test "returns used binding names with order_by and filters" do
       flop = %Flop{
