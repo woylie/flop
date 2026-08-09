@@ -39,6 +39,22 @@ defmodule Flop.Adapter.Ecto do
     :ends_with
   ]
 
+  @compound_operators [
+    :=~,
+    :like,
+    :not_like,
+    :like_and,
+    :like_or,
+    :ilike,
+    :not_ilike,
+    :ilike_and,
+    :ilike_or,
+    :starts_with,
+    :ends_with,
+    :empty,
+    :not_empty
+  ]
+
   @backend_options [
     repo: [required: true],
     query_opts: [type: :keyword_list, default: []]
@@ -152,21 +168,7 @@ defmodule Flop.Adapter.Ecto do
       {field,
        %FieldInfo{
          ecto_type: :string,
-         operators: [
-           :=~,
-           :like,
-           :not_like,
-           :like_and,
-           :like_or,
-           :ilike,
-           :not_ilike,
-           :ilike_and,
-           :ilike_or,
-           :starts_with,
-           :ends_with,
-           :empty,
-           :not_empty
-         ],
+         operators: @compound_operators,
          extra: %{fields: fields, type: :compound}
        }}
     end)
@@ -587,31 +589,23 @@ defmodule Flop.Adapter.Ecto do
     end)
   end
 
+  # only reachable with an unvalidated Flop struct
   defp build_op(
          _schema_struct,
          %FieldInfo{extra: %{type: :compound}},
-         %Filter{op: op, value: _value} = _filter
+         %Filter{field: field, op: op}
        )
-       when op in [
-              :==,
-              :!=,
-              :<=,
-              :<,
-              :>=,
-              :>,
-              :in,
-              :not_in,
-              :contains,
-              :not_contains
-            ] do
-    # value = value |> String.split() |> Enum.join(" ")
-    # filter = %{filter | value: value}
-    # compare value with concatenated fields
-    Logger.warning(
-      "Flop: Operator '#{op}' not supported for compound fields. Ignored."
-    )
+       when op not in @compound_operators do
+    raise ArgumentError, """
+    operator #{inspect(op)} is not supported for compound fields
 
-    true
+    The filter on #{inspect(field)} cannot be applied. Compound fields support
+    these operators:
+
+    #{Flop.Misc.indent(@compound_operators)}
+
+    Use Flop.validate/2 to turn this exception into a validation error.
+    """
   end
 
   defp build_op(
