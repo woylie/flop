@@ -54,6 +54,31 @@ config :flop, repo: MyApp.Repo
 Instead of configuring Flop globally, you can also use a configuration module.
 Please refer to the Flop module documentation for more information.
 
+### Compatibility
+
+This package is tested against the Elixir and OTP versions that are still
+supported upstream. Older versions down to the requirement in `mix.exs` may
+still work, but they are not covered by CI and not officially supported.
+
+### Supported databases
+
+| Database | Status                          |
+| -------- | ------------------------------- |
+| Postgres | Supported and tested in CI      |
+| MySQL    | Experimental, not yet supported |
+| SQLite   | Experimental, not yet supported |
+
+Flop builds queries with `Ecto.Query` and does not use fragments, so most of the
+library works on any database Ecto supports, but only Postgres is tested in CI.
+The MySQL and SQLite test suites do not pass yet, and the work needed to finish
+them is tracked in
+[issue #514](https://github.com/woylie/flop/issues/514) and
+[issue #494](https://github.com/woylie/flop/issues/494).
+
+Some behaviour depends on the repo adapter: for example, filter values for
+`binary_id` fields are validated as UUIDs on Postgres, but not on SQLite, so the
+same parameters can be rejected by one database and accepted by another.
+
 ## Usage
 
 ### Define sortable and filterable fields
@@ -448,6 +473,8 @@ mix credo
 mix compile --warnings-as-errors
 mix test --warnings-as-errors
 mix test.postgres --warnings-as-errors
+mix hex.audit
+mix docs --warnings-as-errors
 mix dialyzer
 ```
 

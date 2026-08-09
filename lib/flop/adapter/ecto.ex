@@ -499,21 +499,11 @@ defmodule Flop.Adapter.Ecto do
   end
 
   defp apply_on_repo(repo_fn, flop_fn, args, opts) do
-    # use nested adapter_opts if set
-    opts = Flop.get_option(:adapter_opts, opts) || opts
+    adapter_opts = Flop.adapter_opts(opts)
+    repo = adapter_opts[:repo] || raise Flop.NoRepoError, function_name: flop_fn
+    query_opts = Keyword.get(adapter_opts, :query_opts, [])
 
-    repo =
-      Flop.get_option(:repo, opts) ||
-        raise Flop.NoRepoError, function_name: flop_fn
-
-    opts = query_opts(opts)
-
-    apply(repo, repo_fn, args ++ [opts])
-  end
-
-  defp query_opts(opts) do
-    default_opts = Application.get_env(:flop, :query_opts, [])
-    Keyword.merge(default_opts, Keyword.get(opts, :query_opts, []))
+    apply(repo, repo_fn, args ++ [query_opts])
   end
 
   ## Filter query builder

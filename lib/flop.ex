@@ -64,10 +64,9 @@ defmodule Flop do
   > #### `use Flop` {: .info}
   >
   > When you `use Flop`, the Flop module will define wrapper functions around
-  > all of the `Flop` functions that take a query, the Flop parameters, and
-  > options as arguments. The options passed to `use Flop` will be used as
-  > default options in all the wrapper functions, but you can still override
-  > them.
+  > the `Flop` functions listed below. The options passed to `use Flop` will be
+  > used as default options in all the wrapper functions, but you can still
+  > override them.
 
   The wrapped functions are:
 
@@ -79,11 +78,16 @@ defmodule Flop do
   - `Flop.paginate/3`
   - `Flop.query/3`
   - `Flop.run/3`
+  - `Flop.validate/2`
+  - `Flop.validate!/2`
   - `Flop.validate_and_run/3`
   - `Flop.validate_and_run!/3`
 
   So instead of using `Flop.validate_and_run/3`, you would call
   `MyApp.Flop.validate_and_run/3`.
+
+  The module also defines a `__flop_options__/0` function that returns the
+  options passed to `use Flop`.
 
   If you have both a config module and a global application config, Flop will
   fall back to the application config if an option is not set.
@@ -426,6 +430,24 @@ defmodule Flop do
   3. Module-level options in the config (backend) module
   4. Global options in the application environment
   5. Library defaults
+
+  ## Adapter option look-up
+
+  Adapter options follow the same order, but the levels are merged instead of
+  the first match winning, so that you can set a repo on a backend module and
+  override it for a single call.
+
+      defmodule MyApp.Flop do
+        use Flop, repo: MyApp.Repo, query_opts: [prefix: "public"]
+      end
+
+      # queries MyApp.ReplicaRepo with prefix: "public"
+      MyApp.Flop.all(MyApp.Pet, flop, repo: MyApp.ReplicaRepo)
+
+  `:query_opts` is itself a keyword list and is merged key by key, so the
+  example above keeps the prefix set on the backend module. Every other adapter
+  option is replaced by the more specific level. Within one level, an option set
+  at the root wins over the same option nested under `:adapter_opts`.
   """
   @type option ::
           {:cursor_value_func, (any, [atom] -> map)}
@@ -443,7 +465,7 @@ defmodule Flop do
           | {:replace_invalid_params, boolean}
           | {:max_cursor_size, pos_integer}
           | {:extra_opts, Keyword.t()}
-          | {:adapter_opts, adapter_option()}
+          | {:adapter_opts, [adapter_option()]}
           | adapter_option()
           | private_option()
 
@@ -597,6 +619,7 @@ defmodule Flop do
   Also note that you will need to pass the `for` option in order for Flop to be
   able to find your join, compound, alias and custom field configuration.
   """
+  @doc since: "0.1.0"
   @doc group: :queries
   @spec query(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def query(q, %Flop{} = flop, opts \\ []) do
@@ -756,7 +779,8 @@ defmodule Flop do
   end
 
   @doc """
-  Same as `Flop.validate_and_run/3`, but raises on error.
+  Same as `Flop.validate_and_run/3`, but raises a `Flop.InvalidParamsError` if
+  the parameters are invalid.
   """
   @doc since: "0.6.0"
   @doc group: :queries
@@ -862,7 +886,7 @@ defmodule Flop do
   to render the pagination links anyway, so this shouldn't be a problem.
 
   Unless cursor-based pagination is used, this function will run a query to
-  figure get the total count of matching records.
+  figure out the total count of matching records.
 
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
@@ -1028,6 +1052,7 @@ defmodule Flop do
   Note that you will need to pass the `for` option in order for Flop to be
   able to find your join, compound, alias and custom field configuration.
   """
+  @doc since: "0.1.0"
   @doc group: :queries
   @spec order_by(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def order_by(q, flop, opts \\ [])
@@ -1114,6 +1139,7 @@ defmodule Flop do
   Note that you will need to pass the `for` option in order for Flop to be
   able to find your join, compound, alias and custom field configuration.
   """
+  @doc since: "0.1.0"
   @doc group: :queries
   @spec paginate(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def paginate(q, flop, opts \\ [])
@@ -1287,6 +1313,7 @@ defmodule Flop do
   Note that you will need to pass the `for` option in order for Flop to be
   able to find your join, compound, alias and custom field configuration.
   """
+  @doc since: "0.1.0"
   @doc group: :queries
   @spec filter(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def filter(q, flop, opt \\ [])
@@ -1368,6 +1395,7 @@ defmodule Flop do
   precisely: a field name that doesn't exist as an atom) will result in
   the error message `is invalid`. This might change in the future.
   """
+  @doc since: "0.1.0"
   @doc group: :queries
   @spec validate(Flop.t() | map, [option()]) ::
           {:ok, Flop.t()} | {:error, Meta.t()}
@@ -1433,7 +1461,7 @@ defmodule Flop do
   defp filter_to_map(%{} = filter), do: filter
 
   @doc """
-  Same as `Flop.validate/2`, but raises an `Ecto.InvalidChangesetError` if the
+  Same as `Flop.validate/2`, but raises a `Flop.InvalidParamsError` if the
   parameters are invalid.
   """
   @doc group: :queries
@@ -2200,6 +2228,58 @@ defmodule Flop do
     Application.get_env(:flop, key)
   end
 
+  @doc false
+  @spec adapter_opts([option()]) :: keyword
+  def adapter_opts(opts) do
+    levels = [
+      global_adapter_opts(),
+      backend_adapter_opts(opts[:backend]),
+      Keyword.get(opts, :adapter_opts, []),
+      Keyword.take(opts, [:repo, :query_opts])
+    ]
+
+    levels
+    |> Enum.map(&reject_nil_values/1)
+    |> Enum.reduce([], &merge_adapter_opts(&2, &1))
+  end
+
+  # a nil value means the option was not set, matching `get_option/3`, which
+  # falls through to the next level rather than returning nil
+  defp reject_nil_values(opts) do
+    Enum.reject(opts, fn {_key, value} -> is_nil(value) end)
+  end
+
+  defp global_adapter_opts do
+    Enum.reduce(
+      [:repo, :query_opts],
+      Application.get_env(:flop, :adapter_opts, []),
+      fn key, acc ->
+        case global_option(key) do
+          nil -> acc
+          value -> merge_adapter_opts(acc, [{key, value}])
+        end
+      end
+    )
+  end
+
+  defp backend_adapter_opts(nil), do: []
+
+  defp backend_adapter_opts(module) when is_atom(module) do
+    backend_option(module, :adapter_opts) || []
+  end
+
+  # `:query_opts` is itself a keyword list, so a more specific level merges into
+  # the one below it. Every other option replaces the one below.
+  defp merge_adapter_opts(lower, higher) do
+    Keyword.merge(lower, higher, fn
+      :query_opts, lower_opts, higher_opts ->
+        Keyword.merge(lower_opts, higher_opts)
+
+      _key, _lower, higher ->
+        higher
+    end)
+  end
+
   @doc """
   Converts key/value filter parameters at the root of a map, converts them into
   a list of filter parameter maps and nests them under the `:filters` key.
@@ -2294,6 +2374,7 @@ defmodule Flop do
     |> Map.drop(fields)
   end
 
+  # an empty map has no keys to check and is treated as having atom keys
   defp has_atom_keys?(%{} = map) do
     map
     |> Map.keys()
@@ -2457,7 +2538,14 @@ defmodule Flop do
       ...> )
       [%{field: :name, op: :ilike_or, value: "George"}]
 
-  See also `Flop.Filter.new/2`.
+  Field names that do not exist in the schema are kept, so that validation can
+  reject them with an error.
+
+      iex> map_to_filter_params(%{"doesnotexist" => 8})
+      [%{"field" => "doesnotexist", "op" => :==, "value" => 8}]
+
+  See also `Flop.Filter.new/2`, which builds `Flop.Filter` structs instead of
+  parameters, and which drops unknown field names for that reason.
   """
   @doc since: "0.14.0"
   @doc group: :parameters

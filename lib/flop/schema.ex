@@ -496,6 +496,30 @@ defprotocol Flop.Schema do
 
   - `ecto_type: {:from_schema, MyApp.Pet, :mood}`
 
+  Naming a module here makes it a compile-time dependency of your schema, so
+  changing `MyApp.Pet` recompiles every schema that references it. This is not
+  specific to Flop: `Ecto.Schema` reads the `@derive` attribute at compile time,
+  which turns any module named in it into a compile-time dependency. Setting the
+  type directly (`ecto_type: :string`) avoids it. If you want the reference and
+  not the dependency, build the module name without an alias:
+
+      @pet Module.concat(["MyApp", "Pet"])
+
+      @derive {
+        Flop.Schema,
+        filterable: [:pet_mood],
+        sortable: [],
+        adapter_opts: [
+          join_fields: [
+            pet_mood: [
+              binding: :pets,
+              field: :mood,
+              ecto_type: {:from_schema, @pet, :mood}
+            ]
+          ]
+        ]
+      }
+
   Note that `Flop.Phoenix` encodes all filters in query string using
   `Plug.Conn.Query`. It is expected that filter values can be converted to
   strings with `to_string/1`. If you are using an Ecto custom type that casts
@@ -615,6 +639,9 @@ defprotocol Flop.Schema do
 
   `{:from_schema, MyApp.Pet, :mood}`
 
+  This makes the referenced module a compile-time dependency of your schema. See
+  the module documentation for the reason and for a way to avoid it.
+
   Or build an adhoc Ecto.Enum:
 
   - `{:ecto_enum, [:one, :two]}`
@@ -677,6 +704,7 @@ defprotocol Flop.Schema do
         }
       }
   """
+  @doc since: "0.22.0"
   @spec field_info(any, atom) :: Flop.FieldInfo.t()
   def field_info(data, field)
 
@@ -700,6 +728,7 @@ defprotocol Flop.Schema do
         :reverse_name
       ]
   """
+  @doc since: "0.1.0"
   @spec filterable(any) :: [atom]
   def filterable(data)
 
@@ -753,6 +782,7 @@ defprotocol Flop.Schema do
       iex> Flop.Schema.sortable(%MyApp.Pet{})
       [:name, :age, :owner_name, :owner_age]
   """
+  @doc since: "0.1.0"
   @spec sortable(any) :: [atom]
   def sortable(data)
 
@@ -860,8 +890,6 @@ defimpl Flop.Schema, for: Any do
 
     quote do
       defimpl Flop.Schema, for: unquote(module) do
-        import Ecto.Query
-
         def default_limit(_) do
           unquote(default_limit)
         end
@@ -913,7 +941,7 @@ defimpl Flop.Schema, for: Any do
   defp validate_default_pagination_type!(nil, _), do: :ok
 
   defp validate_default_pagination_type!(default_type, types) do
-    unless is_nil(types) || default_type in types do
+    if not is_nil(types) and default_type not in types do
       raise Flop.InvalidDefaultPaginationTypeError,
         default_pagination_type: default_type,
         pagination_types: types
@@ -925,7 +953,7 @@ defimpl Flop.Schema, for: Any do
     known_fields = MapSet.new(known_fields)
     unknown_fields = MapSet.difference(all_fields, known_fields)
 
-    unless Enum.empty?(unknown_fields) do
+    if not Enum.empty?(unknown_fields) do
       raise Flop.UnknownFieldError,
         known_fields: MapSet.to_list(known_fields),
         unknown_fields: MapSet.to_list(unknown_fields),
@@ -944,7 +972,7 @@ defimpl Flop.Schema, for: Any do
       |> MapSet.new()
       |> MapSet.difference(sortable_fields)
 
-    unless Enum.empty?(unsortable_fields) do
+    if not Enum.empty?(unsortable_fields) do
       raise Flop.InvalidDefaultOrderError,
         sortable_fields: MapSet.to_list(sortable_fields),
         unsortable_fields: MapSet.to_list(unsortable_fields)
@@ -1045,8 +1073,6 @@ defimpl Flop.Schema, for: Any do
       value: struct,
       description: @instructions
   end
-
-  def custom(_, _), do: []
 
   # add default implementation for maps, so that cursor value functions can use
   # it without checking protocol implementation

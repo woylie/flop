@@ -1,6 +1,13 @@
 defmodule Flop.Filter do
   @moduledoc """
   Defines a filter.
+
+  ## Filter value validation and the repo adapter
+
+  Filter values are cast with the Ecto type of the field, which makes validation
+  depend on the repo adapter for `binary_id` fields: the cast type is taken from
+  the adapter, so an invalid UUID is a validation error on Postgres, but is
+  accepted on SQLite. Only Postgres is supported, see the README.
   """
 
   use Ecto.Schema
@@ -237,9 +244,7 @@ defmodule Flop.Filter do
   end
 
   defp get_repo(opts) do
-    # use nested adapter_opts if set
-    opts = Flop.get_option(:adapter_opts, opts) || opts
-    Flop.get_option(:repo, opts)
+    Flop.adapter_opts(opts)[:repo]
   end
 
   @spec validate_filterable(Changeset.t(), module | nil) :: Changeset.t()
@@ -1190,7 +1195,9 @@ defmodule Flop.Filter do
 
   If the enumerable uses string keys as field names, the function attempts to
   convert them to existing atoms. If the atom does not exist, the filter is
-  removed from the list.
+  removed from the list, since the `:field` of a `Flop.Filter` struct is always
+  an atom. `Flop.map_to_filter_params/2` keeps such fields, because it builds
+  parameters that validation rejects later.
 
       iex> new(%{"name" => "George", "age" => 8})
       [
@@ -1199,6 +1206,13 @@ defmodule Flop.Filter do
       ]
 
       iex> new(%{"name" => "George", "doesnotexist" => 8})
+      [
+        %Flop.Filter{field: :name, op: :==, value: "George"}
+      ]
+
+  This also applies if a rename option is set.
+
+      iex> new(%{"s" => "George", "doesnotexist" => 8}, rename: %{s: :name})
       [
         %Flop.Filter{field: :name, op: :==, value: "George"}
       ]

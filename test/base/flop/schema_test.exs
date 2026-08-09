@@ -363,6 +363,31 @@ defmodule Flop.SchemaTest do
     end
   end
 
+  test "field_info/2 returns parameterized type for ecto_enum" do
+    assert %Flop.FieldInfo{ecto_type: ecto_type} =
+             Schema.field_info(%MyApp.Owner{}, :pet_mood_as_enum)
+
+    assert ecto_type ==
+             Ecto.ParameterizedType.init(Ecto.Enum, values: [:happy, :playful])
+  end
+
+  test "casts filter values with ecto_enum type" do
+    params = %{
+      filters: [%{field: :pet_mood_as_enum, op: :==, value: "happy"}]
+    }
+
+    assert {:ok, %Flop{filters: [filter]}} =
+             Flop.validate(params, for: MyApp.Owner)
+
+    assert filter.value == :happy
+
+    assert {:error, %Flop.Meta{}} =
+             Flop.validate(
+               %{filters: [%{field: :pet_mood_as_enum, op: :==, value: "sad"}]},
+               for: MyApp.Owner
+             )
+  end
+
   test "raises error if custom field is added to sortable list" do
     error =
       assert_raise ArgumentError, fn ->
