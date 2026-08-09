@@ -33,6 +33,10 @@ defmodule Flop.InvalidConfigError do
     "An invalid option was passed to `@derive Flop.Schema` in the module `#{caller_name}`."
   end
 
+  defp hint(module, caller_name) do
+    "An invalid option was passed to `#{inspect(module)}` in the module `#{caller_name}`."
+  end
+
   defp module_name(module) do
     module
     |> Module.split()
@@ -90,19 +94,12 @@ defmodule Flop.InvalidParamsError do
 
     The parameters provided to Flop:
 
-    #{format(params)}
+    #{Flop.Misc.indent(params)}
 
     Resulted in the following validation errors:
 
-    #{format(errors)}
+    #{Flop.Misc.indent(errors)}
     """
-  end
-
-  defp format(s) do
-    s
-    |> inspect(pretty: true)
-    |> String.split("\n")
-    |> Enum.map_join("\n", fn s -> "    " <> s end)
   end
 end
 
@@ -152,11 +149,11 @@ defmodule Flop.InvalidDefaultOrderError do
 
     The following fields are not sortable, but were used for the default order:
 
-        #{inspect(unsortable_fields, pretty: true, width: 76)}
+    #{Flop.Misc.indent(unsortable_fields)}
 
     The sortable fields in your schema are:
 
-        #{inspect(sortable_fields, pretty: true, width: 76)}
+    #{Flop.Misc.indent(sortable_fields)}
     """
   end
 end
@@ -241,7 +238,7 @@ defmodule Flop.UnknownFieldError do
 
     These fields are not configured in your Flop schema:
 
-        #{inspect(unknown_fields, pretty: true, width: 76)}
+    #{Flop.Misc.indent(unknown_fields)}
 
     #{known_fields(err)}
     """
@@ -253,7 +250,7 @@ defmodule Flop.UnknownFieldError do
 
     There are unknown #{option} fields in your schema configuration:
 
-        #{inspect(unknown_fields, pretty: true, width: 76)}
+    #{Flop.Misc.indent(unknown_fields)}
 
     #{known_fields(err)}
     """
@@ -263,7 +260,7 @@ defmodule Flop.UnknownFieldError do
     """
     The known fields in your schema are:
 
-        #{inspect(known_fields, pretty: true, width: 76)}\
+    #{Flop.Misc.indent(known_fields)}\
     """
   end
 end

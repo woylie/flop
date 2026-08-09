@@ -95,6 +95,19 @@ defmodule Flop.Misc do
 
   def add_wildcard_prefix(value, _), do: raise_pattern_value_error(value)
 
+  @doc """
+  Inspects and indents a term for an exception message.
+
+      iex> indent([:a, :b])
+      "    [:a, :b]"
+  """
+  def indent(term) do
+    term
+    |> inspect(pretty: true, width: 76)
+    |> String.split("\n")
+    |> Enum.map_join("\n", &("    " <> &1))
+  end
+
   defp raise_pattern_value_error(value) do
     raise ArgumentError, """
     invalid filter value for pattern operator
