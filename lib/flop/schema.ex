@@ -952,48 +952,70 @@ defimpl Flop.Schema, for: Any do
   end
 
   def build_field_info_func(adapter, adapter_opts, struct) do
-    for {name, field_info} <- adapter.fields(struct, adapter_opts) do
-      case field_info do
-        %{ecto_type: {:from_schema, module, field}} ->
-          quote do
-            def field_info(_, unquote(name)) do
-              %{
+    fields = adapter.fields(struct, adapter_opts)
+
+    funcs =
+      for {name, field_info} <- fields do
+        case field_info do
+          %{ecto_type: {:from_schema, module, field}} ->
+            quote do
+              def field_info(_, unquote(name)) do
+                %{
+                  unquote(Macro.escape(field_info))
+                  | ecto_type: unquote(module).__schema__(:type, unquote(field))
+                }
+              end
+            end
+
+          %{ecto_type: {:ecto_enum, values}} ->
+            type = Ecto.ParameterizedType.init(Ecto.Enum, values: values)
+            field_info = %{field_info | ecto_type: type}
+
+            quote do
+              def field_info(_, unquote(name)) do
                 unquote(Macro.escape(field_info))
-                | ecto_type: unquote(module).__schema__(:type, unquote(field))
-              }
+              end
             end
-          end
 
-        %{ecto_type: {:ecto_enum, values}} ->
-          type = Ecto.ParameterizedType.init(Ecto.Enum, values: values)
-          field_info = %{field_info | ecto_type: type}
-
-          quote do
-            def field_info(_, unquote(name)) do
-              unquote(Macro.escape(field_info))
+          _ ->
+            quote do
+              def field_info(_, unquote(name)) do
+                unquote(Macro.escape(field_info))
+              end
             end
-          end
-
-        _ ->
-          quote do
-            def field_info(_, unquote(name)) do
-              unquote(Macro.escape(field_info))
-            end
-          end
+        end
       end
-    end
+
+    funcs ++ [build_unknown_field_func(:field_info, fields)]
   end
 
   def build_get_field_func(struct, adapter, adapter_opts) do
-    for {field, field_info} <- adapter.fields(struct, adapter_opts) do
-      quote do
-        def get_field(struct, unquote(field)) do
-          unquote(adapter).get_field(
-            struct,
-            unquote(field),
-            unquote(Macro.escape(field_info))
-          )
+    fields = adapter.fields(struct, adapter_opts)
+
+    funcs =
+      for {field, field_info} <- fields do
+        quote do
+          def get_field(struct, unquote(field)) do
+            unquote(adapter).get_field(
+              struct,
+              unquote(field),
+              unquote(Macro.escape(field_info))
+            )
+          end
         end
+      end
+
+    funcs ++ [build_unknown_field_func(:get_field, fields)]
+  end
+
+  defp build_unknown_field_func(func_name, fields) do
+    known_fields = Enum.map(fields, fn {name, _} -> name end)
+
+    quote do
+      def unquote(func_name)(_, field) do
+        raise Flop.UnknownFieldError,
+          known_fields: unquote(known_fields),
+          unknown_fields: [field]
       end
     end
   end

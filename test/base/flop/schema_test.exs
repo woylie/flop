@@ -74,6 +74,23 @@ defmodule Flop.SchemaTest do
     end
   end
 
+  test "field_info/2 raises error for unknown field" do
+    error =
+      assert_raise Flop.UnknownFieldError, fn ->
+        Schema.field_info(%Panini{}, :nonexistent)
+      end
+
+    assert Exception.message(error) =~ "unknown field(s)"
+    assert Exception.message(error) =~ ":nonexistent"
+    assert Exception.message(error) =~ ":topping_count"
+  end
+
+  test "get_field/2 raises error for unknown field" do
+    assert_raise Flop.UnknownFieldError, fn ->
+      Schema.get_field(%Panini{}, :nonexistent)
+    end
+  end
+
   test "calling filterable/1 without deriving raises error" do
     assert_raise Protocol.UndefinedError, fn ->
       Schema.filterable(%{})
