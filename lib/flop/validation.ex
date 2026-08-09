@@ -27,6 +27,7 @@ defmodule Flop.Validation do
       message: "cannot combine multiple pagination types",
       replace_invalid_params: replace_invalid_params?
     )
+    |> validate_max_filters(opts)
     |> validate_sortable(opts)
     |> put_default_order(opts)
     |> validate_pagination(opts)
@@ -272,6 +273,32 @@ defmodule Flop.Validation do
 
   defp validate_page(changeset, field, _opts) do
     Changeset.validate_number(changeset, field, greater_than: 0)
+  end
+
+  defp validate_max_filters(changeset, opts) do
+    max_filters = Flop.get_option(:max_filters, opts)
+    filters = get_value(changeset, :filters) || []
+
+    if max_filters && length(filters) > max_filters do
+      if opts[:replace_invalid_params] do
+        Changeset.put_change(
+          changeset,
+          :filters,
+          Enum.take(filters, max_filters)
+        )
+      else
+        Changeset.add_error(
+          changeset,
+          :filters,
+          "must have at most %{count} items",
+          count: max_filters,
+          validation: :length,
+          kind: :max
+        )
+      end
+    else
+      changeset
+    end
   end
 
   defp validate_sortable(changeset, opts) do

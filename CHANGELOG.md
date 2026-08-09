@@ -29,6 +29,8 @@
 
 ### Security
 
+- Limit the number of filters that can be applied in one request to 20 by
+  default. Configurable with the `max_filters` option.
 - Remove the debug log on validation errors. It logged the changeset, which
   contains the user-supplied filter values. The errors are returned to the
   caller in the `Flop.Meta` struct, so nothing is lost.
@@ -60,6 +62,16 @@ already:
     ]
   }
 ```
+
+Filter lists longer than 20 are now rejected with a validation error on
+`filters`. If your query handles longer filter lists, pass the `max_filters`
+option:
+
+```elixir
+Flop.validate_and_run(Pet, params, for: Pet, max_filters: 50)
+```
+
+The option can also be set via application environment or backend module.
 
 ## [0.26.6] - 2026-08-07
 
