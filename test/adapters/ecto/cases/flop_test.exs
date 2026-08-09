@@ -239,6 +239,25 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    test "applies filter on join field with ecto_enum type" do
+      %{owner: happy_owner} = insert(:pet_with_owner, mood: :happy)
+      insert(:pet_with_owner, mood: :playful)
+
+      flop =
+        Flop.validate!(
+          %{filters: [%{field: :pet_mood_as_enum, op: :==, value: "happy"}]},
+          for: Owner
+        )
+
+      q =
+        Owner
+        |> join(:left, [o], p in assoc(o, :pets), as: :pets)
+        |> distinct(true)
+
+      assert [%Owner{id: id}] = Flop.all(q, flop, for: Owner)
+      assert id == happy_owner.id
+    end
+
     test "does not allow equality filter on compound fields" do
       assert_raise Flop.InvalidParamsError, fn ->
         query_pets_with_owners(%{
