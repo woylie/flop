@@ -291,7 +291,7 @@ defmodule Flop do
   alias Flop.Meta
   alias Flop.NimbleSchemas
 
-  @default_opts [default_limit: 50, max_limit: 1000]
+  @default_opts [default_limit: 50, max_limit: 1000, max_filters: 20]
 
   defmacro __using__(opts) do
     opts =
@@ -395,6 +395,10 @@ defmodule Flop do
   - `:max_limit` - The maximum limit for queries. Used when no maximum limit is
     set in the parameters or schema. Set to `false` to not set any maximum
     limit. Default is `1000`.
+  - `:max_filters` - The maximum number of filters that may be applied in one
+    request. Every filter becomes a condition in the `WHERE` clause, so an
+    unbounded list lets a caller build an arbitrarily large query. Set to
+    `false` to not set any maximum. Default is `20`.
 
   ### Modifying counts
 
@@ -457,6 +461,7 @@ defmodule Flop do
           | {:filtering, boolean}
           | {:for, module}
           | {:max_limit, pos_integer | false}
+          | {:max_filters, pos_integer | false}
           | {:count_query, Ecto.Queryable.t()}
           | {:count, integer}
           | {:ordering, boolean}

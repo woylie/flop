@@ -20,6 +20,10 @@ defmodule Flop.ValidationTest do
       pagination_types: [:first, :last]
   end
 
+  defmodule TestProviderWithMaxFilters do
+    use Flop, repo: Flop.Repo, max_filters: 2
+  end
+
   defmodule Thing do
     use Ecto.Schema
 
@@ -938,6 +942,50 @@ defmodule Flop.ValidationTest do
                  for: Fruit,
                  ordering: false
                )
+    end
+  end
+
+  describe "max_filters" do
+    defp filter_params(count) do
+      %{
+        filters:
+          for(_ <- 1..count, do: %{field: :name, op: :==, value: "George"})
+      }
+    end
+
+    test "allows the configured maximum" do
+      assert {:ok, %Flop{filters: filters}} =
+               validate(filter_params(20), for: Pet)
+
+      assert length(filters) == 20
+    end
+
+    test "rejects more than the configured maximum" do
+      assert {:error, changeset} = validate(filter_params(21), for: Pet)
+
+      assert errors_on(changeset)[:filters] == ["must have at most 20 items"]
+    end
+
+    test "truncates with replace_invalid_params" do
+      assert {:ok, %Flop{filters: filters}} =
+               validate(filter_params(21),
+                 for: Pet,
+                 replace_invalid_params: true
+               )
+
+      assert length(filters) == 20
+    end
+
+    test "can be raised or disabled per call" do
+      assert {:ok, %Flop{}} = validate(filter_params(21), max_filters: 100)
+      assert {:ok, %Flop{}} = validate(filter_params(21), max_filters: false)
+    end
+
+    test "can be set on a backend module" do
+      assert {:error, changeset} =
+               validate(filter_params(3), backend: TestProviderWithMaxFilters)
+
+      assert errors_on(changeset)[:filters] == ["must have at most 2 items"]
     end
   end
 
