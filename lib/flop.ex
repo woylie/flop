@@ -64,10 +64,9 @@ defmodule Flop do
   > #### `use Flop` {: .info}
   >
   > When you `use Flop`, the Flop module will define wrapper functions around
-  > all of the `Flop` functions that take a query, the Flop parameters, and
-  > options as arguments. The options passed to `use Flop` will be used as
-  > default options in all the wrapper functions, but you can still override
-  > them.
+  > the `Flop` functions listed below. The options passed to `use Flop` will be
+  > used as default options in all the wrapper functions, but you can still
+  > override them.
 
   The wrapped functions are:
 
@@ -79,11 +78,16 @@ defmodule Flop do
   - `Flop.paginate/3`
   - `Flop.query/3`
   - `Flop.run/3`
+  - `Flop.validate/2`
+  - `Flop.validate!/2`
   - `Flop.validate_and_run/3`
   - `Flop.validate_and_run!/3`
 
   So instead of using `Flop.validate_and_run/3`, you would call
   `MyApp.Flop.validate_and_run/3`.
+
+  The module also defines a `__flop_options__/0` function that returns the
+  options passed to `use Flop`.
 
   If you have both a config module and a global application config, Flop will
   fall back to the application config if an option is not set.
@@ -597,6 +601,7 @@ defmodule Flop do
   Also note that you will need to pass the `for` option in order for Flop to be
   able to find your join, compound, alias and custom field configuration.
   """
+  @doc since: "0.1.0"
   @doc group: :queries
   @spec query(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def query(q, %Flop{} = flop, opts \\ []) do
@@ -756,7 +761,8 @@ defmodule Flop do
   end
 
   @doc """
-  Same as `Flop.validate_and_run/3`, but raises on error.
+  Same as `Flop.validate_and_run/3`, but raises a `Flop.InvalidParamsError` if
+  the parameters are invalid.
   """
   @doc since: "0.6.0"
   @doc group: :queries
@@ -862,7 +868,7 @@ defmodule Flop do
   to render the pagination links anyway, so this shouldn't be a problem.
 
   Unless cursor-based pagination is used, this function will run a query to
-  figure get the total count of matching records.
+  figure out the total count of matching records.
 
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
@@ -1028,6 +1034,7 @@ defmodule Flop do
   Note that you will need to pass the `for` option in order for Flop to be
   able to find your join, compound, alias and custom field configuration.
   """
+  @doc since: "0.1.0"
   @doc group: :queries
   @spec order_by(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def order_by(q, flop, opts \\ [])
@@ -1114,6 +1121,7 @@ defmodule Flop do
   Note that you will need to pass the `for` option in order for Flop to be
   able to find your join, compound, alias and custom field configuration.
   """
+  @doc since: "0.1.0"
   @doc group: :queries
   @spec paginate(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def paginate(q, flop, opts \\ [])
@@ -1287,6 +1295,7 @@ defmodule Flop do
   Note that you will need to pass the `for` option in order for Flop to be
   able to find your join, compound, alias and custom field configuration.
   """
+  @doc since: "0.1.0"
   @doc group: :queries
   @spec filter(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def filter(q, flop, opt \\ [])
@@ -1368,6 +1377,7 @@ defmodule Flop do
   precisely: a field name that doesn't exist as an atom) will result in
   the error message `is invalid`. This might change in the future.
   """
+  @doc since: "0.1.0"
   @doc group: :queries
   @spec validate(Flop.t() | map, [option()]) ::
           {:ok, Flop.t()} | {:error, Meta.t()}
@@ -1433,7 +1443,7 @@ defmodule Flop do
   defp filter_to_map(%{} = filter), do: filter
 
   @doc """
-  Same as `Flop.validate/2`, but raises an `Ecto.InvalidChangesetError` if the
+  Same as `Flop.validate/2`, but raises a `Flop.InvalidParamsError` if the
   parameters are invalid.
   """
   @doc group: :queries
@@ -2294,6 +2304,7 @@ defmodule Flop do
     |> Map.drop(fields)
   end
 
+  # an empty map has no keys to check and is treated as having atom keys
   defp has_atom_keys?(%{} = map) do
     map
     |> Map.keys()
@@ -2457,7 +2468,14 @@ defmodule Flop do
       ...> )
       [%{field: :name, op: :ilike_or, value: "George"}]
 
-  See also `Flop.Filter.new/2`.
+  Field names that do not exist in the schema are kept, so that validation can
+  reject them with an error.
+
+      iex> map_to_filter_params(%{"doesnotexist" => 8})
+      [%{"field" => "doesnotexist", "op" => :==, "value" => 8}]
+
+  See also `Flop.Filter.new/2`, which builds `Flop.Filter` structs instead of
+  parameters, and which drops unknown field names for that reason.
   """
   @doc since: "0.14.0"
   @doc group: :parameters

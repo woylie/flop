@@ -677,6 +677,7 @@ defprotocol Flop.Schema do
         }
       }
   """
+  @doc since: "0.22.0"
   @spec field_info(any, atom) :: Flop.FieldInfo.t()
   def field_info(data, field)
 
@@ -700,6 +701,7 @@ defprotocol Flop.Schema do
         :reverse_name
       ]
   """
+  @doc since: "0.1.0"
   @spec filterable(any) :: [atom]
   def filterable(data)
 
@@ -753,6 +755,7 @@ defprotocol Flop.Schema do
       iex> Flop.Schema.sortable(%MyApp.Pet{})
       [:name, :age, :owner_name, :owner_age]
   """
+  @doc since: "0.1.0"
   @spec sortable(any) :: [atom]
   def sortable(data)
 

@@ -81,6 +81,7 @@ defmodule Flop.Cursor do
          {:ok, binary} <- Base.url_decode64(cursor),
          :ok <- validate_uncompressed(binary),
          {:ok, term} <- safe_binary_to_term(binary) do
+      # raises if the term contains a function or a pid, rescued below
       sanitize(term)
 
       if is_map(term) && term |> Map.keys() |> Enum.all?(&is_atom/1),
