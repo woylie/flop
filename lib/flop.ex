@@ -1469,6 +1469,12 @@ defmodule Flop do
 
       iex> set_page(%Flop{}, -5)
       %Flop{page: 1}
+
+  A string that is not a number is treated as page 1, so that a query
+  parameter can be passed as is.
+
+      iex> set_page(%Flop{page: 2, page_size: 10}, "abc")
+      %Flop{page: 1, page_size: 10}
   """
   @doc since: "0.12.0"
   @doc group: :parameters
@@ -1488,7 +1494,7 @@ defmodule Flop do
   end
 
   def set_page(%Flop{} = flop, page) when is_binary(page) do
-    set_page(flop, String.to_integer(page))
+    set_page(flop, parse_integer(page, 1))
   end
 
   @doc """
@@ -1577,6 +1583,12 @@ defmodule Flop do
 
       iex> set_offset(%Flop{}, -5)
       %Flop{offset: 0}
+
+  A string that is not a number is treated as offset 0, so that a query
+  parameter can be passed as is.
+
+      iex> set_offset(%Flop{limit: 10, offset: 10}, "abc")
+      %Flop{offset: 0, limit: 10}
   """
   @doc since: "0.15.0"
   @doc group: :parameters
@@ -1596,7 +1608,14 @@ defmodule Flop do
   end
 
   def set_offset(%Flop{} = flop, offset) when is_binary(offset) do
-    set_offset(flop, String.to_integer(offset))
+    set_offset(flop, parse_integer(offset, 0))
+  end
+
+  defp parse_integer(value, default) do
+    case Integer.parse(value) do
+      {integer, ""} -> integer
+      _ -> default
+    end
   end
 
   @doc """
