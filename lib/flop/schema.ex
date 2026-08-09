@@ -1047,8 +1047,6 @@ defimpl Flop.Schema, for: Any do
       description: @instructions
   end
 
-  def custom(_, _), do: []
-
   # add default implementation for maps, so that cursor value functions can use
   # it without checking protocol implementation
   def get_field(%{} = map, field), do: Map.get(map, field)
