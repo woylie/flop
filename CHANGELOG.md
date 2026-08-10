@@ -1,10 +1,18 @@
 # Changelog
 
-## Unreleased
+All notable changes to this project are documented in this file.
+
+The format is based on
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.27.0] - 2026-08-10
 
 ### Changed
 
-- The `ecto_type` option is now required for join fields and custom fields.
+- Require the `ecto_type` option for join fields and custom fields.
 - Raise a `Flop.UnknownFieldError` instead of a `FunctionClauseError` when
   `Flop.Schema.field_info/2`, `Flop.Schema.get_field/2` or
   `Flop.Filter.allowed_operators/2` is called with a field that is not
@@ -75,7 +83,7 @@ The option can also be set via application environment or backend module.
 
 ## [0.26.6] - 2026-08-07
 
-### Fixed
+### Security
 
 - Reject pagination cursors larger than 8 KB and cursors that contain a
   compressed Erlang term before decoding them. The maximum cursor size is
@@ -118,7 +126,7 @@ The option can also be set via application environment or backend module.
 - Allow resetting default order set on schema by passing
   `default_order: false`.
 
-### Upgrade notes
+### How to upgrade
 
 Flop 0.26.2 introduced a new warning when Flop order parameters are set and the
 query already has an order by clause. Order by parameters are added to the Flop
@@ -164,7 +172,7 @@ Flop.run(query, flop)
   `Flop.Filter.expand_type/1`.
 - Updated documentation example for setting `ecto_type` to parameterized types.
 
-### Upgrade Guide
+### How to upgrade
 
 If you pass a parameterized type as `ecto_type` option, ensure that you use
 `Ecto.ParameterizedType.init/2` instead of using the tuple representation as
@@ -195,7 +203,7 @@ For `Ecto.Enum` specifically, you can also use the short syntax
 - Fixed a compatibility issue with Ecto 3.12 related to the initialization of
   the `Ecto.Enum` type.
 
-### Upgrade Guide
+### How to upgrade
 
 Replace the tuple syntax for join fields with a keyword list.
 
@@ -287,7 +295,7 @@ maintain compatibility with previous versions.
 - Removed `Flop.Schema.apply_order_by/3`.
 - Removed `Flop.Schema.cursor_dynamic/3`.
 
-### Upgrade guide
+### How to upgrade
 
 While the old configuration format is still supported, you are invited to
 update your application to the new structure to prepare for future versions.
@@ -371,7 +379,7 @@ use Flop,
   errors, instead of defaulting to valid parameters.
 - Fixed the type specification for `Flop.Filter.allowed_operators/1`.
 
-### Upgrade notes
+### How to upgrade
 
 The newly implemented dynamic casting of filter values could impact your code:
 
@@ -1005,4 +1013,62 @@ equivalent:
 
 ## [0.1.0] - 2019-10-19
 
-initial release
+### Added
+
+- Initial release.
+
+[unreleased]: https://github.com/woylie/flop/compare/0.27.0...HEAD
+[0.27.0]: https://github.com/woylie/flop/compare/0.26.6...0.27.0
+[0.26.6]: https://github.com/woylie/flop/compare/0.26.5...0.26.6
+[0.26.5]: https://github.com/woylie/flop/compare/0.26.4...0.26.5
+[0.26.4]: https://github.com/woylie/flop/compare/0.26.3...0.26.4
+[0.26.3]: https://github.com/woylie/flop/compare/0.26.2...0.26.3
+[0.26.2]: https://github.com/woylie/flop/compare/0.26.1...0.26.2
+[0.26.1]: https://github.com/woylie/flop/compare/0.26.0...0.26.1
+[0.26.0]: https://github.com/woylie/flop/compare/0.25.0...0.26.0
+[0.25.0]: https://github.com/woylie/flop/compare/0.24.1...0.25.0
+[0.24.1]: https://github.com/woylie/flop/compare/0.24.0...0.24.1
+[0.24.0]: https://github.com/woylie/flop/compare/0.23.0...0.24.0
+[0.23.0]: https://github.com/woylie/flop/compare/0.22.1...0.23.0
+[0.22.1]: https://github.com/woylie/flop/compare/0.22.0...0.22.1
+[0.22.0]: https://github.com/woylie/flop/compare/0.21.0...0.22.0
+[0.21.0]: https://github.com/woylie/flop/compare/0.20.3...0.21.0
+[0.20.3]: https://github.com/woylie/flop/compare/0.20.2...0.20.3
+[0.20.2]: https://github.com/woylie/flop/compare/0.20.1...0.20.2
+[0.20.1]: https://github.com/woylie/flop/compare/0.20.0...0.20.1
+[0.20.0]: https://github.com/woylie/flop/compare/0.19.0...0.20.0
+[0.19.0]: https://github.com/woylie/flop/compare/0.18.4...0.19.0
+[0.18.4]: https://github.com/woylie/flop/compare/0.18.3...0.18.4
+[0.18.3]: https://github.com/woylie/flop/compare/0.18.2...0.18.3
+[0.18.2]: https://github.com/woylie/flop/compare/0.18.1...0.18.2
+[0.18.1]: https://github.com/woylie/flop/compare/0.18.0...0.18.1
+[0.18.0]: https://github.com/woylie/flop/compare/0.17.2...0.18.0
+[0.17.2]: https://github.com/woylie/flop/compare/0.17.1...0.17.2
+[0.17.1]: https://github.com/woylie/flop/compare/0.17.0...0.17.1
+[0.17.0]: https://github.com/woylie/flop/compare/0.16.1...0.17.0
+[0.16.1]: https://github.com/woylie/flop/compare/0.16.0...0.16.1
+[0.16.0]: https://github.com/woylie/flop/compare/0.15.0...0.16.0
+[0.15.0]: https://github.com/woylie/flop/compare/0.14.0...0.15.0
+[0.14.0]: https://github.com/woylie/flop/compare/0.13.2...0.14.0
+[0.13.2]: https://github.com/woylie/flop/compare/0.13.1...0.13.2
+[0.13.1]: https://github.com/woylie/flop/compare/0.13.0...0.13.1
+[0.13.0]: https://github.com/woylie/flop/compare/0.12.0...0.13.0
+[0.12.0]: https://github.com/woylie/flop/compare/0.11.0...0.12.0
+[0.11.0]: https://github.com/woylie/flop/compare/0.10.0...0.11.0
+[0.10.0]: https://github.com/woylie/flop/compare/0.9.1...0.10.0
+[0.9.1]: https://github.com/woylie/flop/compare/0.9.0...0.9.1
+[0.9.0]: https://github.com/woylie/flop/compare/0.8.4...0.9.0
+[0.8.4]: https://github.com/woylie/flop/compare/0.8.3...0.8.4
+[0.8.3]: https://github.com/woylie/flop/compare/0.8.2...0.8.3
+[0.8.2]: https://github.com/woylie/flop/compare/0.8.1...0.8.2
+[0.8.1]: https://github.com/woylie/flop/compare/0.8.0...0.8.1
+[0.8.0]: https://github.com/woylie/flop/compare/0.7.1...0.8.0
+[0.7.1]: https://github.com/woylie/flop/compare/0.7.0...0.7.1
+[0.7.0]: https://github.com/woylie/flop/compare/0.6.1...0.7.0
+[0.6.1]: https://github.com/woylie/flop/compare/0.6.0...0.6.1
+[0.6.0]: https://github.com/woylie/flop/compare/0.5.0...0.6.0
+[0.5.0]: https://github.com/woylie/flop/compare/0.4.0...0.5.0
+[0.4.0]: https://github.com/woylie/flop/compare/0.3.0...0.4.0
+[0.3.0]: https://github.com/woylie/flop/compare/0.2.0...0.3.0
+[0.2.0]: https://github.com/woylie/flop/compare/0.1.0...0.2.0
+[0.1.0]: https://github.com/woylie/flop/releases/tag/0.1.0
