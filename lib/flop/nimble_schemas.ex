@@ -11,6 +11,7 @@ defmodule Flop.NimbleSchemas do
       type: {:custom, __MODULE__, :validate_cursor_value_func, []}
     ],
     default_limit: [type: {:or, [:pos_integer, {:in, [false]}]}, default: 50],
+    max_cursor_size: [type: :pos_integer],
     max_filters: [type: {:or, [:pos_integer, {:in, [false]}]}, default: 20],
     max_limit: [type: :integer, default: 1000],
     replace_invalid_params: [type: :boolean],

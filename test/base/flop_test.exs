@@ -558,5 +558,20 @@ defmodule FlopTest do
         end
       end
     end
+
+    defmodule BackendWithMaxCursorSize do
+      use Flop, repo: Flop.Repo, max_cursor_size: 10
+    end
+
+    test "max_cursor_size can be set on a backend module" do
+      cursor = Flop.Cursor.encode(%{name: "George"})
+
+      assert {:error, %Meta{errors: [after: _]}} =
+               Flop.validate(
+                 %{first: 2, after: cursor, order_by: [:name]},
+                 backend: BackendWithMaxCursorSize,
+                 for: Pet
+               )
+    end
   end
 end

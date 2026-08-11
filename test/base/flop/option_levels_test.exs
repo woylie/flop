@@ -12,6 +12,7 @@ defmodule Flop.OptionLevelsTest do
   setup do
     on_exit(fn ->
       Application.delete_env(:flop, :replace_invalid_params)
+      Application.delete_env(:flop, :max_cursor_size)
     end)
   end
 
@@ -44,6 +45,20 @@ defmodule Flop.OptionLevelsTest do
                  for: Pet,
                  replace_invalid_params: false
                )
+    end
+  end
+
+  describe "max_cursor_size" do
+    test "can be set in the application environment" do
+      cursor = Flop.Cursor.encode(%{name: String.duplicate("a", 100)})
+      params = %{first: 2, after: cursor, order_by: [:name]}
+
+      assert {:ok, %Flop{}} = Flop.validate(params, for: Pet)
+
+      Application.put_env(:flop, :max_cursor_size, 10)
+
+      assert {:error, %Meta{errors: [after: _]}} =
+               Flop.validate(params, for: Pet)
     end
   end
 end
