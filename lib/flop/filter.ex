@@ -252,7 +252,10 @@ defmodule Flop.Filter do
   end
 
   defp get_repo(opts) do
-    Flop.adapter_opts(opts)[:repo]
+    case opts[:repo] do
+      nil -> Flop.adapter_opts(opts)[:repo]
+      repo -> repo
+    end
   end
 
   @spec validate_filterable(Changeset.t(), module | nil) :: Changeset.t()
