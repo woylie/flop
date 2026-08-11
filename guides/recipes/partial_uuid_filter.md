@@ -1,4 +1,4 @@
-# Partial UUID Filter
+# Partial UUID filter
 
 Flop attempts to cast filter values as the type of the underlying Ecto schema
 field. If the value cannot be cast, an error is returned for that filter value,
@@ -10,7 +10,7 @@ the full ID to apply a filter on the ID column. In some cases, you may prefer
 to allow users to search for partial UUIDs. You can achieve this by defining a
 custom filter.
 
-## Filter Module
+## Filter module
 
 First, we add a generic custom filter function for partial UUID matches to a
 separate module.
@@ -27,31 +27,39 @@ defmodule MyApp.Filters do
         where(q, [r], field(r, ^field) == ^id)
 
       :error ->
-        term = "%#{String.trim(value)}%"
-        where(q, [r], ilike(type(field(r, ^field), :string), ^term))
+        term =
+          value
+          |> String.trim()
+          |> String.replace(["\\", "%", "_"], &"\\#{&1}")
+
+        where(q, [r], ilike(type(field(r, ^field), :string), ^"%#{term}%"))
     end
   end
 end
 ```
 
-The function takes an Ecto query and a `Flop.Filter` struct as
-values. It also accepts a `field` option, which must be set to the Ecto schema
-field on which this filter is applied. This way, we can reuse the custom
-filter for filtering on foreign keys as well.
+The function takes an Ecto query and a `Flop.Filter` struct as arguments. It
+also accepts a `field` option, which must be set to the Ecto schema field on
+which this filter is applied. This way, we can reuse the custom filter for
+filtering on foreign keys as well.
 
 We first attempt to cast the filter value as an `Ecto.UUID`. If this succeeds,
 we know that we have a complete and valid UUID and can apply an equality filter
 directly.
 
-If the value is not a valid `Ecto.UUID`, we have a partial ID. We create a
-search term and apply an `ilike` function in the query. We have to cast the
-column as a string, because the binary ID type does not support `ilike`.
+If the value cannot be cast, we treat it as a partial ID. We create a search
+term and apply an `ilike` function in the query. We have to cast the column as a
+string, because the binary ID type does not support `ilike`.
+
+We escape `%`, `_` and `\` in the term. Without that, a user searching for `%`
+would match every row, whereas the built-in `ilike` operators of Flop escape
+those characters for you.
 
 Note that we ignore the filter operator here and always use `ilike`. If you want
 to support other filter operators, you can match on the `op` field of the
 `Flop.Filter` struct.
 
-## Ecto Schema
+## Ecto schema
 
 In the Ecto schema, we can now define a custom field that references our filter
 function and pass the `field` as an option. We also need to mark the field as
@@ -71,13 +79,11 @@ filterable.
          ]}
 ```
 
-## Complete Example
+## Complete example
 
 ```elixir
 defmodule MyApp.Pet do
   use Ecto.Schema
-
-  import Ecto.Query
 
   @derive {Flop.Schema,
            filterable: [:partial_id],
@@ -113,8 +119,12 @@ defmodule MyApp.Filters do
         where(q, [r], field(r, ^field) == ^id)
 
       :error ->
-        term = "%#{String.trim(value)}%"
-        where(q, [r], ilike(type(field(r, ^field), :string), ^term))
+        term =
+          value
+          |> String.trim()
+          |> String.replace(["\\", "%", "_"], &"\\#{&1}")
+
+        where(q, [r], ilike(type(field(r, ^field), :string), ^"%#{term}%"))
     end
   end
 end
