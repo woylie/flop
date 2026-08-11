@@ -13,6 +13,7 @@ defmodule Flop.OptionLevelsTest do
     on_exit(fn ->
       Application.delete_env(:flop, :replace_invalid_params)
       Application.delete_env(:flop, :max_cursor_size)
+      Application.delete_env(:flop, :default_order)
     end)
   end
 
@@ -59,6 +60,15 @@ defmodule Flop.OptionLevelsTest do
 
       assert {:error, %Meta{errors: [after: _]}} =
                Flop.validate(params, for: Pet)
+    end
+  end
+
+  describe "default_order" do
+    test "is not read from the application environment" do
+      Application.put_env(:flop, :default_order, %{order_by: [:name]})
+
+      assert {:ok, %Flop{order_by: nil, order_directions: nil}} =
+               Flop.validate(%{}, for: Pet)
     end
   end
 end

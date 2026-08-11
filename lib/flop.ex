@@ -2229,6 +2229,8 @@ defmodule Flop do
 
   defp backend_option(_, _), do: nil
 
+  defp global_option(:default_order), do: nil
+
   defp global_option(key) when is_atom(key) do
     Application.get_env(:flop, key)
   end
