@@ -11,6 +11,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Reject filter and cursor values that contain NUL bytes or invalid UTF-8.
+- Resolve the `replace_invalid_params` option through the documented look-up
+  order. It was only applied when passed to a query function, and can now be set
+  on a backend module and in the application environment as well.
+- Resolve the `cursor_value_func` option through the documented look-up order
+  and accept it in `use Flop`.
+- Accept the `max_cursor_size` option in `use Flop`.
+- Accept `false` for the `max_limit` option in `use Flop` and in
+  `@derive Flop.Schema`.
+- Ignore a `default_order` set in the application environment.
 
 ## [0.27.0] - 2026-08-10
 

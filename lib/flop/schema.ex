@@ -543,8 +543,10 @@ defprotocol Flop.Schema do
     Supports fields from the Ecto schema, join fields, and alias fields. Custom
     fields and compound fields are not supported.
   - `:default_limit` - The default limit applied if no `limit`, `page_size`,
-    `first` or `last` parameter is set.
-  - `:max_limit` - The maximum limit that can be set via parameters.
+    `first` or `last` parameter is set. Set to `false` to not set any default
+    limit.
+  - `:max_limit` - The maximum limit that can be set via parameters. Set to
+    `false` to not set any maximum limit.
   - `:default_order` - The default order applied when no order parameters are
     set.
   - `:pagination_types` - A list of allowed pagination types for this schema.

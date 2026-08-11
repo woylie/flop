@@ -500,5 +500,115 @@ defmodule FlopTest do
     test "falls back to nil" do
       assert Flop.get_option(:some_option, []) == nil
     end
+
+    test "resolves the filterable fields of a schema" do
+      assert Flop.get_option(:filterable, for: Pet) ==
+               Flop.Schema.filterable(%Pet{})
+    end
+  end
+
+  describe "option levels" do
+    defmodule BackendWithReplaceInvalidParams do
+      use Flop, repo: Flop.Repo, replace_invalid_params: true
+    end
+
+    test "replace_invalid_params can be set on a backend module" do
+      assert Flop.get_option(
+               :replace_invalid_params,
+               backend: BackendWithReplaceInvalidParams
+             ) == true
+
+      assert {:ok, %Flop{limit: 50}} =
+               Flop.validate(%{limit: 20_000},
+                 backend: BackendWithReplaceInvalidParams,
+                 for: Pet
+               )
+    end
+
+    test "replace_invalid_params at the call site wins over the backend" do
+      assert {:error, %Meta{}} =
+               Flop.validate(%{limit: 20_000},
+                 backend: BackendWithReplaceInvalidParams,
+                 for: Pet,
+                 replace_invalid_params: false
+               )
+    end
+
+    defmodule BackendWithCursorValueFunc do
+      use Flop,
+        repo: Flop.Repo,
+        cursor_value_func: &Flop.Cursor.get_cursor_from_edge/2
+    end
+
+    test "cursor_value_func can be set on a backend module" do
+      assert {cursor, _} =
+               Flop.Cursor.get_cursors(
+                 [{%Pet{name: "a"}, %{name: "edge"}}],
+                 [:name],
+                 backend: BackendWithCursorValueFunc
+               )
+
+      assert Flop.Cursor.decode!(cursor) == %{name: "edge"}
+    end
+
+    test "raises for a cursor_value_func that is not a function" do
+      assert_raise Flop.InvalidConfigError, fn ->
+        defmodule BackendWithBadCursorValueFunc do
+          use Flop, repo: Flop.Repo, cursor_value_func: :not_a_function
+        end
+      end
+    end
+
+    defmodule BackendWithMaxCursorSize do
+      use Flop, repo: Flop.Repo, max_cursor_size: 10
+    end
+
+    test "max_cursor_size can be set on a backend module" do
+      cursor = Flop.Cursor.encode(%{name: "George"})
+
+      assert {:error, %Meta{errors: [after: _]}} =
+               Flop.validate(
+                 %{first: 2, after: cursor, order_by: [:name]},
+                 backend: BackendWithMaxCursorSize,
+                 for: Pet
+               )
+    end
+
+    defmodule BackendWithoutMaxLimit do
+      use Flop, repo: Flop.Repo, max_limit: false
+    end
+
+    defmodule SchemaWithoutMaxLimit do
+      use Ecto.Schema
+
+      @derive {Flop.Schema, filterable: [], sortable: [:name], max_limit: false}
+
+      schema "pets" do
+        field :name, :string
+      end
+    end
+
+    test "max_limit can be disabled on a backend module" do
+      assert Flop.get_option(:max_limit, backend: BackendWithoutMaxLimit) ==
+               false
+
+      assert {:ok, %Flop{limit: 20_000}} =
+               Flop.validate(%{limit: 20_000}, backend: BackendWithoutMaxLimit)
+    end
+
+    test "max_limit can be disabled on a schema" do
+      assert Flop.get_option(:max_limit, for: SchemaWithoutMaxLimit) == false
+
+      assert {:ok, %Flop{limit: 20_000}} =
+               Flop.validate(%{limit: 20_000}, for: SchemaWithoutMaxLimit)
+    end
+
+    test "raises for an option a backend module does not accept" do
+      assert_raise Flop.InvalidConfigError, fn ->
+        defmodule BackendWithUnknownOption do
+          use Flop, repo: Flop.Repo, filterable: [:name]
+        end
+      end
+    end
   end
 end

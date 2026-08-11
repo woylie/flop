@@ -414,10 +414,16 @@ defmodule Flop do
   - `:ordering` (boolean) - Enables or disables ordering. When set to `false`,
     order parameters are ignored, but the default order is still applied.
   - `:pagination` (boolean) - Enables or disables pagination. When set to
-    `false`, pagination parameters are ignored.
+    `false`, pagination parameters are ignored, but the default limit is still
+    applied.
   - `:pagination_types` - The allowed pagination types. Parameters for
     disallowed pagination types will not be cast. By default, all types are
     allowed. See also `t:Flop.pagination_type/0`.
+
+  `:filtering`, `:ordering` and `:pagination` only affect the parameters. Set
+  `default_order: false` or `default_limit: false` to disable the defaults as
+  well. When pagination is disabled, the default pagination type is not applied,
+  and the default limit is set as `:limit`.
 
   ### Additional options
 
@@ -434,6 +440,15 @@ defmodule Flop do
   3. Module-level options in the config (backend) module
   4. Global options in the application environment
   5. Library defaults
+
+  Not every option can be set at every level:
+
+  - `:for`, `:count`, `:count_query` and `:extra_opts` are only read from the
+    function arguments.
+  - `:default_order` can only be set on a schema or passed to a query function.
+  - `:cursor_value_func`, `:filtering`, `:max_cursor_size`, `:max_filters`,
+    `:ordering`, `:pagination`, `:query_opts`, `:replace_invalid_params` and
+    `:repo` cannot be set on a schema.
 
   ## Adapter option look-up
 
@@ -2211,7 +2226,7 @@ defmodule Flop do
               key in [
                 :default_limit,
                 :default_order,
-                :filterable_fields,
+                :filterable,
                 :max_limit,
                 :pagination_types,
                 :default_pagination_type,
@@ -2228,6 +2243,10 @@ defmodule Flop do
   end
 
   defp backend_option(_, _), do: nil
+
+  # `:default_order` names fields, which belong to a schema, so a global value
+  # would apply the same field names to every schema.
+  defp global_option(:default_order), do: nil
 
   defp global_option(key) when is_atom(key) do
     Application.get_env(:flop, key)
