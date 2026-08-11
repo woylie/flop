@@ -17,6 +17,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Resolve the `cursor_value_func` option through the documented look-up order
   and accept it in `use Flop`.
 - Accept the `max_cursor_size` option in `use Flop`.
+- Accept `false` for the `max_limit` option in `use Flop` and in
+  `@derive Flop.Schema`.
 
 ## [0.27.0] - 2026-08-10
 

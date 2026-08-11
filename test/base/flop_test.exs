@@ -573,5 +573,34 @@ defmodule FlopTest do
                  for: Pet
                )
     end
+
+    defmodule BackendWithoutMaxLimit do
+      use Flop, repo: Flop.Repo, max_limit: false
+    end
+
+    defmodule SchemaWithoutMaxLimit do
+      use Ecto.Schema
+
+      @derive {Flop.Schema, filterable: [], sortable: [:name], max_limit: false}
+
+      schema "pets" do
+        field :name, :string
+      end
+    end
+
+    test "max_limit can be disabled on a backend module" do
+      assert Flop.get_option(:max_limit, backend: BackendWithoutMaxLimit) ==
+               false
+
+      assert {:ok, %Flop{limit: 20_000}} =
+               Flop.validate(%{limit: 20_000}, backend: BackendWithoutMaxLimit)
+    end
+
+    test "max_limit can be disabled on a schema" do
+      assert Flop.get_option(:max_limit, for: SchemaWithoutMaxLimit) == false
+
+      assert {:ok, %Flop{limit: 20_000}} =
+               Flop.validate(%{limit: 20_000}, for: SchemaWithoutMaxLimit)
+    end
   end
 end
