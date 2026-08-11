@@ -4,6 +4,7 @@ defmodule Flop.MixProject do
   @source_url "https://github.com/woylie/flop"
   @version "0.27.0"
   @adapters ~w(postgres sqlite mysql)
+  @supported_adapters ~w(postgres)
 
   def project do
     [
@@ -125,11 +126,12 @@ defmodule Flop.MixProject do
 
   defp aliases do
     [
-      "test.all": ["test", "test.adapters"],
+      test: ["test", &test_adapters(@supported_adapters, &1)],
+      "test.all": ["test", &test_adapters(@adapters -- @supported_adapters, &1)],
       "test.mysql": &test_adapters(["mysql"], &1),
       "test.postgres": &test_adapters(["postgres"], &1),
       "test.sqlite": &test_adapters(["sqlite"], &1),
-      "test.adapters": &test_adapters/1,
+      "test.adapters": &test_adapters(@adapters, &1),
       "coveralls.html.all": [
         "test.adapters --cover",
         "coveralls.html --import-cover cover"
@@ -157,23 +159,41 @@ defmodule Flop.MixProject do
     """
   end
 
-  defp test_adapters(adapters \\ @adapters, args) do
-    for adapter <- adapters do
-      IO.puts("==> Running tests for ECTO_ADAPTER=#{adapter} mix test")
-
-      {_, res} =
-        System.cmd(
-          "mix",
-          ["test", ansi_option(), "--export-coverage=#{adapter}" | args],
-          into: IO.binstream(:stdio, :line),
-          env: [{"ECTO_ADAPTER", adapter}]
-        )
-
-      if res > 0 do
-        System.at_exit(fn _ -> exit({:shutdown, 1}) end)
-      end
+  defp test_adapters(adapters, args) do
+    if is_nil(System.get_env("ECTO_ADAPTER")) do
+      adapters
+      |> Enum.map(&{&1, test_adapter(&1, args)})
+      |> print_adapter_summary()
     end
   end
+
+  defp test_adapter(adapter, args) do
+    IO.puts("==> Running tests for ECTO_ADAPTER=#{adapter} mix test")
+
+    {_, res} =
+      System.cmd(
+        "mix",
+        ["test", ansi_option(), "--export-coverage=#{adapter}" | args],
+        into: IO.binstream(:stdio, :line),
+        env: [{"ECTO_ADAPTER", adapter}]
+      )
+
+    if res > 0, do: System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+    res
+  end
+
+  defp print_adapter_summary([_]), do: :ok
+
+  defp print_adapter_summary(results) do
+    IO.puts("\n==> Adapter summary")
+
+    for {adapter, res} <- results do
+      IO.puts("    #{String.pad_trailing(adapter, 9)} #{status(res)}")
+    end
+  end
+
+  defp status(0), do: "passed"
+  defp status(res), do: "FAILED (exit #{res})"
 
   defp ansi_option do
     if IO.ANSI.enabled?(), do: "--color", else: "--no-color"
