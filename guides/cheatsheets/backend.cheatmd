@@ -1,0 +1,156 @@
+# Backend configuration
+
+## Basics
+{: .col-2}
+
+### Backend module
+
+```elixir
+defmodule MyApp.Flop do
+  use Flop,
+    adapter_opts: [repo: MyApp.Repo],
+    default_limit: 25
+end
+```
+
+### Usage
+
+```elixir
+MyApp.Flop.validate_and_run(
+  MyApp.Pet,
+  params,
+  for: MyApp.Pet
+)
+```
+
+### Application environment
+
+```elixir
+import Config
+
+config :flop,
+  adapter_opts: [
+    repo: MyApp.Repo
+  ]
+```
+
+### Look-up order
+
+1. Function arguments
+2. Schema options with `@derive Flop.Schema`
+3. Backend module with `use Flop`
+4. Application environment
+5. Library defaults
+
+## Options
+{: .col-2}
+
+### Pagination
+
+```elixir
+use Flop,
+  adapter_opts: [repo: MyApp.Repo],
+  default_limit: 25,
+  max_limit: 100,
+  pagination_types: [:page, :first],
+  default_pagination_type: :page
+```
+
+### Disabling features
+
+```elixir
+use Flop,
+  adapter_opts: [repo: MyApp.Repo],
+  filtering: false,
+  ordering: false,
+  pagination: false
+```
+
+Parameters of a disabled feature are ignored. `ordering: false` still applies
+the default order, and `pagination: false` still applies the default limit.
+
+### Invalid parameters
+
+```elixir
+use Flop, adapter_opts: [repo: MyApp.Repo], replace_invalid_params: true
+```
+
+Invalid parameters are replaced or removed instead of returning errors.
+
+### Cursor values
+
+```elixir
+use Flop,
+  adapter_opts: [repo: MyApp.Repo],
+  cursor_value_func: &MyApp.Cursors.get_cursor/2,
+  max_cursor_size: 8_192
+```
+
+## Defaults
+
+| Option | Default |
+| ------ | ------- |
+| `adapter_opts` | `[]` |
+| `cursor_value_func` | `Flop.Cursor.get_cursor_from_node/2` |
+| `default_limit` | `50` |
+| `max_limit` | `1000` |
+| `max_filters` | `20` |
+| `default_pagination_type` | `:offset` |
+| `pagination_types` | `[:offset, :page, :first, :last]` |
+| `filtering` | `true` |
+| `ordering` | `true` |
+| `pagination` | `true` |
+
+`default_limit`, `max_limit` and `max_filters` also take `false`.
+`max_filters` is not a schema option.
+
+## Ecto adapter
+{: .col-2}
+
+### Repo and query options
+
+```elixir
+use Flop,
+  adapter_opts: [
+    repo: MyApp.Repo,
+    query_opts: [prefix: "public", timeout: 30_000]
+  ]
+```
+
+`repo` is required.
+
+### Overriding per call
+
+```elixir
+MyApp.Flop.all(MyApp.Pet, flop, repo: MyApp.ReplicaRepo)
+```
+
+Adapter options are merged, so `query_opts` is kept.
+
+### Legacy form
+
+```elixir
+use Flop, repo: MyApp.Repo, query_opts: [prefix: "public"]
+```
+
+Both forms end up under `adapter_opts`.
+
+## Call-time options
+
+These options are not accepted by `use Flop`.
+
+```elixir
+Flop.validate_and_run(MyApp.Pet, params,
+  for: MyApp.Pet,
+  count_query: count_query,
+  extra_opts: [timezone: "Asia/Tokyo"]
+)
+```
+
+| Option | Purpose |
+| ------ | ------- |
+| `for` | Schema module that derives `Flop.Schema` |
+| `default_order` | Also a schema option |
+| `count` | Known count, skips the count query |
+| `count_query` | Separate query for counting |
+| `extra_opts` | Passed on to custom filter functions |
