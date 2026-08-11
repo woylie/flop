@@ -1,7 +1,7 @@
 defmodule Flop.Validation do
   @moduledoc false
 
-  import Flop.Misc, only: [expand_type: 1]
+  import Flop.Misc, only: [expand_type: 1, storable_value?: 2]
 
   alias Ecto.Changeset
   alias Flop.Cursor
@@ -483,11 +483,15 @@ defmodule Flop.Validation do
     end
   end
 
-  defp cast_cursor_value(nil, value), do: {:ok, value}
+  defp cast_cursor_value(nil, value) do
+    if storable_value?(nil, value), do: {:ok, value}, else: :error
+  end
 
   defp cast_cursor_value(type, value) do
-    case Ecto.Type.cast(type, value) do
-      {:ok, cast_value} -> {:ok, cast_value}
+    with {:ok, cast_value} <- Ecto.Type.cast(type, value),
+         true <- storable_value?(type, cast_value) do
+      {:ok, cast_value}
+    else
       _ -> :error
     end
   end
