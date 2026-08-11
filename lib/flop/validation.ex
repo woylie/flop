@@ -10,7 +10,10 @@ defmodule Flop.Validation do
 
   @spec changeset(map, [Flop.option()]) :: Changeset.t()
   def changeset(%{} = params, opts) do
-    replace_invalid_params? = Keyword.get(opts, :replace_invalid_params, false)
+    replace_invalid_params? =
+      Flop.get_option(:replace_invalid_params, opts, false)
+
+    opts = Keyword.put(opts, :replace_invalid_params, replace_invalid_params?)
 
     %Flop{}
     |> Changeset.cast(params, [])

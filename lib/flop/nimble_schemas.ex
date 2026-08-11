@@ -11,6 +11,7 @@ defmodule Flop.NimbleSchemas do
     default_limit: [type: {:or, [:pos_integer, {:in, [false]}]}, default: 50],
     max_filters: [type: {:or, [:pos_integer, {:in, [false]}]}, default: 20],
     max_limit: [type: :integer, default: 1000],
+    replace_invalid_params: [type: :boolean],
     default_pagination_type: [
       type: {:in, [:offset, :page, :first, :last]},
       default: :offset

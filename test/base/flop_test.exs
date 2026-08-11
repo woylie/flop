@@ -506,4 +506,32 @@ defmodule FlopTest do
                Flop.Schema.filterable(%Pet{})
     end
   end
+
+  describe "option levels" do
+    defmodule BackendWithReplaceInvalidParams do
+      use Flop, repo: Flop.Repo, replace_invalid_params: true
+    end
+
+    test "replace_invalid_params can be set on a backend module" do
+      assert Flop.get_option(
+               :replace_invalid_params,
+               backend: BackendWithReplaceInvalidParams
+             ) == true
+
+      assert {:ok, %Flop{limit: 50}} =
+               Flop.validate(%{limit: 20_000},
+                 backend: BackendWithReplaceInvalidParams,
+                 for: Pet
+               )
+    end
+
+    test "replace_invalid_params at the call site wins over the backend" do
+      assert {:error, %Meta{}} =
+               Flop.validate(%{limit: 20_000},
+                 backend: BackendWithReplaceInvalidParams,
+                 for: Pet,
+                 replace_invalid_params: false
+               )
+    end
+  end
 end

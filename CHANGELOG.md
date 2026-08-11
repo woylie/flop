@@ -11,6 +11,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Reject filter and cursor values that contain NUL bytes or invalid UTF-8.
+- Resolve the `replace_invalid_params` option through the documented look-up
+  order. It was only applied when passed to a query function, and can now be set
+  on a backend module and in the application environment as well.
 
 ## [0.27.0] - 2026-08-10
 
