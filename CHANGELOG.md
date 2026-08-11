@@ -8,6 +8,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.27.1] - 2026-08-11
+
+### Added
+
+- Add several new guides to the documentation.
+
 ### Fixed
 
 - Reject filter and cursor values that contain NUL bytes or invalid UTF-8.
@@ -1030,7 +1036,8 @@ equivalent:
 
 - Initial release.
 
-[unreleased]: https://github.com/woylie/flop/compare/0.27.0...HEAD
+[unreleased]: https://github.com/woylie/flop/compare/0.27.1...HEAD
+[0.27.1]: https://github.com/woylie/flop/compare/0.27.0...0.27.1
 [0.27.0]: https://github.com/woylie/flop/compare/0.26.6...0.27.0
 [0.26.6]: https://github.com/woylie/flop/compare/0.26.5...0.26.6
 [0.26.5]: https://github.com/woylie/flop/compare/0.26.4...0.26.5

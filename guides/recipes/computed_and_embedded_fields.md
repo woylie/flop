@@ -1,4 +1,4 @@
-# Computed and Embedded Fields
+# Computed and embedded fields
 
 Flop applies filter and order parameters to columns. Sometimes the value you
 want to filter or order by is not a column: it is the result of a SQL function,
@@ -34,7 +34,7 @@ You only need to select the value if you want to apply cursor pagination and
 sort by it, since Flop extracts the cursor value from the result set. With a
 custom `cursor_value_func`, you can select it in any shape.
 
-## Ecto Schema
+## Ecto schema
 
 In the Ecto schema, you define a join field that points at the binding of the
 lateral join and mark it as filterable and sortable.
@@ -61,7 +61,7 @@ when it builds a pagination cursor. Without it, Flop looks under
 lateral join has no association, so the path points at the virtual field
 instead.
 
-## Built Query
+## Built query
 
 When you run `Flop.validate_and_run(query, params, for: MyApp.Pet)`, Flop adds
 `where` and `order by` clauses depending on the given parameters.
@@ -78,7 +78,7 @@ LIMIT $2
 The same approach works for any expression the database can evaluate per row,
 including `unaccent(?)`, `?::text` and `tsvector` expressions.
 
-## Query Plans
+## Query plans
 
 A lateral join that references nothing but the parent row does not cost anything
 at run time. PostgreSQL flattens it away, so the query plan looks exactly the
@@ -108,7 +108,7 @@ Index Scan using pets_name_lower_idx on pets p0
   Index Cond: (lower((name)::text) = 'pet500'::text)
 ```
 
-## JSONB and Embedded Schema Fields
+## JSONB and embedded schema fields
 
 If you need to filter or sort on fields within a JSONB column, including
 embedded fields using `embeds_one`, you can add a lateral join here as well and
@@ -193,7 +193,7 @@ join does not drop the parent row. `count(*)` and `max(...)` work the same way
 if you want to filter or sort by the number of elements or by the largest value
 among them.
 
-## Complete Example
+## Complete example
 
 ```elixir
 defmodule MyApp.Pet do
