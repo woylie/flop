@@ -7,7 +7,9 @@ defmodule Flop.NimbleSchemas do
       type: :keyword_list,
       default: []
     ],
-    cursor_value_func: [type: {:fun, 2}],
+    cursor_value_func: [
+      type: {:custom, __MODULE__, :validate_cursor_value_func, []}
+    ],
     default_limit: [type: {:or, [:pos_integer, {:in, [false]}]}, default: 50],
     max_filters: [type: {:or, [:pos_integer, {:in, [false]}]}, default: 20],
     max_limit: [type: :integer, default: 1000],
@@ -144,4 +146,20 @@ defmodule Flop.NimbleSchemas do
 
   defp schema(:backend_option), do: @backend_option
   defp schema(:schema_option), do: @schema_option
+
+  @doc false
+  def validate_cursor_value_func(value) do
+    if cursor_value_func?(value) do
+      {:ok, value}
+    else
+      {:error, "expected a function of arity 2, got: #{inspect(value)}"}
+    end
+  end
+
+  defp cursor_value_func?(value) when is_function(value, 2), do: true
+
+  # `use Flop` validates its options before they are expanded
+  defp cursor_value_func?({:&, _, _}), do: true
+  defp cursor_value_func?({:fn, _, _}), do: true
+  defp cursor_value_func?(_), do: false
 end

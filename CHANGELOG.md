@@ -14,6 +14,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Resolve the `replace_invalid_params` option through the documented look-up
   order. It was only applied when passed to a query function, and can now be set
   on a backend module and in the application environment as well.
+- Resolve the `cursor_value_func` option through the documented look-up order
+  and accept it in `use Flop`.
 
 ## [0.27.0] - 2026-08-10
 

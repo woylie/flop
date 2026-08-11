@@ -339,8 +339,6 @@ defmodule Flop.Cursor do
 
   @doc false
   def cursor_value_func(opts \\ []) do
-    opts[:cursor_value_func] ||
-      Application.get_env(:flop, :cursor_value_func) ||
-      (&get_cursor_from_node/2)
+    Flop.get_option(:cursor_value_func, opts, &get_cursor_from_node/2)
   end
 end

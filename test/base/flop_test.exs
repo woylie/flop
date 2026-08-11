@@ -533,5 +533,30 @@ defmodule FlopTest do
                  replace_invalid_params: false
                )
     end
+
+    defmodule BackendWithCursorValueFunc do
+      use Flop,
+        repo: Flop.Repo,
+        cursor_value_func: &Flop.Cursor.get_cursor_from_edge/2
+    end
+
+    test "cursor_value_func can be set on a backend module" do
+      assert {cursor, _} =
+               Flop.Cursor.get_cursors(
+                 [{%Pet{name: "a"}, %{name: "edge"}}],
+                 [:name],
+                 backend: BackendWithCursorValueFunc
+               )
+
+      assert Flop.Cursor.decode!(cursor) == %{name: "edge"}
+    end
+
+    test "raises for a cursor_value_func that is not a function" do
+      assert_raise Flop.InvalidConfigError, fn ->
+        defmodule BackendWithBadCursorValueFunc do
+          use Flop, repo: Flop.Repo, cursor_value_func: :not_a_function
+        end
+      end
+    end
   end
 end
