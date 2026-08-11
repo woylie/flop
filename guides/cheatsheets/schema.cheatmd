@@ -139,7 +139,7 @@ params = %{
   ]
 }
 
-Flop.validate_and_run(User, params, for: Owner)
+Flop.validate_and_run(User, params, for: User)
 ```
 
 ## Join fields
@@ -183,6 +183,7 @@ defmodule Pet do
 
   schema "pets" do
     field :age, :integer
+    belongs_to :owner, Owner
   end
 end
 ```
@@ -199,17 +200,17 @@ params = %{
 }
 
 Owner
-|> join([o], p in assoc(o, :pets), as: :pets)
-|> Flop.validate_and_run(params, for: Pet)
+|> join(:left, [o], p in assoc(o, :pets), as: :pets)
+|> Flop.validate_and_run(params, for: Owner)
 ```
 
 #### With preload
 
 ```elixir
 Owner
-|> join([o], p in assoc(o, :pets), as: :pets)
+|> join(:left, [o], p in assoc(o, :pets), as: :pets)
 |> preload([pets: p], pets: p)
-|> Flop.validate_and_run(params, for: Pet)
+|> Flop.validate_and_run(params, for: Owner)
 ```
 
 ## Join field for nested association
@@ -229,7 +230,7 @@ defmodule Owner do
     sortable: [:name],
     adapter_opts: [
       join_fields: [
-        pet_age: [
+        toy_description: [
           binding: :toys,
           field: :description,
           ecto_type: :string,
@@ -280,8 +281,8 @@ end
 params = %{order_by: [:toy_description]}
 
 Owner
-|> join([o], p in assoc(o, :pets), as: :pets)
-|> join([pets: p], t in assoc(p, :toys), as: :toys)
+|> join(:left, [o], p in assoc(o, :pets), as: :pets)
+|> join(:left, [pets: p], t in assoc(p, :toys), as: :toys)
 |> preload([pets: p, toys: t], pets: {p, toys: t})
 |> Flop.validate_and_run(params, for: Owner)
 ```
@@ -299,13 +300,14 @@ defmodule Owner do
 
   @derive {
     Flop.Schema,
-    filterable: [:name],
+    filterable: [:name, :pet_count],
     sortable: [:name, :pet_count],
     adapter_opts: [
       join_fields: [
         pet_count: [
           binding: :pet_count,
-          field: :count
+          field: :count,
+          ecto_type: :integer
         ]
       ]
     ]
@@ -326,6 +328,7 @@ defmodule Pet do
 
   schema "pets" do
     field :age, :integer
+    belongs_to :owner, Owner
   end
 end
 ```
@@ -344,6 +347,7 @@ q =
   Owner
   |> from(as: :owner)
   |> join(:inner_lateral, [o], p in subquery(pet_count_query),
+    on: true,
     as: :pet_count
   )
   |> Flop.validate_and_run(params, for: Owner)
@@ -391,12 +395,12 @@ defmodule CustomFilters do
         value_in_dog_years = round(human_years / 7)
 
         case op do
-          :== -> where(q, [p], p == ^value_in_dog_years)
-          :!= -> where(q, [p], p != ^value_in_dog_years)
-          :> -> where(q, [p], p > ^value_in_dog_years)
-          :< -> where(q, [p], p < ^value_in_dog_years)
-          :>= -> where(q, [p], p >= ^value_in_dog_years)
-          :<= -> where(q, [p], p <= ^value_in_dog_years)
+          :== -> where(q, [p], p.age == ^value_in_dog_years)
+          :!= -> where(q, [p], p.age != ^value_in_dog_years)
+          :> -> where(q, [p], p.age > ^value_in_dog_years)
+          :< -> where(q, [p], p.age < ^value_in_dog_years)
+          :>= -> where(q, [p], p.age >= ^value_in_dog_years)
+          :<= -> where(q, [p], p.age <= ^value_in_dog_years)
         end
 
       :error ->

@@ -104,12 +104,9 @@ defmodule Flop.MixProject do
     [
       main: "readme",
       extra_section: "GUIDES",
-      extras: [
-        "guides/cheatsheets/schema.cheatmd",
-        "guides/recipes/partial_uuid_filter.md",
-        "README.md",
-        "CHANGELOG.md"
-      ],
+      extras:
+        Path.wildcard("guides/**/*.{md,cheatmd}") ++
+          ["README.md", "CHANGELOG.md"],
       source_ref: @version,
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
       groups_for_extras: [

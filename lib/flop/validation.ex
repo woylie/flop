@@ -83,6 +83,8 @@ defmodule Flop.Validation do
 
   defp cast_filters(changeset, opts) do
     if Flop.get_option(:filtering, opts, true) do
+      opts = Keyword.put(opts, :repo, Flop.adapter_opts(opts)[:repo])
+
       Changeset.cast_embed(changeset, :filters,
         with: &Filter.changeset(&1, &2, opts)
       )
