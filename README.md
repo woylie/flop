@@ -472,21 +472,23 @@ mix format --check-formatted
 mix credo
 mix compile --warnings-as-errors
 mix test --warnings-as-errors
-mix test.postgres --warnings-as-errors
 mix hex.audit
 mix docs --warnings-as-errors
 mix dialyzer
 ```
 
-Note that the tests are split up. `mix test` only tests common functionality
-without database interaction, and `mix test.{adapter}` runs tests that involve
-database queries.
+Note that the tests are split up. The common functionality is tested without
+database interaction, and each Ecto adapter has its own suite that runs the
+tests involving database queries.
 
-- `mix test` - common functionality
+`mix test` runs the common tests and the adapters that are expected to pass,
+which is Postgres at the moment.
+
+- `mix test` - common functionality and the supported adapters
+- `mix test.all` - common functionality and every adapter
 - `mix test.postgres`
 - `mix test.mysql`
 - `mix test.sqlite`
-- `mix test.all` - all database adapters
 
 At the moment, only `mix test` and `mix test.postgres` are required to pass.
 
