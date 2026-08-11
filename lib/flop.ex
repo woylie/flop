@@ -2211,7 +2211,7 @@ defmodule Flop do
               key in [
                 :default_limit,
                 :default_order,
-                :filterable_fields,
+                :filterable,
                 :max_limit,
                 :pagination_types,
                 :default_pagination_type,

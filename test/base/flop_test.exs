@@ -500,5 +500,10 @@ defmodule FlopTest do
     test "falls back to nil" do
       assert Flop.get_option(:some_option, []) == nil
     end
+
+    test "resolves the filterable fields of a schema" do
+      assert Flop.get_option(:filterable, for: Pet) ==
+               Flop.Schema.filterable(%Pet{})
+    end
   end
 end
