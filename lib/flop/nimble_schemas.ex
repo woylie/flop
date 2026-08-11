@@ -159,7 +159,9 @@ defmodule Flop.NimbleSchemas do
 
   defp cursor_value_func?(value) when is_function(value, 2), do: true
 
-  # `use Flop` validates its options before they are expanded
+  # `use Flop` validates its options before they are expanded, where a function
+  # literal is still a capture or an anonymous function node. `{:fun, 2}` would
+  # reject every value.
   defp cursor_value_func?({:&, _, _}), do: true
   defp cursor_value_func?({:fn, _, _}), do: true
   defp cursor_value_func?(_), do: false
