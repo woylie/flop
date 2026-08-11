@@ -602,5 +602,13 @@ defmodule FlopTest do
       assert {:ok, %Flop{limit: 20_000}} =
                Flop.validate(%{limit: 20_000}, for: SchemaWithoutMaxLimit)
     end
+
+    test "raises for an option a backend module does not accept" do
+      assert_raise Flop.InvalidConfigError, fn ->
+        defmodule BackendWithUnknownOption do
+          use Flop, repo: Flop.Repo, filterable: [:name]
+        end
+      end
+    end
   end
 end
