@@ -20,6 +20,58 @@ defmodule Flop.Misc do
   def expand_type(type), do: type
 
   @doc """
+  Returns `true` if the value can be stored in a text column.
+
+  Returns `false` for invalid UTF-8 and for NUL bytes, which are rejected by
+  databases at query time.
+
+  Lists and maps are checked element by element. For any other type, `true` is
+  returned.
+
+      iex> storable_text?("borscht")
+      true
+
+      iex> storable_text?(<<98, 0, 116>>)
+      false
+
+      iex> storable_text?(<<0xFF>>)
+      false
+
+      iex> storable_text?(["ok", <<0xED, 0xA0, 0x80>>])
+      false
+  """
+  def storable_text?(value) when is_binary(value) do
+    String.valid?(value) and not String.contains?(value, <<0>>)
+  end
+
+  def storable_text?(value) when is_list(value) do
+    Enum.all?(value, &storable_text?/1)
+  end
+
+  def storable_text?(%_{}), do: true
+
+  def storable_text?(%{} = value) do
+    Enum.all?(value, fn {key, val} ->
+      storable_text?(key) and storable_text?(val)
+    end)
+  end
+
+  def storable_text?(_), do: true
+
+  @doc """
+  Returns `true` if the value can be stored in a column of the given type.
+
+      iex> storable_value?(:string, <<0xFF>>)
+      false
+
+      iex> storable_value?(:binary, <<0xFF>>)
+      true
+  """
+  def storable_value?(:binary, _value), do: true
+  def storable_value?({:array, :binary}, _value), do: true
+  def storable_value?(_type, value), do: storable_text?(value)
+
+  @doc """
   Adds wildcard at the beginning and end of a string for partial matches.
 
   Escapes `%` and `_` within the given string.

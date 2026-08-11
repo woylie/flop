@@ -13,7 +13,7 @@ defmodule Flop.Filter do
   use Ecto.Schema
 
   import Ecto.Changeset
-  import Flop.Misc, only: [expand_type: 1]
+  import Flop.Misc, only: [expand_type: 1, storable_value?: 2]
   import Flop.Schema
 
   alias Ecto.Changeset
@@ -188,8 +188,16 @@ defmodule Flop.Filter do
     value = filter_empty_values(type, params["value"])
 
     case Ecto.Type.cast(type, value) do
-      {:ok, cast_value} -> put_change(changeset, :value, cast_value)
+      {:ok, cast_value} -> put_cast_value(changeset, type, cast_value)
       _ -> add_error(changeset, :value, "is invalid")
+    end
+  end
+
+  defp put_cast_value(changeset, type, value) do
+    if storable_value?(type, value) do
+      put_change(changeset, :value, value)
+    else
+      add_error(changeset, :value, "is invalid")
     end
   end
 

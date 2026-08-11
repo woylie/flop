@@ -456,6 +456,23 @@ defmodule Flop.ValidationTest do
       assert errors_on(changeset)[:after] == ["is invalid"]
     end
 
+    test "rejects cursor values a text column cannot store" do
+      for value <- [<<97, 0, 98>>, <<0xFF>>, <<0xED, 0xA0, 0x80>>] do
+        cursor = Cursor.encode(%{name: value})
+        params = %{first: 2, after: cursor, order_by: [:name]}
+        assert {:error, changeset} = validate(params, for: Pet)
+        assert errors_on(changeset)[:after] == ["is invalid"]
+      end
+    end
+
+    test "replaces unstorable cursor with replace_invalid_params" do
+      cursor = Cursor.encode(%{name: <<97, 0, 98>>})
+      params = %{first: 2, after: cursor, order_by: [:name]}
+
+      assert {:ok, %Flop{after: nil}} =
+               validate(params, for: Pet, replace_invalid_params: true)
+    end
+
     test "adds decoded cursor to struct" do
       cursor = Cursor.encode(%{name: "a"})
 
@@ -990,6 +1007,44 @@ defmodule Flop.ValidationTest do
   end
 
   describe "filter parameters" do
+    test "rejects values a text column cannot store" do
+      unstorable = [
+        <<97, 0, 98>>,
+        <<0xFF>>,
+        <<0xC0, 0x80>>,
+        <<0xED, 0xA0, 0x80>>,
+        <<0xE2, 0x82>>
+      ]
+
+      for value <- unstorable do
+        params = %{filters: [%{field: :name, op: :==, value: value}]}
+        assert {:error, changeset} = validate(params, for: Pet)
+        assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+      end
+    end
+
+    test "rejects unstorable values in lists, arrays and compound fields" do
+      nul = <<97, 0, 98>>
+
+      for {field, op, value} <- [
+            {:name, :ilike_and, ["ok", nul]},
+            {:name, :in, [nul]},
+            {:tags, :contains, nul},
+            {:full_name, :like, nul}
+          ] do
+        params = %{filters: [%{field: field, op: op, value: value}]}
+        assert {:error, changeset} = validate(params, for: Pet)
+        assert [%{value: ["is invalid"]}] = errors_on(changeset)[:filters]
+      end
+    end
+
+    test "removes unstorable filter values with replace_invalid_params" do
+      params = %{filters: [%{field: :name, op: :==, value: <<97, 0, 98>>}]}
+
+      assert {:ok, %Flop{filters: []}} =
+               validate(params, for: Pet, replace_invalid_params: true)
+    end
+
     test "only allows to filter by fields marked as filterable" do
       # field exists, but is not filterable
 

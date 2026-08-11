@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Reject filter and cursor values that contain NUL bytes or invalid UTF-8.
+
 ## [0.27.0] - 2026-08-10
 
 ### Changed
