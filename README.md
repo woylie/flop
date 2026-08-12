@@ -68,8 +68,9 @@ still work, but they are not covered by CI and not officially supported.
 | MySQL    | Experimental, not yet supported |
 | SQLite   | Experimental, not yet supported |
 
-Flop builds queries with `Ecto.Query` and does not use fragments, so most of the
-library works on any database Ecto supports, but only Postgres is tested in CI.
+Flop builds queries with `Ecto.Query`, and the only fragment it uses is the
+`ESCAPE` clause that `LIKE` patterns need, so most of the library works on any
+database Ecto supports, but only Postgres is tested in CI.
 The MySQL and SQLite test suites do not pass yet, and the work needed to finish
 them is tracked in
 [issue #514](https://github.com/woylie/flop/issues/514) and
