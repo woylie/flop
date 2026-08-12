@@ -615,14 +615,26 @@ defmodule Flop.Adapter.Ecto do
        )
        when op in [:empty, :not_empty] do
     ecto_type = module.__schema__(:type, field)
-    value = value in [true, "true"]
-    value = if op == :not_empty, do: !value, else: value
 
-    case array_or_map(ecto_type) do
-      :array -> dynamic([r], empty(:array) == ^value)
-      :map -> dynamic([r], empty(:map) == ^value)
-      :other -> dynamic([r], empty(:other) == ^value)
-    end
+    condition =
+      case array_or_map(ecto_type) do
+        :array -> dynamic([r], empty(:array))
+        :map -> dynamic([r], empty(:map))
+        :other -> dynamic([r], empty(:other))
+      end
+
+    match_empty(condition, op, value)
+  end
+
+  # without a schema there is no field type, so an empty array or map cannot be
+  # told apart from a nil and only the nil check is available
+  defp build_op(
+         _schema_struct,
+         %FieldInfo{extra: %{type: :normal, field: field}},
+         %Filter{op: op, value: value}
+       )
+       when op in [:empty, :not_empty] do
+    match_empty(dynamic([r], empty(:other)), op, value)
   end
 
   defp build_op(
@@ -634,17 +646,17 @@ defmodule Flop.Adapter.Ecto do
          %Filter{op: op, value: value}
        )
        when op in [:empty, :not_empty] do
-    value = value in [true, "true"]
-    value = if op == :not_empty, do: !value, else: value
+    condition =
+      case array_or_map(ecto_type) do
+        :array -> dynamic([{^binding, r}], empty(:array))
+        :map -> dynamic([{^binding, r}], empty(:map))
+        :other -> dynamic([{^binding, r}], empty(:other))
+      end
 
-    case array_or_map(ecto_type) do
-      :array -> dynamic([{^binding, r}], empty(:array) == ^value)
-      :map -> dynamic([{^binding, r}], empty(:map) == ^value)
-      :other -> dynamic([{^binding, r}], empty(:other) == ^value)
-    end
+    match_empty(condition, op, value)
   end
 
-  for op <- @operators do
+  for op <- @operators, op not in [:empty, :not_empty] do
     {fragment, prelude, combinator} = op_config(op)
 
     defp build_op(
@@ -656,16 +668,21 @@ defmodule Flop.Adapter.Ecto do
       build_dynamic(unquote(fragment), false, unquote(combinator))
     end
 
-    if op not in [:empty, :not_empty] do
-      defp build_op(
-             _schema_struct,
-             %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
-             %Filter{op: unquote(op), value: value}
-           ) do
-        unquote(prelude)
-        build_dynamic(unquote(fragment), true, unquote(combinator))
-      end
+    defp build_op(
+           _schema_struct,
+           %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
+           %Filter{op: unquote(op), value: value}
+         ) do
+      unquote(prelude)
+      build_dynamic(unquote(fragment), true, unquote(combinator))
     end
+  end
+
+  defp match_empty(condition, op, value) do
+    empty? = value in [true, "true"]
+    empty? = if op == :not_empty, do: !empty?, else: empty?
+
+    if empty?, do: condition, else: dynamic([r], not (^condition))
   end
 
   defp array_or_map({:array, _}), do: :array

@@ -115,20 +115,6 @@ defmodule Flop.Adapter.Ecto.Operators do
     {fragment, nil, nil}
   end
 
-  def op_config(:empty) do
-    fragment = empty()
-    {fragment, nil, nil}
-  end
-
-  def op_config(:not_empty) do
-    fragment =
-      quote do
-        not unquote(empty())
-      end
-
-    {fragment, nil, nil}
-  end
-
   def op_config(:in) do
     fragment =
       quote do
@@ -157,11 +143,7 @@ defmodule Flop.Adapter.Ecto.Operators do
   end
 
   def op_config(:like) do
-    fragment =
-      quote do
-        like(field(r, ^var!(field)), ^var!(value))
-      end
-
+    fragment = like_fragment(quote(do: ^var!(value)))
     prelude = prelude(:add_wildcard)
     {fragment, prelude, nil}
   end
@@ -169,7 +151,7 @@ defmodule Flop.Adapter.Ecto.Operators do
   def op_config(:not_like) do
     fragment =
       quote do
-        not like(field(r, ^var!(field)), ^var!(value))
+        not unquote(like_fragment(quote(do: ^var!(value))))
       end
 
     prelude = prelude(:add_wildcard)
@@ -227,11 +209,7 @@ defmodule Flop.Adapter.Ecto.Operators do
   end
 
   def op_config(:like_and) do
-    fragment =
-      quote do
-        like(field(r, ^var!(field)), ^substring)
-      end
-
+    fragment = like_fragment(quote(do: ^substring))
     combinator = :and
     prelude = prelude(:maybe_split_search_text)
 
@@ -239,11 +217,7 @@ defmodule Flop.Adapter.Ecto.Operators do
   end
 
   def op_config(:like_or) do
-    fragment =
-      quote do
-        like(field(r, ^var!(field)), ^substring)
-      end
-
+    fragment = like_fragment(quote(do: ^substring))
     combinator = :or
     prelude = prelude(:maybe_split_search_text)
 
@@ -294,9 +268,17 @@ defmodule Flop.Adapter.Ecto.Operators do
     {fragment, prelude, nil}
   end
 
-  defp empty do
+  # The escape character must be bound rather than written into the fragment
+  # because no literal works everywhere. MySQL reads '\' as an incomplete string
+  # escape, SQLite and Postgres read '\\' as two characters.
+  defp like_fragment(pattern) do
     quote do
-      is_nil(field(r, ^var!(field))) == ^var!(value)
+      fragment(
+        "? LIKE ? ESCAPE ?",
+        field(r, ^var!(field)),
+        unquote(pattern),
+        ^"\\"
+      )
     end
   end
 

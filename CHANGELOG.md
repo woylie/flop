@@ -8,6 +8,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Apply the `:empty` and `:not_empty` filters on SQLite correctly.
+- Add an `ESCAPE` clause to `LIKE` patterns, so that filter values containing
+  `%`, `_` or `\` are matched literally on databases that define no default
+  escape character, such as SQLite.
+
 ## [0.27.1] - 2026-08-11
 
 ### Added
