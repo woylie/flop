@@ -61,6 +61,26 @@ defmodule Flop.Adapter.Ecto.Operators do
     end
   end
 
+  # The second argument says whether the repo adapter supports ILIKE. If it
+  # doesn't, ILIKE is replaced with LIKE. See Flop.Adapter.Ecto.Dialect.
+  def op_config(:=~, false), do: op_config(:like)
+  def op_config(:ilike, false), do: op_config(:like)
+  def op_config(:not_ilike, false), do: op_config(:not_like)
+  def op_config(:ilike_and, false), do: op_config(:like_and)
+  def op_config(:ilike_or, false), do: op_config(:like_or)
+
+  def op_config(:starts_with, false) do
+    fragment = like_fragment(quote(do: ^var!(value)))
+    {fragment, prelude(:add_wildcard_suffix), nil}
+  end
+
+  def op_config(:ends_with, false) do
+    fragment = like_fragment(quote(do: ^var!(value)))
+    {fragment, prelude(:add_wildcard_prefix), nil}
+  end
+
+  def op_config(op, _ilike?), do: op_config(op)
+
   def op_config(:==) do
     fragment =
       quote do

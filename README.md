@@ -66,15 +66,18 @@ still work, but they are not covered by CI and not officially supported.
 | -------- | ------------------------------- |
 | Postgres | Supported and tested in CI      |
 | MySQL    | Experimental, not yet supported |
-| SQLite   | Experimental, not yet supported |
+| SQLite   | Supported and tested in CI      |
 
 Flop builds queries with `Ecto.Query`, and the only fragment it uses is the
 `ESCAPE` clause that `LIKE` patterns need, so most of the library works on any
-database Ecto supports, but only Postgres is tested in CI.
-The MySQL and SQLite test suites do not pass yet, and the work needed to finish
-them is tracked in
-[issue #514](https://github.com/woylie/flop/issues/514) and
-[issue #494](https://github.com/woylie/flop/issues/494).
+database Ecto supports, but only Postgres and SQLite are tested in CI. The
+MySQL test suite does not run yet, and the work needed to finish it is tracked
+in [issue #514](https://github.com/woylie/flop/issues/514).
+
+`ILIKE` is a Postgres extension. On a database that does not have it, the
+operators that would use it are built with `LIKE`, which SQLite and MySQL
+evaluate case-insensitively, but not to the same extent. See `Flop.Filter` for
+the limits.
 
 Some behaviour depends on the repo adapter: for example, filter values for
 `binary_id` fields are validated as UUIDs on Postgres and MySQL, but not on

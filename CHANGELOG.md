@@ -8,6 +8,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Support SQLite.
+
+### Fixed
+
+- Build the `:=~`, `:ilike`, `:not_ilike`, `:ilike_and`, `:ilike_or`,
+  `:starts_with` and `:ends_with` filters with `LIKE` on databases that have no
+  `ILIKE`, such as SQLite and MySQL, instead of raising an `Ecto.QueryError`.
+
 ## [0.27.2] - 2026-08-12
 
 ### Added

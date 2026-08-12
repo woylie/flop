@@ -7,6 +7,7 @@ defmodule Flop.Adapter.Ecto do
   import Flop.Adapter.Ecto.Operators
 
   alias Ecto.Query
+  alias Flop.Adapter.Ecto.Dialect
   alias Flop.FieldInfo
   alias Flop.Filter
   alias Flop.NimbleSchemas
@@ -33,6 +34,17 @@ defmodule Flop.Adapter.Ecto do
     :not_in,
     :like_and,
     :like_or,
+    :ilike_and,
+    :ilike_or,
+    :starts_with,
+    :ends_with
+  ]
+
+  # operators built from ILIKE, which is a PostgreSQL extension
+  @ilike_operators [
+    :=~,
+    :ilike,
+    :not_ilike,
     :ilike_and,
     :ilike_or,
     :starts_with,
@@ -259,7 +271,16 @@ defmodule Flop.Adapter.Ecto do
         apply(mod, fun, [query, filter, opts])
 
       field_info ->
-        Query.where(query, ^build_op(schema_struct, field_info, filter))
+        ilike? =
+          opts
+          |> Flop.adapter_opts()
+          |> Keyword.get(:repo)
+          |> Dialect.supports_ilike?()
+
+        Query.where(
+          query,
+          ^build_op(schema_struct, field_info, filter, ilike?)
+        )
     end
   end
 
@@ -524,7 +545,8 @@ defmodule Flop.Adapter.Ecto do
     defp build_op(
            schema_struct,
            %FieldInfo{extra: %{type: :compound, fields: fields}},
-           %Filter{op: unquote(op), value: value}
+           %Filter{op: unquote(op), value: value},
+           ilike?
          ) do
       fields = Enum.map(fields, &get_field_info(schema_struct, &1))
 
@@ -537,11 +559,16 @@ defmodule Flop.Adapter.Ecto do
       reduce_dynamic(unquote(combinator), value, fn substring ->
         Enum.reduce(fields, false, fn field, inner_dynamic ->
           dynamic_for_field =
-            build_op(schema_struct, field, %Filter{
-              field: field,
-              op: unquote(field_op),
-              value: substring
-            })
+            build_op(
+              schema_struct,
+              field,
+              %Filter{
+                field: field,
+                op: unquote(field_op),
+                value: substring
+              },
+              ilike?
+            )
 
           dynamic([r], ^inner_dynamic or ^dynamic_for_field)
         end)
@@ -552,7 +579,8 @@ defmodule Flop.Adapter.Ecto do
   defp build_op(
          schema_struct,
          %FieldInfo{extra: %{type: :compound, fields: fields}},
-         %Filter{op: op} = filter
+         %Filter{op: op} = filter,
+         ilike?
        )
        when op in [
               :=~,
@@ -567,7 +595,12 @@ defmodule Flop.Adapter.Ecto do
     |> Enum.map(&get_field_info(schema_struct, &1))
     |> Enum.reduce(false, fn field, dynamic ->
       dynamic_for_field =
-        build_op(schema_struct, field, %{filter | field: field})
+        build_op(
+          schema_struct,
+          field,
+          %{filter | field: field},
+          ilike?
+        )
 
       dynamic([r], ^dynamic or ^dynamic_for_field)
     end)
@@ -576,7 +609,8 @@ defmodule Flop.Adapter.Ecto do
   defp build_op(
          schema_struct,
          %FieldInfo{extra: %{type: :compound, fields: fields}},
-         %Filter{op: op, value: value} = filter
+         %Filter{op: op, value: value} = filter,
+         ilike?
        )
        when op in [:empty, :not_empty] do
     # a compound field is empty when every subfield is, and not empty when any
@@ -585,7 +619,12 @@ defmodule Flop.Adapter.Ecto do
     fields = Enum.map(fields, &get_field_info(schema_struct, &1))
 
     reduce_dynamic(combinator, fields, fn field ->
-      build_op(schema_struct, field, %{filter | field: field})
+      build_op(
+        schema_struct,
+        field,
+        %{filter | field: field},
+        ilike?
+      )
     end)
   end
 
@@ -593,7 +632,8 @@ defmodule Flop.Adapter.Ecto do
   defp build_op(
          _schema_struct,
          %FieldInfo{extra: %{type: :compound}},
-         %Filter{field: field, op: op}
+         %Filter{field: field, op: op},
+         _ilike?
        )
        when op not in @compound_operators do
     raise ArgumentError, """
@@ -611,7 +651,8 @@ defmodule Flop.Adapter.Ecto do
   defp build_op(
          %module{},
          %FieldInfo{extra: %{type: :normal, field: field}},
-         %Filter{op: op, value: value}
+         %Filter{op: op, value: value},
+         _ilike?
        )
        when op in [:empty, :not_empty] do
     ecto_type = module.__schema__(:type, field)
@@ -631,7 +672,8 @@ defmodule Flop.Adapter.Ecto do
   defp build_op(
          _schema_struct,
          %FieldInfo{extra: %{type: :normal, field: field}},
-         %Filter{op: op, value: value}
+         %Filter{op: op, value: value},
+         _ilike?
        )
        when op in [:empty, :not_empty] do
     match_empty(dynamic([r], empty(:other)), op, value)
@@ -643,7 +685,8 @@ defmodule Flop.Adapter.Ecto do
            ecto_type: ecto_type,
            extra: %{type: :join, binding: binding, field: field}
          },
-         %Filter{op: op, value: value}
+         %Filter{op: op, value: value},
+         _ilike?
        )
        when op in [:empty, :not_empty] do
     condition =
@@ -656,13 +699,15 @@ defmodule Flop.Adapter.Ecto do
     match_empty(condition, op, value)
   end
 
-  for op <- @operators, op not in [:empty, :not_empty] do
+  # operators whose SQL does not depend on the adapter
+  for op <- @operators, op not in [:empty, :not_empty | @ilike_operators] do
     {fragment, prelude, combinator} = op_config(op)
 
     defp build_op(
            _schema_struct,
            %FieldInfo{extra: %{type: :normal, field: field}},
-           %Filter{op: unquote(op), value: value}
+           %Filter{op: unquote(op), value: value},
+           _ilike?
          ) do
       unquote(prelude)
       build_dynamic(unquote(fragment), false, unquote(combinator))
@@ -671,7 +716,33 @@ defmodule Flop.Adapter.Ecto do
     defp build_op(
            _schema_struct,
            %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
-           %Filter{op: unquote(op), value: value}
+           %Filter{op: unquote(op), value: value},
+           _ilike?
+         ) do
+      unquote(prelude)
+      build_dynamic(unquote(fragment), true, unquote(combinator))
+    end
+  end
+
+  # operators whose SQL depends on whether the Ecto adapter supports ilike
+  for op <- @ilike_operators, ilike? <- [true, false] do
+    {fragment, prelude, combinator} = op_config(op, ilike?)
+
+    defp build_op(
+           _schema_struct,
+           %FieldInfo{extra: %{type: :normal, field: field}},
+           %Filter{op: unquote(op), value: value},
+           unquote(ilike?)
+         ) do
+      unquote(prelude)
+      build_dynamic(unquote(fragment), false, unquote(combinator))
+    end
+
+    defp build_op(
+           _schema_struct,
+           %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
+           %Filter{op: unquote(op), value: value},
+           unquote(ilike?)
          ) do
       unquote(prelude)
       build_dynamic(unquote(fragment), true, unquote(combinator))
