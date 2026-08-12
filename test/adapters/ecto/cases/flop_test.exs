@@ -1288,17 +1288,17 @@ defmodule Flop.Adapters.Ecto.FlopTest do
 
       flop = %{filters: [%{field: :id, value: "foo"}]}
 
-      # the cast type for binary_id depends on the repo adapter
+      # only SQLite casts binary_id as a raw binary; the others use Ecto.UUID
       case ecto_adapter do
-        :postgres ->
+        :sqlite ->
+          assert {:ok, {[], %Flop.Meta{}}} =
+                   Flop.validate_and_run(Fruit, flop, for: Fruit)
+
+        _ ->
           assert {:error, meta} =
                    Flop.validate_and_run(Fruit, flop, for: Fruit)
 
           assert meta.errors == [filters: [[value: [{"is invalid", []}]]]]
-
-        _ ->
-          assert {:ok, {[], %Flop.Meta{}}} =
-                   Flop.validate_and_run(Fruit, flop, for: Fruit)
       end
     end
 
@@ -1306,22 +1306,22 @@ defmodule Flop.Adapters.Ecto.FlopTest do
          %{ecto_adapter: ecto_adapter} do
       flop = %{filters: [%{field: :id, value: "foo"}]}
 
-      # the cast type for binary_id depends on the repo adapter
+      # only SQLite casts binary_id as a raw binary; the others use Ecto.UUID
       case ecto_adapter do
-        :postgres ->
+        :sqlite ->
+          assert {:ok, %Flop{}} =
+                   Flop.validate(flop, for: Fruit, backend: TestProvider)
+
+        _ ->
           assert {:error, meta} =
                    Flop.validate(flop, for: Fruit, backend: TestProvider)
 
           assert meta.errors == [filters: [[value: [{"is invalid", []}]]]]
-
-        _ ->
-          assert {:ok, %Flop{}} =
-                   Flop.validate(flop, for: Fruit, backend: TestProvider)
       end
 
-      # TestProvider uses postgrex, which casts binary IDs as UUID. NotARealRepo
-      # is not defined, which means the value is cast as :binary_id. If
-      # this assertion passes, the repo was successfully set via the option.
+      # NotARealRepo is not defined, which means the value is cast as
+      # :binary_id and accepted. If this assertion passes, the repo was
+      # successfully set via the option.
       assert {:ok, %Flop{}} =
                Flop.validate(flop,
                  for: Fruit,
@@ -1345,17 +1345,17 @@ defmodule Flop.Adapters.Ecto.FlopTest do
 
       flop = %{filters: [%{field: :references, value: "foo", op: :contains}]}
 
-      # the cast type for binary_id depends on the repo adapter
+      # only SQLite casts binary_id as a raw binary; the others use Ecto.UUID
       case ecto_adapter do
-        :postgres ->
+        :sqlite ->
+          assert {:ok, {[], %Flop.Meta{}}} =
+                   Flop.validate_and_run(Fruit, flop, for: Fruit)
+
+        _ ->
           assert {:error, meta} =
                    Flop.validate_and_run(Fruit, flop, for: Fruit)
 
           assert meta.errors == [filters: [[value: [{"is invalid", []}]]]]
-
-        _ ->
-          assert {:ok, {[], %Flop.Meta{}}} =
-                   Flop.validate_and_run(Fruit, flop, for: Fruit)
       end
     end
   end
