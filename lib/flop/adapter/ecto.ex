@@ -561,8 +561,7 @@ defmodule Flop.Adapter.Ecto do
               :ilike,
               :not_ilike,
               :starts_with,
-              :ends_with,
-              :not_empty
+              :ends_with
             ] do
     fields
     |> Enum.map(&get_field_info(schema_struct, &1))
@@ -577,15 +576,16 @@ defmodule Flop.Adapter.Ecto do
   defp build_op(
          schema_struct,
          %FieldInfo{extra: %{type: :compound, fields: fields}},
-         %Filter{op: :empty} = filter
-       ) do
-    fields
-    |> Enum.map(&get_field_info(schema_struct, &1))
-    |> Enum.reduce(true, fn field, dynamic ->
-      dynamic_for_field =
-        build_op(schema_struct, field, %{filter | field: field})
+         %Filter{op: op, value: value} = filter
+       )
+       when op in [:empty, :not_empty] do
+    # a compound field is empty when every subfield is, and not empty when any
+    # subfield is
+    combinator = if match_empty?(op, value), do: :and, else: :or
+    fields = Enum.map(fields, &get_field_info(schema_struct, &1))
 
-      dynamic([r], ^dynamic and ^dynamic_for_field)
+    reduce_dynamic(combinator, fields, fn field ->
+      build_op(schema_struct, field, %{filter | field: field})
     end)
   end
 
@@ -679,10 +679,14 @@ defmodule Flop.Adapter.Ecto do
   end
 
   defp match_empty(condition, op, value) do
-    empty? = value in [true, "true"]
-    empty? = if op == :not_empty, do: !empty?, else: empty?
+    if match_empty?(op, value),
+      do: condition,
+      else: dynamic([r], not (^condition))
+  end
 
-    if empty?, do: condition, else: dynamic([r], not (^condition))
+  defp match_empty?(op, value) do
+    empty? = value in [true, "true"]
+    if op == :not_empty, do: !empty?, else: empty?
   end
 
   defp array_or_map({:array, _}), do: :array

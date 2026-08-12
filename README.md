@@ -77,8 +77,9 @@ them is tracked in
 [issue #494](https://github.com/woylie/flop/issues/494).
 
 Some behaviour depends on the repo adapter: for example, filter values for
-`binary_id` fields are validated as UUIDs on Postgres, but not on SQLite, so the
-same parameters can be rejected by one database and accepted by another.
+`binary_id` fields are validated as UUIDs on Postgres and MySQL, but not on
+SQLite, which casts them as raw binaries, so the same parameters can be rejected
+by one database and accepted by another.
 
 ## Usage
 

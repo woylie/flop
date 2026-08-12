@@ -18,6 +18,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add an `ESCAPE` clause to `LIKE` patterns, so that filter values containing
   `%`, `_` or `\` are matched literally on databases that define no default
   escape character, such as SQLite.
+- Fix `:empty` and `:not_empty` filters with the value `false` on compound
+  fields. `:empty` with `false` required every field to be set, instead of any
+  field, so it did not return the same rows as `:not_empty` with `true`.
 
 ## [0.27.1] - 2026-08-11
 
