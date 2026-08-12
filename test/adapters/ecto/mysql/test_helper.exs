@@ -7,6 +7,12 @@ Application.put_env(:flop, Flop.Repo,
   database: "flop_test#{System.get_env("MIX_TEST_PARTITION")}",
   hostname: "localhost",
   port: 3306,
+  # Without this, cursor pagination on a string column fails with an "Illegal
+  # mix of collations" error: the cursor value is cast, the cast takes the
+  # connection's collation, and MyXQL leaves that at utf8mb4_general_ci while
+  # MySQL 8 columns default to utf8mb4_0900_ai_ci.
+  charset: "utf8mb4",
+  collation: "utf8mb4_0900_ai_ci",
   pool: Ecto.Adapters.SQL.Sandbox
 )
 
@@ -45,4 +51,4 @@ Ecto.Migrator.up(Flop.Repo, 0, Flop.Repo.Mysql.Migration, log: true)
 Ecto.Adapters.SQL.Sandbox.mode(Flop.Repo, :manual)
 
 {:ok, _} = Application.ensure_all_started(:ex_machina)
-ExUnit.start(exclude: [:prefix])
+ExUnit.start(exclude: [:composite_type, :prefix])
