@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Support SQLite.
+
 ### Fixed
 
 - Build the `:=~`, `:ilike`, `:not_ilike`, `:ilike_and`, `:ilike_or`,
