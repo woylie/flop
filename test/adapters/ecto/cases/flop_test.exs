@@ -1257,7 +1257,9 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       assert {:ok, {[%Pet{}], %Meta{}}} = Flop.validate_and_run(Pet, flop)
     end
 
-    test "validates filter value for binary_id primary keys" do
+    test "validates filter value for binary_id primary keys", %{
+      ecto_adapter: ecto_adapter
+    } do
       %{id: binary_id} = insert(:fruit)
       flop = %{filters: [%{field: :id, value: binary_id}]}
 
@@ -1265,8 +1267,19 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                Flop.validate_and_run(Fruit, flop, for: Fruit)
 
       flop = %{filters: [%{field: :id, value: "foo"}]}
-      assert {:error, meta} = Flop.validate_and_run(Fruit, flop, for: Fruit)
-      assert meta.errors == [filters: [[value: [{"is invalid", []}]]]]
+
+      # the cast type for binary_id depends on the repo adapter
+      case ecto_adapter do
+        :postgres ->
+          assert {:error, meta} =
+                   Flop.validate_and_run(Fruit, flop, for: Fruit)
+
+          assert meta.errors == [filters: [[value: [{"is invalid", []}]]]]
+
+        _ ->
+          assert {:ok, {[], %Flop.Meta{}}} =
+                   Flop.validate_and_run(Fruit, flop, for: Fruit)
+      end
     end
 
     test "resolves the repo for binary_id validation like it does for queries",
@@ -1297,7 +1310,9 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                )
     end
 
-    test "validates filter value for an array of binary_ids" do
+    test "validates filter value for an array of binary_ids", %{
+      ecto_adapter: ecto_adapter
+    } do
       fruit_ids = Enum.map(1..3, fn _ -> Ecto.UUID.generate() end)
       %{id: binary_id} = insert(:fruit, references: fruit_ids)
 
@@ -1309,8 +1324,19 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                Flop.validate_and_run(Fruit, flop, for: Fruit)
 
       flop = %{filters: [%{field: :references, value: "foo", op: :contains}]}
-      assert {:error, meta} = Flop.validate_and_run(Fruit, flop, for: Fruit)
-      assert meta.errors == [filters: [[value: [{"is invalid", []}]]]]
+
+      # the cast type for binary_id depends on the repo adapter
+      case ecto_adapter do
+        :postgres ->
+          assert {:error, meta} =
+                   Flop.validate_and_run(Fruit, flop, for: Fruit)
+
+          assert meta.errors == [filters: [[value: [{"is invalid", []}]]]]
+
+        _ ->
+          assert {:ok, {[], %Flop.Meta{}}} =
+                   Flop.validate_and_run(Fruit, flop, for: Fruit)
+      end
     end
   end
 
