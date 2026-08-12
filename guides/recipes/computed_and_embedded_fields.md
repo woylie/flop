@@ -133,6 +133,24 @@ join_fields: [
 ]
 ```
 
+A compound field may list join fields, so one parameter can search several
+values of the document or of multiple documents at once.
+
+```elixir
+join_fields: [
+  nickname: [binding: :profile_fields, field: :nickname, ecto_type: :string],
+  city: [binding: :profile_fields, field: :city, ecto_type: :string]
+],
+compound_fields: [
+  nickname_or_city: [:nickname, :city]
+]
+```
+
+`Flop.named_bindings/3` reports the binding of a join field that sits inside a
+compound field, so `Flop.with_named_bindings/4` adds the lateral join for a
+filter on the compound field as well. Custom fields cannot be part of a compound
+field.
+
 Since `->>` returns text, a field that is not a string needs to be cast in the
 fragment, and the `ecto_type` has to match that cast.
 
