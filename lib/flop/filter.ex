@@ -73,6 +73,22 @@ defmodule Flop.Filter do
   | `:starts_with`  | `"Gia"`             | `WHERE column ILIKE 'Gia%'`                             |
   | `:ends_with`    | `"Hoang"`           | `WHERE column ILIKE '%Hoang'`                           |
 
+  The `WHERE` clauses above are the ones built for PostgreSQL. `ILIKE` is a
+  PostgreSQL extension. If a database does not support it, the `ILIKE`
+  operator is replaced with `LIKE`. Those databases evaluate `LIKE`
+  case-insensitively to different extents:
+
+  - SQLite only compares ASCII letters case-insensitively. `:ilike` with
+    `"aerger"` matches `"AERGER"`, but `:ilike` with `"ärger"` does not match
+    `"Ärger"`. You need the ICU extension to get around this.
+  - On MySQL, the behaviour depends on the column's collation. The default,
+    `utf8mb4_0900_ai_ci`, ignores both case and accents, so `"arger"` matches
+    `"Arger"` and `"Ärger"`. A case-sensitive collation such as
+    `utf8mb4_0900_as_cs` matches neither.
+
+  Flop reads the database from the repo. If none is configured, `Flop.query/3`
+  and the other query builders use `ILIKE`.
+
   The filter operators `:empty` and `:not_empty` will regard empty arrays as
   empty values if the field is known to be an array field.
 

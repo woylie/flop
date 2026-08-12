@@ -523,7 +523,6 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    @tag :ilike
     test "escapes % in ilike queries" do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a%c")
@@ -588,7 +587,6 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    @tag :ilike
     test "escapes _ in ilike queries" do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a_c")
@@ -609,7 +607,6 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    @tag :ilike
     test "escapes \\ in ilike queries" do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a\\c")
@@ -638,7 +635,6 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    @tag :ilike
     property "applies ilike filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
@@ -657,7 +653,6 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    @tag :ilike
     property "applies not ilike filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
@@ -721,7 +716,6 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    @tag :ilike
     property "applies ilike_and filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
@@ -741,7 +735,6 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    @tag :ilike
     property "applies ilike_or filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
