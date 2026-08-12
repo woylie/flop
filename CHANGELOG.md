@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.27.2] - 2026-08-12
+
 ### Added
 
 - Add a guide for case-insensitive sorting.
@@ -1050,7 +1052,8 @@ equivalent:
 
 - Initial release.
 
-[unreleased]: https://github.com/woylie/flop/compare/0.27.1...HEAD
+[unreleased]: https://github.com/woylie/flop/compare/0.27.2...HEAD
+[0.27.2]: https://github.com/woylie/flop/compare/0.27.1...0.27.2
 [0.27.1]: https://github.com/woylie/flop/compare/0.27.0...0.27.1
 [0.27.0]: https://github.com/woylie/flop/compare/0.26.6...0.27.0
 [0.26.6]: https://github.com/woylie/flop/compare/0.26.5...0.26.6
