@@ -6,6 +6,7 @@ defmodule Flop.Repo.Mysql.Migration do
       add(:age, :integer)
       add(:email, :string)
       add(:name, :string)
+      add(:tags, :json)
       add(:attributes, :map)
       add(:extra, {:map, :string})
     end
@@ -18,6 +19,7 @@ defmodule Flop.Repo.Mysql.Migration do
       add(:owner_id, references(:owners))
       add(:species, :string)
       add(:mood, :string)
+      add(:tags, :json)
     end
 
     create table(:fruits, primary_key: false) do
@@ -26,7 +28,7 @@ defmodule Flop.Repo.Mysql.Migration do
       add(:name, :string)
       add(:attributes, :map)
       add(:extra, {:map, :string})
-      add(:references, {:array, :binary_id})
+      add(:references, :json)
       add(:owner_id, references(:owners))
     end
   end
