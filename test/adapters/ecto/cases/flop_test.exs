@@ -461,6 +461,26 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    test "applies empty and not_empty filter to compound fields" do
+      %{id: id1} = insert(:pet, family_name: nil, given_name: nil)
+      %{id: id2} = insert(:pet, family_name: "Fox", given_name: nil)
+      %{id: id3} = insert(:pet, family_name: nil, given_name: "Ada")
+
+      for {op, value, expected} <- [
+            {:empty, true, [id1]},
+            {:empty, false, [id2, id3]},
+            {:not_empty, true, [id2, id3]},
+            {:not_empty, false, [id1]}
+          ] do
+        pets =
+          query_pets_with_owners(%{
+            filters: [%{field: :full_name, op: op, value: value}]
+          })
+
+        assert Enum.map(pets, & &1.id) == expected
+      end
+    end
+
     test "applies empty and not_empty filter without a schema" do
       %{id: id1} = insert(:pet, species: nil)
       %{id: id2} = insert(:pet, species: "fox")
