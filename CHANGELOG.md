@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Add a guide for case-insensitive sorting.
+
 ### Fixed
 
 - Apply the `:empty` and `:not_empty` filters on SQLite correctly.
