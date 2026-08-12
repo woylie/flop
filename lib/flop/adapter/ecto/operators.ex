@@ -115,20 +115,6 @@ defmodule Flop.Adapter.Ecto.Operators do
     {fragment, nil, nil}
   end
 
-  def op_config(:empty) do
-    fragment = empty()
-    {fragment, nil, nil}
-  end
-
-  def op_config(:not_empty) do
-    fragment =
-      quote do
-        not unquote(empty())
-      end
-
-    {fragment, nil, nil}
-  end
-
   def op_config(:in) do
     fragment =
       quote do
@@ -292,12 +278,6 @@ defmodule Flop.Adapter.Ecto.Operators do
 
     prelude = prelude(:add_wildcard_prefix)
     {fragment, prelude, nil}
-  end
-
-  defp empty do
-    quote do
-      is_nil(field(r, ^var!(field))) == ^var!(value)
-    end
   end
 
   defmacro empty(:array) do

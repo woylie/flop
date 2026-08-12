@@ -461,6 +461,21 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    test "applies empty and not_empty filter without a schema" do
+      %{id: id1} = insert(:pet, species: nil)
+      %{id: id2} = insert(:pet, species: "fox")
+
+      for {op, value, expected} <- [
+            {:empty, true, id1},
+            {:empty, false, id2},
+            {:not_empty, true, id2},
+            {:not_empty, false, id1}
+          ] do
+        flop = %Flop{filters: [%Filter{field: :species, op: op, value: value}]}
+        assert [%Pet{id: ^expected}] = Flop.all(Pet, flop)
+      end
+    end
+
     property "applies like filter", %{ecto_adapter: ecto_adapter} do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),

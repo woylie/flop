@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Apply the `:empty` and `:not_empty` filters on SQLite correctly.
+
 ## [0.27.1] - 2026-08-11
 
 ### Added
