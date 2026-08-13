@@ -3,6 +3,8 @@ defmodule Flop.Adapter.Ecto.Operators do
 
   import Ecto.Query
 
+  alias Flop.Adapter.Ecto.Dialect
+
   defmacro build_dynamic(fragment, binding?, _combinator = nil) do
     binding_arg = binding_arg(binding?)
 
@@ -309,6 +311,14 @@ defmodule Flop.Adapter.Ecto.Operators do
     end
   end
 
+  # for adapters that store an array as a JSON column
+  defmacro empty(:json_array) do
+    quote do
+      is_nil(field(r, ^var!(field))) or
+        fragment("JSON_LENGTH(?) = 0", field(r, ^var!(field)))
+    end
+  end
+
   defmacro empty(:map) do
     quote do
       is_nil(field(r, ^var!(field))) or
@@ -319,6 +329,16 @@ defmodule Flop.Adapter.Ecto.Operators do
   defmacro empty(:other) do
     quote do
       is_nil(field(r, ^var!(field)))
+    end
+  end
+
+  defmacro json_contains do
+    quote do
+      fragment(
+        "JSON_CONTAINS(?, ?)",
+        field(r, ^var!(field)),
+        ^[Dialect.dump_array_element(var!(value), var!(ecto_type))]
+      )
     end
   end
 
