@@ -31,13 +31,13 @@ defmodule Flop.Adapter.Ecto.DialectTest do
   describe "new/1" do
     test "reads the features of a known adapter" do
       assert Dialect.new(PostgresRepo) ==
-               %Dialect{ilike?: true, nulls_ordering?: true}
+               %Dialect{arrays?: true, ilike?: true, nulls_ordering?: true}
 
       assert Dialect.new(MyXQLRepo) ==
-               %Dialect{ilike?: false, nulls_ordering?: false}
+               %Dialect{arrays?: false, ilike?: false, nulls_ordering?: false}
 
       assert Dialect.new(SQLite3Repo) ==
-               %Dialect{ilike?: false, nulls_ordering?: true}
+               %Dialect{arrays?: true, ilike?: false, nulls_ordering?: true}
     end
 
     test "returns the defaults for an unknown adapter" do
@@ -50,7 +50,8 @@ defmodule Flop.Adapter.Ecto.DialectTest do
     end
 
     test "defaults to leaving the query unmodified" do
-      assert %Dialect{} == %Dialect{ilike?: true, nulls_ordering?: true}
+      assert %Dialect{} ==
+               %Dialect{arrays?: true, ilike?: true, nulls_ordering?: true}
     end
   end
 
@@ -147,10 +148,57 @@ defmodule Flop.Adapter.Ecto.DialectTest do
     |> String.trim_trailing(">")
   end
 
+  describe "the query built for the array operators" do
+    test "uses the array itself on an adapter that has one" do
+      assert where_clause(PostgresRepo, :tags, :contains, "pear") ==
+               ~S|^"pear" in p0.tags|
+
+      assert where_clause(PostgresRepo, :tags, :not_contains, "pear") ==
+               ~S|^"pear" not in p0.tags|
+
+      assert where_clause(PostgresRepo, :tags, :empty, true) ==
+               ~S|is_nil(p0.tags) or p0.tags == type(^[], {:array, :string})|
+    end
+
+    test "uses the JSON functions on an adapter that has no array type" do
+      assert where_clause(MyXQLRepo, :tags, :contains, "pear") ==
+               ~S|fragment("JSON_CONTAINS(?, ?)", p0.tags, ^["pear"])|
+
+      assert where_clause(MyXQLRepo, :tags, :not_contains, "pear") ==
+               ~S|not fragment("JSON_CONTAINS(?, ?)", p0.tags, ^["pear"])|
+
+      assert where_clause(MyXQLRepo, :tags, :empty, true) ==
+               ~S|is_nil(p0.tags) or fragment("JSON_LENGTH(?) = 0", p0.tags)|
+    end
+
+    test "dumps the value with the element type of the field" do
+      assert Dialect.dump_array_element("pear", {:array, :string}) == "pear"
+
+      assert Dialect.dump_array_element(~D[2026-08-13], {:array, :date}) ==
+               ~D[2026-08-13]
+    end
+
+    test "passes the value through when it has no type to dump it with" do
+      assert Dialect.dump_array_element("pear", nil) == "pear"
+      assert Dialect.dump_array_element("pear", {:array, :integer}) == "pear"
+    end
+  end
+
   defp where_clause(repo) do
     flop = %Flop{
       filters: [%Flop.Filter{field: :name, op: :ilike, value: "abc"}]
     }
+
+    MyApp.Pet
+    |> Flop.query(flop, for: MyApp.Pet, repo: repo)
+    |> inspect()
+    |> String.split("where: ")
+    |> List.last()
+    |> String.trim_trailing(">")
+  end
+
+  defp where_clause(repo, field, op, value) do
+    flop = %Flop{filters: [%Flop.Filter{field: field, op: op, value: value}]}
 
     MyApp.Pet
     |> Flop.query(flop, for: MyApp.Pet, repo: repo)

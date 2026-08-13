@@ -13,14 +13,21 @@ defmodule Flop.Adapter.Ecto.Dialect do
   # and DESC, and the other two need `field IS NULL` as an extra sort key.
   @without_nulls_ordering [Ecto.Adapters.MyXQL]
 
+  # Ecto's MyXQL adapter can store arrays in JSON columns, but it cannot build
+  # array operations. Flop uses JSON_CONTAINS and JSON_LENGTH instead.
+  @without_arrays [Ecto.Adapters.MyXQL]
+
   @typedoc """
-  Defines feature support for a repo's Ecto adapter.
-
-  This is resolved once per query and passed to the query builders.
+  Feature support of a repo's Ecto adapter, resolved once per query and passed
+  to the query builders.
   """
-  @type t :: %__MODULE__{ilike?: boolean, nulls_ordering?: boolean}
+  @type t :: %__MODULE__{
+          arrays?: boolean,
+          ilike?: boolean,
+          nulls_ordering?: boolean
+        }
 
-  defstruct ilike?: true, nulls_ordering?: true
+  defstruct arrays?: true, ilike?: true, nulls_ordering?: true
 
   @nulls_ordering_fallback %{
     asc_nulls_first: {:native, :asc},
@@ -30,18 +37,36 @@ defmodule Flop.Adapter.Ecto.Dialect do
   }
 
   @doc """
-  Returns the dialect for a repo.
-
-  Returns the defaults if the repo or its adapter are unknown.
+  Returns the dialect for a repo, or the defaults if the repo or its adapter
+  are unknown.
   """
+  @spec new(module | nil) :: t
   def new(repo) do
     adapter = adapter(repo)
 
     %__MODULE__{
+      arrays?: adapter not in @without_arrays,
       ilike?: adapter not in @without_ilike,
       nulls_ordering?: adapter not in @without_nulls_ordering
     }
   end
+
+  @doc """
+  Dumps a filter value with the element type of an array field.
+
+  Takes the type of the field, not of the element. Returns the value unchanged
+  if it cannot be dumped, or if there is no type, which is the case for a query
+  built without a schema.
+  """
+  @spec dump_array_element(term, term) :: term
+  def dump_array_element(value, {:array, element_type}) do
+    case Ecto.Type.dump(element_type, value) do
+      {:ok, dumped} -> dumped
+      :error -> value
+    end
+  end
+
+  def dump_array_element(value, _ecto_type), do: value
 
   @doc """
   Returns how to build the `ORDER BY` clause for an order direction.
@@ -51,6 +76,7 @@ defmodule Flop.Adapter.Ecto.Dialect do
     field, both with that direction. This replaces `NULLS FIRST` and
     `NULLS LAST` on adapters that don't support them.
   """
+  @spec order_direction(t, atom) :: {:native | :emulated, atom}
   def order_direction(%__MODULE__{nulls_ordering?: true}, direction) do
     {:native, direction}
   end

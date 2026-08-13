@@ -681,16 +681,17 @@ defmodule Flop.Adapter.Ecto do
          %module{},
          %FieldInfo{extra: %{type: :normal, field: field}},
          %Filter{op: op, value: value},
-         _dialect
+         dialect
        )
        when op in [:empty, :not_empty] do
     ecto_type = module.__schema__(:type, field)
 
     condition =
-      case array_or_map(ecto_type) do
-        :array -> dynamic([r], empty(:array))
-        :map -> dynamic([r], empty(:map))
-        :other -> dynamic([r], empty(:other))
+      case {array_or_map(ecto_type), dialect} do
+        {:array, %Dialect{arrays?: false}} -> dynamic([r], empty(:json_array))
+        {:array, _} -> dynamic([r], empty(:array))
+        {:map, _} -> dynamic([r], empty(:map))
+        {:other, _} -> dynamic([r], empty(:other))
       end
 
     match_empty(condition, op, value)
@@ -715,17 +716,64 @@ defmodule Flop.Adapter.Ecto do
            extra: %{type: :join, binding: binding, field: field}
          },
          %Filter{op: op, value: value},
-         _dialect
+         dialect
        )
        when op in [:empty, :not_empty] do
     condition =
-      case array_or_map(ecto_type) do
-        :array -> dynamic([{^binding, r}], empty(:array))
-        :map -> dynamic([{^binding, r}], empty(:map))
-        :other -> dynamic([{^binding, r}], empty(:other))
+      case {array_or_map(ecto_type), dialect} do
+        {:array, %Dialect{arrays?: false}} ->
+          dynamic([{^binding, r}], empty(:json_array))
+
+        {:array, _} ->
+          dynamic([{^binding, r}], empty(:array))
+
+        {:map, _} ->
+          dynamic([{^binding, r}], empty(:map))
+
+        {:other, _} ->
+          dynamic([{^binding, r}], empty(:other))
       end
 
     match_empty(condition, op, value)
+  end
+
+  # Ecto's MyXQL adapter cannot build array operations, so the array operators
+  # are built with MySQL's JSON functions instead. See the Dialect module.
+  defp build_op(
+         %module{},
+         %FieldInfo{extra: %{type: :normal, field: field}},
+         %Filter{op: op, value: value},
+         %Dialect{arrays?: false}
+       )
+       when op in [:contains, :not_contains] do
+    ecto_type = module.__schema__(:type, field)
+    match_contains(dynamic([r], json_contains()), op)
+  end
+
+  # without a schema there is no field type to dump the value with
+  defp build_op(
+         _schema_struct,
+         %FieldInfo{extra: %{type: :normal, field: field}},
+         %Filter{op: op, value: value},
+         %Dialect{arrays?: false}
+       )
+       when op in [:contains, :not_contains] do
+    ecto_type = nil
+    match_contains(dynamic([r], json_contains()), op)
+  end
+
+  defp build_op(
+         _schema_struct,
+         %FieldInfo{
+           ecto_type: ecto_type,
+           extra: %{type: :join, binding: binding, field: field}
+         },
+         %Filter{op: op, value: value},
+         %Dialect{arrays?: false}
+       )
+       when op in [:contains, :not_contains] do
+    ecto_type = Flop.Misc.expand_type(ecto_type)
+    match_contains(dynamic([{^binding, r}], json_contains()), op)
   end
 
   # operators whose SQL does not depend on the adapter
@@ -777,6 +825,9 @@ defmodule Flop.Adapter.Ecto do
       build_dynamic(unquote(fragment), true, unquote(combinator))
     end
   end
+
+  defp match_contains(condition, :contains), do: condition
+  defp match_contains(condition, :not_contains), do: dynamic(not (^condition))
 
   defp match_empty(condition, op, value) do
     if match_empty?(op, value),
