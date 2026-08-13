@@ -388,7 +388,7 @@ defmodule Flop.SchemaTest do
              )
   end
 
-  test "raises error if custom field is added to sortable list" do
+  test "raises error if a sortable custom field has no field_dynamic" do
     error =
       assert_raise ArgumentError, fn ->
         defmodule Parsley do
@@ -407,6 +407,61 @@ defmodule Flop.SchemaTest do
         end
       end
 
-    assert error.message =~ "cannot sort by custom field"
+    assert error.message =~
+             "custom field without field_dynamic function marked as sortable"
+
+    assert error.message =~ ":inserted_at"
+  end
+
+  test "raises error if a filterable custom field has no filter" do
+    error =
+      assert_raise ArgumentError, fn ->
+        defmodule Sage do
+          @derive {
+            Flop.Schema,
+            filterable: [:inserted_at],
+            sortable: [],
+            custom_fields: [
+              inserted_at: [
+                field_dynamic: {__MODULE__, :some_function, []},
+                ecto_type: :utc_datetime
+              ]
+            ]
+          }
+          defstruct [:id, :inserted_at]
+        end
+      end
+
+    assert error.message =~
+             "custom field without filter function marked as filterable"
+
+    assert error.message =~ ":inserted_at"
+  end
+
+  test "allows a custom field with only the callback it needs" do
+    defmodule Thyme do
+      @derive {
+        Flop.Schema,
+        filterable: [:filtered],
+        sortable: [:sorted],
+        custom_fields: [
+          filtered: [
+            filter: {__MODULE__, :filter, []},
+            ecto_type: :string
+          ],
+          sorted: [
+            field_dynamic: {__MODULE__, :field_dynamic, []},
+            ecto_type: :string
+          ]
+        ]
+      }
+      defstruct [:id]
+    end
+
+    assert %Flop.FieldInfo{extra: %{type: :custom, field_dynamic: nil}} =
+             Schema.field_info(struct(Thyme), :filtered)
+
+    assert %Flop.FieldInfo{extra: %{type: :custom, filter: nil}} =
+             Schema.field_info(struct(Thyme), :sorted)
   end
 end

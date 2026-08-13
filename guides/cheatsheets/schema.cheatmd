@@ -366,11 +366,12 @@ defmodule Pet do
   @derive {
     Flop.Schema,
     filterable: [:name, :human_age],
-    sortable: [:name],
+    sortable: [:name, :human_age],
     adapter_opts: [
       custom_fields: [
         human_age: [
-          filter: {CustomFilters, :human_age, []},
+          filter: {CustomFields, :human_age_filter, []},
+          field_dynamic: {CustomFields, :human_age, []},
           ecto_type: :integer
         ]
       ]
@@ -384,13 +385,19 @@ defmodule Pet do
 end
 ```
 
-### Custom filter function
+### Custom field functions
 
 ```elixir
-defmodule CustomFilters do
+defmodule CustomFields do
   import Ecto.Query
 
-  def human_age(q, %Flop.Filter{value: value, op: op}, _) do
+  # for ordering
+  def human_age(_opts) do
+    dynamic([p], fragment("? * 7", p.age))
+  end
+
+  # for filtering
+  def human_age_filter(q, %Flop.Filter{value: value, op: op}, _) do
     case Ecto.Type.cast(:integer, value) do
       {:ok, human_years} ->
         value_in_dog_years = round(human_years / 7)
@@ -418,7 +425,8 @@ end
 params = %{
   filters: [
     %{field: :human_age, op: :==, value: 30}
-  ]
+  ],
+  order_by: [:human_age]
 }
 
 Flop.validate_and_run(Pet, params, for: Pet)
@@ -429,7 +437,7 @@ Flop.validate_and_run(Pet, params, for: Pet)
 ```elixir
 custom_fields: [
   human_age: [
-    filter: {CustomFilters, :human_age, []},
+    filter: {CustomFields, :human_age_filter, []},
     ecto_type: :integer,
     operators: [:==, :<=, :>=]
   ]
@@ -450,7 +458,7 @@ custom_fields: [
 ]
 ```
 
-`Flop.with_named_bindings/4` adds these bindings when the filter is used.
+`Flop.with_named_bindings/4` adds these bindings when the field is used.
 
 ## Ecto types
 {: .col-2}

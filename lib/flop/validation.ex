@@ -359,8 +359,12 @@ defmodule Flop.Validation do
 
   defp unsupported_cursor_field?(struct, field) do
     case Flop.Schema.field_info(struct, field) do
-      %FieldInfo{extra: %{type: type}} when type in [:compound, :alias] -> true
-      _ -> false
+      %FieldInfo{extra: %{type: type}}
+      when type in [:compound, :alias, :custom] ->
+        true
+
+      _ ->
+        false
     end
   end
 
@@ -386,7 +390,7 @@ defmodule Flop.Validation do
     Changeset.add_error(
       changeset,
       :order_by,
-      "cursor pagination is not supported for compound and alias fields",
+      "cursor pagination is not supported for compound, alias and custom fields",
       unsupported_fields: unsupported
     )
   end
