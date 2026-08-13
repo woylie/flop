@@ -4,7 +4,7 @@ defmodule Flop.MixProject do
   @source_url "https://github.com/woylie/flop"
   @version "0.27.2"
   @adapters ~w(postgres sqlite mysql)
-  @supported_adapters ~w(postgres sqlite)
+  @supported_adapters ~w(postgres sqlite mysql)
 
   def project do
     [
@@ -47,8 +47,8 @@ defmodule Flop.MixProject do
         "ecto.drop": :test,
         "ecto.migrate": :test,
         "ecto.reset": :test,
-        "test.all": :test,
         "test.adapters": :test,
+        "test.base": :test,
         coveralls: :test,
         dialyzer: :test
       ]
@@ -124,7 +124,9 @@ defmodule Flop.MixProject do
   defp aliases do
     [
       test: ["test", &test_adapters(@supported_adapters, &1)],
-      "test.all": ["test", &test_adapters(@adapters -- @supported_adapters, &1)],
+      # calls the task rather than the task name, which would resolve to the
+      # alias above and run the adapters too
+      "test.base": &Mix.Tasks.Test.run/1,
       "test.mysql": &test_adapters(["mysql"], &1),
       "test.postgres": &test_adapters(["postgres"], &1),
       "test.sqlite": &test_adapters(["sqlite"], &1),

@@ -6,8 +6,8 @@ defmodule Flop.Filter do
 
   Filter values are cast with the Ecto type of the field, which makes validation
   depend on the repo adapter for `binary_id` fields: the cast type is taken from
-  the adapter, so an invalid UUID is a validation error on Postgres, but is
-  accepted on SQLite. Only Postgres is supported, see the README.
+  the adapter, so an invalid UUID is a validation error on Postgres and MySQL,
+  but is accepted on SQLite. See the README for the supported databases.
   """
 
   use Ecto.Schema
@@ -91,6 +91,11 @@ defmodule Flop.Filter do
 
   The filter operators `:empty` and `:not_empty` will regard empty arrays as
   empty values if the field is known to be an array field.
+
+  On MySQL, where Ecto's adapter cannot build array operations, `:contains`,
+  `:not_contains` and `:empty`/`:not_empty` on an array field are built with
+  `JSON_CONTAINS` and `JSON_LENGTH` instead. An array of `:decimal` compares as
+  text there, so `1.5` does not match a stored `1.50`. See the README.
 
   The filter operators `:ilike_and`, `:ilike_or`, `:like_and` and `:like_or`
   accept both strings and list of strings.

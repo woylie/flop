@@ -62,27 +62,37 @@ still work, but they are not covered by CI and not officially supported.
 
 ### Supported databases
 
-| Database | Status                          |
-| -------- | ------------------------------- |
-| Postgres | Supported and tested in CI      |
-| MySQL    | Experimental, not yet supported |
-| SQLite   | Supported and tested in CI      |
+| Database | Status                     |
+| -------- | -------------------------- |
+| Postgres | Supported and tested in CI |
+| MySQL    | Supported and tested in CI |
+| SQLite   | Supported and tested in CI |
 
-Flop builds queries with `Ecto.Query`, and the only fragment it uses is the
-`ESCAPE` clause that `LIKE` patterns need, so most of the library works on any
-database Ecto supports, but only Postgres and SQLite are tested in CI. The
-MySQL test suite does not run yet, and the work needed to finish it is tracked
-in [issue #514](https://github.com/woylie/flop/issues/514).
+Flop builds queries with `Ecto.Query` and only uses a couple of fragments to
+bridge the gap between databases. The library might work with more Ecto adapter,
+but it is only tested with the databases listed above.
 
-`ILIKE` is a Postgres extension. On a database that does not have it, the
-operators that would use it are built with `LIKE`, which SQLite and MySQL
-evaluate case-insensitively, but not to the same extent. See `Flop.Filter` for
-the limits.
+Some behavior depends on the used adapter.
 
-Some behaviour depends on the repo adapter: for example, filter values for
-`binary_id` fields are validated as UUIDs on Postgres and MySQL, but not on
-SQLite, which casts them as raw binaries, so the same parameters can be rejected
-by one database and accepted by another.
+#### MySQL
+
+Configure the repo with the charset and the collation your columns use, or
+cursor pagination over a string column raises `Illegal mix of collations`:
+
+```elixir
+config :my_app, MyApp.Repo,
+  charset: "utf8mb4",
+  collation: "utf8mb4_0900_ai_ci"
+```
+
+MySQL cannot use an index for the array operators, which compile to
+`JSON_CONTAINS`, or for the `:asc_nulls_last` and `:desc_nulls_first` order
+directions, which add an `IS NULL` sort key because MySQL has neither
+`NULLS FIRST` nor `NULLS LAST`.
+
+`{:array, :binary_id}` does not work, because the adapter writes a
+`binary_id` as raw bytes and the JSON encoder rejects them. See `Flop.Filter`
+for the array operators.
 
 ## Usage
 
@@ -463,8 +473,9 @@ API changes, please open an issue first and describe what you plan to do.
 Otherwise, you risk spending time on development work that might not be
 accepted.
 
-The database tests require running Postgres and MySQL instances. There is a
-docker compose configuration you can use:
+The database tests require running Postgres and MySQL instances. SQLite runs
+from a file and needs nothing. There is a docker compose configuration you can
+use:
 
 ```bash
 docker compose up
@@ -487,15 +498,15 @@ database interaction, and each Ecto adapter has its own suite that runs the
 tests involving database queries.
 
 `mix test` runs the common tests and the adapters that are expected to pass,
-which is Postgres at the moment.
+which is every adapter at the moment.
 
-- `mix test` - common functionality and the supported adapters
-- `mix test.all` - common functionality and every adapter
+- `mix test` - common functionality and all supported adapters
+- `mix test.base` - common functionality only (runs without database)
 - `mix test.postgres`
 - `mix test.mysql`
 - `mix test.sqlite`
 
-At the moment, only `mix test` and `mix test.postgres` are required to pass.
+`mix test` is required to pass.
 
 For general contribution guidelines, refer to
 https://github.com/woylie/.github/blob/main/CONTRIBUTING.md.

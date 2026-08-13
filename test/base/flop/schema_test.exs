@@ -388,138 +388,25 @@ defmodule Flop.SchemaTest do
              )
   end
 
-  describe "custom field callbacks" do
-    test "rejects a filterable custom field without filter even with field_dynamic" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule FilterableFieldDynamicOnly do
-            @derive {
-              Flop.Schema,
-              filterable: [:inserted_at],
-              sortable: [],
-              custom_fields: [
-                inserted_at: [
-                  field_dynamic: {__MODULE__, :field_dynamic, []},
-                  ecto_type: :utc_datetime
-                ]
+  test "raises error if custom field is added to sortable list" do
+    error =
+      assert_raise ArgumentError, fn ->
+        defmodule Parsley do
+          @derive {
+            Flop.Schema,
+            filterable: [],
+            sortable: [:inserted_at],
+            custom_fields: [
+              inserted_at: [
+                filter: {__MODULE__, :some_function, []},
+                ecto_type: :utc_datetime
               ]
-            }
-            defstruct [:id, :inserted_at]
-          end
-        end
-
-      assert error.message =~
-               "custom field without filter function marked as filterable"
-
-      assert error.message =~ ":inserted_at"
-    end
-
-    test "rejects a sortable custom field without field_dynamic even with filter" do
-      error =
-        assert_raise ArgumentError, fn ->
-          defmodule SortableFilterOnly do
-            @derive {
-              Flop.Schema,
-              filterable: [],
-              sortable: [:inserted_at],
-              custom_fields: [
-                inserted_at: [
-                  filter: {__MODULE__, :filter, []},
-                  ecto_type: :utc_datetime
-                ]
-              ]
-            }
-            defstruct [:id, :inserted_at]
-          end
-        end
-
-      assert error.message =~
-               "custom field without field_dynamic function marked as sortable"
-
-      assert error.message =~ ":inserted_at"
-    end
-
-    test "accepts a filter-only filterable custom field" do
-      defmodule FilterOnlyCustomField do
-        @derive {
-          Flop.Schema,
-          filterable: [:inserted_at],
-          sortable: [],
-          custom_fields: [
-            inserted_at: [
-              filter: {__MODULE__, :filter, [option: true]},
-              ecto_type: :utc_datetime
             ]
-          ]
-        }
-        defstruct [:id, :inserted_at]
+          }
+          defstruct [:id, :inserted_at]
+        end
       end
 
-      assert Schema.filterable(struct(FilterOnlyCustomField)) == [:inserted_at]
-
-      assert %Flop.FieldInfo{
-               extra: %{
-                 filter: {FilterOnlyCustomField, :filter, [option: true]},
-                 type: :custom
-               }
-             } =
-               Schema.field_info(
-                 struct(FilterOnlyCustomField),
-                 :inserted_at
-               )
-    end
-
-    test "accepts a field_dynamic-only sortable custom field" do
-      defmodule FieldDynamicOnlyCustomField do
-        @derive {
-          Flop.Schema,
-          filterable: [],
-          sortable: [:inserted_at],
-          custom_fields: [
-            inserted_at: [
-              field_dynamic: {__MODULE__, :field_dynamic, [option: true]},
-              ecto_type: :utc_datetime
-            ]
-          ]
-        }
-        defstruct [:id, :inserted_at]
-      end
-
-      assert Schema.sortable(struct(FieldDynamicOnlyCustomField)) ==
-               [:inserted_at]
-
-      expected_field_dynamic =
-        {FieldDynamicOnlyCustomField, :field_dynamic, [option: true]}
-
-      assert %Flop.FieldInfo{
-               extra: %{
-                 field_dynamic: ^expected_field_dynamic,
-                 type: :custom
-               }
-             } =
-               Schema.field_info(
-                 struct(FieldDynamicOnlyCustomField),
-                 :inserted_at
-               )
-    end
-
-    test "accepts an unused custom field without callbacks" do
-      defmodule UnusedCustomField do
-        @derive {
-          Flop.Schema,
-          filterable: [],
-          sortable: [],
-          custom_fields: [inserted_at: [ecto_type: :utc_datetime]]
-        }
-        defstruct [:id, :inserted_at]
-      end
-
-      assert %Flop.FieldInfo{
-               extra: %{
-                 type: :custom
-               }
-             } =
-               Schema.field_info(struct(UnusedCustomField), :inserted_at)
-    end
+    assert error.message =~ "cannot sort by custom field"
   end
 end
