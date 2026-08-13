@@ -1325,7 +1325,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
 
     # MyXQL dumps binary_id to raw bytes, which is not accepted by the JSON
     # encoder.
-    @tag :array_type
+    @tag :binary_id_array
     test "validates filter value for an array of binary_ids", %{
       ecto_adapter: ecto_adapter
     } do
