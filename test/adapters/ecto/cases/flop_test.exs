@@ -378,6 +378,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    @tag :array_type
     test "applies empty and not_empty filter to array fields" do
       check all pet_count <- integer(@pet_count_range),
                 pets =
@@ -847,6 +848,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    @tag :array_type
     property "applies :contains operator" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
@@ -863,6 +865,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    @tag :array_type
     property "applies :not_contains operator" do
       check all pet_count <- integer(@pet_count_range),
                 pets = insert_list_and_sort(pet_count, :pet_with_owner),
@@ -1323,6 +1326,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                )
     end
 
+    @tag :array_type
     test "validates filter value for an array of binary_ids", %{
       ecto_adapter: ecto_adapter
     } do

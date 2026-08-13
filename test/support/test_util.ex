@@ -175,6 +175,8 @@ defmodule Flop.TestUtil do
   defp get_field(pet, %FieldInfo{extra: %{type: :join, path: [a, b]}}),
     do: pet |> Map.fetch!(a) |> Map.fetch!(b)
 
+  @case_insensitive_like [:mysql, :sqlite]
+
   defp matches?(:==, v, _), do: &(&1 == v)
   defp matches?(:!=, v, _), do: &(&1 != v)
   defp matches?(:empty, _, _), do: &empty?(&1)
@@ -188,14 +190,15 @@ defmodule Flop.TestUtil do
   defp matches?(:contains, v, _), do: &(v in &1)
   defp matches?(:not_contains, v, _), do: &(v not in &1)
 
-  defp matches?(:like, v, :sqlite) do
+  defp matches?(:like, v, adapter) when adapter in @case_insensitive_like do
     v = String.downcase(v)
     &(String.downcase(&1) =~ v)
   end
 
   defp matches?(:like, v, _), do: &(&1 =~ v)
 
-  defp matches?(:not_like, v, :sqlite) do
+  defp matches?(:not_like, v, adapter)
+       when adapter in @case_insensitive_like do
     v = String.downcase(v)
     &(String.downcase(&1) =~ v == false)
   end
@@ -213,12 +216,14 @@ defmodule Flop.TestUtil do
     &(String.downcase(&1) =~ v == false)
   end
 
-  defp matches?(:like_and, v, :sqlite) when is_binary(v) do
+  defp matches?(:like_and, v, adapter)
+       when adapter in @case_insensitive_like and is_binary(v) do
     values = v |> String.downcase() |> String.split()
     &Enum.all?(values, fn v -> String.downcase(&1) =~ v end)
   end
 
-  defp matches?(:like_and, v, :sqlite) do
+  defp matches?(:like_and, v, adapter)
+       when adapter in @case_insensitive_like do
     values = Enum.map(v, &String.downcase/1)
     &Enum.all?(values, fn v -> String.downcase(&1) =~ v end)
   end
@@ -230,12 +235,14 @@ defmodule Flop.TestUtil do
 
   defp matches?(:like_and, v, _), do: &Enum.all?(v, fn v -> &1 =~ v end)
 
-  defp matches?(:like_or, v, :sqlite) when is_binary(v) do
+  defp matches?(:like_or, v, adapter)
+       when adapter in @case_insensitive_like and is_binary(v) do
     values = v |> String.downcase() |> String.split()
     &Enum.any?(values, fn v -> String.downcase(&1) =~ v end)
   end
 
-  defp matches?(:like_or, v, :sqlite) do
+  defp matches?(:like_or, v, adapter)
+       when adapter in @case_insensitive_like do
     values = Enum.map(v, &String.downcase/1)
     &Enum.any?(values, fn v -> String.downcase(&1) =~ v end)
   end

@@ -3,6 +3,15 @@ defmodule Flop.Adapter.Ecto.DialectTest do
 
   alias Flop.Adapter.Ecto.Dialect
 
+  @order_directions [
+    :asc,
+    :asc_nulls_first,
+    :asc_nulls_last,
+    :desc,
+    :desc_nulls_first,
+    :desc_nulls_last
+  ]
+
   defmodule PostgresRepo do
     def __adapter__, do: Ecto.Adapters.Postgres
   end
@@ -55,6 +64,78 @@ defmodule Flop.Adapter.Ecto.DialectTest do
     test "uses ILIKE when no repo is configured" do
       assert where_clause(nil) == where_clause(PostgresRepo)
     end
+  end
+
+  describe "order_direction/2" do
+    test "keeps the direction on an adapter with NULLS FIRST and NULLS LAST" do
+      for direction <- @order_directions do
+        assert Dialect.order_direction(PostgresRepo, direction) ==
+                 {:native, direction}
+      end
+    end
+
+    test "maps the nulls directions on an adapter without them" do
+      assert Dialect.order_direction(MyXQLRepo, :asc) == {:native, :asc}
+      assert Dialect.order_direction(MyXQLRepo, :desc) == {:native, :desc}
+
+      assert Dialect.order_direction(MyXQLRepo, :asc_nulls_first) ==
+               {:native, :asc}
+
+      assert Dialect.order_direction(MyXQLRepo, :desc_nulls_last) ==
+               {:native, :desc}
+
+      assert Dialect.order_direction(MyXQLRepo, :asc_nulls_last) ==
+               {:emulated, :asc}
+
+      assert Dialect.order_direction(MyXQLRepo, :desc_nulls_first) ==
+               {:emulated, :desc}
+    end
+
+    test "keeps the direction for an unknown adapter" do
+      assert Dialect.order_direction(UnknownRepo, :asc_nulls_last) ==
+               {:native, :asc_nulls_last}
+    end
+
+    test "keeps the direction without a repo" do
+      assert Dialect.order_direction(nil, :asc_nulls_last) ==
+               {:native, :asc_nulls_last}
+
+      assert Dialect.order_direction(NotARealRepo, :asc_nulls_last) ==
+               {:native, :asc_nulls_last}
+    end
+  end
+
+  describe "the query built for the nulls order directions" do
+    test "uses them on an adapter that has them" do
+      for direction <- @order_directions do
+        assert order_by_clause(PostgresRepo, direction) ==
+                 "[#{direction}: p0.name]"
+      end
+    end
+
+    test "uses the plain direction where the adapter already sorts that way" do
+      assert order_by_clause(MyXQLRepo, :asc_nulls_first) == "[asc: p0.name]"
+      assert order_by_clause(MyXQLRepo, :desc_nulls_last) == "[desc: p0.name]"
+    end
+
+    test "sorts on IS NULL first where it does not" do
+      assert order_by_clause(MyXQLRepo, :asc_nulls_last) ==
+               ~S|[asc: fragment("? IS NULL", p0.name), asc: p0.name]|
+
+      assert order_by_clause(MyXQLRepo, :desc_nulls_first) ==
+               ~S|[desc: fragment("? IS NULL", p0.name), desc: p0.name]|
+    end
+  end
+
+  defp order_by_clause(repo, direction) do
+    flop = %Flop{order_by: [:name], order_directions: [direction]}
+
+    MyApp.Pet
+    |> Flop.query(flop, for: MyApp.Pet, repo: repo)
+    |> inspect()
+    |> String.split("order_by: ")
+    |> List.last()
+    |> String.trim_trailing(">")
   end
 
   defp where_clause(repo) do

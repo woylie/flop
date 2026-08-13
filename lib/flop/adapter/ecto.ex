@@ -292,9 +292,22 @@ defmodule Flop.Adapter.Ecto do
       )
     end
 
+    repo = opts |> Flop.adapter_opts() |> Keyword.get(:repo)
+
+    directions =
+      Enum.map(directions, fn {direction, field} ->
+        {Dialect.order_direction(repo, direction), field}
+      end)
+
     case opts[:for] do
       nil ->
-        Query.order_by(query, ^directions)
+        Enum.reduce(directions, query, fn {order_direction, field}, acc_query ->
+          order_by_direction(
+            acc_query,
+            order_direction,
+            dynamic([r], field(r, ^field))
+          )
+        end)
 
       module ->
         struct = struct(module)
@@ -306,19 +319,37 @@ defmodule Flop.Adapter.Ecto do
     end
   end
 
+  defp order_by_direction(q, {:native, direction}, field) do
+    order_by(q, ^[{direction, field}])
+  end
+
+  defp order_by_direction(q, {:emulated, direction}, field) do
+    order_by(
+      q,
+      ^[
+        {direction, dynamic(fragment("? IS NULL", ^field))},
+        {direction, field}
+      ]
+    )
+  end
+
   defp has_order_bys?(query) when is_atom(query), do: false
   defp has_order_bys?(%Ecto.Query{order_bys: []}), do: false
   defp has_order_bys?(%Ecto.Query{order_bys: [_ | _]}), do: true
 
   defp apply_order_by_field(
          q,
-         {direction, _},
+         {order_direction, _},
          %FieldInfo{
            extra: %{type: :join, binding: binding, field: field}
          },
          _
        ) do
-    order_by(q, [{^binding, r}], [{^direction, field(r, ^field)}])
+    order_by_direction(
+      q,
+      order_direction,
+      dynamic([{^binding, r}], field(r, ^field))
+    )
   end
 
   defp apply_order_by_field(
@@ -337,15 +368,15 @@ defmodule Flop.Adapter.Ecto do
 
   defp apply_order_by_field(
          q,
-         {direction, field},
+         {order_direction, field},
          %FieldInfo{extra: %{type: :alias}},
          _
        ) do
-    order_by(q, [{^direction, selected_as(^field)}])
+    order_by_direction(q, order_direction, dynamic(selected_as(^field)))
   end
 
-  defp apply_order_by_field(q, order_expr, _, _) do
-    order_by(q, ^order_expr)
+  defp apply_order_by_field(q, {order_direction, field}, _, _) do
+    order_by_direction(q, order_direction, dynamic([r], field(r, ^field)))
   end
 
   @impl Flop.Adapter
