@@ -271,15 +271,9 @@ defmodule Flop.Adapter.Ecto do
         apply(mod, fun, [query, filter, opts])
 
       field_info ->
-        ilike? =
-          opts
-          |> Flop.adapter_opts()
-          |> Keyword.get(:repo)
-          |> Dialect.supports_ilike?()
-
         Query.where(
           query,
-          ^build_op(schema_struct, field_info, filter, ilike?)
+          ^build_op(schema_struct, field_info, filter, dialect(opts))
         )
     end
   end
@@ -292,11 +286,11 @@ defmodule Flop.Adapter.Ecto do
       )
     end
 
-    repo = opts |> Flop.adapter_opts() |> Keyword.get(:repo)
+    dialect = dialect(opts)
 
     directions =
       Enum.map(directions, fn {direction, field} ->
-        {Dialect.order_direction(repo, direction), field}
+        {Dialect.order_direction(dialect, direction), field}
       end)
 
     case opts[:for] do
@@ -331,6 +325,10 @@ defmodule Flop.Adapter.Ecto do
         {direction, field}
       ]
     )
+  end
+
+  defp dialect(opts) do
+    opts |> Flop.adapter_opts() |> Keyword.get(:repo) |> Dialect.new()
   end
 
   defp has_order_bys?(query) when is_atom(query), do: false
@@ -577,7 +575,7 @@ defmodule Flop.Adapter.Ecto do
            schema_struct,
            %FieldInfo{extra: %{type: :compound, fields: fields}},
            %Filter{op: unquote(op), value: value},
-           ilike?
+           dialect
          ) do
       fields = Enum.map(fields, &get_field_info(schema_struct, &1))
 
@@ -598,7 +596,7 @@ defmodule Flop.Adapter.Ecto do
                 op: unquote(field_op),
                 value: substring
               },
-              ilike?
+              dialect
             )
 
           dynamic([r], ^inner_dynamic or ^dynamic_for_field)
@@ -611,7 +609,7 @@ defmodule Flop.Adapter.Ecto do
          schema_struct,
          %FieldInfo{extra: %{type: :compound, fields: fields}},
          %Filter{op: op} = filter,
-         ilike?
+         dialect
        )
        when op in [
               :=~,
@@ -630,7 +628,7 @@ defmodule Flop.Adapter.Ecto do
           schema_struct,
           field,
           %{filter | field: field},
-          ilike?
+          dialect
         )
 
       dynamic([r], ^dynamic or ^dynamic_for_field)
@@ -641,7 +639,7 @@ defmodule Flop.Adapter.Ecto do
          schema_struct,
          %FieldInfo{extra: %{type: :compound, fields: fields}},
          %Filter{op: op, value: value} = filter,
-         ilike?
+         dialect
        )
        when op in [:empty, :not_empty] do
     # a compound field is empty when every subfield is, and not empty when any
@@ -654,7 +652,7 @@ defmodule Flop.Adapter.Ecto do
         schema_struct,
         field,
         %{filter | field: field},
-        ilike?
+        dialect
       )
     end)
   end
@@ -664,7 +662,7 @@ defmodule Flop.Adapter.Ecto do
          _schema_struct,
          %FieldInfo{extra: %{type: :compound}},
          %Filter{field: field, op: op},
-         _ilike?
+         _dialect
        )
        when op not in @compound_operators do
     raise ArgumentError, """
@@ -683,7 +681,7 @@ defmodule Flop.Adapter.Ecto do
          %module{},
          %FieldInfo{extra: %{type: :normal, field: field}},
          %Filter{op: op, value: value},
-         _ilike?
+         _dialect
        )
        when op in [:empty, :not_empty] do
     ecto_type = module.__schema__(:type, field)
@@ -704,7 +702,7 @@ defmodule Flop.Adapter.Ecto do
          _schema_struct,
          %FieldInfo{extra: %{type: :normal, field: field}},
          %Filter{op: op, value: value},
-         _ilike?
+         _dialect
        )
        when op in [:empty, :not_empty] do
     match_empty(dynamic([r], empty(:other)), op, value)
@@ -717,7 +715,7 @@ defmodule Flop.Adapter.Ecto do
            extra: %{type: :join, binding: binding, field: field}
          },
          %Filter{op: op, value: value},
-         _ilike?
+         _dialect
        )
        when op in [:empty, :not_empty] do
     condition =
@@ -738,7 +736,7 @@ defmodule Flop.Adapter.Ecto do
            _schema_struct,
            %FieldInfo{extra: %{type: :normal, field: field}},
            %Filter{op: unquote(op), value: value},
-           _ilike?
+           _dialect
          ) do
       unquote(prelude)
       build_dynamic(unquote(fragment), false, unquote(combinator))
@@ -748,7 +746,7 @@ defmodule Flop.Adapter.Ecto do
            _schema_struct,
            %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
            %Filter{op: unquote(op), value: value},
-           _ilike?
+           _dialect
          ) do
       unquote(prelude)
       build_dynamic(unquote(fragment), true, unquote(combinator))
@@ -763,7 +761,7 @@ defmodule Flop.Adapter.Ecto do
            _schema_struct,
            %FieldInfo{extra: %{type: :normal, field: field}},
            %Filter{op: unquote(op), value: value},
-           unquote(ilike?)
+           %Dialect{ilike?: unquote(ilike?)}
          ) do
       unquote(prelude)
       build_dynamic(unquote(fragment), false, unquote(combinator))
@@ -773,7 +771,7 @@ defmodule Flop.Adapter.Ecto do
            _schema_struct,
            %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
            %Filter{op: unquote(op), value: value},
-           unquote(ilike?)
+           %Dialect{ilike?: unquote(ilike?)}
          ) do
       unquote(prelude)
       build_dynamic(unquote(fragment), true, unquote(combinator))

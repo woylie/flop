@@ -28,23 +28,29 @@ defmodule Flop.Adapter.Ecto.DialectTest do
     def __adapter__, do: SomeApp.Adapters.Unknown
   end
 
-  describe "supports_ilike?/1" do
-    test "returns true for an adapter that has ILIKE" do
-      assert Dialect.supports_ilike?(PostgresRepo)
+  describe "new/1" do
+    test "reads the features of a known adapter" do
+      assert Dialect.new(PostgresRepo) ==
+               %Dialect{ilike?: true, nulls_ordering?: true}
+
+      assert Dialect.new(MyXQLRepo) ==
+               %Dialect{ilike?: false, nulls_ordering?: false}
+
+      assert Dialect.new(SQLite3Repo) ==
+               %Dialect{ilike?: false, nulls_ordering?: true}
     end
 
-    test "returns false for adapters that do not have ILIKE" do
-      refute Dialect.supports_ilike?(MyXQLRepo)
-      refute Dialect.supports_ilike?(SQLite3Repo)
+    test "returns the defaults for an unknown adapter" do
+      assert Dialect.new(UnknownRepo) == %Dialect{}
     end
 
-    test "returns true for an unknown adapter" do
-      assert Dialect.supports_ilike?(UnknownRepo)
+    test "returns the defaults without a repo" do
+      assert Dialect.new(nil) == %Dialect{}
+      assert Dialect.new(NotARealRepo) == %Dialect{}
     end
 
-    test "returns true without a repo" do
-      assert Dialect.supports_ilike?(nil)
-      assert Dialect.supports_ilike?(NotARealRepo)
+    test "defaults to leaving the query unmodified" do
+      assert %Dialect{} == %Dialect{ilike?: true, nulls_ordering?: true}
     end
   end
 
@@ -69,38 +75,41 @@ defmodule Flop.Adapter.Ecto.DialectTest do
   describe "order_direction/2" do
     test "keeps the direction on an adapter with NULLS FIRST and NULLS LAST" do
       for direction <- @order_directions do
-        assert Dialect.order_direction(PostgresRepo, direction) ==
+        assert Dialect.order_direction(Dialect.new(PostgresRepo), direction) ==
                  {:native, direction}
       end
     end
 
     test "maps the nulls directions on an adapter without them" do
-      assert Dialect.order_direction(MyXQLRepo, :asc) == {:native, :asc}
-      assert Dialect.order_direction(MyXQLRepo, :desc) == {:native, :desc}
-
-      assert Dialect.order_direction(MyXQLRepo, :asc_nulls_first) ==
+      assert Dialect.order_direction(Dialect.new(MyXQLRepo), :asc) ==
                {:native, :asc}
 
-      assert Dialect.order_direction(MyXQLRepo, :desc_nulls_last) ==
+      assert Dialect.order_direction(Dialect.new(MyXQLRepo), :desc) ==
                {:native, :desc}
 
-      assert Dialect.order_direction(MyXQLRepo, :asc_nulls_last) ==
+      assert Dialect.order_direction(Dialect.new(MyXQLRepo), :asc_nulls_first) ==
+               {:native, :asc}
+
+      assert Dialect.order_direction(Dialect.new(MyXQLRepo), :desc_nulls_last) ==
+               {:native, :desc}
+
+      assert Dialect.order_direction(Dialect.new(MyXQLRepo), :asc_nulls_last) ==
                {:emulated, :asc}
 
-      assert Dialect.order_direction(MyXQLRepo, :desc_nulls_first) ==
+      assert Dialect.order_direction(Dialect.new(MyXQLRepo), :desc_nulls_first) ==
                {:emulated, :desc}
     end
 
     test "keeps the direction for an unknown adapter" do
-      assert Dialect.order_direction(UnknownRepo, :asc_nulls_last) ==
+      assert Dialect.order_direction(Dialect.new(UnknownRepo), :asc_nulls_last) ==
                {:native, :asc_nulls_last}
     end
 
     test "keeps the direction without a repo" do
-      assert Dialect.order_direction(nil, :asc_nulls_last) ==
+      assert Dialect.order_direction(Dialect.new(nil), :asc_nulls_last) ==
                {:native, :asc_nulls_last}
 
-      assert Dialect.order_direction(NotARealRepo, :asc_nulls_last) ==
+      assert Dialect.order_direction(Dialect.new(NotARealRepo), :asc_nulls_last) ==
                {:native, :asc_nulls_last}
     end
   end
