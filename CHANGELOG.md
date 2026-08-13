@@ -11,12 +11,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Support SQLite.
+- Support MySQL.
 
 ### Fixed
 
 - Build the `:=~`, `:ilike`, `:not_ilike`, `:ilike_and`, `:ilike_or`,
   `:starts_with` and `:ends_with` filters with `LIKE` on databases that have no
   `ILIKE`, such as SQLite and MySQL, instead of raising an `Ecto.QueryError`.
+- Support `:asc_nulls_first`, `:asc_nulls_last`, `:desc_nulls_first` and
+  `:desc_nulls_last` directions for MySQL.
+- Build the `:contains` and `:not_contains` filters, and `:empty`/`:not_empty`
+  on array fields, with `JSON_CONTAINS` and `JSON_LENGTH` on MySQL, instead of
+  raising.
 
 ## [0.27.2] - 2026-08-12
 

@@ -45,7 +45,7 @@ jobs:
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
         options: >-
-          --health-cmd "mysqladmin ping"
+          --health-cmd "mysqladmin ping -h 127.0.0.1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -123,7 +123,7 @@ jobs:
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
         options: >-
-          --health-cmd "mysqladmin ping"
+          --health-cmd "mysqladmin ping -h 127.0.0.1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
