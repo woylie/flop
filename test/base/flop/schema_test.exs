@@ -413,7 +413,7 @@ defmodule Flop.SchemaTest do
     assert error.message =~ ":inserted_at"
   end
 
-  test "raises error if a filterable custom field has no filter" do
+  test "raises error if a filterable custom field has no callback at all" do
     error =
       assert_raise ArgumentError, fn ->
         defmodule Sage do
@@ -421,21 +421,35 @@ defmodule Flop.SchemaTest do
             Flop.Schema,
             filterable: [:inserted_at],
             sortable: [],
-            custom_fields: [
-              inserted_at: [
-                field_dynamic: {__MODULE__, :some_function, []},
-                ecto_type: :utc_datetime
-              ]
-            ]
+            custom_fields: [inserted_at: [ecto_type: :utc_datetime]]
           }
           defstruct [:id, :inserted_at]
         end
       end
 
     assert error.message =~
-             "custom field without filter function marked as filterable"
+             "custom field without a callback marked as filterable"
 
     assert error.message =~ ":inserted_at"
+  end
+
+  test "allows a filterable custom field with only field_dynamic" do
+    defmodule Sorrel do
+      @derive {
+        Flop.Schema,
+        filterable: [:inserted_at],
+        sortable: [:inserted_at],
+        custom_fields: [
+          inserted_at: [
+            field_dynamic: {__MODULE__, :field_dynamic, []},
+            ecto_type: :utc_datetime
+          ]
+        ]
+      }
+      defstruct [:id, :inserted_at]
+    end
+
+    assert Schema.filterable(struct(Sorrel)) == [:inserted_at]
   end
 
   test "allows a custom field with only the callback it needs" do

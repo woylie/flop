@@ -209,6 +209,114 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                    end
     end
 
+    test "filters by a custom field with a field_dynamic" do
+      insert_custom_field_pets([10, 20, 30])
+
+      # age_score is age * 2; filter values are scores, not ages
+      for {op, value, expected} <- [
+            {:==, 40, [20]},
+            {:!=, 40, [10, 30]},
+            {:>, 40, [30]},
+            {:>=, 40, [20, 30]},
+            {:<, 40, [10]},
+            {:<=, 40, [10, 20]},
+            {:in, [20, 60], [10, 30]},
+            {:not_in, [20, 60], [20]}
+          ] do
+        result =
+          Flop.all(
+            CustomFieldPet,
+            %Flop{
+              filters: [%Filter{field: :age_score, op: op, value: value}],
+              order_by: [:age_score]
+            },
+            for: CustomFieldPet
+          )
+
+        assert Enum.map(result, & &1.age) == expected,
+               "#{op} returned wrong rows"
+      end
+    end
+
+    test "filters by a custom field with the like operators" do
+      Repo.insert!(%CustomFieldPet{name: "Rosa"})
+      Repo.insert!(%CustomFieldPet{name: "Rubi"})
+
+      for {op, value, expected} <- [
+            {:like, "os", ["Rosa"]},
+            {:not_like, "os", ["Rubi"]},
+            {:ilike, "OS", ["Rosa"]},
+            {:starts_with, "ru", ["Rubi"]},
+            {:ends_with, "bi", ["Rubi"]}
+          ] do
+        result =
+          Flop.all(
+            CustomFieldPet,
+            %Flop{
+              filters: [%Filter{field: :name_lower, op: op, value: value}],
+              order_by: [:age_score]
+            },
+            for: CustomFieldPet
+          )
+
+        assert Enum.map(result, & &1.name) == expected,
+               "#{op} returned wrong rows"
+      end
+    end
+
+    test "filters by an empty custom field" do
+      Repo.insert!(%CustomFieldPet{name: "set"})
+      Repo.insert!(%CustomFieldPet{name: nil})
+
+      for {op, value, expected} <- [
+            {:empty, true, [nil]},
+            {:empty, false, ["set"]},
+            {:not_empty, true, ["set"]},
+            {:not_empty, false, [nil]}
+          ] do
+        result =
+          Flop.all(
+            CustomFieldPet,
+            %Flop{filters: [%Filter{field: :name_lower, op: op, value: value}]},
+            for: CustomFieldPet
+          )
+
+        assert Enum.map(result, & &1.name) == expected,
+               "#{op} with #{value} returned wrong rows"
+      end
+    end
+
+    test "filters by an empty custom field of array type" do
+      Repo.insert!(%CustomFieldPet{name: "set", tags: ["a"]})
+      Repo.insert!(%CustomFieldPet{name: "empty", tags: []})
+      Repo.insert!(%CustomFieldPet{name: "nil", tags: nil})
+
+      result =
+        Flop.all(
+          CustomFieldPet,
+          %Flop{filters: [%Filter{field: :tag_list, op: :empty, value: true}]},
+          for: CustomFieldPet
+        )
+
+      assert result |> Enum.map(& &1.name) |> Enum.sort() == ["empty", "nil"]
+    end
+
+    test "passes runtime options to a filtering field_dynamic" do
+      insert_custom_field_pets([10, 20])
+
+      result =
+        Flop.all(
+          CustomFieldPet,
+          %Flop{filters: [%Filter{field: :age_score, op: :==, value: 40}]},
+          for: CustomFieldPet,
+          extra_opts: [test_pid: self()]
+        )
+
+      assert Enum.map(result, & &1.age) == [20]
+      assert_receive {:age_score_dynamic_opts, opts}
+      assert opts[:test_pid] == self()
+    end
+
     test "orders by compound fields" do
       pets = insert_list(20, :pet)
 
