@@ -393,7 +393,7 @@ defmodule Flop.Filter do
   end
 
   defp get_allowed_operators(:boolean) do
-    [:==, :!=, :=~, :empty, :not_empty]
+    [:==, :!=, :empty, :not_empty]
   end
 
   defp get_allowed_operators({:array, _}) do

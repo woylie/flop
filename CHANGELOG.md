@@ -25,6 +25,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Build the `:contains` and `:not_contains` filters, and `:empty`/`:not_empty`
   on array fields, with `JSON_CONTAINS` and `JSON_LENGTH` on MySQL, instead of
   raising.
+- Remove the `:=~` operator from the operators allowed for boolean fields.
 
 ## [0.27.2] - 2026-08-12
 
