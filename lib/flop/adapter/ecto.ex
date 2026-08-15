@@ -78,17 +78,16 @@ defmodule Flop.Adapter.Ecto do
       default: [],
       keys: [
         *: [
-          type:
-            {:or,
-             [
-               keyword_list: [
-                 binding: [type: :atom, required: true],
-                 field: [type: :atom, required: true],
-                 ecto_type: [type: :any, required: true],
-                 path: [type: {:list, :atom}]
-               ],
-               tuple: [:atom, :atom]
-             ]}
+          type: :keyword_list,
+          keys: [
+            binding: [type: :atom, required: true],
+            field: [type: :atom, required: true],
+            ecto_type: [
+              type: {:custom, NimbleSchemas, :validate_ecto_type, []},
+              required: true
+            ],
+            path: [type: {:list, :atom}]
+          ]
         ]
       ]
     ],
@@ -110,7 +109,10 @@ defmodule Flop.Adapter.Ecto do
           keys: [
             filter: [type: {:tuple, [:atom, :atom, :keyword_list]}],
             field_dynamic: [type: {:tuple, [:atom, :atom, :keyword_list]}],
-            ecto_type: [type: :any, required: true],
+            ecto_type: [
+              type: {:custom, NimbleSchemas, :validate_ecto_type, []},
+              required: true
+            ],
             bindings: [type: {:list, :atom}],
             operators: [type: {:list, :atom}]
           ]

@@ -11,7 +11,7 @@
 list of `{message, opts}` tuples per key.
 
 ```elixir
-params = %{limit: 5_000, order_by: [:mood]}
+params = %{limit: 5_000, order_by: [:species]}
 {:error, meta} = Flop.validate(params, for: MyApp.Pet)
 ```
 
@@ -19,10 +19,14 @@ params = %{limit: 5_000, order_by: [:mood]}
 meta.errors == [
   limit: [
     {"must be less than or equal to %{number}",
-     [validation: :number, kind: :less_than_or_equal_to, number: 100]}
+     [validation: :number, kind: :less_than_or_equal_to, number: 1000]}
   ],
   order_by: [
-    {"has an invalid entry", [validation: :subset, enum: [:name, :age]]}
+    {"has an invalid entry",
+     [
+       validation: :subset,
+       enum: [:name, :age, :mood, :owner_name, :owner_age]
+     ]}
   ]
 ]
 ```
@@ -59,11 +63,45 @@ meta.params == %{
 }
 ```
 
-## Filter errors line up with filter parameters
+## Filter errors
 
-Filters are a list, so their errors are a list of lists. The two lists always
-have the same length and the same order, and a filter without errors holds an
-empty list.
+`meta.errors[:filters]` has one of two shapes:
+
+- If there is an issue with the filters value itself, the value is a list of
+  `{message, opts}` tuples.
+- If there is an issue with individual filters, the value is a list with one
+  entry per filter.
+
+### Errors on the filter list itself
+
+This happens if the value isn't a list, or if the list has more items than
+`max_filters` allows.
+
+```elixir
+params = %{filters: for(_ <- 1..26, do: %{field: :name, op: :==, value: "a"})}
+{:error, meta} = Flop.validate(params, for: MyApp.Pet)
+
+meta.errors[:filters] == [
+  {"must have at most %{count} items",
+   [count: 20, validation: :length, kind: :max]}
+]
+```
+
+```elixir
+{:error, meta} = Flop.validate(%{filters: ""}, for: MyApp.Pet)
+
+meta.errors[:filters] == [
+  {"is invalid", [validation: :embed, type: {:array, :map}]}
+]
+```
+
+The two shapes never mix, so `per_filter?/1` below only looks at the first
+entry.
+
+### Filter errors line up with filter parameters
+
+Filters are a list, so their errors are a list of lists. The two lists have the
+same length and the same order, and a filter without errors holds an empty list.
 
 ```elixir
 params = %{
@@ -87,22 +125,29 @@ defmodule MyApp.FlopErrors do
     filters = Map.get(meta.params, "filters", [])
     errors = Keyword.get(meta.errors, :filters, [])
 
-    filters
-    |> Enum.zip(errors)
-    |> Enum.flat_map(fn {filter, filter_errors} ->
-      Enum.flat_map(filter_errors, fn {key, messages} ->
-        Enum.map(messages, fn message ->
-          %{
-            field: filter["field"],
-            op: filter["op"],
-            value: filter["value"],
-            key: key,
-            message: translate(message)
-          }
+    if is_list(filters) and per_filter?(errors) do
+      filters
+      |> Enum.zip(errors)
+      |> Enum.flat_map(fn {filter, filter_errors} ->
+        Enum.flat_map(filter_errors, fn {key, messages} ->
+          Enum.map(messages, fn message ->
+            %{
+              field: filter["field"],
+              op: filter["op"],
+              value: filter["value"],
+              key: key,
+              message: translate(message)
+            }
+          end)
         end)
       end)
-    end)
+    else
+      []
+    end
   end
+
+  defp per_filter?([first | _]), do: is_list(first)
+  defp per_filter?([]), do: true
 
   defp translate({message, opts}) do
     Enum.reduce(opts, message, fn {key, value}, acc ->

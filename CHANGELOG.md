@@ -20,6 +20,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Raise when a cursor is applied with a plain `:asc` or `:desc` order direction
   and no repo is configured. This only affects queries built with
   `Flop.query/3`.
+- Reject `ecto_type: nil` on join and custom fields.
 
 ### Fixed
 
@@ -33,6 +34,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   raising.
 - Remove the `:=~` operator from the operators allowed for boolean fields.
 - Support cursor pagination on nullable columns.
+- Return a validation error instead of raising a `FunctionClauseError` when a
+  join field is configured with the tuple shorthand that was removed earlier.
 
 ## [0.27.2] - 2026-08-12
 

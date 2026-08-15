@@ -165,6 +165,70 @@ defmodule Flop.SchemaTest do
       end
     end
 
+    test "raises for a nil ecto_type on a custom field" do
+      error =
+        assert_raise Flop.InvalidConfigError, fn ->
+          defmodule Tabbouleh do
+            @derive {
+              Flop.Schema,
+              filterable: [:thing],
+              sortable: [],
+              adapter_opts: [
+                custom_fields: [
+                  thing: [filter: {__MODULE__, :filter, []}, ecto_type: nil]
+                ]
+              ]
+            }
+            defstruct [:name]
+          end
+        end
+
+      assert Exception.message(error) =~
+               "expected an Ecto type such as :string or :map, got: nil"
+    end
+
+    test "raises for a nil ecto_type on a join field" do
+      error =
+        assert_raise Flop.InvalidConfigError, fn ->
+          defmodule Falafel do
+            @derive {
+              Flop.Schema,
+              filterable: [:owner_name],
+              sortable: [],
+              adapter_opts: [
+                join_fields: [
+                  owner_name: [binding: :owner, field: :name, ecto_type: nil]
+                ]
+              ]
+            }
+            defstruct [:name]
+          end
+        end
+
+      assert Exception.message(error) =~
+               "expected an Ecto type such as :string or :map, got: nil"
+    end
+
+    test "raises for a nil ecto_type given with the legacy syntax" do
+      error =
+        assert_raise Flop.InvalidConfigError, fn ->
+          defmodule Baklava do
+            @derive {
+              Flop.Schema,
+              filterable: [:thing],
+              sortable: [],
+              custom_fields: [
+                thing: [filter: {__MODULE__, :filter, []}, ecto_type: nil]
+              ]
+            }
+            defstruct [:name]
+          end
+        end
+
+      assert Exception.message(error) =~
+               "expected an Ecto type such as :string or :map, got: nil"
+    end
+
     test "raises if default order field is not sortable" do
       assert_raise Flop.InvalidDefaultOrderError, fn ->
         defmodule Broomstick do

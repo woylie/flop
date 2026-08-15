@@ -83,7 +83,10 @@ defmodule Flop.NimbleSchemas do
           keys: [
             binding: [type: :atom, required: true],
             field: [type: :atom, required: true],
-            ecto_type: [type: :any],
+            ecto_type: [
+              type: {:custom, __MODULE__, :validate_ecto_type, []},
+              required: true
+            ],
             path: [type: {:list, :atom}]
           ]
         ]
@@ -107,7 +110,10 @@ defmodule Flop.NimbleSchemas do
           keys: [
             filter: [type: {:tuple, [:atom, :atom, :keyword_list]}],
             field_dynamic: [type: {:tuple, [:atom, :atom, :keyword_list]}],
-            ecto_type: [type: :any],
+            ecto_type: [
+              type: {:custom, __MODULE__, :validate_ecto_type, []},
+              required: true
+            ],
             bindings: [type: {:list, :atom}],
             operators: [type: {:list, :atom}]
           ]
@@ -145,6 +151,13 @@ defmodule Flop.NimbleSchemas do
 
   defp schema(:backend_option), do: @backend_option
   defp schema(:schema_option), do: @schema_option
+
+  @doc false
+  def validate_ecto_type(nil) do
+    {:error, "expected an Ecto type such as :string or :map, got: nil"}
+  end
+
+  def validate_ecto_type(ecto_type), do: {:ok, ecto_type}
 
   @doc false
   def validate_cursor_value_func(value) do

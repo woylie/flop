@@ -18,7 +18,9 @@ defmodule Flop.Meta do
     the value will be rounded if the offset lies between pages. Always `nil`
     when using cursor-based pagination.
   - `:errors` - Any validation errors that occurred. The format is the same as
-    the result of `Ecto.Changeset.traverse_errors(changeset, & &1)`.
+    the result of `Ecto.Changeset.traverse_errors(changeset, & &1)`. See the
+    [Validation errors](validation_errors.html) guide for the shapes and how to
+    render them.
   - `:previous_offset`, `:next_offset`, `:previous_page`, `:next_page` - Values
     based on `:current_page` and `:current_offset`/`page_size`. Always `nil`
     when using cursor-based pagination.
