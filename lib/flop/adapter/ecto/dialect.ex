@@ -17,17 +17,27 @@ defmodule Flop.Adapter.Ecto.Dialect do
   # array operations. Flop uses JSON_CONTAINS and JSON_LENGTH instead.
   @without_arrays [Ecto.Adapters.MyXQL]
 
+  # Postgres puts nulls last when sorting by ASC/DESC without classifier.
+  # MySQL and SQLite puts nulls first.
+  @nulls_first_ascending [Ecto.Adapters.MyXQL, Ecto.Adapters.SQLite3]
+
   @typedoc """
   Feature support of a repo's Ecto adapter, resolved once per query and passed
   to the query builders.
   """
   @type t :: %__MODULE__{
+          adapter: module | nil,
           arrays?: boolean,
           ilike?: boolean,
+          nulls_last_ascending?: boolean,
           nulls_ordering?: boolean
         }
 
-  defstruct arrays?: true, ilike?: true, nulls_ordering?: true
+  defstruct adapter: nil,
+            arrays?: true,
+            ilike?: true,
+            nulls_last_ascending?: true,
+            nulls_ordering?: true
 
   @nulls_ordering_fallback %{
     asc_nulls_first: {:native, :asc},
@@ -45,8 +55,10 @@ defmodule Flop.Adapter.Ecto.Dialect do
     adapter = adapter(repo)
 
     %__MODULE__{
+      adapter: adapter,
       arrays?: adapter not in @without_arrays,
       ilike?: adapter not in @without_ilike,
+      nulls_last_ascending?: adapter not in @nulls_first_ascending,
       nulls_ordering?: adapter not in @without_nulls_ordering
     }
   end
@@ -84,6 +96,26 @@ defmodule Flop.Adapter.Ecto.Dialect do
   def order_direction(%__MODULE__{}, direction) do
     Map.get(@nulls_ordering_fallback, direction, {:native, direction})
   end
+
+  @doc """
+  Returns the placement of NULLs for an order direction.
+  """
+  @spec null_placement(t, atom) :: :first | :last
+  def null_placement(%__MODULE__{}, direction)
+      when direction in [:asc_nulls_first, :desc_nulls_first],
+      do: :first
+
+  def null_placement(%__MODULE__{}, direction)
+      when direction in [:asc_nulls_last, :desc_nulls_last],
+      do: :last
+
+  def null_placement(%__MODULE__{nulls_last_ascending?: true}, :asc), do: :last
+
+  def null_placement(%__MODULE__{nulls_last_ascending?: true}, :desc),
+    do: :first
+
+  def null_placement(%__MODULE__{}, :asc), do: :first
+  def null_placement(%__MODULE__{}, :desc), do: :last
 
   defp adapter(repo) when is_atom(repo) and not is_nil(repo) do
     if Code.ensure_loaded?(repo) and

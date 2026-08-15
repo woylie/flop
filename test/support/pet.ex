@@ -24,7 +24,7 @@ defmodule MyApp.Pet do
       :custom,
       :reverse_name
     ],
-    sortable: [:name, :age, :owner_name, :owner_age],
+    sortable: [:name, :age, :mood, :owner_name, :owner_age],
     max_limit: 1000,
     adapter_opts: [
       compound_fields: [
@@ -100,7 +100,7 @@ defmodule MyApp.Pet do
   def get_field(%__MODULE__{owner: nil}, :owner_tags), do: nil
 
   def get_field(%__MODULE__{} = pet, field)
-      when field in [:name, :age, :species, :tags],
+      when field in [:name, :age, :mood, :species, :tags],
       do: Map.get(pet, field)
 
   def get_field(%__MODULE__{} = pet, field)

@@ -2124,7 +2124,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
         )
     end
 
-    test "nil values for cursors are ignored when using for option" do
+    test "pages past a nil cursor value when using for option" do
       check all pets <- uniq_list_of_pets(length: 2..2),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
@@ -2135,7 +2135,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
         |> Enum.map(&Map.update!(&1, :name, fn _ -> nil end))
         |> Enum.each(&Repo.insert!(&1))
 
-        assert {:ok, {[_], %Meta{end_cursor: end_cursor}}} =
+        assert {:ok, {[first_pet], %Meta{end_cursor: end_cursor}}} =
                  Flop.validate_and_run(
                    pets_with_owners_query(),
                    %Flop{
@@ -2146,7 +2146,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                    for: Pet
                  )
 
-        assert {:ok, _} =
+        assert {:ok, {[second_pet], _}} =
                  Flop.validate_and_run(
                    pets_with_owners_query(),
                    %Flop{
@@ -2157,6 +2157,8 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                    },
                    for: Pet
                  )
+
+        assert second_pet.id != first_pet.id
       end
     end
 
@@ -2197,7 +2199,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                "cursor pagination is not supported for alias fields"
     end
 
-    test "nil values for cursors are ignored when not using for option" do
+    test "pages past a nil cursor value when not using for option" do
       check all pets <- uniq_list_of_pets(length: 2..2),
                 directions <- order_directions(%Pet{}) do
         checkin_checkout()
@@ -2208,7 +2210,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
         |> Enum.map(&Map.update!(&1, :name, fn _ -> nil end))
         |> Enum.each(&Repo.insert!(&1))
 
-        assert {:ok, {[_], %Meta{end_cursor: end_cursor}}} =
+        assert {:ok, {[first_pet], %Meta{end_cursor: end_cursor}}} =
                  Flop.validate_and_run(
                    pets_with_owners_query(),
                    %Flop{
@@ -2218,7 +2220,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                    }
                  )
 
-        assert {:ok, _} =
+        assert {:ok, {[second_pet], _}} =
                  Flop.validate_and_run(
                    pets_with_owners_query(),
                    %Flop{
@@ -2228,6 +2230,8 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                      order_directions: directions
                    }
                  )
+
+        assert second_pet.id != first_pet.id
       end
     end
 
