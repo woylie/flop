@@ -15,6 +15,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Support ordering and filtering by custom fields via a new `field_dynamic`
   option. Cursor pagination is not supported yet.
 
+### Changed
+
+- Raise when a cursor is applied with a plain `:asc` or `:desc` order direction
+  and no repo is configured. This only affects queries built with
+  `Flop.query/3`.
+
 ### Fixed
 
 - Build the `:=~`, `:ilike`, `:not_ilike`, `:ilike_and`, `:ilike_or`,
@@ -26,6 +32,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   on array fields, with `JSON_CONTAINS` and `JSON_LENGTH` on MySQL, instead of
   raising.
 - Remove the `:=~` operator from the operators allowed for boolean fields.
+- Support cursor pagination on nullable columns.
 
 ## [0.27.2] - 2026-08-12
 
