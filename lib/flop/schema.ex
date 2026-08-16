@@ -93,6 +93,44 @@ defprotocol Flop.Schema do
         }
       }
 
+  ## Tiebreaker
+
+  If your order does not identify each row uniquely, tied rows come back in an
+  arbitrary order, and cursor pagination over that order skips rows. To prevent
+  that, Flop appends the schema's primary key to every order. Set the
+  `:tiebreaker` option to change the direction, to name other fields, or to
+  turn it off.
+
+      @derive {
+        Flop.Schema,
+        filterable: [:name],
+        sortable: [:name],
+        tiebreaker: {:primary_key, :desc}
+      }
+
+  See `t:Flop.tiebreaker/0` for the accepted values. You can also set the option
+  on a backend module, in the application environment, or per query function
+  call. The keyword list form can only be set on a schema or in a query function
+  call.
+
+  A tiebreaker field is only appended if the order parameters do not already
+  contain it. If the tiebreaker option is set to `:primary_key` (the default) or
+  `{:primary_key, direction}`, and the schema has no primary key, no tiebreaker
+  will be added.
+
+  The tiebreaker is only applied when Flop orders the query. If you set
+  `ordering: false` and no default order, the tiebreaker is not added.
+
+  The tiebreaker is not part of the `t:Flop.t/0` struct, so it does not appear
+  in the query parameters. `Flop.ordering/2` returns the full order that is
+  applied.
+
+  > #### Tiebreaker fields have to be selected {: .warning}
+  >
+  > The tiebreaker appears in every cursor, so its value is read from the
+  > returned record like any other order field. A query that selects a subset
+  > of the fields has to include it.
+
   ## Restricting pagination types
 
   By default, all supported pagination types (`t:Flop.pagination_type/0`) are
@@ -322,12 +360,9 @@ defprotocol Flop.Schema do
 
   > #### Cursor values have to be selected {: .warning}
   >
-  > Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is yours.
-  > For cursor pagination, the join field has to be present in the returned
-  > struct, either through a `preload` as above or through a custom cursor
-  > value function. An association that is not loaded yields a `nil` cursor
-  > value, which makes the next page either empty or a repeat of the first one,
-  > depending on where the database puts nulls for that order direction.
+  > Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is your
+  > responsibility. Cursor pagination reads the join field from the returned
+  > struct, so the association has to be preloaded, as in the example above.
 
   Note that Flop doesn't create the join clauses for you. The named bindings
   already have to be present in the query you pass to the Flop functions. You
@@ -489,7 +524,8 @@ defprotocol Flop.Schema do
         field :inserted_at_date, :date, virtual: true
       end
 
-      dynamic = CustomFields.date_field(source: :inserted_at, timezone: timezone)
+      dynamic =
+        CustomFields.date_field(source: :inserted_at, timezone: timezone)
 
       MyApp.Pet
       |> select_merge(^%{inserted_at_date: dynamic})
@@ -500,12 +536,10 @@ defprotocol Flop.Schema do
 
   > #### Cursor values have to be selected {: .warning}
   >
-  > Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is yours. A
-  > custom field is an expression, not a column, so nothing puts it into the
-  > result unless you do. A field that is missing from the result yields a
-  > `nil` cursor value, which makes the next page either empty or a repeat of
-  > the first one, depending on where the database puts nulls for that order
-  > direction.
+  > Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is your
+  > responsibility. A custom field is an expression, not a column, so nothing
+  > puts it into the result unless you do. A missing value breaks pagination
+  > silently.
 
   ## Ecto type option
 
@@ -612,6 +646,9 @@ defprotocol Flop.Schema do
     `false` to not set any maximum limit.
   - `:default_order` - The default order applied when no order parameters are
     set.
+  - `:tiebreaker` - The order fields appended to every query to make the order
+    unambiguous. Defaults to the primary key, ascending. See
+    `t:Flop.tiebreaker/0`.
   - `:pagination_types` - A list of allowed pagination types for this schema.
   - `:default_pagination_type` - The default pagination type used if no
     pagination parameters are set.
@@ -623,6 +660,7 @@ defprotocol Flop.Schema do
           | {:default_limit, integer}
           | {:max_limit, integer}
           | {:default_order, Flop.default_order()}
+          | {:tiebreaker, Flop.tiebreaker()}
           | {:pagination_types, [Flop.pagination_type()]}
           | {:default_pagination_type, Flop.pagination_type()}
           | {:adapter_opts, [adapter_option]}
@@ -898,6 +936,26 @@ defprotocol Flop.Schema do
   def default_order(data)
 
   @doc """
+  Returns the tiebreaker of a schema.
+
+      iex> Flop.Schema.tiebreaker(%MyApp.Fruit{})
+      nil
+  """
+  @doc since: "0.28.0"
+  @spec tiebreaker(any) :: Flop.tiebreaker() | nil
+  def tiebreaker(data)
+
+  @doc """
+  Returns the fields that identify a record, used as the default tiebreaker.
+
+      iex> Flop.Schema.primary_key(%MyApp.Fruit{})
+      [:id]
+  """
+  @doc since: "0.28.0"
+  @spec primary_key(any) :: [atom]
+  def primary_key(data)
+
+  @doc """
   Returns the maximum limit of a schema.
 
       iex> Flop.Schema.max_limit(%MyApp.Pet{})
@@ -967,6 +1025,7 @@ defimpl Flop.Schema, for: Any do
     pagination_types = Keyword.get(options, :pagination_types)
     default_pagination_type = Keyword.get(options, :default_pagination_type)
     default_order = Keyword.get(options, :default_order)
+    tiebreaker = Keyword.get(options, :tiebreaker)
 
     field_info_func = build_field_info_func(adapter, adapter_opts, struct)
     get_field_func = build_get_field_func(struct, adapter, adapter_opts)
@@ -979,6 +1038,14 @@ defimpl Flop.Schema, for: Any do
 
         def default_order(_) do
           unquote(Macro.escape(default_order))
+        end
+
+        def tiebreaker(_) do
+          unquote(Macro.escape(tiebreaker))
+        end
+
+        def primary_key(struct) do
+          unquote(adapter).primary_key(struct)
         end
 
         unquote(field_info_func)
@@ -1019,7 +1086,54 @@ defimpl Flop.Schema, for: Any do
     validate_no_unknown_field!(opts[:filterable], fields, "filterable")
     validate_no_unknown_field!(opts[:sortable], fields, "sortable")
     validate_default_order!(opts[:default_order], opts[:sortable])
+
+    validate_tiebreaker!(
+      opts[:tiebreaker],
+      fields,
+      struct,
+      adapter,
+      adapter_opts
+    )
   end
+
+  defp validate_tiebreaker!(tiebreaker, fields, struct, adapter, adapter_opts)
+       when is_list(tiebreaker) do
+    tiebreaker_fields = Keyword.values(tiebreaker)
+    validate_no_unknown_field!(tiebreaker_fields, fields, "tiebreaker")
+
+    field_info = adapter.fields(struct, adapter_opts)
+
+    unsupported =
+      Enum.filter(tiebreaker_fields, fn field ->
+        case field_info[field] do
+          %Flop.FieldInfo{extra: %{type: type}}
+          when type in [:compound, :alias] ->
+            true
+
+          %Flop.FieldInfo{extra: %{type: :custom, field_dynamic: nil}} ->
+            true
+
+          _ ->
+            false
+        end
+      end)
+
+    if unsupported != [] do
+      raise ArgumentError, """
+      unsupported tiebreaker field
+
+      The following fields were configured as tiebreakers:
+
+          #{inspect(unsupported)}
+
+      Compound and alias fields cannot be used as tiebreakers, and a custom
+      field needs a field_dynamic function.
+      """
+    end
+  end
+
+  defp validate_tiebreaker!(_tiebreaker, _fields, _struct, _adapter, _opts),
+    do: :ok
 
   defp validate_default_pagination_type!(nil, _), do: :ok
 
@@ -1138,7 +1252,9 @@ defimpl Flop.Schema, for: Any do
     :max_limit,
     :pagination_types,
     :default_pagination_type,
-    :sortable
+    :primary_key,
+    :sortable,
+    :tiebreaker
   ]
 
   for function_name <- function_names do

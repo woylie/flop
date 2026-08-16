@@ -55,7 +55,8 @@ defmodule Flop.Relay do
   ## Options
 
   - `:cursor_value_func`: 2-arity function that takes an item from the query
-    result and the `order_by` fields and returns the unencoded cursor value.
+    result and the cursor fields and returns the unencoded cursor value. The
+    cursor fields are the order fields plus the tiebreaker.
   """
   @doc since: "0.8.0"
   @spec connection_from_result({[any], Meta.t()}, [Flop.option()]) ::
@@ -165,17 +166,19 @@ defmodule Flop.Relay do
   ## Options
 
   - `:cursor_value_func`: 2-arity function that takes an item from the query
-    result and the `order_by` fields and returns the unencoded cursor value.
+    result and the cursor fields and returns the unencoded cursor value. The
+    cursor fields are the order fields plus the tiebreaker.
   """
   @doc since: "0.8.0"
   @spec edges_from_result({[{any, any}] | [any], Meta.t()}, [Flop.option()]) ::
           [edge()]
   def edges_from_result(
-        {items, %Meta{flop: %Flop{order_by: order_by}}},
+        {items, %Meta{flop: %Flop{} = flop, opts: meta_opts}},
         opts \\ []
       ) do
     cursor_value_func = Cursor.cursor_value_func(opts)
-    Enum.map(items, &build_edge(&1, order_by, cursor_value_func))
+    fields = Flop.cursor_fields(flop, meta_opts || [])
+    Enum.map(items, &build_edge(&1, fields, cursor_value_func))
   end
 
   defp build_edge({node, nil}, order_by, cursor_value_func) do

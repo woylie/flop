@@ -23,8 +23,8 @@ pagination to your Ecto queries.
   unnecessary join clauses.
 - **Compound fields:** Provides the ability to apply filter parameters on
   multiple string fields, for example for a full name filter.
-- **Custom fields:** Provides an escape hatch for filters that Flop is not able
-  to build on its own.
+- **Custom fields:** Provides an escape hatch for filtering and ordering that
+  Flop is not able to build on its own.
 - **Relay connection formatter:** Formats the connection in Relay style,
   providing edges, nodes, and page info.
 - **UI helpers and URL builders through
@@ -44,8 +44,14 @@ def deps do
 end
 ```
 
+Enable debug checks in `config/dev.exs` and `config/test.exs`:
+
+```elixir
+config :flop, debug: true
+```
+
 You can also configure a default repo for Flop by adding the following line to
-your config file:
+`config/config.exs`:
 
 ```elixir
 config :flop, repo: MyApp.Repo

@@ -12,7 +12,7 @@ defmodule Flop.Adapter.Ecto do
   alias Flop.Filter
   alias Flop.NimbleSchemas
 
-  require Logger
+  @diagnostics Application.compile_env(:flop, :diagnostics, false)
 
   @operators [
     :==,
@@ -240,27 +240,66 @@ defmodule Flop.Adapter.Ecto do
     Enum.map_join(fields, " ", &get_field(item, &1, %FieldInfo{}))
   end
 
-  def get_field(%{} = item, _field, %FieldInfo{
+  def get_field(%{} = item, field, %FieldInfo{
         extra: %{type: :custom, path: path}
       }) do
-    walk_path(item, path)
+    walk_path(item, field, path)
   end
 
-  def get_field(%{} = item, _field, %FieldInfo{
+  def get_field(%{} = item, field, %FieldInfo{
         extra: %{type: :join, path: path}
       }) do
-    walk_path(item, path)
+    walk_path(item, field, path)
   end
 
   def get_field(%{} = item, field, %FieldInfo{}) do
     Map.get(item, field)
   end
 
-  defp walk_path(item, path) do
-    Enum.reduce(path, item, fn
-      field, %{} = acc -> Map.get(acc, field)
-      _, _ -> nil
-    end)
+  @impl Flop.Adapter
+  def primary_key(%module{}) do
+    if Code.ensure_loaded?(module) and
+         function_exported?(module, :__schema__, 1) do
+      module.__schema__(:primary_key)
+    else
+      []
+    end
+  end
+
+  defp walk_path(item, field, path) do
+    value =
+      Enum.reduce(path, item, fn
+        _step, %Ecto.Association.NotLoaded{} = not_loaded ->
+          raise_not_loaded(field, path, not_loaded)
+
+        step, %{} = acc ->
+          Map.get(acc, step)
+
+        _step, _ ->
+          nil
+      end)
+
+    case value do
+      %Ecto.Association.NotLoaded{} = not_loaded ->
+        raise_not_loaded(field, path, not_loaded)
+
+      value ->
+        value
+    end
+  end
+
+  defp raise_not_loaded(field, path, %Ecto.Association.NotLoaded{
+         __field__: association
+       }) do
+    raise ArgumentError, """
+    could not read #{inspect(field)}
+
+    The association #{inspect(association)} is not loaded, so nothing can be
+    read from the path #{inspect(path)}.
+
+    Preload the association, or select the value into another field and set the
+    path to it.
+    """
   end
 
   @impl Flop.Adapter
@@ -316,11 +355,7 @@ defmodule Flop.Adapter.Ecto do
 
   @impl Flop.Adapter
   def apply_order_by(query, directions, opts) do
-    if has_order_bys?(query) do
-      Logger.warning(
-        "The query you passed to flop includes order_by. This may interfere with Flop's ordering and pagination features."
-      )
-    end
+    warn_on_order_by(query)
 
     dialect = dialect(opts)
 
@@ -376,9 +411,23 @@ defmodule Flop.Adapter.Ecto do
     opts |> Flop.adapter_opts() |> Keyword.get(:repo) |> Dialect.new()
   end
 
-  defp has_order_bys?(query) when is_atom(query), do: false
-  defp has_order_bys?(%Ecto.Query{order_bys: []}), do: false
-  defp has_order_bys?(%Ecto.Query{order_bys: [_ | _]}), do: true
+  if @diagnostics do
+    require Logger
+
+    defp warn_on_order_by(query) do
+      if has_order_bys?(query) do
+        Logger.warning(
+          "The query you passed to flop includes order_by. This may interfere with Flop's ordering and pagination features."
+        )
+      end
+    end
+
+    defp has_order_bys?(query) when is_atom(query), do: false
+    defp has_order_bys?(%Ecto.Query{order_bys: []}), do: false
+    defp has_order_bys?(%Ecto.Query{order_bys: [_ | _]}), do: true
+  else
+    defp warn_on_order_by(_query), do: :ok
+  end
 
   defp apply_order_by_field(
          q,

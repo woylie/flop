@@ -51,6 +51,19 @@ end
 }
 ```
 
+#### Tiebreaker
+
+Appended to every order Flop applies. Defaults to the primary key, ascending.
+
+```elixir
+@derive {
+  Flop.Schema,
+  filterable: [:name, :species],
+  sortable: [:name, :age],
+  tiebreaker: {:primary_key, :desc}
+}
+```
+
 #### Pagination types
 
 ```elixir

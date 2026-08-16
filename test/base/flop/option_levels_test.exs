@@ -14,6 +14,7 @@ defmodule Flop.OptionLevelsTest do
       Application.delete_env(:flop, :replace_invalid_params)
       Application.delete_env(:flop, :max_cursor_size)
       Application.delete_env(:flop, :default_order)
+      Application.delete_env(:flop, :tiebreaker)
     end)
   end
 
@@ -69,6 +70,44 @@ defmodule Flop.OptionLevelsTest do
 
       assert {:ok, %Flop{order_by: nil, order_directions: nil}} =
                Flop.validate(%{}, for: Pet)
+    end
+  end
+
+  describe "schema and call-site options" do
+    test "are not read from the application environment" do
+      for key <- [
+            :sortable,
+            :filterable,
+            :default_order,
+            :for,
+            :count,
+            :count_query,
+            :extra_opts
+          ] do
+        Application.put_env(:flop, key, :from_the_application_environment)
+        on_exit(fn -> Application.delete_env(:flop, key) end)
+
+        assert Flop.get_option(key, [], :not_set) == :not_set
+      end
+    end
+  end
+
+  describe "tiebreaker" do
+    test "can be set in the application environment" do
+      assert Flop.ordering(%Flop{order_by: [:name]}, for: Pet) ==
+               [asc: :name, asc: :id]
+
+      Application.put_env(:flop, :tiebreaker, false)
+
+      assert Flop.ordering(%Flop{order_by: [:name]}, for: Pet) == [asc: :name]
+    end
+
+    test "raises when it names fields in the application environment" do
+      Application.put_env(:flop, :tiebreaker, asc: :id)
+
+      assert_raise ArgumentError,
+                   ~r/invalid tiebreaker in the application environment/,
+                   fn -> Flop.ordering(%Flop{order_by: [:name]}, for: Pet) end
     end
   end
 end

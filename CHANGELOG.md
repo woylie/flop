@@ -15,6 +15,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Support ordering, filtering and cursor pagination by custom fields via a new
   `field_dynamic` option.
 - Support the `path` option on custom fields.
+- Add the `tiebreaker` option, which appends order fields to make the order
+  stable.
+- Add `Flop.ordering/2` and `Flop.cursor_fields/2`, which return the order that
+  is applied to a query.
+- Add the `diagnostics` option, which enables checks about how Flop is used. It
+  can only be set in the application environment.
 
 ### Changed
 
@@ -22,6 +28,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and no repo is configured. This only affects queries built with
   `Flop.query/3`.
 - Reject `ecto_type: nil` on join and custom fields.
+- Append the primary key to the order Flop applies by default. The fields to use
+  can be overridden with the `tiebreaker` option. Set `tiebreaker: false` to
+  disable.
+- Accept cursor pagination parameters without an order field unless the
+  tiebreaker is disabled.
+- Add `tiebreaker/1` and `primary_key/1` to the `Flop.Schema` protocol.
+- Only log a warning about a query that already has an `ORDER BY` clause when
+  the `diagnostics` option is enabled in the application environment.
 
 ### Fixed
 
@@ -37,6 +51,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Support cursor pagination on nullable columns.
 - Return a validation error instead of raising a `FunctionClauseError` when a
   join field is configured with the tuple shorthand that was removed earlier.
+- Ignore `sortable`, `filterable`, `for`, `count`, `count_query` and
+  `extra_opts` set in the application environment. The application environment
+  now accepts the same options as a backend module.
+- Raise instead of returning `nil` when `Flop.Schema.get_field/2` reads a value
+  through an association that is not loaded.
+
+### How to upgrade
+
+The warning about a query that already has an `ORDER BY` clause is now only
+logged when diagnostics are enabled. To keep seeing it, add this to
+`config/dev.exs` and `config/test.exs`:
+
+```elixir
+config :flop, diagnostics: true
+```
 
 ## [0.27.2] - 2026-08-12
 

@@ -159,8 +159,8 @@ defmodule Flop.Validation do
     )
     |> put_default_limit(:first, opts)
     |> validate_cursor_order_fields(opts)
-    |> Changeset.validate_required([:first, :order_by])
-    |> Changeset.validate_length(:order_by, min: 1)
+    |> Changeset.validate_required([:first])
+    |> validate_order_present(opts)
     |> validate_and_maybe_delete(
       :after,
       &validate_cursor/3,
@@ -181,8 +181,8 @@ defmodule Flop.Validation do
     )
     |> put_default_limit(:last, opts)
     |> validate_cursor_order_fields(opts)
-    |> Changeset.validate_required([:last, :order_by])
-    |> Changeset.validate_length(:order_by, min: 1)
+    |> Changeset.validate_required([:last])
+    |> validate_order_present(opts)
     |> validate_and_maybe_delete(
       :before,
       &validate_cursor/3,
@@ -422,16 +422,37 @@ defmodule Flop.Validation do
     end
   end
 
+  defp validate_order_present(changeset, opts) do
+    if effective_order_fields(changeset, opts) == [] do
+      Changeset.add_error(changeset, :order_by, "can't be blank",
+        validation: :required
+      )
+    else
+      changeset
+    end
+  end
+
+  defp effective_order_fields(changeset, opts) do
+    Flop.cursor_fields(
+      %Flop{
+        order_by: get_value(changeset, :order_by) || [],
+        order_directions: get_value(changeset, :order_directions)
+      },
+      opts
+    )
+  end
+
   defp validate_cursor(changeset, field, opts) do
     encoded_cursor = get_value(changeset, field)
-    order_fields = get_value(changeset, :order_by)
+    order_fields = effective_order_fields(changeset, opts)
 
-    if encoded_cursor && order_fields do
+    if encoded_cursor && order_fields != [] do
       validate_cursors_match_order_fields(
         changeset,
         field,
         encoded_cursor,
         order_fields,
+        get_value(changeset, :order_by) || [],
         opts
       )
     else
@@ -444,11 +465,16 @@ defmodule Flop.Validation do
          field,
          encoded_cursor,
          order_fields,
+         order_fields_without_tiebreaker,
          opts
        ) do
     case Cursor.decode(encoded_cursor, opts) do
       {:ok, cursor_map} ->
-        if Enum.sort(Map.keys(cursor_map)) == Enum.sort(order_fields) do
+        keys = cursor_map |> Map.keys() |> Enum.sort()
+
+        # accept cursors generated before the tiebreaker was configured
+        if keys == Enum.sort(order_fields) or
+             keys == Enum.sort(order_fields_without_tiebreaker) do
           cast_cursor_values(changeset, field, cursor_map, opts)
         else
           Changeset.add_error(changeset, field, "does not match order fields")
@@ -460,7 +486,7 @@ defmodule Flop.Validation do
   end
 
   defp cast_cursor_values(changeset, field, cursor_map, opts) do
-    case cast_cursor_map(cursor_map, opts[:for]) do
+    case cast_cursor_map(cursor_map, opts[:for], opts) do
       {:ok, cast_cursor_map} ->
         Changeset.put_change(changeset, :decoded_cursor, cast_cursor_map)
 
@@ -469,22 +495,25 @@ defmodule Flop.Validation do
     end
   end
 
-  defp cast_cursor_map(cursor_map, nil), do: {:ok, cursor_map}
+  defp cast_cursor_map(cursor_map, nil, _opts), do: {:ok, cursor_map}
 
-  defp cast_cursor_map(cursor_map, module) do
+  defp cast_cursor_map(cursor_map, module, opts) do
     struct = struct(module)
-    sortable_fields = Flop.Schema.sortable(struct)
+
+    # A tiebreaker field is not necessarily sortable.
+    castable_fields =
+      Flop.Schema.sortable(struct) ++ Flop.tiebreaker_fields(opts)
 
     Enum.reduce_while(cursor_map, {:ok, %{}}, fn {field, value}, {:ok, acc} ->
-      case cast_cursor_value(struct, field, value, sortable_fields) do
+      case cast_cursor_value(struct, field, value, castable_fields) do
         {:ok, cast_value} -> {:cont, {:ok, Map.put(acc, field, cast_value)}}
         :error -> {:halt, :error}
       end
     end)
   end
 
-  defp cast_cursor_value(struct, field, value, sortable_fields) do
-    if field in sortable_fields do
+  defp cast_cursor_value(struct, field, value, castable_fields) do
+    if field in castable_fields do
       %FieldInfo{ecto_type: ecto_type} = Flop.Schema.field_info(struct, field)
       cast_cursor_value(expand_type(ecto_type), value)
     else

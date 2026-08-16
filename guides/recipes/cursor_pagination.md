@@ -78,11 +78,8 @@ The third Ada is gone. Page 2 asks for the rows after the name "Ada", and all
 three Adas share that name. Six rows go in, five come out, and nothing in the
 metadata says so.
 
-Add a field that is unique, and the same walk returns every row:
-
-```elixir
-%{first: 2, order_by: [:name, :id]}
-```
+This is why Flop appends the primary key to every order. The same walk returns
+every row, and the parameters stay as they were:
 
 | page | rows |
 |---|---|
@@ -90,18 +87,24 @@ Add a field that is unique, and the same walk returns every row:
 | 2 | Ada 7, Bo 1 |
 | 3 | Cy, Dee |
 
-Make that the default for a schema, so a request that asks for no order still
-gets a stable one.
+The appended fields are the schema's `:tiebreaker`. They are not part of the
+`Flop` struct, so they never appear in the query parameters, but they do appear
+in every cursor. `Flop.ordering/2` returns the order that is applied.
+
+Change the direction, name other fields, or turn the tiebreaker off when the
+order is already unique:
 
 ```elixir
 @derive {Flop.Schema,
          filterable: [],
          sortable: [:id, :name],
-         default_order: %{
-           order_by: [:name, :id],
-           order_directions: [:asc, :asc]
-         }}
+         tiebreaker: {:primary_key, :desc}}
 ```
+
+> #### Tiebreaker fields have to be selected {: .warning}
+>
+> The tiebreaker is read from the returned record like any other order field,
+> so a query that selects a subset of the fields has to include it.
 
 This is also why `Flop.push_order/3`, and the table component in `Flop.Phoenix`
 that uses it, put a newly selected field in front of the existing order instead
@@ -109,32 +112,44 @@ of replacing it. Replacing the order could drop the field that made it unique.
 
 ## Nullable fields
 
-Ordering by a nullable column loses the rows where it is `NULL`.
+Nullable columns are supported.
 
 ```elixir
-%{first: 2, order_by: [:age, :id]}
+%{first: 2, order_by: [:age]}
 ```
 
-| page | rows |
-|---|---|
-| 1 | Bo 1, Ada 3 |
-| 2 | Ada 5, Ada 7 |
-| 3 | — |
+| page | `:asc` | `:desc` |
+|---|---|---|
+| 1 | Bo 1, Ada 3 | Cy, Dee |
+| 2 | Ada 5, Ada 7 | Ada 7, Ada 5 |
+| 3 | Cy, Dee | Ada 3, Bo 1 |
 
-Cy and Dee never appear, and page 3 reports `has_next_page?: false`. PostgreSQL
-sorts them last, but the cursor comparison is `age > 7`, and no comparison with
-`NULL` is ever true. A second order field does not help, because the `NULL` is
-in the first one.
+The plain order directions `:asc` or `:desc` leave the placement of null values
+to the database. PostgreSQL sorts nulls last ascending and first descending,
+while SQLite and MySQL do the opposite. The four explicit directions
+`:asc_nulls_first`, `:asc_nulls_last`, `:desc_nulls_first` and
+`:desc_nulls_last` mean the same on every database.
 
-Until Flop builds null-aware predicates, order by a column that has no `NULL`,
-or sort on a computed field that substitutes a value, as in the [computed fields
-recipe](computed_and_embedded_fields.md):
-
-```sql
-SELECT coalesce(age, -1) AS age_sortable
-```
+The cursor comparison has to match the sort, so Flop needs to know which way
+the database sorts before it can build a cursor query with a plain direction.
+It determines this from the repo, which means cursor pagination with `:asc` or
+`:desc` raises when no repo can be resolved.
 
 ## Reading the cursor value
+
+A cursor field can be a schema field, a join field, or a custom field with a
+`field_dynamic`. Compound and alias fields cannot be used: a compound field
+sorts by several columns but has one combined cursor value, and an alias cannot
+appear in a `WHERE` clause, which is where the cursor comparison goes.
+`Flop.validate/2` returns an error for invalid order fields when using cursor
+pagination.
+
+```elixir
+[order_by: [
+  {"cursor pagination is not supported for compound and alias fields",
+   [unsupported_fields: [:rank]]}
+]]
+```
 
 Flop reads the cursor value of each order field from the returned row with
 `Flop.Schema.get_field/2`. For a field of the schema this is the struct field of
@@ -158,14 +173,13 @@ Pet
 
 > #### Cursor values have to be selected {: .warning}
 >
-> Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is yours. A
-> join field that is not preloaded and a custom field that is not selected both
-> yield a `nil` cursor value. Depending on where the database puts nulls for
-> that order direction, the next page is then either empty or a repeat of the
-> first one. Neither raises.
+> Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is your
+> responsibility. If a cursor value is missing from the row, pagination breaks,
+> and unless an unloaded association is involved, it does so silently.
 
 If the query selects something other than the schema struct, pass a
-`cursor_value_func` that knows the shape.
+`cursor_value_func` that knows the shape. A map with the order fields as
+top-level keys works without one.
 
 ```elixir
 Flop.validate_and_run(query, params,
@@ -174,17 +188,6 @@ Flop.validate_and_run(query, params,
     Map.take(pet, order_by)
   end
 )
-```
-
-Compound and alias fields cannot be ordered by at all when using cursor
-pagination, since neither is a column. `Flop.validate/2` returns an error naming
-the fields.
-
-```elixir
-[order_by: [
-  {"cursor pagination is not supported for compound and alias fields",
-   [unsupported_fields: [:rank]]}
-]]
 ```
 
 ## Cursor values and types

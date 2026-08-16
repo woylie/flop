@@ -52,4 +52,11 @@ defmodule Flop.Adapter do
   @callback list(queryable, opts) :: [any]
 
   @callback get_field(any, atom, Flop.FieldInfo.t()) :: any
+
+  @doc """
+  Returns the fields that identify a record, used as the default tiebreaker.
+
+  Returns an empty list if the data source has no primary key.
+  """
+  @callback primary_key(struct) :: [atom]
 end

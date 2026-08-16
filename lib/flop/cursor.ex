@@ -222,7 +222,7 @@ defmodule Flop.Cursor do
   end
 
   @doc """
-  Takes a tuple with the node and the edge and the `order_by` field list and
+  Takes a tuple with the node and the edge and the cursor field list and
   returns the cursor value derived from the edge map.
 
   If a map is passed instead of a tuple, it retrieves the cursor value from that
@@ -280,7 +280,7 @@ defmodule Flop.Cursor do
   end
 
   @doc """
-  Takes a tuple with the node and the edge and the `order_by` field list and
+  Takes a tuple with the node and the edge and the cursor field list and
   returns the cursor value derived from the node map.
 
   If a map is passed instead of a tuple, it retrieves the cursor value from that

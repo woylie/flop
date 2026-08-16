@@ -19,5 +19,16 @@ defmodule Flop.RelayTest do
                }
              ]
     end
+
+    test "includes the tiebreaker, like the cursors in the meta struct" do
+      flop = %Flop{order_by: [:name]}
+      meta = %Flop.Meta{flop: flop, opts: [for: MyApp.Fruit]}
+      items = [%MyApp.Fruit{id: "1", name: "Apple"}]
+
+      assert [%{cursor: cursor}] = Flop.Relay.edges_from_result({items, meta})
+
+      assert cursor |> Flop.Cursor.decode!() |> Map.keys() |> Enum.sort() ==
+               [:id, :name]
+    end
   end
 end

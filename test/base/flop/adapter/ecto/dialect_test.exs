@@ -279,7 +279,7 @@ defmodule Flop.Adapter.Ecto.DialectTest do
     }
 
     MyApp.Pet
-    |> Flop.query(flop, for: MyApp.Pet, repo: repo)
+    |> Flop.query(flop, for: MyApp.Pet, repo: repo, tiebreaker: false)
     |> inspect()
     |> String.split("where: ")
     |> List.last()
@@ -292,7 +292,7 @@ defmodule Flop.Adapter.Ecto.DialectTest do
     flop = %Flop{order_by: [:name], order_directions: [direction]}
 
     MyApp.Pet
-    |> Flop.query(flop, for: MyApp.Pet, repo: repo)
+    |> Flop.query(flop, for: MyApp.Pet, repo: repo, tiebreaker: false)
     |> inspect()
     |> String.split("order_by: ")
     |> List.last()
@@ -341,7 +341,7 @@ defmodule Flop.Adapter.Ecto.DialectTest do
     }
 
     MyApp.Pet
-    |> Flop.query(flop, for: MyApp.Pet, repo: repo)
+    |> Flop.query(flop, for: MyApp.Pet, repo: repo, tiebreaker: false)
     |> inspect()
     |> String.split("where: ")
     |> List.last()
@@ -352,7 +352,7 @@ defmodule Flop.Adapter.Ecto.DialectTest do
     flop = %Flop{filters: [%Flop.Filter{field: field, op: op, value: value}]}
 
     MyApp.Pet
-    |> Flop.query(flop, for: MyApp.Pet, repo: repo)
+    |> Flop.query(flop, for: MyApp.Pet, repo: repo, tiebreaker: false)
     |> inspect()
     |> String.split("where: ")
     |> List.last()
