@@ -360,12 +360,9 @@ defprotocol Flop.Schema do
 
   > #### Cursor values have to be selected {: .warning}
   >
-  > Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is yours.
-  > For cursor pagination, the join field has to be present in the returned
-  > struct, either through a `preload` as above or through a custom cursor
-  > value function. An association that is not loaded yields a `nil` cursor
-  > value, which makes the next page either empty or a repeat of the first one,
-  > depending on where the database puts nulls for that order direction.
+  > Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is your
+  > responsibility. Cursor pagination reads the join field from the returned
+  > struct, so the association has to be preloaded, as in the example above.
 
   Note that Flop doesn't create the join clauses for you. The named bindings
   already have to be present in the query you pass to the Flop functions. You
@@ -527,7 +524,8 @@ defprotocol Flop.Schema do
         field :inserted_at_date, :date, virtual: true
       end
 
-      dynamic = CustomFields.date_field(source: :inserted_at, timezone: timezone)
+      dynamic =
+        CustomFields.date_field(source: :inserted_at, timezone: timezone)
 
       MyApp.Pet
       |> select_merge(^%{inserted_at_date: dynamic})
@@ -538,12 +536,10 @@ defprotocol Flop.Schema do
 
   > #### Cursor values have to be selected {: .warning}
   >
-  > Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is yours. A
-  > custom field is an expression, not a column, so nothing puts it into the
-  > result unless you do. A field that is missing from the result yields a
-  > `nil` cursor value, which makes the next page either empty or a repeat of
-  > the first one, depending on where the database puts nulls for that order
-  > direction.
+  > Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is your
+  > responsibility. A custom field is an expression, not a column, so nothing
+  > puts it into the result unless you do. A missing value breaks pagination
+  > silently.
 
   ## Ecto type option
 

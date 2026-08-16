@@ -159,14 +159,13 @@ Pet
 
 > #### Cursor values have to be selected {: .warning}
 >
-> Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is yours. A
-> join field that is not preloaded and a custom field that is not selected both
-> yield a `nil` cursor value. Depending on where the database puts nulls for
-> that order direction, the next page is then either empty or a repeat of the
-> first one. Neither raises.
+> Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is your
+> responsibility. If a cursor value is missing from the row, pagination breaks,
+> and unless an unloaded association is involved, it does so silently.
 
 If the query selects something other than the schema struct, pass a
-`cursor_value_func` that knows the shape.
+`cursor_value_func` that knows the shape. A map with the order fields as
+top-level keys works without one.
 
 ```elixir
 Flop.validate_and_run(query, params,

@@ -240,16 +240,16 @@ defmodule Flop.Adapter.Ecto do
     Enum.map_join(fields, " ", &get_field(item, &1, %FieldInfo{}))
   end
 
-  def get_field(%{} = item, _field, %FieldInfo{
+  def get_field(%{} = item, field, %FieldInfo{
         extra: %{type: :custom, path: path}
       }) do
-    walk_path(item, path)
+    walk_path(item, field, path)
   end
 
-  def get_field(%{} = item, _field, %FieldInfo{
+  def get_field(%{} = item, field, %FieldInfo{
         extra: %{type: :join, path: path}
       }) do
-    walk_path(item, path)
+    walk_path(item, field, path)
   end
 
   def get_field(%{} = item, field, %FieldInfo{}) do
@@ -266,11 +266,40 @@ defmodule Flop.Adapter.Ecto do
     end
   end
 
-  defp walk_path(item, path) do
-    Enum.reduce(path, item, fn
-      field, %{} = acc -> Map.get(acc, field)
-      _, _ -> nil
-    end)
+  defp walk_path(item, field, path) do
+    value =
+      Enum.reduce(path, item, fn
+        _step, %Ecto.Association.NotLoaded{} = not_loaded ->
+          raise_not_loaded(field, path, not_loaded)
+
+        step, %{} = acc ->
+          Map.get(acc, step)
+
+        _step, _ ->
+          nil
+      end)
+
+    case value do
+      %Ecto.Association.NotLoaded{} = not_loaded ->
+        raise_not_loaded(field, path, not_loaded)
+
+      value ->
+        value
+    end
+  end
+
+  defp raise_not_loaded(field, path, %Ecto.Association.NotLoaded{
+         __field__: association
+       }) do
+    raise ArgumentError, """
+    could not read #{inspect(field)}
+
+    The association #{inspect(association)} is not loaded, so nothing can be
+    read from the path #{inspect(path)}.
+
+    Preload the association, or select the value into another field and set the
+    path to it.
+    """
   end
 
   @impl Flop.Adapter

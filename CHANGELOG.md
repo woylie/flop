@@ -49,6 +49,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Ignore `sortable`, `filterable`, `for`, `count`, `count_query` and
   `extra_opts` set in the application environment. The application environment
   now accepts the same options as a backend module.
+- Raise instead of returning `nil` when `Flop.Schema.get_field/2` reads a value
+  through an association that is not loaded.
 
 ## [0.27.2] - 2026-08-12
 

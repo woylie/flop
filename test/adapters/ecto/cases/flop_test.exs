@@ -2466,6 +2466,39 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       assert returned.id == third.id
     end
 
+    test "raises if the association of a join field is not loaded" do
+      insert(:pet_with_owner)
+
+      q = join(Pet, :left, [p], o in assoc(p, :owner), as: :owner)
+      flop = %Flop{first: 1, order_by: [:owner_name]}
+
+      error =
+        assert_raise ArgumentError, fn -> Flop.run(q, flop, for: Pet) end
+
+      assert Exception.message(error) =~ "could not read :owner_name"
+      assert Exception.message(error) =~ "[:owner, :name]"
+      assert Exception.message(error) =~ "not loaded"
+
+      assert {_, %Meta{end_cursor: cursor}} =
+               Flop.run(preload(q, [owner: o], owner: o), flop, for: Pet)
+
+      assert cursor
+    end
+
+    test "pages past an association that is nil rather than unloaded" do
+      insert_list(3, :pet, owner: nil)
+
+      pets =
+        page_cursor_by_cursor(
+          pets_with_owners_query(),
+          Pet,
+          [:owner_name],
+          :asc
+        )
+
+      assert length(pets) == 3
+    end
+
     test "raises if a custom field without field_dynamic is used" do
       cursor = Flop.Cursor.encode(%{custom: 1})
 
