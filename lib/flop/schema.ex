@@ -320,6 +320,15 @@ defprotocol Flop.Schema do
   `:path` option. Instead, you can pass a custom cursor value function in the
   options. See `Flop.Cursor.get_cursors/2` and `t:Flop.option/0`.
 
+  > #### Cursor values have to be selected {: .warning}
+  >
+  > Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is yours.
+  > For cursor pagination, the join field has to be present in the returned
+  > struct, either through a `preload` as above or through a custom cursor
+  > value function. An association that is not loaded yields a `nil` cursor
+  > value, which makes the next page either empty or a repeat of the first one,
+  > depending on where the database puts nulls for that order direction.
+
   Note that Flop doesn't create the join clauses for you. The named bindings
   already have to be present in the query you pass to the Flop functions. You
   can use `Flop.with_named_bindings/4` or `Flop.named_bindings/3` to get the
@@ -394,8 +403,6 @@ defprotocol Flop.Schema do
   ID of the current user), use the `extra_opts` option when calling Flop
   functions.
 
-  Custom fields cannot be used for cursor pagination.
-
   Schema:
 
       @derive {
@@ -466,6 +473,39 @@ defprotocol Flop.Schema do
   `:bindings` option to specify them. Then, using `Flop.with_named_bindings/4`,
   these bindings can be conditionally added to your query based on filter
   conditions.
+
+  ### Cursor pagination with custom fields
+
+  A custom field with a `field_dynamic` can be used for cursor pagination. As
+  with join fields, Flop reads the cursor value from the returned struct or
+  map, and the `:path` option says where to find it. It defaults to the field
+  name.
+
+  Add a virtual field to your schema and select the same dynamic that
+  `field_dynamic` returns:
+
+      schema "pets" do
+        field :inserted_at, :utc_datetime
+        field :inserted_at_date, :date, virtual: true
+      end
+
+      dynamic = CustomFields.date_field(source: :inserted_at, timezone: timezone)
+
+      MyApp.Pet
+      |> select_merge(^%{inserted_at_date: dynamic})
+      |> Flop.validate_and_run(params,
+        for: MyApp.Pet,
+        extra_opts: [timezone: timezone]
+      )
+
+  > #### Cursor values have to be selected {: .warning}
+  >
+  > Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is yours. A
+  > custom field is an expression, not a column, so nothing puts it into the
+  > result unless you do. A field that is missing from the result yields a
+  > `nil` cursor value, which makes the next page either empty or a repeat of
+  > the first one, depending on where the database puts nulls for that order
+  > direction.
 
   ## Ecto type option
 
@@ -610,8 +650,8 @@ defprotocol Flop.Schema do
 
   - `:binding` (required) - Any named binding
   - `:field` (required)
-  - `:ecto_type` (required) - The Ecto type of the field. The filter operator and value
-    validation is based on this option.
+  - `:ecto_type` (required) - The Ecto type of the field. The filter operator
+    and value validation is based on this option.
   - `:path` - This option is used by `Flop.Schema.get_field/2` to retrieve the
     field value from a row. That function is also used by the default cursor
     functions in `Flop.Cursor` to determine the cursors. If the option is
@@ -643,6 +683,10 @@ defprotocol Flop.Schema do
     is used.
   - `:operators` - Defines which filter operators are allowed for this field.
     If omitted, all operators will be accepted.
+  - `:path` - This option is used by `Flop.Schema.get_field/2` to retrieve the
+    field value from a row. That function is also used by the default cursor
+    functions in `Flop.Cursor` to determine the cursors. If the option is
+    omitted, it defaults to `[field_name]`.
 
   If both the `:ecto_type` and the `:operators` option are set, the `:operators`
   option takes precedence and only the filter value validation is based on the
@@ -654,6 +698,7 @@ defprotocol Flop.Schema do
           | {:ecto_type, ecto_type()}
           | {:bindings, [atom]}
           | {:operators, [Flop.Filter.op()]}
+          | {:path, [atom]}
 
   @typedoc """
   Either an Ecto type, or reference to the type of an existing schema field, or
@@ -734,7 +779,8 @@ defprotocol Flop.Schema do
           type: :custom,
           filter: {MyApp.Pet, :reverse_name_filter, []},
           field_dynamic: nil,
-          bindings: []
+          bindings: [],
+          path: [:reverse_name]
         }
       }
   """
@@ -769,7 +815,7 @@ defprotocol Flop.Schema do
   @doc """
   Gets the field value from a struct.
 
-  Resolves join fields and compound fields according to the config.
+  Resolves join, compound and custom fields according to the config.
 
       # join_fields: [owner_name: [binding: :owner, field: :name]]
       iex> pet = %MyApp.Pet{name: "George", owner: %MyApp.Owner{name: "Carl"}}
@@ -785,6 +831,9 @@ defprotocol Flop.Schema do
 
   For join fields, this function relies on the binding name in the schema config
   matching the field name for the association in the struct.
+
+  Join and custom fields are read through their `path`. A custom field's value
+  is computed in the query and is only there if you selected it.
   """
   @doc since: "0.13.0"
   @spec get_field(any, atom) :: any

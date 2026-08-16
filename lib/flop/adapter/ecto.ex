@@ -114,7 +114,8 @@ defmodule Flop.Adapter.Ecto do
               required: true
             ],
             bindings: [type: {:list, :atom}],
-            operators: [type: {:list, :atom}]
+            operators: [type: {:list, :atom}],
+            path: [type: {:list, :atom}]
           ]
         ]
       ]
@@ -240,16 +241,26 @@ defmodule Flop.Adapter.Ecto do
   end
 
   def get_field(%{} = item, _field, %FieldInfo{
+        extra: %{type: :custom, path: path}
+      }) do
+    walk_path(item, path)
+  end
+
+  def get_field(%{} = item, _field, %FieldInfo{
         extra: %{type: :join, path: path}
       }) do
-    Enum.reduce(path, item, fn
-      field, %{} = acc -> Map.get(acc, field)
-      _, _ -> nil
-    end)
+    walk_path(item, path)
   end
 
   def get_field(%{} = item, field, %FieldInfo{}) do
     Map.get(item, field)
+  end
+
+  defp walk_path(item, path) do
+    Enum.reduce(path, item, fn
+      field, %{} = acc -> Map.get(acc, field)
+      _, _ -> nil
+    end)
   end
 
   @impl Flop.Adapter
@@ -485,27 +496,27 @@ defmodule Flop.Adapter.Ecto do
 
   @impl Flop.Adapter
   def apply_cursor(q, cursor_fields, opts) do
-    where_dynamic = cursor_dynamic(cursor_fields, dialect(opts))
+    where_dynamic = cursor_dynamic(cursor_fields, dialect(opts), opts)
     Query.where(q, ^where_dynamic)
   end
 
-  defp cursor_dynamic([], _dialect), do: true
+  defp cursor_dynamic([], _dialect, _opts), do: true
 
   # only reachable with an unvalidated Flop struct
-  defp cursor_dynamic([{_, _, _, %FieldInfo{extra: %{type: type}}} | _], _)
-       when type in [:compound, :alias, :custom] do
+  defp cursor_dynamic([{_, _, _, %FieldInfo{extra: %{type: type}}} | _], _, _)
+       when type in [:compound, :alias] do
     raise ArgumentError, """
     cursor pagination is not supported for #{type} fields
 
-    The order fields of a Flop used for cursor pagination must be normal or
-    join fields. #{String.capitalize(to_string(type))} fields can only be used
-    with offset or page based pagination.
+    The order fields of a Flop used for cursor pagination must be normal, join
+    or custom fields. #{String.capitalize(to_string(type))} fields can only be
+    used with offset or page based pagination.
 
     Use Flop.validate/2 to turn this exception into a validation error.
     """
   end
 
-  defp cursor_dynamic([{direction, _, _, _} | _], %Dialect{adapter: nil})
+  defp cursor_dynamic([{direction, _, _, _} | _], %Dialect{adapter: nil}, _)
        when direction in [:asc, :desc] do
     raise ArgumentError, """
     cursor pagination with :asc or :desc requires the repo
@@ -526,98 +537,105 @@ defmodule Flop.Adapter.Ecto do
 
   defp cursor_dynamic(
          [{direction, field, cursor_value, field_info} | tail],
-         dialect
+         dialect,
+         opts
        ) do
     tail_dynamic =
-      if tail == [], do: nil, else: cursor_dynamic(tail, dialect)
+      if tail == [], do: nil, else: cursor_dynamic(tail, dialect, opts)
 
     seek(
       direction,
       Dialect.null_placement(dialect, direction),
       cursor_value,
-      field,
-      field_info,
+      field_source(field, field_info, opts),
       tail_dynamic
     )
   end
 
-  # no cursor value, nulls last, last cursor field
-  defp seek(_direction, :last, nil, _field, _field_info, nil) do
-    false
+  defp field_source(
+         _field,
+         %FieldInfo{
+           extra: %{type: :custom, field_dynamic: {mod, fun, dyn_opts}}
+         },
+         opts
+       ) do
+    {:dynamic, custom_field_dynamic(mod, fun, dyn_opts, opts)}
   end
 
+  # only reachable with an unvalidated Flop struct
+  defp field_source(field, %FieldInfo{extra: %{type: :custom}}, _opts) do
+    raise ArgumentError, """
+    cursor pagination by a custom field requires a field_dynamic function
+
+    No field_dynamic function is configured for #{inspect(field)}, so it cannot
+    be used as an order field.
+
+    Use Flop.validate/2 to turn this exception into a validation error.
+    """
+  end
+
+  defp field_source(
+         _field,
+         %FieldInfo{extra: %{binding: binding, field: field, type: :join}},
+         _opts
+       ) do
+    {:join, binding, field}
+  end
+
+  defp field_source(field, _field_info, _opts), do: {:column, field}
+
+  # no cursor value, nulls last, last cursor field
+  defp seek(_direction, :last, nil, _source, nil), do: false
+
   # no cursor value, nulls last, more cursor fields to come
-  defp seek(_direction, :last, nil, field, field_info, tail) do
-    dynamic(^null_dynamic(field, field_info) and ^tail)
+  defp seek(_direction, :last, nil, source, tail) do
+    dynamic(^null_dynamic(source) and ^tail)
   end
 
   # no cursor value, nulls first, last cursor field
-  defp seek(_direction, :first, nil, field, field_info, nil) do
-    not_null_dynamic(field, field_info)
-  end
+  defp seek(_direction, :first, nil, source, nil), do: not_null_dynamic(source)
 
   # no cursor value, nulls first, more cursor fields to come
-  defp seek(_direction, :first, nil, field, field_info, tail) do
-    dynamic(
-      ^not_null_dynamic(field, field_info) or
-        (^null_dynamic(field, field_info) and ^tail)
-    )
+  defp seek(_direction, :first, nil, source, tail) do
+    dynamic(^not_null_dynamic(source) or (^null_dynamic(source) and ^tail))
   end
 
   # cursor value, last cursor field
-  defp seek(direction, placement, cursor_value, field, field_info, nil) do
-    strictly_after(direction, placement, cursor_value, field, field_info)
+  defp seek(direction, placement, cursor_value, source, nil) do
+    strictly_after(direction, placement, cursor_value, source)
   end
 
   # cursor value, more cursor fields to come
-  defp seek(
-         direction,
-         placement,
-         cursor_value,
-         field,
-         field_info,
-         tail
-       ) do
+  defp seek(direction, placement, cursor_value, source, tail) do
     dynamic(
-      ^strictly_after(direction, placement, cursor_value, field, field_info) or
-        (^compare(:==, field, field_info, cursor_value) and ^tail)
+      ^strictly_after(direction, placement, cursor_value, source) or
+        (^compare(:==, source, cursor_value) and ^tail)
     )
   end
 
   # ascending, nulls last, so the null rows follow the cursor row
-  defp strictly_after(direction, :last, cursor_value, field, field_info)
+  defp strictly_after(direction, :last, cursor_value, source)
        when direction in @asc_directions do
-    dynamic(
-      ^compare(:>, field, field_info, cursor_value) or
-        ^null_dynamic(field, field_info)
-    )
+    dynamic(^compare(:>, source, cursor_value) or ^null_dynamic(source))
   end
 
   # descending, nulls last, so the null rows follow the cursor row
-  defp strictly_after(_direction, :last, cursor_value, field, field_info) do
-    dynamic(
-      ^compare(:<, field, field_info, cursor_value) or
-        ^null_dynamic(field, field_info)
-    )
+  defp strictly_after(_direction, :last, cursor_value, source) do
+    dynamic(^compare(:<, source, cursor_value) or ^null_dynamic(source))
   end
 
   # ascending, nulls first, so the cursor row has passed the null rows
-  defp strictly_after(direction, :first, cursor_value, field, field_info)
+  defp strictly_after(direction, :first, cursor_value, source)
        when direction in @asc_directions do
-    compare(:>, field, field_info, cursor_value)
+    compare(:>, source, cursor_value)
   end
 
   # descending, nulls first, so the cursor row has passed the null rows
-  defp strictly_after(_direction, :first, cursor_value, field, field_info) do
-    compare(:<, field, field_info, cursor_value)
+  defp strictly_after(_direction, :first, cursor_value, source) do
+    compare(:<, source, cursor_value)
   end
 
-  defp compare(
-         op,
-         _field,
-         %FieldInfo{extra: %{binding: binding, field: field, type: :join}},
-         value
-       ) do
+  defp compare(op, {:join, binding, field}, value) do
     case op do
       :> ->
         dynamic(
@@ -639,7 +657,15 @@ defmodule Flop.Adapter.Ecto do
     end
   end
 
-  defp compare(op, field, _field_info, value) do
+  defp compare(op, {:dynamic, field_dynamic}, value) do
+    case op do
+      :> -> dynamic(^field_dynamic > ^value)
+      :< -> dynamic(^field_dynamic < ^value)
+      :== -> dynamic(^field_dynamic == ^value)
+    end
+  end
+
+  defp compare(op, {:column, field}, value) do
     case op do
       :> -> dynamic([r], field(r, ^field) > type(^value, field(r, ^field)))
       :< -> dynamic([r], field(r, ^field) < type(^value, field(r, ^field)))
@@ -647,23 +673,27 @@ defmodule Flop.Adapter.Ecto do
     end
   end
 
-  defp null_dynamic(_field, %FieldInfo{
-         extra: %{binding: binding, field: field, type: :join}
-       }) do
+  defp null_dynamic({:join, binding, field}) do
     dynamic([{^binding, r}], is_nil(field(r, ^field)))
   end
 
-  defp null_dynamic(field, _field_info) do
+  defp null_dynamic({:dynamic, field_dynamic}) do
+    dynamic(is_nil(^field_dynamic))
+  end
+
+  defp null_dynamic({:column, field}) do
     dynamic([r], is_nil(field(r, ^field)))
   end
 
-  defp not_null_dynamic(_field, %FieldInfo{
-         extra: %{binding: binding, field: field, type: :join}
-       }) do
+  defp not_null_dynamic({:join, binding, field}) do
     dynamic([{^binding, r}], not is_nil(field(r, ^field)))
   end
 
-  defp not_null_dynamic(field, _field_info) do
+  defp not_null_dynamic({:dynamic, field_dynamic}) do
+    dynamic(not is_nil(^field_dynamic))
+  end
+
+  defp not_null_dynamic({:column, field}) do
     dynamic([r], not is_nil(field(r, ^field)))
   end
 
@@ -1075,7 +1105,8 @@ defmodule Flop.Adapter.Ecto do
       field_dynamic: Keyword.get(opts, :field_dynamic),
       ecto_type: Keyword.fetch!(opts, :ecto_type),
       operators: Keyword.get(opts, :operators),
-      bindings: Keyword.get(opts, :bindings, [])
+      bindings: Keyword.get(opts, :bindings, []),
+      path: Keyword.get(opts, :path) || [name]
     }
 
     {name, opts}

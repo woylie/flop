@@ -115,7 +115,8 @@ defmodule Flop.NimbleSchemas do
               required: true
             ],
             bindings: [type: {:list, :atom}],
-            operators: [type: {:list, :atom}]
+            operators: [type: {:list, :atom}],
+            path: [type: {:list, :atom}]
           ]
         ]
       ]

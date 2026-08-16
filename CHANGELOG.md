@@ -12,8 +12,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Support SQLite.
 - Support MySQL.
-- Support ordering and filtering by custom fields via a new `field_dynamic`
-  option. Cursor pagination is not supported yet.
+- Support ordering, filtering and cursor pagination by custom fields via a new
+  `field_dynamic` option.
+- Support the `path` option on custom fields.
 
 ### Changed
 

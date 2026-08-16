@@ -22,7 +22,8 @@ defmodule MyApp.CustomFieldPet do
         owner_age_score: [
           field_dynamic: {__MODULE__, :owner_age_score_dynamic, []},
           bindings: [:owner],
-          ecto_type: :integer
+          ecto_type: :integer,
+          path: [:owner_age]
         ],
         name_lower: [
           field_dynamic: {__MODULE__, :name_lower_dynamic, []},
@@ -40,6 +41,8 @@ defmodule MyApp.CustomFieldPet do
     field :age, :integer
     field :name, :string
     field :tags, {:array, :string}
+    field :age_score, :integer, virtual: true
+    field :owner_age, :integer, virtual: true
     belongs_to :owner, Owner
   end
 
