@@ -38,6 +38,43 @@ defmodule Flop.Adapters.Ecto.FlopTest do
     Enum.map(ages, &Repo.insert!(%CustomFieldPet{age: &1}))
   end
 
+  defp page_cursor_by_cursor(q, module, order_by, direction, travel \\ :forward) do
+    flop = %Flop{order_by: order_by, order_directions: [direction]}
+
+    flop =
+      case travel do
+        :forward -> %{flop | first: 1}
+        :backward -> %{flop | last: 1}
+      end
+
+    stream =
+      Stream.unfold(flop, fn
+        nil ->
+          nil
+
+        flop ->
+          {:ok, {items, %Meta{} = meta}} =
+            Flop.validate_and_run(q, flop, for: module)
+
+          case items do
+            [item] -> {item, next_page(flop, meta, travel)}
+            [] -> nil
+          end
+      end)
+
+    Enum.to_list(stream)
+  end
+
+  defp next_page(flop, %Meta{has_next_page?: true} = meta, :forward) do
+    %{flop | after: meta.end_cursor}
+  end
+
+  defp next_page(flop, %Meta{has_previous_page?: true} = meta, :backward) do
+    %{flop | before: meta.start_cursor}
+  end
+
+  defp next_page(_flop, %Meta{}, _travel), do: nil
+
   describe "ordering" do
     test "adds order_by to query if set" do
       pets = insert_list(20, :pet)
@@ -2258,6 +2295,76 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                  %Flop{first: 1, after: end_cursor, order_by: [:trip]},
                  for: MyApp.WalkingDistances
                )
+    end
+
+    test "pages by a custom field" do
+      insert_custom_field_pets([30, nil, 10, 20])
+
+      q =
+        select_merge(
+          CustomFieldPet,
+          ^%{age_score: CustomFieldPet.age_score_dynamic(factor: 2)}
+        )
+
+      pets =
+        page_cursor_by_cursor(q, CustomFieldPet, [:age_score], :asc_nulls_last)
+
+      assert Enum.map(pets, & &1.age_score) == [20, 40, 60, nil]
+    end
+
+    test "pages backward by a custom field" do
+      insert_custom_field_pets([30, nil, 10, 20])
+
+      q =
+        select_merge(
+          CustomFieldPet,
+          ^%{age_score: CustomFieldPet.age_score_dynamic(factor: 2)}
+        )
+
+      pets =
+        page_cursor_by_cursor(
+          q,
+          CustomFieldPet,
+          [:age_score],
+          :asc_nulls_last,
+          :backward
+        )
+
+      assert Enum.map(pets, & &1.age_score) == [nil, 60, 40, 20]
+    end
+
+    test "pages by a custom field on a named binding" do
+      for age <- [30, 10, 20] do
+        owner = insert(:owner, age: age)
+        Repo.insert!(%CustomFieldPet{age: 1, owner_id: owner.id})
+      end
+
+      q =
+        CustomFieldPet
+        |> join(:inner, [p], o in assoc(p, :owner), as: :owner)
+        |> select_merge(
+          ^%{owner_age: CustomFieldPet.owner_age_score_dynamic([])}
+        )
+
+      pets = page_cursor_by_cursor(q, CustomFieldPet, [:owner_age_score], :asc)
+
+      assert Enum.map(pets, & &1.owner_age) == [10, 20, 30]
+    end
+
+    test "raises if a custom field without field_dynamic is used" do
+      cursor = Flop.Cursor.encode(%{custom: 1})
+
+      error =
+        assert_raise ArgumentError, fn ->
+          Flop.paginate(
+            Pet,
+            %Flop{first: 1, after: cursor, order_by: [:custom]},
+            for: Pet
+          )
+        end
+
+      assert error.message =~
+               "cursor pagination by a custom field requires a field_dynamic"
     end
   end
 

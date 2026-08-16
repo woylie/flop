@@ -145,6 +145,25 @@ Every step of the path has to lead to a single record rather than a list, so a
 `belongs_to` or a `has_one` works and a `has_many` does not. A value selected
 into a virtual field needs `path` pointing at that field.
 
+A custom field is read through its `path` as well, which defaults to the field
+name. Since a custom field is an expression and not a column, you have to select
+it yourself, usually by merging the same dynamic that `field_dynamic` returns
+into a virtual field.
+
+```elixir
+Pet
+|> select_merge(^%{age_score: CustomFields.age_score(factor: 2)})
+|> Flop.validate_and_run(params, for: Pet)
+```
+
+> #### Cursor values have to be selected {: .warning}
+>
+> Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is yours. A
+> join field that is not preloaded and a custom field that is not selected both
+> yield a `nil` cursor value. Depending on where the database puts nulls for
+> that order direction, the next page is then either empty or a repeat of the
+> first one. Neither raises.
+
 If the query selects something other than the schema struct, pass a
 `cursor_value_func` that knows the shape.
 
