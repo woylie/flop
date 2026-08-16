@@ -19,6 +19,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   stable.
 - Add `Flop.ordering/2` and `Flop.cursor_fields/2`, which return the order that
   is applied to a query.
+- Add the `diagnostics` option, which enables checks about how Flop is used. It
+  can only be set in the application environment.
 
 ### Changed
 
@@ -32,6 +34,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Accept cursor pagination parameters without an order field unless the
   tiebreaker is disabled.
 - Add `tiebreaker/1` and `primary_key/1` to the `Flop.Schema` protocol.
+- Only log a warning about a query that already has an `ORDER BY` clause when
+  the `diagnostics` option is enabled in the application environment.
 
 ### Fixed
 
@@ -52,6 +56,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   now accepts the same options as a backend module.
 - Raise instead of returning `nil` when `Flop.Schema.get_field/2` reads a value
   through an association that is not loaded.
+
+### How to upgrade
+
+The warning about a query that already has an `ORDER BY` clause is now only
+logged when diagnostics are enabled. To keep seeing it, add this to
+`config/dev.exs` and `config/test.exs`:
+
+```elixir
+config :flop, diagnostics: true
+```
 
 ## [0.27.2] - 2026-08-12
 

@@ -2,7 +2,8 @@ import Config
 
 config :flop,
   ecto_repos: [Flop.Repo],
-  repo: Flop.Repo
+  repo: Flop.Repo,
+  diagnostics: true
 
 config :stream_data,
   max_runs: if(System.get_env("CI"), do: 100, else: 50),

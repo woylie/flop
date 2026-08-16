@@ -44,8 +44,14 @@ def deps do
 end
 ```
 
+Enable debug checks in `config/dev.exs` and `config/test.exs`:
+
+```elixir
+config :flop, debug: true
+```
+
 You can also configure a default repo for Flop by adding the following line to
-your config file:
+`config/config.exs`:
 
 ```elixir
 config :flop, repo: MyApp.Repo

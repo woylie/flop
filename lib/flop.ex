@@ -141,6 +141,18 @@ defmodule Flop do
       iex> msg
       "must be less than or equal to %{number}"
 
+  ## Diagnostics
+
+  You can enable diagnostics in the application environment. It is recommended
+  to enable them in the dev and test environments.
+
+      config :flop, diagnostics: true
+
+  There is currently one check. It logs a warning when the query you pass to
+  Flop already has an `ORDER BY` clause. Flop appends its own order clause, so
+  the existing one sorts first and Flop's order only breaks its ties. This
+  leads to unexpected query results and broken cursor pagination.
+
   ## Ordering
 
   To add an ordering clause to a query, you need to set the `:order_by` and

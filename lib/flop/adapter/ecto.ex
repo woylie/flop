@@ -12,7 +12,7 @@ defmodule Flop.Adapter.Ecto do
   alias Flop.Filter
   alias Flop.NimbleSchemas
 
-  require Logger
+  @diagnostics Application.compile_env(:flop, :diagnostics, false)
 
   @operators [
     :==,
@@ -355,11 +355,7 @@ defmodule Flop.Adapter.Ecto do
 
   @impl Flop.Adapter
   def apply_order_by(query, directions, opts) do
-    if has_order_bys?(query) do
-      Logger.warning(
-        "The query you passed to flop includes order_by. This may interfere with Flop's ordering and pagination features."
-      )
-    end
+    warn_on_order_by(query)
 
     dialect = dialect(opts)
 
@@ -415,9 +411,23 @@ defmodule Flop.Adapter.Ecto do
     opts |> Flop.adapter_opts() |> Keyword.get(:repo) |> Dialect.new()
   end
 
-  defp has_order_bys?(query) when is_atom(query), do: false
-  defp has_order_bys?(%Ecto.Query{order_bys: []}), do: false
-  defp has_order_bys?(%Ecto.Query{order_bys: [_ | _]}), do: true
+  if @diagnostics do
+    require Logger
+
+    defp warn_on_order_by(query) do
+      if has_order_bys?(query) do
+        Logger.warning(
+          "The query you passed to flop includes order_by. This may interfere with Flop's ordering and pagination features."
+        )
+      end
+    end
+
+    defp has_order_bys?(query) when is_atom(query), do: false
+    defp has_order_bys?(%Ecto.Query{order_bys: []}), do: false
+    defp has_order_bys?(%Ecto.Query{order_bys: [_ | _]}), do: true
+  else
+    defp warn_on_order_by(_query), do: :ok
+  end
 
   defp apply_order_by_field(
          q,
