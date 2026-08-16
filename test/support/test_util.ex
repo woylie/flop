@@ -307,7 +307,8 @@ defmodule Flop.TestUtil do
   end
 
   @doc """
-  Queries all pets using `Flop.all`. Preloads the owners and sorts by Pet ID.
+  Queries all pets using `Flop.all`. Preloads the owners. The rows come back
+  sorted by Pet ID, which is the schema's tiebreaker.
   """
   def query_pets_with_owners(params, opts \\ []) do
     flop =
@@ -321,7 +322,6 @@ defmodule Flop.TestUtil do
       Pet
       |> join(:left, [p], o in assoc(p, :owner), as: :owner)
       |> preload(:owner)
-      |> order_by([p], p.id)
 
     opts = opts |> Keyword.take([:extra_opts]) |> Keyword.put(:for, Pet)
 
