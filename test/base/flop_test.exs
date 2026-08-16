@@ -311,6 +311,15 @@ defmodule FlopTest do
   end
 
   describe "named_bindings/3" do
+    test "includes the binding of a tiebreaker field" do
+      opts = [tiebreaker: [asc: :owner_name]]
+
+      assert Flop.named_bindings(%Flop{first: 2}, Pet, opts) == [:owner]
+
+      opts = [order: false] ++ opts
+      assert Flop.named_bindings(%Flop{first: 2}, Pet, opts) == []
+    end
+
     test "returns used binding names with order_by and filters" do
       flop = %Flop{
         filters: [
@@ -501,6 +510,20 @@ defmodule FlopTest do
 
     test "appends nothing without a schema" do
       assert Flop.ordering(%Flop{order_by: [:name]}, []) == [asc: :name]
+    end
+
+    test "raises for an invalid tiebreaker passed to a query function" do
+      for tiebreaker <- [:garbage, [], "asc: :id", {:primary_key, :sideways}] do
+        error =
+          assert_raise ArgumentError, fn ->
+            Flop.ordering(%Flop{order_by: [:name]},
+              for: Pet,
+              tiebreaker: tiebreaker
+            )
+          end
+
+        assert Exception.message(error) =~ "invalid tiebreaker"
+      end
     end
 
     test "appends nothing with ordering disabled and no default order" do

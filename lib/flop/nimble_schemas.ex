@@ -182,6 +182,11 @@ defmodule Flop.NimbleSchemas do
     :desc_nulls_last
   ]
 
+  @doc """
+  Returns the valid order directions.
+  """
+  def order_directions, do: @order_directions
+
   @doc false
   def validate_schemaless_tiebreaker(fields) when is_list(fields) do
     {:error,

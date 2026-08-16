@@ -1110,8 +1110,15 @@ defimpl Flop.Schema, for: Any do
     unsupported =
       Enum.filter(tiebreaker_fields, fn field ->
         case field_info[field] do
-          %Flop.FieldInfo{extra: %{type: type}} -> type in [:compound, :alias]
-          _ -> false
+          %Flop.FieldInfo{extra: %{type: type}}
+          when type in [:compound, :alias] ->
+            true
+
+          %Flop.FieldInfo{extra: %{type: :custom, field_dynamic: nil}} ->
+            true
+
+          _ ->
+            false
         end
       end)
 
@@ -1119,11 +1126,12 @@ defimpl Flop.Schema, for: Any do
       raise ArgumentError, """
       unsupported tiebreaker field
 
-      The following fields where configured as tiebreakers:
+      The following fields were configured as tiebreakers:
 
           #{inspect(unsupported)}
 
-      Compound and alias fields cannot be used as tiebreakers.
+      Compound and alias fields cannot be used as tiebreakers, and a custom
+      field needs a field_dynamic function.
       """
     end
   end

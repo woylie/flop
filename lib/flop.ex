@@ -294,6 +294,7 @@ defmodule Flop do
   @default_opts [default_limit: 50, max_limit: 1000, max_filters: 20]
 
   @global_options NimbleSchemas.backend_option_keys()
+  @order_directions NimbleSchemas.order_directions()
 
   defmacro __using__(opts) do
     opts =
@@ -1226,10 +1227,29 @@ defmodule Flop do
   defp tiebreaker_ordering(opts) do
     if orders?(opts) do
       case get_option(:tiebreaker, opts, :primary_key) do
-        false -> []
-        :primary_key -> primary_key_ordering(opts[:for], :asc)
-        {:primary_key, direction} -> primary_key_ordering(opts[:for], direction)
-        fields when is_list(fields) -> fields
+        false ->
+          []
+
+        :primary_key ->
+          primary_key_ordering(opts[:for], :asc)
+
+        {:primary_key, direction} when direction in @order_directions ->
+          primary_key_ordering(opts[:for], direction)
+
+        fields when is_list(fields) and fields != [] ->
+          fields
+
+        other ->
+          raise ArgumentError, """
+          invalid tiebreaker
+
+          Expected false, :primary_key, {:primary_key, direction} or a keyword
+          list of order directions and fields
+
+          Got:
+
+              #{inspect(other)}
+          """
       end
     else
       []
@@ -2849,7 +2869,14 @@ defmodule Flop do
       )
       when is_atom(module) do
     order = Keyword.get(opts, :order, true)
-    order_by = if order, do: order_by || [], else: []
+
+    order_by =
+      if order do
+        (order_by || []) ++ tiebreaker_fields(Keyword.put(opts, :for, module))
+      else
+        []
+      end
+
     filters = filters || []
 
     if order_by == [] && filters == [] do

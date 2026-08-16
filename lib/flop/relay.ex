@@ -171,11 +171,12 @@ defmodule Flop.Relay do
   @spec edges_from_result({[{any, any}] | [any], Meta.t()}, [Flop.option()]) ::
           [edge()]
   def edges_from_result(
-        {items, %Meta{flop: %Flop{order_by: order_by}}},
+        {items, %Meta{flop: %Flop{} = flop, opts: meta_opts}},
         opts \\ []
       ) do
     cursor_value_func = Cursor.cursor_value_func(opts)
-    Enum.map(items, &build_edge(&1, order_by, cursor_value_func))
+    fields = Flop.cursor_fields(flop, meta_opts || [])
+    Enum.map(items, &build_edge(&1, fields, cursor_value_func))
   end
 
   defp build_edge({node, nil}, order_by, cursor_value_func) do

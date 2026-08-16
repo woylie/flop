@@ -511,6 +511,29 @@ defmodule Flop.SchemaTest do
     assert error.message =~ "unsupported tiebreaker field"
   end
 
+  test "raises error if a tiebreaker names a custom field without field_dynamic" do
+    error =
+      assert_raise ArgumentError, fn ->
+        defmodule Borage do
+          @derive {
+            Flop.Schema,
+            filterable: [:thing],
+            sortable: [],
+            tiebreaker: [asc: :thing],
+            custom_fields: [
+              thing: [filter: {__MODULE__, :f, []}, ecto_type: :string]
+            ]
+          }
+          defstruct [:id, :name]
+
+          def f(q, _, _), do: q
+        end
+      end
+
+    assert Exception.message(error) =~ "unsupported tiebreaker field"
+    assert Exception.message(error) =~ "field_dynamic"
+  end
+
   test "raises error if a filterable custom field has no callback at all" do
     error =
       assert_raise ArgumentError, fn ->
