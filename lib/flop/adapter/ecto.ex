@@ -256,6 +256,16 @@ defmodule Flop.Adapter.Ecto do
     Map.get(item, field)
   end
 
+  @impl Flop.Adapter
+  def primary_key(%module{}) do
+    if Code.ensure_loaded?(module) and
+         function_exported?(module, :__schema__, 1) do
+      module.__schema__(:primary_key)
+    else
+      []
+    end
+  end
+
   defp walk_path(item, path) do
     Enum.reduce(path, item, fn
       field, %{} = acc -> Map.get(acc, field)

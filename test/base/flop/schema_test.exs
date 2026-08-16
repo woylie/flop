@@ -477,6 +477,40 @@ defmodule Flop.SchemaTest do
     assert error.message =~ ":inserted_at"
   end
 
+  test "raises error if a tiebreaker names an unknown field" do
+    error =
+      assert_raise Flop.UnknownFieldError, fn ->
+        defmodule Chervil do
+          @derive {
+            Flop.Schema,
+            filterable: [], sortable: [:name], tiebreaker: [asc: :nanoid]
+          }
+          defstruct [:id, :name]
+        end
+      end
+
+    assert Exception.message(error) =~ "tiebreaker"
+    assert Exception.message(error) =~ ":nanoid"
+  end
+
+  test "raises error if a tiebreaker names a compound field" do
+    error =
+      assert_raise ArgumentError, fn ->
+        defmodule Lovage do
+          @derive {
+            Flop.Schema,
+            filterable: [],
+            sortable: [:full_name],
+            tiebreaker: [asc: :full_name],
+            compound_fields: [full_name: [:family_name, :given_name]]
+          }
+          defstruct [:id, :family_name, :given_name]
+        end
+      end
+
+    assert error.message =~ "unsupported tiebreaker field"
+  end
+
   test "raises error if a filterable custom field has no callback at all" do
     error =
       assert_raise ArgumentError, fn ->

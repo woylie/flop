@@ -912,6 +912,40 @@ defmodule Flop.ValidationTest do
                validate(params, for: Fruit, replace_invalid_params: true)
     end
 
+    test "requires an order field or a tiebreaker for cursor pagination" do
+      params = %{first: 2}
+
+      assert {:ok, %Flop{order_by: nil}} = validate(params, for: Pet)
+
+      assert {:error, changeset} =
+               validate(params, for: Pet, tiebreaker: false)
+
+      assert errors_on(changeset)[:order_by] == ["can't be blank"]
+
+      assert {:error, changeset} = validate(params)
+      assert errors_on(changeset)[:order_by] == ["can't be blank"]
+    end
+
+    test "returns an error for a cursor matching an invalid order field" do
+      for field <- [:halloween_costume, :social_security_number] do
+        cursor = Flop.Cursor.encode(%{field => "x", :id => 1})
+        params = %{first: 1, order_by: [field], after: cursor}
+
+        assert {:error, changeset} = validate(params, for: Pet)
+        assert errors_on(changeset)[:order_by] == ["has an invalid entry"]
+      end
+    end
+
+    test "casts the tiebreaker value of a cursor" do
+      for value <- [{:a, :tuple}, "not-an-int", %{a: 1}, [1, 2]] do
+        cursor = Flop.Cursor.encode(%{age: 5, id: value})
+        params = %{first: 2, after: cursor, order_by: [:age]}
+
+        assert {:error, changeset} = validate(params, for: Pet)
+        assert errors_on(changeset)[:after] == ["is invalid"]
+      end
+    end
+
     test "validates order directions" do
       params = %{order_directions: [:up, :down]}
       assert {:error, changeset} = validate(params)

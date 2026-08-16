@@ -392,6 +392,9 @@ defmodule Flop do
     schema or in the options passed to the query functions.
   - `:default_pagination_type` - The default pagination type when it cannot be
     inferred from the parameters.
+  - `:tiebreaker` - The order fields appended to every query to make the order
+    unambiguous. Defaults to the primary key, ascending. See
+    `t:Flop.tiebreaker/0`.
   - `:max_limit` - The maximum limit for queries. Used when no maximum limit is
     set in the parameters or schema. Set to `false` to not set any maximum
     limit. Default is `1000`.
@@ -422,7 +425,9 @@ defmodule Flop do
 
   `:filtering`, `:ordering` and `:pagination` only affect the parameters. Set
   `default_order: false` or `default_limit: false` to disable the defaults as
-  well. When pagination is disabled, the default pagination type is not applied,
+  well, and `tiebreaker: false` to stop Flop from adding a tiebreaker. With
+  `ordering: false` and no default order, Flop does not add a tiebreaker. When
+  pagination is disabled, the default pagination type is not applied,
   and the default limit is set as `:limit`.
 
   ### Additional options
@@ -446,6 +451,8 @@ defmodule Flop do
   - `:for`, `:count`, `:count_query` and `:extra_opts` are only read from the
     function arguments.
   - `:default_order` can only be set on a schema or passed to a query function.
+  - `:tiebreaker` can be set at every level, but specific fields can only be
+    set on a schema or passed to a query function.
   - `:cursor_value_func`, `:filtering`, `:max_cursor_size`, `:max_filters`,
     `:ordering`, `:pagination`, `:query_opts`, `:replace_invalid_params` and
     `:repo` cannot be set on a schema.
@@ -483,6 +490,7 @@ defmodule Flop do
           | {:pagination, boolean}
           | {:pagination_types, [pagination_type()]}
           | {:replace_invalid_params, boolean}
+          | {:tiebreaker, tiebreaker()}
           | {:max_cursor_size, pos_integer}
           | {:extra_opts, Keyword.t()}
           | {:adapter_opts, [adapter_option()]}
@@ -517,6 +525,24 @@ defmodule Flop do
             required(:order_by) => [atom],
             optional(:order_directions) => [order_direction()]
           }
+
+  @typedoc """
+  The order fields appended to every query to make the order unambiguous.
+
+  Possible values:
+
+  - `:primary_key` - the schema's primary key, ascending. The default.
+  - `{:primary_key, direction}` - the schema's primary key with the specified
+    direction.
+  - A keyword list of order directions and fields. Cannot be set globally in the
+    application environment or backend module.
+  - `false` - no tiebreaker.
+  """
+  @type tiebreaker ::
+          :primary_key
+          | {:primary_key, order_direction()}
+          | false
+          | [{order_direction(), atom}]
 
   @typedoc """
   Represents the supported order direction values.
@@ -631,7 +657,11 @@ defmodule Flop do
       iex> flop = %Flop{limit: 10}
       iex> q = Ecto.Query.where(MyApp.Pet, species: "dog")
       iex> Flop.query(q, flop, for: MyApp.Pet)
-      #Ecto.Query<from p0 in MyApp.Pet, where: p0.species == \"dog\", limit: ^10>
+      #Ecto.Query<from p0 in MyApp.Pet, where: p0.species == \"dog\", order_by: [asc: p0.id], limit: ^10>
+
+  The order by clause is the schema's tiebreaker. It is applied even without
+  order parameters, so that the order is unambiguous. See the "Tiebreaker"
+  section of `Flop.Schema`.
 
   Note that when using cursor-based pagination, the applied limit will be
   `first + 1` or `last + 1`. The extra record is removed by `Flop.run/3`.
@@ -933,7 +963,6 @@ defmodule Flop do
         results,
         %Flop{
           first: first,
-          order_by: order_by,
           before: nil,
           last: nil
         } = flop,
@@ -943,7 +972,7 @@ defmodule Flop do
     {start_cursor, end_cursor} =
       results
       |> Enum.take(first)
-      |> Cursor.get_cursors(order_by, opts)
+      |> Cursor.get_cursors(cursor_fields(flop, opts), opts)
 
     %Meta{
       backend: opts[:backend],
@@ -963,7 +992,6 @@ defmodule Flop do
         %Flop{
           after: nil,
           first: nil,
-          order_by: order_by,
           last: last
         } = flop,
         opts
@@ -973,7 +1001,7 @@ defmodule Flop do
       results
       |> Enum.take(last)
       |> Enum.reverse()
-      |> Cursor.get_cursors(order_by, opts)
+      |> Cursor.get_cursors(cursor_fields(flop, opts), opts)
 
     %Meta{
       backend: opts[:backend],
@@ -1089,52 +1117,64 @@ defmodule Flop do
   @spec order_by(Queryable.t(), Flop.t(), [option()]) :: Queryable.t()
   def order_by(q, flop, opts \\ [])
 
-  def order_by(q, %Flop{order_by: nil}, _opts), do: q
-
   # For backwards cursor pagination
   def order_by(
         q,
-        %Flop{
-          last: last,
-          order_by: fields,
-          order_directions: directions,
-          first: nil,
-          after: nil,
-          offset: nil
-        },
+        %Flop{last: last, first: nil, after: nil, offset: nil} = flop,
         opts
       )
       when is_integer(last) do
-    adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
-
-    prepared_directions =
-      fields
-      |> prepare_order_fields_and_directions(directions)
-      |> reverse_ordering()
-
-    adapter.apply_order_by(q, prepared_directions, opts)
+    apply_ordering(q, flop |> ordering(opts) |> reverse_ordering(), opts)
   end
 
-  def order_by(
-        q,
-        %Flop{order_by: fields, order_directions: directions},
-        opts
-      ) do
-    adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
-
-    prepared_directions =
-      prepare_order_fields_and_directions(
-        fields,
-        directions
-      )
-
-    adapter.apply_order_by(q, prepared_directions, opts)
+  def order_by(q, %Flop{} = flop, opts) do
+    apply_ordering(q, ordering(flop, opts), opts)
   end
 
-  @spec prepare_order_fields_and_directions([atom], [order_direction()]) :: [
-          {order_direction(), atom}
-        ]
+  defp apply_ordering(q, [], _opts), do: q
+
+  defp apply_ordering(q, orderings, opts) do
+    adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
+    adapter.apply_order_by(q, orderings, opts)
+  end
+
+  @doc """
+  Returns the order that is applied to a query, including the tiebreaker.
+
+  The tiebreaker is not part of the `t:Flop.t/0`. The full order can therefore
+  only be seen by calling this function.
+
+  Used for query building, cursor encoding, and cursor validation.
+
+      iex> Flop.ordering(%Flop{order_by: [:name]}, for: MyApp.Pet)
+      [asc: :name, asc: :id]
+
+      iex> Flop.ordering(%Flop{order_by: [:name]},
+      ...>   for: MyApp.Pet, tiebreaker: false)
+      [asc: :name]
+
+  The tiebreaker is only added if its fields are not already in the order
+  fields.
+
+      iex> Flop.ordering(%Flop{order_by: [:id], order_directions: [:desc]},
+      ...>   for: MyApp.Pet)
+      [desc: :id]
+  """
+  @doc since: "0.28.0"
+  @doc group: :queries
+  @spec ordering(Flop.t(), [option()]) :: [{order_direction(), atom}]
+  def ordering(%Flop{order_by: fields, order_directions: directions}, opts) do
+    fields
+    |> prepare_order_fields_and_directions(directions)
+    |> append_tiebreaker(opts)
+  end
+
+  @spec prepare_order_fields_and_directions(
+          [atom] | nil,
+          [order_direction()] | nil
+        ) :: [{order_direction(), atom}]
   defp prepare_order_fields_and_directions(fields, directions) do
+    fields = fields || []
     directions = directions || []
     field_count = length(fields)
     direction_count = length(directions)
@@ -1145,6 +1185,64 @@ defmodule Flop do
         else: directions
 
     Enum.zip(directions, fields)
+  end
+
+  defp append_tiebreaker(orderings, opts) do
+    ordered_fields = MapSet.new(orderings, fn {_direction, field} -> field end)
+
+    orderings ++
+      Enum.reject(tiebreaker_ordering(opts), fn {_direction, field} ->
+        field in ordered_fields
+      end)
+  end
+
+  @doc """
+  Returns the fields that are included in the cursor for the given `t:Flop.t/0`,
+  including the tiebreaker.
+
+      iex> Flop.cursor_fields(%Flop{order_by: [:name]}, for: MyApp.Pet)
+      [:name, :id]
+  """
+  @doc since: "0.28.0"
+  @doc group: :queries
+  @spec cursor_fields(Flop.t(), [option()]) :: [atom]
+  def cursor_fields(%Flop{} = flop, opts) do
+    flop |> ordering(opts) |> Enum.map(fn {_direction, field} -> field end)
+  end
+
+  @doc false
+  @spec tiebreaker_fields([option()]) :: [atom]
+  def tiebreaker_fields(opts) do
+    opts
+    |> tiebreaker_ordering()
+    |> Enum.map(fn {_direction, field} -> field end)
+  end
+
+  defp tiebreaker_ordering(opts) do
+    if orders?(opts) do
+      case get_option(:tiebreaker, opts, :primary_key) do
+        false -> []
+        :primary_key -> primary_key_ordering(opts[:for], :asc)
+        {:primary_key, direction} -> primary_key_ordering(opts[:for], direction)
+        fields when is_list(fields) -> fields
+      end
+    else
+      []
+    end
+  end
+
+  defp orders?(opts) do
+    get_option(:ordering, opts, true) or
+      match?(%{}, get_option(:default_order, opts))
+  end
+
+  defp primary_key_ordering(nil, _direction), do: []
+
+  defp primary_key_ordering(module, direction) do
+    module
+    |> struct()
+    |> Flop.Schema.primary_key()
+    |> Enum.map(&{direction, &1})
   end
 
   ## Pagination
@@ -1212,18 +1310,16 @@ defmodule Flop do
           first: first,
           after: after_,
           decoded_cursor: decoded_cursor,
-          order_by: order_by,
-          order_directions: order_directions,
           before: nil,
           last: nil,
           limit: nil
-        },
+        } = flop,
         opts
       )
       when is_integer(first) do
     adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
     struct = if module = opts[:for], do: struct(module)
-    orderings = prepare_order_fields_and_directions(order_by, order_directions)
+    orderings = ordering(flop, opts)
     decoded_cursor = decoded_cursor || Cursor.decode!(after_)
     cursor_fields = prepare_cursor_fields(struct, decoded_cursor, orderings)
 
@@ -1254,22 +1350,16 @@ defmodule Flop do
           last: last,
           before: before,
           decoded_cursor: decoded_cursor,
-          order_by: order_by,
-          order_directions: order_directions,
           first: nil,
           after: nil,
           limit: nil
-        },
+        } = flop,
         opts
       )
       when is_integer(last) do
     adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
     struct = if module = opts[:for], do: struct(module)
-
-    orderings =
-      order_by
-      |> prepare_order_fields_and_directions(order_directions)
-      |> reverse_ordering()
+    orderings = flop |> ordering(opts) |> reverse_ordering()
 
     decoded_cursor = decoded_cursor || Cursor.decode!(before)
     cursor_fields = prepare_cursor_fields(struct, decoded_cursor, orderings)
@@ -1286,10 +1376,17 @@ defmodule Flop do
           {order_direction(), atom, any, Flop.FieldInfo.t()}
         ]
   defp prepare_cursor_fields(struct, decoded_cursor, ordering) do
-    Enum.map(ordering, fn {direction, field} ->
+    ordering
+    # Only take order fields until a key is not found in the cursor. This
+    # ensures that cursors that were generated without a tiebreaker will not
+    # cause unexpected query results. Validation catches cursors where the
+    # non-tiebreaker fields don't match the order parameters.
+    |> Enum.take_while(fn {_direction, field} ->
+      Map.has_key?(decoded_cursor, field)
+    end)
+    |> Enum.map(fn {direction, field} ->
       field_info = struct && Flop.Schema.field_info(struct, field)
-      cursor_value = Map.get(decoded_cursor, field)
-      {direction, field, cursor_value, field_info}
+      {direction, field, Map.fetch!(decoded_cursor, field), field_info}
     end)
   end
 
@@ -2242,7 +2339,8 @@ defmodule Flop do
                 :max_limit,
                 :pagination_types,
                 :default_pagination_type,
-                :sortable
+                :sortable,
+                :tiebreaker
               ] do
     apply(Flop.Schema, key, [struct(module)])
   end
@@ -2259,6 +2357,24 @@ defmodule Flop do
   # `:default_order` names fields, which belong to a schema, so a global value
   # would apply the same field names to every schema.
   defp global_option(:default_order), do: nil
+
+  defp global_option(:tiebreaker) do
+    case Application.get_env(:flop, :tiebreaker) do
+      tiebreaker when is_list(tiebreaker) ->
+        raise ArgumentError, """
+        invalid tiebreaker in the application environment
+
+        A tiebreaker that names fields applies those field names to every
+        schema, so it can only be set on a schema or passed to a query
+        function: #{inspect(tiebreaker)}
+
+        Set :primary_key, {:primary_key, direction} or false instead.
+        """
+
+      tiebreaker ->
+        tiebreaker
+    end
+  end
 
   defp global_option(key) when is_atom(key) do
     Application.get_env(:flop, key)

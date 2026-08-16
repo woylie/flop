@@ -465,7 +465,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
 
     test "does not warn if query has order bys and default order is disabled" do
       query = from f in Fruit, order_by: :id
-      opts = [for: Fruit, default_order: false]
+      opts = [for: Fruit, default_order: false, tiebreaker: false]
       flop = Flop.validate!(%{}, opts)
 
       assert capture_log(fn ->
@@ -2349,6 +2349,121 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       pets = page_cursor_by_cursor(q, CustomFieldPet, [:owner_age_score], :asc)
 
       assert Enum.map(pets, & &1.owner_age) == [10, 20, 30]
+    end
+
+    test "reaches every row of a tied sort" do
+      insert_list(10, :pet, age: 5)
+
+      pets = page_cursor_by_cursor(Pet, Pet, [:age], :asc)
+
+      assert length(pets) == 10
+      assert pets |> Enum.map(& &1.id) |> Enum.uniq() |> length() == 10
+    end
+
+    test "loses rows of a tied sort without a tiebreaker" do
+      insert_list(10, :pet, age: 5)
+
+      flop = %Flop{first: 3, order_by: [:age]}
+      opts = [for: Pet, tiebreaker: false]
+
+      {:ok, {_, %Meta{end_cursor: cursor}}} =
+        Flop.validate_and_run(Pet, flop, opts)
+
+      assert {:ok, {[], %Meta{}}} =
+               Flop.validate_and_run(Pet, %{flop | after: cursor}, opts)
+    end
+
+    test "keeps the tiebreaker out of the Flop struct" do
+      insert(:pet)
+
+      assert {:ok, {_, %Meta{flop: flop, end_cursor: cursor}}} =
+               Flop.validate_and_run(
+                 Pet,
+                 %Flop{first: 1, order_by: [:age]},
+                 for: Pet
+               )
+
+      assert flop.order_by == [:age]
+
+      assert cursor |> Flop.Cursor.decode!() |> Map.keys() |> Enum.sort() ==
+               [:age, :id]
+    end
+
+    test "pages with no order parameters" do
+      insert_list(3, :pet)
+
+      pets = page_cursor_by_cursor(Pet, Pet, [], :asc)
+
+      assert Enum.map(pets, & &1.id) == pets |> Enum.map(& &1.id) |> Enum.sort()
+      assert length(pets) == 3
+    end
+
+    test "orders by the tiebreaker when order_by is nil" do
+      insert_list(3, :pet)
+
+      assert {:ok, %Flop{order_by: nil} = flop} =
+               Flop.validate(%Flop{first: 3}, for: Pet)
+
+      assert Pet
+             |> Flop.query(flop, for: Pet, repo: Flop.Repo)
+             |> inspect() =~ "order_by: [asc: p0.id]"
+    end
+
+    test "orders by the tiebreaker direction" do
+      pets = insert_list(3, :pet, age: 5)
+      ids = pets |> Enum.map(& &1.id) |> Enum.sort(:desc)
+
+      assert {:ok, {returned, %Meta{}}} =
+               Flop.validate_and_run(
+                 Pet,
+                 %Flop{first: 3, order_by: [:age]},
+                 for: Pet,
+                 tiebreaker: {:primary_key, :desc}
+               )
+
+      assert Enum.map(returned, & &1.id) == ids
+    end
+
+    test "keeps the direction of a tiebreaker field the parameters name" do
+      for name <- ["a", "b", "c"], do: insert(:pet, name: name)
+
+      assert {:ok, {returned, %Meta{}}} =
+               Flop.validate_and_run(
+                 Pet,
+                 %Flop{first: 3, order_by: [:name], order_directions: [:desc]},
+                 for: Pet,
+                 tiebreaker: [asc: :name]
+               )
+
+      assert Enum.map(returned, & &1.name) == ["c", "b", "a"]
+    end
+
+    test "accepts a cursor generated before the tiebreaker was configured" do
+      pets = insert_list(3, :pet, age: 5)
+      [_, second, third] = Enum.sort_by(pets, & &1.id)
+
+      cursor = Flop.Cursor.encode(%{age: 5})
+
+      assert {:ok, {returned, %Meta{end_cursor: new_cursor}}} =
+               Flop.validate_and_run(
+                 Pet,
+                 %Flop{first: 3, after: cursor, order_by: [:age]},
+                 for: Pet
+               )
+
+      assert returned == []
+      refute new_cursor
+
+      cursor = Flop.Cursor.encode(%{age: 5, id: second.id})
+
+      assert {:ok, {[returned], %Meta{}}} =
+               Flop.validate_and_run(
+                 Pet,
+                 %Flop{first: 1, after: cursor, order_by: [:age]},
+                 for: Pet
+               )
+
+      assert returned.id == third.id
     end
 
     test "raises if a custom field without field_dynamic is used" do

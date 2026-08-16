@@ -15,6 +15,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Support ordering, filtering and cursor pagination by custom fields via a new
   `field_dynamic` option.
 - Support the `path` option on custom fields.
+- Add the `tiebreaker` option, which appends order fields to make the order
+  stable.
+- Add `Flop.ordering/2` and `Flop.cursor_fields/2`, which return the order that
+  is applied to a query.
 
 ### Changed
 
@@ -22,6 +26,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and no repo is configured. This only affects queries built with
   `Flop.query/3`.
 - Reject `ecto_type: nil` on join and custom fields.
+- Append the primary key to the order Flop applies by default. The fields to use
+  can be overridden with the `tiebreaker` option. Set `tiebreaker: false` to
+  disable.
+- Accept cursor pagination parameters without an order field unless the
+  tiebreaker is disabled.
 
 ### Fixed
 

@@ -78,11 +78,8 @@ The third Ada is gone. Page 2 asks for the rows after the name "Ada", and all
 three Adas share that name. Six rows go in, five come out, and nothing in the
 metadata says so.
 
-Add a field that is unique, and the same walk returns every row:
-
-```elixir
-%{first: 2, order_by: [:name, :id]}
-```
+This is why Flop appends the primary key to every order. The same walk returns
+every row, and the parameters stay as they were:
 
 | page | rows |
 |---|---|
@@ -90,18 +87,24 @@ Add a field that is unique, and the same walk returns every row:
 | 2 | Ada 7, Bo 1 |
 | 3 | Cy, Dee |
 
-Make that the default for a schema, so a request that asks for no order still
-gets a stable one.
+The appended fields are the schema's `:tiebreaker`. They are not part of the
+`Flop` struct, so they never appear in the query parameters, but they do appear
+in every cursor. `Flop.ordering/2` returns the order that is applied.
+
+Change the direction, name other fields, or turn the tiebreaker off when the
+order is already unique:
 
 ```elixir
 @derive {Flop.Schema,
          filterable: [],
          sortable: [:id, :name],
-         default_order: %{
-           order_by: [:name, :id],
-           order_directions: [:asc, :asc]
-         }}
+         tiebreaker: {:primary_key, :desc}}
 ```
+
+> #### Tiebreaker fields have to be selected {: .warning}
+>
+> The tiebreaker is read from the returned record like any other order field,
+> so a query that selects a subset of the fields has to include it.
 
 This is also why `Flop.push_order/3`, and the table component in `Flop.Phoenix`
 that uses it, put a newly selected field in front of the existing order instead

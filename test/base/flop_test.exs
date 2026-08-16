@@ -450,6 +450,78 @@ defmodule FlopTest do
     end
   end
 
+  describe "ordering/2" do
+    defmodule CompositeKey do
+      use Ecto.Schema
+
+      @derive {Flop.Schema, filterable: [], sortable: [:name, :tenant_id]}
+
+      @primary_key false
+      schema "composite_keys" do
+        field :tenant_id, :integer, primary_key: true
+        field :ref, :string, primary_key: true
+        field :name, :string
+      end
+    end
+
+    defmodule NoKey do
+      use Ecto.Schema
+
+      @derive {Flop.Schema, filterable: [], sortable: [:name]}
+
+      @primary_key false
+      schema "no_keys" do
+        field :name, :string
+      end
+    end
+
+    test "appends every field of a composite primary key" do
+      assert Flop.ordering(%Flop{order_by: [:name]}, for: CompositeKey) ==
+               [asc: :name, asc: :tenant_id, asc: :ref]
+    end
+
+    test "applies the tiebreaker direction to every primary key field" do
+      assert Flop.ordering(%Flop{order_by: [:name]},
+               for: CompositeKey,
+               tiebreaker: {:primary_key, :desc}
+             ) == [asc: :name, desc: :tenant_id, desc: :ref]
+    end
+
+    test "appends only the primary key fields the order does not name" do
+      assert Flop.ordering(
+               %Flop{order_by: [:tenant_id], order_directions: [:desc]},
+               for: CompositeKey
+             ) == [desc: :tenant_id, asc: :ref]
+    end
+
+    test "appends nothing for a schema without a primary key" do
+      assert Flop.ordering(%Flop{order_by: [:name]}, for: NoKey) ==
+               [asc: :name]
+    end
+
+    test "appends nothing without a schema" do
+      assert Flop.ordering(%Flop{order_by: [:name]}, []) == [asc: :name]
+    end
+
+    test "appends nothing with ordering disabled and no default order" do
+      assert Flop.ordering(%Flop{}, for: Pet, ordering: false) == []
+
+      assert Flop.ordering(%Flop{},
+               for: Pet,
+               ordering: false,
+               default_order: false
+             ) == []
+    end
+
+    test "appends with ordering disabled but a default order set" do
+      assert Flop.ordering(%Flop{order_by: [:name]},
+               for: Pet,
+               ordering: false,
+               default_order: %{order_by: [:name]}
+             ) == [asc: :name, asc: :id]
+    end
+  end
+
   describe "get_option/3" do
     test "returns value from option list" do
       # sanity check
@@ -557,6 +629,29 @@ defmodule FlopTest do
           use Flop, repo: Flop.Repo, cursor_value_func: :not_a_function
         end
       end
+    end
+
+    defmodule BackendWithTiebreaker do
+      use Flop, repo: Flop.Repo, tiebreaker: {:primary_key, :desc}
+    end
+
+    test "tiebreaker can be set on a backend module" do
+      assert Flop.ordering(%Flop{order_by: [:name]},
+               for: Pet,
+               backend: BackendWithTiebreaker
+             ) == [asc: :name, desc: :id]
+    end
+
+    test "raises for a tiebreaker naming fields on a backend module" do
+      error =
+        assert_raise Flop.InvalidConfigError, fn ->
+          defmodule BackendWithFieldTiebreaker do
+            use Flop, repo: Flop.Repo, tiebreaker: [desc: :name]
+          end
+        end
+
+      assert Exception.message(error) =~
+               "can only be set on a schema or passed to a query function"
     end
 
     defmodule BackendWithMaxCursorSize do

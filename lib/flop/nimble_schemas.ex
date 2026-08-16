@@ -15,6 +15,9 @@ defmodule Flop.NimbleSchemas do
     max_filters: [type: {:or, [:pos_integer, {:in, [false]}]}, default: 20],
     max_limit: [type: {:or, [:pos_integer, {:in, [false]}]}, default: 1000],
     replace_invalid_params: [type: :boolean],
+    tiebreaker: [
+      type: {:custom, __MODULE__, :validate_schemaless_tiebreaker, []}
+    ],
     default_pagination_type: [
       type: {:in, [:offset, :page, :first, :last]},
       default: :offset
@@ -68,6 +71,7 @@ defmodule Flop.NimbleSchemas do
     ],
     default_limit: [type: {:or, [:pos_integer, {:in, [false]}]}],
     max_limit: [type: {:or, [:pos_integer, {:in, [false]}]}],
+    tiebreaker: [type: {:custom, __MODULE__, :validate_tiebreaker, []}],
     pagination_types: [
       type: {:list, {:in, [:offset, :page, :first, :last]}}
     ],
@@ -159,6 +163,58 @@ defmodule Flop.NimbleSchemas do
   end
 
   def validate_ecto_type(ecto_type), do: {:ok, ecto_type}
+
+  @order_directions [
+    :asc,
+    :asc_nulls_first,
+    :asc_nulls_last,
+    :desc,
+    :desc_nulls_first,
+    :desc_nulls_last
+  ]
+
+  @doc false
+  def validate_schemaless_tiebreaker(fields) when is_list(fields) do
+    {:error,
+     """
+     a tiebreaker that names fields can only be set on a schema or passed to a \
+     query function, got: #{inspect(fields)}\
+     """}
+  end
+
+  def validate_schemaless_tiebreaker(value), do: validate_tiebreaker(value)
+
+  @doc false
+  def validate_tiebreaker(false), do: {:ok, false}
+  def validate_tiebreaker(:primary_key), do: {:ok, :primary_key}
+
+  def validate_tiebreaker({:primary_key, direction})
+      when direction in @order_directions do
+    {:ok, {:primary_key, direction}}
+  end
+
+  def validate_tiebreaker(fields) when is_list(fields) and fields != [] do
+    if Enum.all?(fields, fn
+         {direction, field} when is_atom(field) ->
+           direction in @order_directions
+
+         _ ->
+           false
+       end) do
+      {:ok, fields}
+    else
+      {:error, tiebreaker_error(fields)}
+    end
+  end
+
+  def validate_tiebreaker(value), do: {:error, tiebreaker_error(value)}
+
+  defp tiebreaker_error(value) do
+    """
+    expected false, :primary_key, {:primary_key, direction} or a keyword list \
+    of order directions and fields, got: #{inspect(value)}\
+    """
+  end
 
   @doc false
   def validate_cursor_value_func(value) do
