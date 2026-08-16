@@ -31,6 +31,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   disable.
 - Accept cursor pagination parameters without an order field unless the
   tiebreaker is disabled.
+- Add `tiebreaker/1` and `primary_key/1` to the `Flop.Schema` protocol.
 
 ### Fixed
 

@@ -136,11 +136,7 @@ defmodule Flop.NimbleSchemas do
 
   @backend_option_keys Keyword.keys(@backend_option)
 
-  @doc """
-  Returns the options that can be set on a backend module.
-
-  The application environment accepts the same options.
-  """
+  # The application environment accepts the same options.
   def backend_option_keys, do: @backend_option_keys
 
   @backend_option NimbleOptions.new!(@backend_option)
@@ -182,9 +178,6 @@ defmodule Flop.NimbleSchemas do
     :desc_nulls_last
   ]
 
-  @doc """
-  Returns the valid order directions.
-  """
   def order_directions, do: @order_directions
 
   @doc false

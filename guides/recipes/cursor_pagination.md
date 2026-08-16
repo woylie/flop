@@ -137,6 +137,20 @@ It determines this from the repo, which means cursor pagination with `:asc` or
 
 ## Reading the cursor value
 
+A cursor field can be a schema field, a join field, or a custom field with a
+`field_dynamic`. Compound and alias fields cannot be used: a compound field
+sorts by several columns but has one combined cursor value, and an alias cannot
+appear in a `WHERE` clause, which is where the cursor comparison goes.
+`Flop.validate/2` returns an error for invalid order fields when using cursor
+pagination.
+
+```elixir
+[order_by: [
+  {"cursor pagination is not supported for compound and alias fields",
+   [unsupported_fields: [:rank]]}
+]]
+```
+
 Flop reads the cursor value of each order field from the returned row with
 `Flop.Schema.get_field/2`. For a field of the schema this is the struct field of
 the same name, and there is nothing to configure.
@@ -174,17 +188,6 @@ Flop.validate_and_run(query, params,
     Map.take(pet, order_by)
   end
 )
-```
-
-Compound and alias fields cannot be ordered by at all when using cursor
-pagination, since neither is a column. `Flop.validate/2` returns an error naming
-the fields.
-
-```elixir
-[order_by: [
-  {"cursor pagination is not supported for compound and alias fields",
-   [unsupported_fields: [:rank]]}
-]]
 ```
 
 ## Cursor values and types

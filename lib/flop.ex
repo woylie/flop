@@ -174,8 +174,8 @@ defmodule Flop do
       %{offset: 100, limit: 20}
 
   For cursor-based pagination, you can either use `:first`/`:after` or
-  `:last`/`:before`. You also need to pass the `:order_by` parameter or set a
-  default order for the schema via `Flop.Schema`.
+  `:last`/`:before`. The query also needs an order, which can come from the
+  `:order_by` parameter, from a default order, or from the tiebreaker.
 
       iex> Flop.Repo.insert_all(MyApp.Pet, [
       ...>   %{name: "Harry", age: 4, species: "C. lupus"},
@@ -245,6 +245,31 @@ defmodule Flop do
       "Maggie"
 
   See `t:Flop.Filter.op/0` for a list of all available filter operators.
+
+  ## What Flop adds to your query
+
+  Flop adds `WHERE`, `ORDER BY`, `LIMIT` and `OFFSET` clauses to the query you
+  give it. It does not touch the `SELECT`, and it does not add joins or
+  preloads (unless you call `Flop.with_named_bindings/4`).
+
+  Ordering by an alias field therefore needs the `Ecto.Query.API.selected_as/2`
+  call in your own select, since the `ORDER BY` refers to that alias.
+  `Flop.aliases/2` tells you which aliases are needed for a query.
+
+  If you use cursor pagination, Flop has to read the values of the cursor fields
+  from the result rows. Those are the order fields plus the tiebreaker, see
+  `Flop.cursor_fields/2`. That means you have to select them:
+
+  - a join field needs the association preloaded
+  - a custom field needs its expression selected under its `path`
+  - a `select` that lists specific fields, such as
+    `select: struct(p, [:id, :name])`, has to list the cursor fields too
+
+  Flop cannot verify that all necessary fields are selected. An association that
+  was not loaded is the one case it can recognise via the
+  `Ecto.Association.NotLoaded` struct. Everything else arrives as `nil` and is
+  thereby indistinguishable from genuine `nil` values. See the
+  [cursor pagination recipe](cursor_pagination.md) for details.
 
   ## GraphQL and Relay
 
@@ -830,8 +855,9 @@ defmodule Flop do
     compound and custom field configuration.
   - `repo`: The `Ecto.Repo` module. Required if no default repo is configured.
   - `cursor_value_func`: An arity-2 function to be used to retrieve an
-    unencoded cursor value from a query result item and the `order_by` fields.
-    Defaults to `Flop.Cursor.get_cursor_from_node/2`.
+    unencoded cursor value from a query result item and the cursor fields. The
+    cursor fields are the order fields plus the tiebreaker, see
+    `Flop.cursor_fields/2`. Defaults to `Flop.Cursor.get_cursor_from_node/2`.
   - `count_query`: Lets you override the base query for counting, e.g. if you
     don't want to include unnecessary joins. The filter parameters are applied
     to the given query. See also `Flop.count/3`.
@@ -3027,7 +3053,37 @@ defmodule Flop do
       iex> aliases(%Flop{order_by: nil}, MyApp.Owner)
       []
 
-  You can use this to dynamically build the select clause needed for the query.
+  You can use this to conditionally add select clauses for alias fields.
+
+      def list_owners(params) do
+        opts = [for: Owner]
+
+        with {:ok, flop} <- Flop.validate(params, opts) do
+          aliases = Flop.aliases(flop, Owner)
+
+          Owner
+          |> with_pet_count(aliases)
+          |> Flop.run(flop, opts)
+        end
+      end
+
+      defp with_pet_count(query, aliases) do
+        if :pet_count in aliases do
+          query
+          |> join(:left, [o], p in assoc(o, :pets), as: :pets)
+          |> group_by([o], o.id)
+          |> select([o, pets: p], %{
+            o
+            | pet_count: p.id |> count() |> selected_as(:pet_count)
+          })
+        else
+          query
+        end
+      end
+
+  Selecting into the struct needs `field :pet_count, :integer, virtual: true` in
+  the schema. A tuple or a map works too, if you do not need the value on the
+  struct.
 
   For more information about alias fields, refer to the module documentation of
   `Flop.Schema`.

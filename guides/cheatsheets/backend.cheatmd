@@ -34,6 +34,8 @@ config :flop,
   ]
 ```
 
+Accepts the same options as a backend module. Anything else is ignored.
+
 ### Look-up order
 
 1. Function arguments
@@ -100,9 +102,11 @@ use Flop,
 | `filtering` | `true` |
 | `ordering` | `true` |
 | `pagination` | `true` |
+| `tiebreaker` | `:primary_key` |
 
 `default_limit`, `max_limit` and `max_filters` also take `false`.
-`max_filters` is not a schema option.
+`max_filters` is not a schema option. A `tiebreaker` that names fields can only
+be set on a schema or passed to a query function.
 
 ## Ecto adapter
 {: .col-2}
