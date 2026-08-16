@@ -46,6 +46,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Support cursor pagination on nullable columns.
 - Return a validation error instead of raising a `FunctionClauseError` when a
   join field is configured with the tuple shorthand that was removed earlier.
+- Ignore `sortable`, `filterable`, `for`, `count`, `count_query` and
+  `extra_opts` set in the application environment. The application environment
+  now accepts the same options as a backend module.
 
 ## [0.27.2] - 2026-08-12
 

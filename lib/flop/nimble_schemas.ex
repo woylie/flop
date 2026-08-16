@@ -134,6 +134,15 @@ defmodule Flop.NimbleSchemas do
   @schema_option_schema @schema_option
   def schema_option_schema, do: @schema_option_schema
 
+  @backend_option_keys Keyword.keys(@backend_option)
+
+  @doc """
+  Returns the options that can be set on a backend module.
+
+  The application environment accepts the same options.
+  """
+  def backend_option_keys, do: @backend_option_keys
+
   @backend_option NimbleOptions.new!(@backend_option)
   @schema_option NimbleOptions.new!(@schema_option)
 

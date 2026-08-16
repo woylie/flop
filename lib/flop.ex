@@ -293,6 +293,8 @@ defmodule Flop do
 
   @default_opts [default_limit: 50, max_limit: 1000, max_filters: 20]
 
+  @global_options NimbleSchemas.backend_option_keys()
+
   defmacro __using__(opts) do
     opts =
       NimbleSchemas.validate!(
@@ -456,6 +458,9 @@ defmodule Flop do
   - `:cursor_value_func`, `:filtering`, `:max_cursor_size`, `:max_filters`,
     `:ordering`, `:pagination`, `:query_opts`, `:replace_invalid_params` and
     `:repo` cannot be set on a schema.
+
+  The application environment accepts the same options as a backend module.
+  Anything else set under the `:flop` key is ignored.
 
   ## Adapter option look-up
 
@@ -2376,9 +2381,11 @@ defmodule Flop do
     end
   end
 
-  defp global_option(key) when is_atom(key) do
+  defp global_option(key) when key in @global_options do
     Application.get_env(:flop, key)
   end
+
+  defp global_option(key) when is_atom(key), do: nil
 
   @doc false
   @spec adapter_opts([option()]) :: keyword

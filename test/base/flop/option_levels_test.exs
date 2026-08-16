@@ -73,6 +73,25 @@ defmodule Flop.OptionLevelsTest do
     end
   end
 
+  describe "schema and call-site options" do
+    test "are not read from the application environment" do
+      for key <- [
+            :sortable,
+            :filterable,
+            :default_order,
+            :for,
+            :count,
+            :count_query,
+            :extra_opts
+          ] do
+        Application.put_env(:flop, key, :from_the_application_environment)
+        on_exit(fn -> Application.delete_env(:flop, key) end)
+
+        assert Flop.get_option(key, [], :not_set) == :not_set
+      end
+    end
+  end
+
   describe "tiebreaker" do
     test "can be set in the application environment" do
       assert Flop.ordering(%Flop{order_by: [:name]}, for: Pet) ==
