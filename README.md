@@ -75,8 +75,8 @@ still work, but they are not covered by CI and not officially supported.
 | SQLite   | Supported and tested in CI |
 
 Flop builds queries with `Ecto.Query` and only uses a couple of fragments to
-bridge the gap between databases. The library might work with more Ecto adapter,
-but it is only tested with the databases listed above.
+bridge the gap between databases. The library might work with other Ecto
+adapters, but it is only tested with the databases listed above.
 
 Some behavior depends on the used adapter.
 

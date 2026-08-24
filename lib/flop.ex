@@ -532,7 +532,8 @@ defmodule Flop do
   `:default_order` follows the same rule as the tiebreaker: it names fields, so
   the application environment ignores it.
 
-  The application environment accepts the same options as a backend module.
+  The application environment accepts the same options as a backend module, plus
+  `:diagnostics`, which is read at compile time and cannot be set anywhere else.
   Anything else set under the `:flop` key is ignored.
 
   The field definitions — `join_fields`, `compound_fields`, `custom_fields` and
