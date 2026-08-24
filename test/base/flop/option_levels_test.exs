@@ -112,6 +112,48 @@ defmodule Flop.OptionLevelsTest do
     end
   end
 
+  describe "the option table in t:Flop.option/0" do
+    test "matches the options a backend module and the application environment take" do
+      assert Flop.NimbleSchemas.backend_option_keys() == [
+               :adapter,
+               :adapter_opts,
+               :cursor_value_func,
+               :default_limit,
+               :max_cursor_size,
+               :max_filters,
+               :max_limit,
+               :replace_invalid_params,
+               :tiebreaker,
+               :default_pagination_type,
+               :filtering,
+               :ordering,
+               :pagination,
+               :pagination_types,
+               :repo,
+               :query_opts
+             ]
+    end
+
+    test "matches the options a schema takes" do
+      assert Keyword.keys(Flop.NimbleSchemas.schema_option_schema()) == [
+               :adapter,
+               :adapter_opts,
+               :filterable,
+               :sortable,
+               :default_order,
+               :default_limit,
+               :max_limit,
+               :tiebreaker,
+               :pagination_types,
+               :default_pagination_type,
+               :join_fields,
+               :compound_fields,
+               :custom_fields,
+               :alias_fields
+             ]
+    end
+  end
+
   describe "repo" do
     test "raises when it is set at no level" do
       Application.delete_env(:flop, :repo)
