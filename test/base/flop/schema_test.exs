@@ -14,6 +14,7 @@ defmodule Flop.SchemaTest do
              sortable: [:name, :age, :topping_count],
              default_limit: 20,
              max_limit: 50,
+             max_filters: 5,
              default_order: %{
                order_by: [:name, :age],
                order_directions: [:desc, :asc]
@@ -50,6 +51,10 @@ defmodule Flop.SchemaTest do
 
   test "default_limit/1 returns the default limit passed as option" do
     assert Schema.default_limit(%Panini{}) == 20
+  end
+
+  test "max_filters/1 returns the max filters passed as option" do
+    assert Schema.max_filters(%Panini{}) == 5
   end
 
   test "max_limit/1 returns the max limit passed as option" do

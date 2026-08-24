@@ -143,6 +143,7 @@ defmodule Flop.OptionLevelsTest do
                :default_order,
                :default_limit,
                :max_limit,
+               :max_filters,
                :tiebreaker,
                :pagination_types,
                :default_pagination_type,

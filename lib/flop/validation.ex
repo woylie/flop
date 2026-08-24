@@ -307,7 +307,7 @@ defmodule Flop.Validation do
   end
 
   defp validate_sortable(changeset, opts) do
-    sortable_fields = Flop.get_option(:sortable, opts)
+    sortable_fields = Flop.allowed_fields(:sortable, opts)
 
     if sortable_fields do
       if opts[:replace_invalid_params] do
@@ -335,7 +335,7 @@ defmodule Flop.Validation do
   end
 
   defp validate_cursor_order_fields(changeset, opts) do
-    sortable_fields = Flop.get_option(:sortable, opts)
+    sortable_fields = Flop.allowed_fields(:sortable, opts)
     module = opts[:for]
 
     if module && sortable_fields do

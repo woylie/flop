@@ -71,6 +71,7 @@ defmodule Flop.NimbleSchemas do
     ],
     default_limit: [type: {:or, [:pos_integer, {:in, [false]}]}],
     max_limit: [type: {:or, [:pos_integer, {:in, [false]}]}],
+    max_filters: [type: {:or, [:pos_integer, {:in, [false]}]}],
     tiebreaker: [type: {:custom, __MODULE__, :validate_tiebreaker, []}],
     pagination_types: [
       type: {:list, {:in, [:offset, :page, :first, :last]}}

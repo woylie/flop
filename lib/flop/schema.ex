@@ -639,9 +639,16 @@ defprotocol Flop.Schema do
   - `:sortable` (required) - A list of fields that can be used for sorting.
     Supports fields from the Ecto schema, join fields, compound fields, alias
     fields, and custom fields that configure `:field_dynamic`.
+
+  Both lists can be narrowed for a single query by passing `:filterable` or
+  `:sortable` to a query function. A query function cannot widen them, so the
+  lists configured here are the only fields a caller can ever use.
+
   - `:default_limit` - The default limit applied if no `limit`, `page_size`,
     `first` or `last` parameter is set. Set to `false` to not set any default
     limit.
+  - `:max_filters` - The maximum number of filters that can be set via
+    parameters. Set to `false` to remove the maximum. Defaults to `20`.
   - `:max_limit` - The maximum limit that can be set via parameters. Set to
     `false` to not set any maximum limit.
   - `:default_order` - The default order applied when no order parameters are
@@ -658,6 +665,7 @@ defprotocol Flop.Schema do
           {:filterable, [atom]}
           | {:sortable, [atom]}
           | {:default_limit, integer}
+          | {:max_filters, pos_integer | false}
           | {:max_limit, integer}
           | {:default_order, Flop.default_order()}
           | {:tiebreaker, Flop.tiebreaker()}
@@ -964,6 +972,16 @@ defprotocol Flop.Schema do
   @doc since: "0.2.0"
   @spec max_limit(any) :: pos_integer | nil
   def max_limit(data)
+
+  @doc """
+  Returns the maximum number of filters of a schema.
+
+      iex> Flop.Schema.max_filters(%MyApp.Pet{})
+      nil
+  """
+  @doc since: "0.28.0"
+  @spec max_filters(any) :: pos_integer | nil
+  def max_filters(data)
 end
 
 defimpl Flop.Schema, for: Any do
@@ -1022,6 +1040,7 @@ defimpl Flop.Schema, for: Any do
     sortable_fields = Keyword.get(options, :sortable)
     default_limit = Keyword.get(options, :default_limit)
     max_limit = Keyword.get(options, :max_limit)
+    max_filters = Keyword.get(options, :max_filters)
     pagination_types = Keyword.get(options, :pagination_types)
     default_pagination_type = Keyword.get(options, :default_pagination_type)
     default_order = Keyword.get(options, :default_order)
@@ -1057,6 +1076,10 @@ defimpl Flop.Schema, for: Any do
 
         def max_limit(_) do
           unquote(max_limit)
+        end
+
+        def max_filters(_) do
+          unquote(max_filters)
         end
 
         def pagination_types(_) do
@@ -1249,6 +1272,7 @@ defimpl Flop.Schema, for: Any do
     :default_limit,
     :default_order,
     :filterable,
+    :max_filters,
     :max_limit,
     :pagination_types,
     :default_pagination_type,

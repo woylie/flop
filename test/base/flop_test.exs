@@ -448,6 +448,70 @@ defmodule FlopTest do
     end
   end
 
+  describe "narrowing sortable and filterable at the call site" do
+    test "restricts an endpoint to a subset of the schema" do
+      assert {:ok, _} =
+               Flop.validate(%{order_by: [:name]}, for: Pet, sortable: [:name])
+
+      assert {:error, _} =
+               Flop.validate(%{order_by: [:age]}, for: Pet, sortable: [:name])
+
+      assert {:ok, _} =
+               Flop.validate(%{filters: [%{field: :name, op: :==, value: "a"}]},
+                 for: Pet,
+                 filterable: [:name]
+               )
+
+      assert {:error, _} =
+               Flop.validate(%{filters: [%{field: :age, op: :==, value: 1}]},
+                 for: Pet,
+                 filterable: [:name]
+               )
+    end
+
+    test "cannot reach a field the schema excludes" do
+      assert {:error, _} =
+               Flop.validate(%{order_by: [:family_name]},
+                 for: Pet,
+                 sortable: [:family_name]
+               )
+
+      assert {:error, _} =
+               Flop.validate(
+                 %{filters: [%{field: :family_name, op: :==, value: "a"}]},
+                 for: Pet,
+                 filterable: [:family_name]
+               )
+    end
+
+    test "an empty list allows nothing" do
+      assert {:error, _} =
+               Flop.validate(%{order_by: [:name]}, for: Pet, sortable: [])
+
+      assert {:error, _} =
+               Flop.validate(%{filters: [%{field: :name, op: :==, value: "a"}]},
+                 for: Pet,
+                 filterable: []
+               )
+    end
+
+    test "keeps the schema's order whatever order the call site uses" do
+      assert {:ok, %Flop{order_by: [:age, :name]}} =
+               Flop.validate(%{order_by: [:age, :name]},
+                 for: Pet,
+                 sortable: [:age, :name]
+               )
+    end
+
+    test "narrowing applies to cursor order fields too" do
+      assert {:error, _} =
+               Flop.validate(%{first: 2, order_by: [:age]},
+                 for: Pet,
+                 sortable: [:name]
+               )
+    end
+  end
+
   describe "pagination navigation" do
     @page_functions [
       {:to_previous_page, 1, "Flop.to_previous_page/1"},
