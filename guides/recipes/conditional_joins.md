@@ -145,6 +145,9 @@ Here `name_lower` is `nil` on the returned structs when neither the filters nor
 the order refer to it. If you use the value outside of Flop, for example to
 display it, add the join unconditionally instead.
 
+Lateral joins are supported by PostgreSQL and MySQL. SQLite does not support
+them.
+
 ## Counting
 
 With page or offset pagination, Flop counts with the query you pass it, so the

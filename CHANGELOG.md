@@ -52,6 +52,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   operators allowed for `binary` and `binary_id` fields.
 - Remove the `:contains` and `:not_contains` operators from the operators
   allowed for `binary` fields.
+- Fix the partial UUID filter recipe, which used `ilike` and raised on MySQL and
+  SQLite, and add the variant MySQL needs. Note in the conditional joins recipe
+  that SQLite has no lateral joins.
 - Support cursor pagination on nullable columns.
 - Return a validation error instead of raising a `FunctionClauseError` when a
   join field is configured with the tuple shorthand that was removed earlier.

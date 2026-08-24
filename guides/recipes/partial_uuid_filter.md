@@ -7,8 +7,10 @@ removed from the query.
 
 In the case of binary IDs (UUIDs), this means that the user has to pass
 the full ID to apply a filter on the ID column. In some cases, you may prefer
-to allow users to search for partial UUIDs. You can achieve this by defining a
-custom filter.
+to allow users to search for partial UUIDs. The pattern operators such as
+`:like` are not available for binary ID fields, since none of the supported
+databases matches a text pattern against such a column, but you can achieve the
+same with a custom filter.
 
 ## Filter module
 
@@ -23,17 +25,19 @@ defmodule MyApp.Filters do
     field = Keyword.fetch!(opts, :field)
 
     case Ecto.Type.cast(Ecto.UUID, value) do
-      {:ok, id} ->
-        where(q, [r], field(r, ^field) == ^id)
-
-      :error ->
-        term =
-          value
-          |> String.trim()
-          |> String.replace(["\\", "%", "_"], &"\\#{&1}")
-
-        where(q, [r], ilike(type(field(r, ^field), :string), ^"%#{term}%"))
+      {:ok, id} -> where(q, [r], field(r, ^field) == ^id)
+      :error -> partial_match(q, field, uuid_fragment(value))
     end
+  end
+
+  defp partial_match(q, _field, ""), do: where(q, [r], false)
+
+  defp partial_match(q, field, search) do
+    where(q, [r], like(type(field(r, ^field), :string), ^"%#{search}%"))
+  end
+
+  defp uuid_fragment(value) do
+    value |> String.downcase() |> String.replace(~r/[^0-9a-f-]/, "")
   end
 end
 ```
@@ -47,17 +51,39 @@ We first attempt to cast the filter value as an `Ecto.UUID`. If this succeeds,
 we know that we have a complete and valid UUID and can apply an equality filter
 directly.
 
-If the value cannot be cast, we treat it as a partial ID. We create a search
-term and apply an `ilike` function in the query. We have to cast the column as a
-string, because the binary ID type does not support `ilike`.
+If the value cannot be cast, we treat it as a partial ID. We cast the column as
+a string, because the binary ID type does not support `like`, and we build the
+search term from the characters a UUID can contain: hexadecimal digits and
+dashes. Removing everything else is simpler than escaping `%`, `_` and `\`, and
+it does not depend on the database having a default escape character, which
+SQLite does not. A user searching for `%` gets no results instead of every row.
 
-We escape `%`, `_` and `\` in the term. Without that, a user searching for `%`
-would match every row, whereas the built-in `ilike` operators of Flop escape
-those characters for you.
+Since the search term can end up empty, we match on that case and return no
+rows. Without it, a term of `zzz` would become `%%` and match everything.
 
-Note that we ignore the filter operator here and always use `ilike`. If you want
-to support other filter operators, you can match on the `op` field of the
-`Flop.Filter` struct.
+We use `like` rather than `ilike`, which SQLite and MySQL do not support. A
+UUID is rendered in lowercase, so downcasing the search term gives the same
+result.
+
+Note that we ignore the filter operator here. If you want to support several
+filter operators, you can match on the `op` field of the `Flop.Filter` struct.
+
+## MySQL
+
+The MyXQL adapter stores a binary ID as the raw 16 bytes, so casting the column
+as a string returns those bytes rather than the UUID as it is rendered. The
+column has to be hexed instead, and the dashes have to be removed from the
+search term, since `HEX` returns 32 characters without them.
+
+```elixir
+defp partial_match(q, field, search) do
+  where(q, [r], like(fragment("LOWER(HEX(?))", field(r, ^field)), ^"%#{search}%"))
+end
+
+defp uuid_fragment(value) do
+  value |> String.downcase() |> String.replace(~r/[^0-9a-f]/, "")
+end
+```
 
 ## Ecto schema
 
@@ -115,17 +141,19 @@ defmodule MyApp.Filters do
     field = Keyword.fetch!(opts, :field)
 
     case Ecto.Type.cast(Ecto.UUID, value) do
-      {:ok, id} ->
-        where(q, [r], field(r, ^field) == ^id)
-
-      :error ->
-        term =
-          value
-          |> String.trim()
-          |> String.replace(["\\", "%", "_"], &"\\#{&1}")
-
-        where(q, [r], ilike(type(field(r, ^field), :string), ^"%#{term}%"))
+      {:ok, id} -> where(q, [r], field(r, ^field) == ^id)
+      :error -> partial_match(q, field, uuid_fragment(value))
     end
+  end
+
+  defp partial_match(q, _field, ""), do: where(q, [r], false)
+
+  defp partial_match(q, field, search) do
+    where(q, [r], like(type(field(r, ^field), :string), ^"%#{search}%"))
+  end
+
+  defp uuid_fragment(value) do
+    value |> String.downcase() |> String.replace(~r/[^0-9a-f-]/, "")
   end
 end
 ```
