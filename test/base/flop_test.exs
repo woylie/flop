@@ -448,6 +448,93 @@ defmodule FlopTest do
     end
   end
 
+  describe "pagination navigation" do
+    @page_functions [
+      {:to_previous_page, 1, "Flop.to_previous_page/1"},
+      {:to_next_page, 2, "Flop.to_next_page/2"}
+    ]
+
+    @offset_functions [
+      {:to_previous_offset, 1, "Flop.to_previous_offset/1"},
+      {:to_next_offset, 2, "Flop.to_next_offset/2"}
+    ]
+
+    test "the page functions raise for another pagination type" do
+      for {fun, arity, name} <- @page_functions,
+          flop <- [%Flop{first: 10, after: "abc"}, %Flop{limit: 10, offset: 20}] do
+        args = if arity == 1, do: [flop], else: [flop, nil]
+
+        error = assert_raise ArgumentError, fn -> apply(Flop, fun, args) end
+
+        assert Exception.message(error) =~
+                 "#{name} expects page-based pagination"
+      end
+    end
+
+    test "the offset functions raise for another pagination type" do
+      for {fun, arity, name} <- @offset_functions,
+          flop <- [
+            %Flop{first: 10, after: "abc"},
+            %Flop{page: 2, page_size: 10}
+          ] do
+        args = if arity == 1, do: [flop], else: [flop, nil]
+
+        error = assert_raise ArgumentError, fn -> apply(Flop, fun, args) end
+
+        assert Exception.message(error) =~
+                 "#{name} expects offset-based pagination"
+      end
+    end
+
+    test "the message names the parameters that are set" do
+      error =
+        assert_raise ArgumentError, fn ->
+          Flop.to_next_page(%Flop{first: 10, after: "abc"}, 6)
+        end
+
+      message = Exception.message(error)
+      assert message =~ "first: 10"
+      assert message =~ ~s(after: "abc")
+      assert message =~ "Flop.set_page/2"
+    end
+
+    test "the offset functions raise when there is no limit to move by" do
+      for {fun, arity, name} <- @offset_functions do
+        flop = %Flop{offset: 20}
+        args = if arity == 1, do: [flop], else: [flop, nil]
+
+        error = assert_raise ArgumentError, fn -> apply(Flop, fun, args) end
+        assert Exception.message(error) =~ "#{name} needs a limit"
+      end
+    end
+
+    test "a Flop without pagination parameters starts at the first page" do
+      assert Flop.to_next_page(%Flop{}) == %Flop{page: 2}
+      assert Flop.to_next_page(%Flop{}, 6) == %Flop{page: 2}
+      assert Flop.to_previous_page(%Flop{}) == %Flop{page: 1}
+      assert Flop.to_previous_offset(%Flop{}) == %Flop{offset: 0}
+    end
+
+    test "to_next_page/2 does not go below the first page" do
+      assert Flop.to_next_page(%Flop{page: 1}, 0) == %Flop{page: 1}
+    end
+
+    test "to_next_offset/2 does not go below the first page" do
+      assert Flop.to_next_offset(%Flop{offset: 10, limit: 5}, 0) ==
+               %Flop{offset: 0, limit: 5}
+    end
+
+    test "the navigation functions accept what validation produces" do
+      page = Flop.validate!(%{page: 2, page_size: 10}, for: Pet)
+      offset = Flop.validate!(%{limit: 10, offset: 20}, for: Pet)
+
+      assert Flop.to_next_page(page).page == 3
+      assert Flop.to_previous_page(page).page == 1
+      assert Flop.to_next_offset(offset).offset == 30
+      assert Flop.to_previous_offset(offset).offset == 10
+    end
+  end
+
   describe "push_order/3" do
     test "raises error if invalid directions option is passed" do
       for flop <- [%Flop{}, %Flop{order_by: [:name], order_directions: [:asc]}],

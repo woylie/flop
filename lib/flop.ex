@@ -1755,18 +1755,22 @@ defmodule Flop do
 
       iex> to_previous_page(%Flop{page: -2})
       %Flop{page: 1}
+
+  Raises an `ArgumentError` if the `Flop` struct has parameters for a different
+  pagination type. Use `Flop.set_page/2` to convert it first.
   """
   @doc since: "0.15.0"
   @doc group: :parameters
   @spec to_previous_page(Flop.t()) :: Flop.t()
-  def to_previous_page(%Flop{page: 1} = flop), do: flop
+  def to_previous_page(%Flop{} = flop) do
+    assert_page_pagination!(flop, "Flop.to_previous_page/1")
 
-  def to_previous_page(%Flop{page: page} = flop)
-      when is_integer(page) and page < 1,
-      do: %{flop | page: 1}
-
-  def to_previous_page(%Flop{page: page} = flop) when is_integer(page),
-    do: %{flop | page: page - 1}
+    case flop.page do
+      1 -> flop
+      page when is_integer(page) and page > 1 -> %{flop | page: page - 1}
+      _ -> %{flop | page: 1}
+    end
+  end
 
   @doc """
   Sets the page of a Flop struct to the next page.
@@ -1791,25 +1795,23 @@ defmodule Flop do
 
       iex> to_next_page(%Flop{page: -5})
       %Flop{page: 1}
+
+  Raises an `ArgumentError` if the `Flop` struct has parameters for a different
+  pagination type. Use `Flop.set_page/2` to convert it first.
   """
   @doc since: "0.15.0"
   @doc group: :parameters
   @spec to_next_page(Flop.t(), non_neg_integer | nil) :: Flop.t()
-  def to_next_page(flop, total_pages \\ nil)
+  def to_next_page(%Flop{} = flop, total_pages \\ nil) do
+    assert_page_pagination!(flop, "Flop.to_next_page/2")
+    page = flop.page || 1
 
-  def to_next_page(%Flop{page: page} = flop, _)
-      when is_integer(page) and page < 0,
-      do: %{flop | page: 1}
-
-  def to_next_page(%Flop{page: page} = flop, nil), do: %{flop | page: page + 1}
-
-  def to_next_page(%Flop{page: page} = flop, total_pages)
-      when is_integer(total_pages) and page < total_pages,
-      do: %{flop | page: page + 1}
-
-  def to_next_page(%Flop{} = flop, total_pages)
-      when is_integer(total_pages),
-      do: %{flop | page: total_pages}
+    cond do
+      page < 1 -> %{flop | page: 1}
+      is_nil(total_pages) -> %{flop | page: page + 1}
+      true -> %{flop | page: min(page + 1, max(total_pages, 1))}
+    end
+  end
 
   @doc """
   Sets the offset value of a `Flop` struct while also removing/converting
@@ -1863,6 +1865,80 @@ defmodule Flop do
     end
   end
 
+  defp assert_page_pagination!(
+         %Flop{
+           first: nil,
+           last: nil,
+           after: nil,
+           before: nil,
+           limit: nil,
+           offset: nil
+         },
+         _fun
+       ),
+       do: :ok
+
+  defp assert_page_pagination!(%Flop{} = flop, fun),
+    do: raise_pagination_type!(flop, :page, fun)
+
+  defp assert_offset_pagination!(
+         %Flop{
+           first: nil,
+           last: nil,
+           after: nil,
+           before: nil,
+           page: nil,
+           page_size: nil
+         },
+         _fun
+       ),
+       do: :ok
+
+  defp assert_offset_pagination!(%Flop{} = flop, fun),
+    do: raise_pagination_type!(flop, :offset, fun)
+
+  @pagination_params [
+    page: [:page, :page_size],
+    offset: [:limit, :offset],
+    cursor: [:first, :last, :after, :before]
+  ]
+
+  defp raise_pagination_type!(%Flop{} = flop, type, fun) do
+    set =
+      for {other_type, fields} <- @pagination_params,
+          other_type != type,
+          field <- fields,
+          value = Map.fetch!(flop, field) do
+        "#{field}: #{inspect(value)}"
+      end
+
+    raise ArgumentError, """
+    #{fun} expects #{type}-based pagination
+
+    The Flop struct has parameters for another pagination type:
+
+        #{Enum.join(set, "\n    ")}
+
+    Convert it with Flop.set_page/2 or Flop.set_offset/2 first, or use the
+    function that matches the pagination type it has.
+    """
+  end
+
+  defp fetch_limit!(%Flop{limit: limit}, _fun) when is_integer(limit), do: limit
+
+  defp fetch_limit!(%Flop{} = flop, fun) do
+    raise ArgumentError, """
+    #{fun} needs a limit
+
+    The offset moves by one page, so the Flop struct needs a limit to move by:
+
+        limit: #{inspect(flop.limit)}
+        offset: #{inspect(flop.offset)}
+
+    Set a limit, or use Flop.set_offset/2 to set the offset directly.
+    """
+  end
+
   @doc """
   Sets the offset of a Flop struct to the page depending on the limit.
 
@@ -1879,15 +1955,29 @@ defmodule Flop do
 
       iex> to_previous_offset(%Flop{offset: -2, limit: 10})
       %Flop{offset: 0, limit: 10}
+
+  Raises an `ArgumentError` if the `Flop` struct has parameters for a different
+  pagination type, or if it has no limit to move by. Use `Flop.set_offset/2` to
+  convert it first.
   """
   @doc since: "0.15.0"
   @doc group: :parameters
   @spec to_previous_offset(Flop.t()) :: Flop.t()
-  def to_previous_offset(%Flop{offset: 0} = flop), do: flop
+  def to_previous_offset(%Flop{} = flop) do
+    assert_offset_pagination!(flop, "Flop.to_previous_offset/1")
 
-  def to_previous_offset(%Flop{offset: offset, limit: limit} = flop)
-      when is_integer(limit) and is_integer(offset),
-      do: %{flop | offset: max(0, offset - limit)}
+    case flop.offset do
+      0 ->
+        flop
+
+      offset when is_integer(offset) and offset > 0 ->
+        limit = fetch_limit!(flop, "Flop.to_previous_offset/1")
+        %{flop | offset: max(offset - limit, 0)}
+
+      _ ->
+        %{flop | offset: 0}
+    end
+  end
 
   @doc """
   Sets the offset of a Flop struct to the next page depending on the limit.
@@ -1913,34 +2003,36 @@ defmodule Flop do
 
       iex> to_next_offset(%Flop{offset: -5, limit: 20})
       %Flop{offset: 0, limit: 20}
+
+  Raises an `ArgumentError` if the `Flop` struct has parameters for a different
+  pagination type, or if it has no limit to move by. Use `Flop.set_offset/2` to
+  convert it first.
   """
   @doc since: "0.15.0"
   @doc group: :parameters
   @spec to_next_offset(Flop.t(), non_neg_integer | nil) :: Flop.t()
-  def to_next_offset(flop, total_count \\ nil)
+  def to_next_offset(%Flop{} = flop, total_count \\ nil) do
+    assert_offset_pagination!(flop, "Flop.to_next_offset/2")
+    offset = flop.offset || 0
 
-  def to_next_offset(%Flop{limit: limit, offset: offset} = flop, _)
-      when is_integer(limit) and is_integer(offset) and offset < 0,
-      do: %{flop | offset: 0}
+    if offset < 0 do
+      %{flop | offset: 0}
+    else
+      limit = fetch_limit!(flop, "Flop.to_next_offset/2")
 
-  def to_next_offset(%Flop{limit: limit, offset: offset} = flop, nil)
-      when is_integer(limit) and is_integer(offset),
-      do: %{flop | offset: offset + limit}
+      cond do
+        is_nil(total_count) ->
+          %{flop | offset: offset + limit}
 
-  def to_next_offset(%Flop{limit: limit, offset: offset} = flop, total_count)
-      when is_integer(limit) and
-             is_integer(offset) and
-             is_integer(total_count) and offset >= total_count do
-    %{flop | offset: (ceil(total_count / limit) - 1) * limit}
-  end
+        offset >= total_count ->
+          %{flop | offset: max((ceil(total_count / limit) - 1) * limit, 0)}
 
-  def to_next_offset(%Flop{limit: limit, offset: offset} = flop, total_count)
-      when is_integer(limit) and
-             is_integer(offset) and
-             is_integer(total_count) do
-    case offset + limit do
-      new_offset when new_offset >= total_count -> flop
-      new_offset -> %{flop | offset: new_offset}
+        offset + limit >= total_count ->
+          flop
+
+        true ->
+          %{flop | offset: offset + limit}
+      end
     end
   end
 

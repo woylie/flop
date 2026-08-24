@@ -36,6 +36,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add `tiebreaker/1` and `primary_key/1` to the `Flop.Schema` protocol.
 - Only log a warning about a query that already has an `ORDER BY` clause when
   the `diagnostics` option is enabled in the application environment.
+- Raise an `ArgumentError` when a `Flop` struct with a non-matching pagination
+  type is passed to `Flop.to_previous_page/1`, `Flop.to_next_page/2`,
+  `Flop.to_previous_offset/1` or `Flop.to_next_offset/2`, and apply them to the
+  first page when it has no pagination parameters.
 
 ### Fixed
 
