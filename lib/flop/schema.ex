@@ -648,7 +648,7 @@ defprotocol Flop.Schema do
     `first` or `last` parameter is set. Set to `false` to not set any default
     limit.
   - `:max_filters` - The maximum number of filters that can be set via
-    parameters. Set to `false` to remove the maximum. Defaults to `20`.
+    parameters. Set to `false` to not set any maximum.
   - `:max_limit` - The maximum limit that can be set via parameters. Set to
     `false` to not set any maximum limit.
   - `:default_order` - The default order applied when no order parameters are
