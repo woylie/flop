@@ -15,6 +15,7 @@ defmodule Flop.OptionLevelsTest do
       Application.delete_env(:flop, :max_cursor_size)
       Application.delete_env(:flop, :default_order)
       Application.delete_env(:flop, :tiebreaker)
+      Application.put_env(:flop, :repo, Flop.Repo)
     end)
   end
 
@@ -108,6 +109,21 @@ defmodule Flop.OptionLevelsTest do
       assert_raise ArgumentError,
                    ~r/invalid tiebreaker in the application environment/,
                    fn -> Flop.ordering(%Flop{order_by: [:name]}, for: Pet) end
+    end
+  end
+
+  describe "repo" do
+    test "raises when it is set at no level" do
+      Application.delete_env(:flop, :repo)
+
+      for fun <- [:all, :count, :run] do
+        error =
+          assert_raise Flop.NoRepoError, fn ->
+            apply(Flop, fun, [Pet, %Flop{}])
+          end
+
+        assert Exception.message(error) =~ "no Ecto repo configured"
+      end
     end
   end
 end

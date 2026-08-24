@@ -39,6 +39,12 @@ defmodule Flop.Misc do
 
       iex> storable_text?(["ok", <<0xED, 0xA0, 0x80>>])
       false
+
+      iex> storable_text?(%{"unit" => "m"})
+      true
+
+      iex> storable_text?(%{"unit" => <<0xFF>>})
+      false
   """
   def storable_text?(value) when is_binary(value) do
     String.valid?(value) and not String.contains?(value, <<0>>)
@@ -65,6 +71,9 @@ defmodule Flop.Misc do
       false
 
       iex> storable_value?(:binary, <<0xFF>>)
+      true
+
+      iex> storable_value?({:array, :binary}, [<<0xFF>>])
       true
   """
   def storable_value?(:binary, _value), do: true

@@ -2235,6 +2235,9 @@ defmodule Flop do
       [:ttfb]
       iex> flop.order_directions
       [:desc_nulls_last]
+      iex> flop = push_order(flop, :ttfb, directions: directions)
+      iex> flop.order_directions
+      [:asc_nulls_last]
 
   This also allows you to sort in descending order initially.
 
@@ -2249,6 +2252,9 @@ defmodule Flop do
       [:ttfb]
       iex> flop.order_directions
       [:asc]
+      iex> flop = push_order(flop, :ttfb, directions: directions)
+      iex> flop.order_directions
+      [:desc]
 
   If a string is passed as the second argument, it will be converted to an atom
   using `String.to_existing_atom/1`. If the atom does not exist, the `Flop`
