@@ -34,6 +34,7 @@ defmodule Flop.Repo.Postgres.Migration do
       add(:attributes, :map)
       add(:extra, {:map, :string})
       add(:references, {:array, :binary_id})
+      add(:image, :binary)
       add(:owner_id, references(:owners))
     end
 

@@ -107,6 +107,7 @@ defmodule Flop.Factory do
   def fruit_factory do
     %Fruit{
       family: build(:fruit_family),
+      image: build(:name),
       name: build(:name)
     }
   end

@@ -1578,6 +1578,19 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                )
     end
 
+    test "rejects the pattern operators on binary and binary_id fields" do
+      insert(:fruit, image: "hello world")
+
+      for {field, value} <- [id: "8160644c", image: "lo wo"],
+          op <- [:=~, :like, :ilike, :starts_with, :contains] do
+        flop = %{filters: [%{field: field, op: op, value: value}]}
+
+        assert {:error, meta} = Flop.validate_and_run(Fruit, flop, for: Fruit)
+        assert [filter_errors] = meta.errors[:filters]
+        assert [{"is invalid", _}] = filter_errors[:op]
+      end
+    end
+
     # MyXQL dumps binary_id to raw bytes, which is not accepted by the JSON
     # encoder.
     @tag :binary_id_array

@@ -99,6 +99,28 @@ defmodule Flop.FilterTest do
                Filter.allowed_operators(:boolean)
     end
 
+    test "returns list of operators for :binary and :binary_id" do
+      expected_ops = [
+        :==,
+        :!=,
+        :empty,
+        :not_empty,
+        :<=,
+        :<,
+        :>=,
+        :>,
+        :in,
+        :not_in
+      ]
+
+      for type <- [:binary, :binary_id] do
+        assert Filter.allowed_operators(type) == expected_ops
+
+        assert Filter.allowed_operators(%Flop.FieldInfo{ecto_type: type}) ==
+                 expected_ops
+      end
+    end
+
     test "returns a list of operators for unknown types" do
       assert [op | _] = Filter.allowed_operators(:unicorn)
       assert is_atom(op)

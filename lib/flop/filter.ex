@@ -366,7 +366,11 @@ defmodule Flop.Filter do
     [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
   end
 
-  defp get_allowed_operators(type) when type in [:binary_id, :string] do
+  defp get_allowed_operators(type) when type in [:binary, :binary_id] do
+    [:==, :!=, :empty, :not_empty, :<=, :<, :>=, :>, :in, :not_in]
+  end
+
+  defp get_allowed_operators(:string) do
     [
       :==,
       :!=,
