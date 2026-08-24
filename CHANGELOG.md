@@ -38,6 +38,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   protocol.
 - Only log a warning about a query that already has an `ORDER BY` clause when
   the `diagnostics` option is enabled in the application environment.
+- Allow to pass `filterable` as an option to query functions to narrow the
+  schema's filterable fields.
+- Apply the `sortable` option passed to a query function by narrowing the
+  schema's list instead of replacing it.
 - Raise an `ArgumentError` when a `Flop` struct with a non-matching pagination
   type is passed to `Flop.to_previous_page/1`, `Flop.to_next_page/2`,
   `Flop.to_previous_offset/1` or `Flop.to_next_offset/2`, and apply them to the

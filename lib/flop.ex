@@ -410,6 +410,12 @@ defmodule Flop do
 
   - `:for` - The Ecto schema module for validation and query building.
     `Flop.Schema` must be derived for this module.
+  - `:filterable` - The fields that may be used in filters. A list passed to a
+    query function narrows the list configured on the schema; it cannot widen
+    it.
+  - `:sortable` - The fields that may be used in the order. A list passed to a
+    query function narrows the list configured on the schema; it cannot widen
+    it.
   - `:cursor_value_func` - A function used to extract the cursor value from a
     record. It takes the record and the list of fields used in the `ORDER BY`
     clause as arguments, and returns a map with the order fields as keys and the
@@ -492,6 +498,8 @@ defmodule Flop do
   | Option                     | Function | Schema | Backend | App env |
   | :------------------------- | :------- | :----- | :------ | :------ |
   | `:for`                     | yes      | no     | no      | no      |
+  | `:filterable`              | yes¹     | yes    | no      | no      |
+  | `:sortable`                | yes¹     | yes    | no      | no      |
   | `:cursor_value_func`       | yes      | no     | yes     | yes     |
   | `:replace_invalid_params`  | yes      | no     | yes     | yes     |
   | `:max_cursor_size`         | yes      | no     | yes     | yes     |
@@ -501,20 +509,23 @@ defmodule Flop do
   | `:default_order`           | yes      | yes    | no      | no      |
   | `:default_pagination_type` | yes      | yes    | yes     | yes     |
   | `:pagination_types`        | yes      | yes    | yes     | yes     |
-  | `:tiebreaker`              | yes      | yes    | yes     | yes¹    |
+  | `:tiebreaker`              | yes      | yes    | yes     | yes²    |
   | `:filtering`               | yes      | no     | yes     | yes     |
   | `:ordering`                | yes      | no     | yes     | yes     |
   | `:pagination`              | yes      | no     | yes     | yes     |
   | `:count`                   | yes      | no     | no      | no      |
   | `:count_query`             | yes      | no     | no      | no      |
   | `:extra_opts`              | yes      | no     | no      | no      |
-  | `:adapter_opts`            | yes      | yes²   | yes     | yes     |
+  | `:adapter_opts`            | yes      | yes³   | yes     | yes     |
 
-  1. A tiebreaker that names fields cannot be set in the application
+  1. A list passed to a query function **narrows** the schema's list instead of
+     replacing it, so a call site can restrict an endpoint to fewer fields, but
+     never use a field the schema excludes.
+  2. A tiebreaker that names fields cannot be set in the application
      environment, since the field names would apply to every schema. Set
      `:primary_key`, `{:primary_key, direction}` or `false` there, and name
      fields on a schema or in a function call. Anything else raises.
-  2. `:adapter_opts` on a schema holds the field definitions — `join_fields`,
+  3. `:adapter_opts` on a schema holds the field definitions — `join_fields`,
      `compound_fields`, `custom_fields` and `alias_fields`. The other levels
      hold `:repo` and `:query_opts`. See "Adapter option look-up" below.
 
@@ -524,9 +535,9 @@ defmodule Flop do
   The application environment accepts the same options as a backend module.
   Anything else set under the `:flop` key is ignored.
 
-  The options that describe the fields themselves — `:filterable`, `:sortable`
-  and the field definitions — are documented in `Flop.Schema`. They are read
-  when the schema is derived rather than through the look-up order above.
+  The field definitions — `join_fields`, `compound_fields`, `custom_fields` and
+  `alias_fields` — are documented in `Flop.Schema` and are read when the schema
+  is derived rather than through the look-up order above.
 
   ## Adapter option look-up
 
@@ -551,6 +562,7 @@ defmodule Flop do
           | {:default_limit, pos_integer | false}
           | {:default_order, default_order()}
           | {:default_pagination_type, pagination_type() | false}
+          | {:filterable, [atom]}
           | {:filtering, boolean}
           | {:for, module}
           | {:max_limit, pos_integer | false}
@@ -561,6 +573,7 @@ defmodule Flop do
           | {:pagination, boolean}
           | {:pagination_types, [pagination_type()]}
           | {:replace_invalid_params, boolean}
+          | {:sortable, [atom]}
           | {:tiebreaker, tiebreaker()}
           | {:max_cursor_size, pos_integer}
           | {:extra_opts, Keyword.t()}
@@ -2519,12 +2532,29 @@ defmodule Flop do
     end
   end
 
+  @doc false
+  @spec allowed_fields(:filterable | :sortable, [option()]) :: [atom] | nil
+  def allowed_fields(key, opts) when key in [:filterable, :sortable] do
+    schema_fields = schema_option(opts[:for], key)
+
+    case {opts[key], schema_fields} do
+      {nil, _} -> schema_fields
+      {fields, nil} -> fields
+      {fields, _} -> intersect_fields(fields, schema_fields)
+    end
+  end
+
+  defp intersect_fields(fields, schema_fields) do
+    Enum.filter(schema_fields, &(&1 in fields))
+  end
+
   defp schema_option(module, key)
        when is_atom(module) and module != nil and
               key in [
                 :default_limit,
                 :default_order,
                 :filterable,
+                :max_filters,
                 :max_limit,
                 :pagination_types,
                 :default_pagination_type,

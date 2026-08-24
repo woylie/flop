@@ -639,6 +639,11 @@ defprotocol Flop.Schema do
   - `:sortable` (required) - A list of fields that can be used for sorting.
     Supports fields from the Ecto schema, join fields, compound fields, alias
     fields, and custom fields that configure `:field_dynamic`.
+
+  Both lists can be narrowed for a single query by passing `:filterable` or
+  `:sortable` to a query function. A query function cannot widen them, so the
+  lists configured here are the only fields a caller can ever use.
+
   - `:default_limit` - The default limit applied if no `limit`, `page_size`,
     `first` or `last` parameter is set. Set to `false` to not set any default
     limit.

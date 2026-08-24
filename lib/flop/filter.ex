@@ -14,7 +14,6 @@ defmodule Flop.Filter do
 
   import Ecto.Changeset
   import Flop.Misc, only: [expand_type: 1, storable_value?: 2]
-  import Flop.Schema
 
   alias Ecto.Changeset
   alias Flop.CustomTypes.Any
@@ -188,7 +187,7 @@ defmodule Flop.Filter do
       filter
       |> cast(params, [:field, :op])
       |> validate_required([:field, :op])
-      |> validate_filterable(module)
+      |> validate_filterable(opts)
 
     if changeset.valid? do
       repo = get_repo(opts)
@@ -279,16 +278,12 @@ defmodule Flop.Filter do
     end
   end
 
-  @spec validate_filterable(Changeset.t(), module | nil) :: Changeset.t()
-  defp validate_filterable(changeset, nil), do: changeset
-
-  defp validate_filterable(changeset, module) when is_atom(module) do
-    filterable_fields =
-      module
-      |> struct()
-      |> filterable()
-
-    validate_inclusion(changeset, :field, filterable_fields)
+  @spec validate_filterable(Changeset.t(), keyword) :: Changeset.t()
+  defp validate_filterable(changeset, opts) do
+    case Flop.allowed_fields(:filterable, opts) do
+      nil -> changeset
+      fields -> validate_inclusion(changeset, :field, fields)
+    end
   end
 
   defp validate_op(changeset, nil, _), do: changeset
