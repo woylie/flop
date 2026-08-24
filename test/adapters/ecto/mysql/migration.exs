@@ -29,6 +29,7 @@ defmodule Flop.Repo.Mysql.Migration do
       add(:attributes, :map)
       add(:extra, {:map, :string})
       add(:references, :json)
+      add(:image, :binary)
       add(:owner_id, references(:owners))
     end
   end

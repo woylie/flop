@@ -48,6 +48,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   on array fields, with `JSON_CONTAINS` and `JSON_LENGTH` on MySQL, instead of
   raising.
 - Remove the `:=~` operator from the operators allowed for boolean fields.
+- Remove the pattern operators (`:like`, `:starts_with`, etc.) from the
+  operators allowed for `binary` and `binary_id` fields.
+- Remove the `:contains` and `:not_contains` operators from the operators
+  allowed for `binary` fields.
 - Support cursor pagination on nullable columns.
 - Return a validation error instead of raising a `FunctionClauseError` when a
   join field is configured with the tuple shorthand that was removed earlier.

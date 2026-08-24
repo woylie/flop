@@ -13,6 +13,7 @@ defmodule MyApp.Fruit do
              :family,
              :attributes,
              :extra,
+             :image,
              :references,
              :owner_attributes,
              :owner_extra
@@ -45,6 +46,7 @@ defmodule MyApp.Fruit do
     field :family, :string
     field :attributes, :map
     field :extra, {:map, :string}
+    field :image, :binary
     field :references, {:array, :binary_id}
 
     belongs_to :owner, Owner
