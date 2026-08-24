@@ -497,7 +497,7 @@ defmodule Flop do
   | `:max_cursor_size`         | yes      | no     | yes     | yes     |
   | `:default_limit`           | yes      | yes    | yes     | yes     |
   | `:max_limit`               | yes      | yes    | yes     | yes     |
-  | `:max_filters`             | yes      | no     | yes     | yes     |
+  | `:max_filters`             | yes      | yes    | yes     | yes     |
   | `:default_order`           | yes      | yes    | no      | no      |
   | `:default_pagination_type` | yes      | yes    | yes     | yes     |
   | `:pagination_types`        | yes      | yes    | yes     | yes     |

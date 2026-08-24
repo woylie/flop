@@ -21,6 +21,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   is applied to a query.
 - Add the `diagnostics` option, which enables checks about how Flop is used. It
   can only be set in the application environment.
+- Allow setting `max_filters` when deriving `Flop.Schema`.
 
 ### Changed
 
@@ -33,7 +34,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   disable.
 - Accept cursor pagination parameters without an order field unless the
   tiebreaker is disabled.
-- Add `tiebreaker/1` and `primary_key/1` to the `Flop.Schema` protocol.
+- Add `tiebreaker/1`, `primary_key/1` and `max_filters/1` to the `Flop.Schema`
+  protocol.
 - Only log a warning about a query that already has an `ORDER BY` clause when
   the `diagnostics` option is enabled in the application environment.
 - Raise an `ArgumentError` when a `Flop` struct with a non-matching pagination
