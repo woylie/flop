@@ -46,9 +46,13 @@ Ecto.Adapters.MyXQL.storage_up(Flop.Repo.config())
 
 {:ok, _pid} = Flop.Repo.start_link()
 
+# A MySQL schema is a database, so `other_schema` is a sibling of the test
+# database rather than something inside it, and storage_down leaves it behind.
+Flop.Repo.query!("DROP SCHEMA IF EXISTS other_schema;")
+
 Ecto.Migrator.up(Flop.Repo, 0, Flop.Repo.Mysql.Migration, log: true)
 
 Ecto.Adapters.SQL.Sandbox.mode(Flop.Repo, :manual)
 
 {:ok, _} = Application.ensure_all_started(:ex_machina)
-ExUnit.start(exclude: [:binary_id_array, :composite_type, :prefix])
+ExUnit.start(exclude: [:binary_id_array, :composite_type])

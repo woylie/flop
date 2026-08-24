@@ -486,19 +486,47 @@ defmodule Flop do
   4. Global options in the application environment
   5. Library defaults
 
-  Not every option can be set at every level:
+  Not every option can be set at every level. The columns are in look-up order,
+  so the leftmost level that sets an option is the one that applies.
 
-  - `:for`, `:count`, `:count_query` and `:extra_opts` are only read from the
-    function arguments.
-  - `:default_order` can only be set on a schema or passed to a query function.
-  - `:tiebreaker` can be set at every level, but specific fields can only be
-    set on a schema or passed to a query function.
-  - `:cursor_value_func`, `:filtering`, `:max_cursor_size`, `:max_filters`,
-    `:ordering`, `:pagination`, `:query_opts`, `:replace_invalid_params` and
-    `:repo` cannot be set on a schema.
+  | Option                     | Function | Schema | Backend | App env |
+  | :------------------------- | :------- | :----- | :------ | :------ |
+  | `:for`                     | yes      | no     | no      | no      |
+  | `:cursor_value_func`       | yes      | no     | yes     | yes     |
+  | `:replace_invalid_params`  | yes      | no     | yes     | yes     |
+  | `:max_cursor_size`         | yes      | no     | yes     | yes     |
+  | `:default_limit`           | yes      | yes    | yes     | yes     |
+  | `:max_limit`               | yes      | yes    | yes     | yes     |
+  | `:max_filters`             | yes      | no     | yes     | yes     |
+  | `:default_order`           | yes      | yes    | no      | no      |
+  | `:default_pagination_type` | yes      | yes    | yes     | yes     |
+  | `:pagination_types`        | yes      | yes    | yes     | yes     |
+  | `:tiebreaker`              | yes      | yes    | yes     | yes¹    |
+  | `:filtering`               | yes      | no     | yes     | yes     |
+  | `:ordering`                | yes      | no     | yes     | yes     |
+  | `:pagination`              | yes      | no     | yes     | yes     |
+  | `:count`                   | yes      | no     | no      | no      |
+  | `:count_query`             | yes      | no     | no      | no      |
+  | `:extra_opts`              | yes      | no     | no      | no      |
+  | `:adapter_opts`            | yes      | yes²   | yes     | yes     |
+
+  1. A tiebreaker that names fields cannot be set in the application
+     environment, since the field names would apply to every schema. Set
+     `:primary_key`, `{:primary_key, direction}` or `false` there, and name
+     fields on a schema or in a function call. Anything else raises.
+  2. `:adapter_opts` on a schema holds the field definitions — `join_fields`,
+     `compound_fields`, `custom_fields` and `alias_fields`. The other levels
+     hold `:repo` and `:query_opts`. See "Adapter option look-up" below.
+
+  `:default_order` follows the same rule as the tiebreaker: it names fields, so
+  the application environment ignores it.
 
   The application environment accepts the same options as a backend module.
   Anything else set under the `:flop` key is ignored.
+
+  The options that describe the fields themselves — `:filterable`, `:sortable`
+  and the field definitions — are documented in `Flop.Schema`. They are read
+  when the schema is derived rather than through the look-up order above.
 
   ## Adapter option look-up
 
@@ -2235,6 +2263,9 @@ defmodule Flop do
       [:ttfb]
       iex> flop.order_directions
       [:desc_nulls_last]
+      iex> flop = push_order(flop, :ttfb, directions: directions)
+      iex> flop.order_directions
+      [:asc_nulls_last]
 
   This also allows you to sort in descending order initially.
 
@@ -2249,6 +2280,9 @@ defmodule Flop do
       [:ttfb]
       iex> flop.order_directions
       [:asc]
+      iex> flop = push_order(flop, :ttfb, directions: directions)
+      iex> flop.order_directions
+      [:desc]
 
   If a string is passed as the second argument, it will be converted to an atom
   using `String.to_existing_atom/1`. If the atom does not exist, the `Flop`

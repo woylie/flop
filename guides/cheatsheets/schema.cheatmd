@@ -501,6 +501,9 @@ ecto_type: {:ecto_enum, [:one, :two]}
 ecto_type: {:from_schema, MyApp.Pet, :mood}
 ```
 
+A custom Ecto type used in a filter or a cursor has to return the database type
+name from `type/0`, since Flop casts those values with `Ecto.Query.API.type/2`.
+
 ### Compile-time dependencies
 
 Naming a module in `@derive` makes it a compile-time dependency. Build the

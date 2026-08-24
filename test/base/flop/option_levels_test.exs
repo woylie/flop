@@ -15,6 +15,7 @@ defmodule Flop.OptionLevelsTest do
       Application.delete_env(:flop, :max_cursor_size)
       Application.delete_env(:flop, :default_order)
       Application.delete_env(:flop, :tiebreaker)
+      Application.put_env(:flop, :repo, Flop.Repo)
     end)
   end
 
@@ -108,6 +109,63 @@ defmodule Flop.OptionLevelsTest do
       assert_raise ArgumentError,
                    ~r/invalid tiebreaker in the application environment/,
                    fn -> Flop.ordering(%Flop{order_by: [:name]}, for: Pet) end
+    end
+  end
+
+  describe "the option table in t:Flop.option/0" do
+    test "matches the options a backend module and the application environment take" do
+      assert Flop.NimbleSchemas.backend_option_keys() == [
+               :adapter,
+               :adapter_opts,
+               :cursor_value_func,
+               :default_limit,
+               :max_cursor_size,
+               :max_filters,
+               :max_limit,
+               :replace_invalid_params,
+               :tiebreaker,
+               :default_pagination_type,
+               :filtering,
+               :ordering,
+               :pagination,
+               :pagination_types,
+               :repo,
+               :query_opts
+             ]
+    end
+
+    test "matches the options a schema takes" do
+      assert Keyword.keys(Flop.NimbleSchemas.schema_option_schema()) == [
+               :adapter,
+               :adapter_opts,
+               :filterable,
+               :sortable,
+               :default_order,
+               :default_limit,
+               :max_limit,
+               :tiebreaker,
+               :pagination_types,
+               :default_pagination_type,
+               :join_fields,
+               :compound_fields,
+               :custom_fields,
+               :alias_fields
+             ]
+    end
+  end
+
+  describe "repo" do
+    test "raises when it is set at no level" do
+      Application.delete_env(:flop, :repo)
+
+      for fun <- [:all, :count, :run] do
+        error =
+          assert_raise Flop.NoRepoError, fn ->
+            apply(Flop, fun, [Pet, %Flop{}])
+          end
+
+        assert Exception.message(error) =~ "no Ecto repo configured"
+      end
     end
   end
 end

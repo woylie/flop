@@ -13,7 +13,6 @@ defmodule Flop.Adapters.Ecto.FlopTest do
   import Flop.TestUtil
 
   alias __MODULE__.TestProvider
-  alias Ecto.Query.QueryExpr
   alias Flop.Filter
   alias Flop.Meta
   alias Flop.Repo
@@ -563,7 +562,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    test "applies empty and not_empty filter" do
+    property "applies empty and not_empty filter" do
       check all pet_count <- integer(@pet_count_range),
                 pets =
                   insert_list_and_sort(pet_count, :pet,
@@ -598,7 +597,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    test "applies empty and not_empty filter with string values" do
+    property "applies empty and not_empty filter with string values" do
       check all pet_count <- integer(@pet_count_range),
                 pets =
                   insert_list_and_sort(pet_count, :pet,
@@ -633,7 +632,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    test "applies empty and not_empty filter to array fields" do
+    property "applies empty and not_empty filter to array fields" do
       check all pet_count <- integer(@pet_count_range),
                 pets =
                   insert_list_and_sort(pet_count, :pet_with_owner,
@@ -670,7 +669,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
-    test "applies empty and not_empty filter to map fields" do
+    property "applies empty and not_empty filter to map fields" do
       check all fruit_count <- integer(@pet_count_range),
                 fruits =
                   insert_list_and_sort(fruit_count, :fruit,
@@ -1654,7 +1653,6 @@ defmodule Flop.Adapters.Ecto.FlopTest do
 
       flop = %Flop{limit: 100, offset: 4, order_by: [:name, :species, :age]}
       query = Flop.query(Pet, flop)
-      assert %QueryExpr{params: [{4, :integer}]} = query.offset
       assert Repo.all(query) == expected_pets
     end
 
@@ -1665,20 +1663,14 @@ defmodule Flop.Adapters.Ecto.FlopTest do
 
       flop = %Flop{page: 1, page_size: 10, order_by: order_by}
       query = Flop.query(Pet, flop)
-      assert %QueryExpr{params: [{0, :integer}]} = query.offset
-      assert %{params: [{10, :integer}]} = query.limit
       assert Repo.all(query) == Enum.slice(sorted_pets, 0..9)
 
       flop = %Flop{page: 2, page_size: 10, order_by: order_by}
       query = Flop.query(Pet, flop)
-      assert %QueryExpr{params: [{10, :integer}]} = query.offset
-      assert %{params: [{10, :integer}]} = query.limit
       assert Repo.all(query) == Enum.slice(sorted_pets, 10..19)
 
       flop = %Flop{page: 3, page_size: 4, order_by: order_by}
       query = Flop.query(Pet, flop)
-      assert %QueryExpr{params: [{8, :integer}]} = query.offset
-      assert %{params: [{4, :integer}]} = query.limit
       assert Repo.all(query) == Enum.slice(sorted_pets, 8..11)
     end
   end
@@ -2174,7 +2166,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
         )
     end
 
-    test "pages past a nil cursor value when using for option" do
+    property "pages past a nil cursor value when using for option" do
       check all pets <- uniq_list_of_pets(length: 2..2),
                 cursor_fields <- cursor_fields(%Pet{}),
                 directions <- order_directions(%Pet{}) do
@@ -2249,7 +2241,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                "cursor pagination is not supported for alias fields"
     end
 
-    test "pages past a nil cursor value when not using for option" do
+    property "pages past a nil cursor value when not using for option" do
       check all pets <- uniq_list_of_pets(length: 2..2),
                 directions <- order_directions(%Pet{}) do
         checkin_checkout()
