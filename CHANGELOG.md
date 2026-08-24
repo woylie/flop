@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-08-24
+
 ### Added
 
 - Support SQLite.
@@ -83,6 +85,32 @@ logged when diagnostics are enabled. To keep seeing it, add this to
 ```elixir
 config :flop, diagnostics: true
 ```
+
+`sortable` and `filterable` passed to a query function now narrow the schema's
+lists instead of replacing them. A call site can no longer add a field the
+schema does not list. Add any missing field to the schema options:
+
+```diff
+ @derive {Flop.Schema,
+   filterable: [:name],
+-  sortable: [:name]}
++  sortable: [:name, :internal_rank]}
+
+ Flop.validate_and_run(Pet, params, for: Pet, sortable: [:internal_rank])
+```
+
+Flop appends the primary key to the order now by default, which means that the
+field list passed to `cursor_value_func` includes it now, and its value needs to
+be in the returned map. Ensure your custom `cursor_value_func` can handle the
+additional field.
+
+```diff
+-cursor_value_func: fn item, [:name] -> %{name: item.name} end
++cursor_value_func: fn item, fields -> Map.take(item, fields) end
+```
+
+You can set `tiebreaker: false` to disable this feature and revert to the
+previous behaviour.
 
 ## [0.27.2] - 2026-08-12
 
@@ -1128,7 +1156,8 @@ equivalent:
 
 - Initial release.
 
-[unreleased]: https://github.com/woylie/flop/compare/0.27.2...HEAD
+[unreleased]: https://github.com/woylie/flop/compare/0.28.0...HEAD
+[0.28.0]: https://github.com/woylie/flop/compare/0.27.2...0.28.0
 [0.27.2]: https://github.com/woylie/flop/compare/0.27.1...0.27.2
 [0.27.1]: https://github.com/woylie/flop/compare/0.27.0...0.27.1
 [0.27.0]: https://github.com/woylie/flop/compare/0.26.6...0.27.0
