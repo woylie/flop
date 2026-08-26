@@ -542,9 +542,7 @@ defmodule Flop.Filter do
   @doc since: "0.19.0"
   @spec fetch([t()] | [map] | map, atom) :: {:ok, t() | map} | :error
   def fetch(filters, field) when is_atom(field) do
-    filters
-    |> get(field)
-    |> case do
+    case get(filters, field) do
       %{} = filter -> {:ok, filter}
       nil -> :error
     end
@@ -605,9 +603,7 @@ defmodule Flop.Filter do
   @doc since: "0.20.0"
   @spec fetch_value([t()] | [map] | map, atom) :: {:ok, any} | :error
   def fetch_value(filters, field) when is_atom(field) do
-    filters
-    |> get_value(field)
-    |> case do
+    case get_value(filters, field) do
       nil -> :error
       value -> {:ok, value}
     end
@@ -682,9 +678,7 @@ defmodule Flop.Filter do
   def get(filters, field) when is_atom(field) do
     field_str = to_string(field)
 
-    filters
-    |> Enum.find(&matches_field?(&1, field, field_str))
-    |> case do
+    case Enum.find(filters, &matches_field?(&1, field, field_str)) do
       {_, filter} -> filter
       filter -> filter
     end
@@ -748,9 +742,7 @@ defmodule Flop.Filter do
   @doc since: "0.20.0"
   @spec get_value([t()] | [map] | map, atom) :: any | nil
   def get_value(filters, field) when is_atom(field) do
-    filters
-    |> get(field)
-    |> case do
+    case get(filters, field) do
       nil -> nil
       %{value: value} -> value
       %{"value" => value} -> value
