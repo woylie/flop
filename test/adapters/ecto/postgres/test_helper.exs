@@ -1,5 +1,3 @@
-Application.put_env(:flop, :async_integration_tests, true)
-
 # Configure PG connection
 Application.put_env(:flop, Flop.Repo,
   username: "postgres",

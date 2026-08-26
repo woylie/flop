@@ -1,6 +1,7 @@
 defmodule Flop.Adapters.Ecto.FlopTest do
-  use Flop.Integration.Case,
-    async: Application.compile_env(:flop, :async_integration_tests, true)
+  # Set async: Application.compile_env(:flop, :async_integration_tests, true)
+  # if a run loads a second test module in the future.
+  use Flop.Integration.Case, async: true
 
   use ExUnitProperties
 
