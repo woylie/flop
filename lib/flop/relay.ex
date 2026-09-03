@@ -56,7 +56,8 @@ defmodule Flop.Relay do
 
   - `:cursor_value_func`: 2-arity function that takes an item from the query
     result and the cursor fields and returns the unencoded cursor value. The
-    cursor fields are the order fields plus the tiebreaker.
+    cursor fields are the order fields plus the tiebreaker. A 3-arity function
+    is also passed the options given to the Flop function.
   """
   @doc since: "0.8.0"
   @spec connection_from_result({[any], Meta.t()}, [Flop.option()]) ::
@@ -167,7 +168,8 @@ defmodule Flop.Relay do
 
   - `:cursor_value_func`: 2-arity function that takes an item from the query
     result and the cursor fields and returns the unencoded cursor value. The
-    cursor fields are the order fields plus the tiebreaker.
+    cursor fields are the order fields plus the tiebreaker. A 3-arity function
+    is also passed the options given to the Flop function.
   """
   @doc since: "0.8.0"
   @spec edges_from_result({[{any, any}] | [any], Meta.t()}, [Flop.option()]) ::

@@ -26,14 +26,16 @@ defmodule Flop.ValidationTest do
 
   defmodule Thing do
     use Ecto.Schema
+    use Flop.Schema
 
-    @derive {Flop.Schema,
-             filterable: [],
-             sortable: [:name, :full_name, :thing_count],
-             adapter_opts: [
-               compound_fields: [full_name: [:family_name, :given_name]],
-               alias_fields: [:thing_count]
-             ]}
+    @flop_options [
+      filterable: [],
+      sortable: [:name, :full_name, :thing_count],
+      adapter_opts: [
+        compound_fields: [full_name: [:family_name, :given_name]],
+        alias_fields: [:thing_count]
+      ]
+    ]
 
     schema "things" do
       field :name, :string

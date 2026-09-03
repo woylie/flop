@@ -13,15 +13,17 @@ and one named "rope", Bravo has one "ball", and Charlie has one "rope".
 ```elixir
 defmodule MyApp.Pet do
   use Ecto.Schema
+  use Flop.Schema
 
-  @derive {Flop.Schema,
-           filterable: [:name, :toy_name],
-           sortable: [:name],
-           adapter_opts: [
-             join_fields: [
-               toy_name: [binding: :toys, field: :name, ecto_type: :string]
-             ]
-           ]}
+  @flop_options [
+    filterable: [:name, :toy_name],
+    sortable: [:name],
+    adapter_opts: [
+      join_fields: [
+        toy_name: [binding: :toys, field: :name, ecto_type: :string]
+      ]
+    ]
+  ]
 
   schema "pets" do
     field :name, :string
@@ -216,22 +218,24 @@ The complete example below uses the first option, since it is the common case.
 ```elixir
 defmodule MyApp.Pet do
   use Ecto.Schema
+  use Flop.Schema
 
-  @derive {Flop.Schema,
-           filterable: [:name, :toy_name],
-           sortable: [:name],
-           default_order: %{
-             order_by: [:name],
-             order_directions: [:asc]
-           },
-           adapter_opts: [
-             custom_fields: [
-               toy_name: [
-                 filter: {MyApp.Filters, :toy_name, []},
-                 ecto_type: :string
-               ]
-             ]
-           ]}
+  @flop_options [
+    filterable: [:name, :toy_name],
+    sortable: [:name],
+    default_order: %{
+      order_by: [:name],
+      order_directions: [:asc]
+    },
+    adapter_opts: [
+      custom_fields: [
+        toy_name: [
+          filter: {MyApp.Filters, :toy_name, []},
+          ecto_type: :string
+        ]
+      ]
+    ]
+  ]
 
   schema "pets" do
     field :name, :string

@@ -92,17 +92,20 @@ function and pass the `field` as an option. We also need to mark the field as
 filterable.
 
 ```elixir
-@derive {Flop.Schema,
-         filterable: [:partial_id],
-         # ...
-         adapter_opts: [
-           custom_fields: [
-             partial_id: [
-               filter: {MyApp.Filters, :partial_uuid_filter, [field: :id]},
-               ecto_type: :string
-             ]
-           ]
-         ]}
+use Flop.Schema
+
+@flop_options [
+  filterable: [:partial_id],
+  # ...
+  adapter_opts: [
+    custom_fields: [
+      partial_id: [
+        filter: {MyApp.Filters, :partial_uuid_filter, [field: :id]},
+        ecto_type: :string
+      ]
+    ]
+  ]
+]
 ```
 
 ## Complete example
@@ -110,22 +113,24 @@ filterable.
 ```elixir
 defmodule MyApp.Pet do
   use Ecto.Schema
+  use Flop.Schema
 
-  @derive {Flop.Schema,
-           filterable: [:partial_id],
-           sortable: [:name],
-           default_order: %{
-             order_by: [:name],
-             order_directions: [:asc]
-           },
-           adapter_opts: [
-             custom_fields: [
-               partial_id: [
-                 filter: {MyApp.Filters, :partial_uuid_filter, [field: :id]},
-                 ecto_type: :string
-               ]
-             ]
-           ]}
+  @flop_options [
+    filterable: [:partial_id],
+    sortable: [:name],
+    default_order: %{
+      order_by: [:name],
+      order_directions: [:asc]
+    },
+    adapter_opts: [
+      custom_fields: [
+        partial_id: [
+          filter: {MyApp.Filters, :partial_uuid_filter, [field: :id]},
+          ecto_type: :string
+        ]
+      ]
+    ]
+  ]
 
   @primary_key {:id, Ecto.UUID, autogenerate: true}
 

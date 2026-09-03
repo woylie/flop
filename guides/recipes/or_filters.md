@@ -10,12 +10,15 @@ A compound field applies one filter value to several fields, and the `_or`
 operators combine the parts with `OR`.
 
 ```elixir
-@derive {Flop.Schema,
-         filterable: [:name_or_species],
-         sortable: [:name],
-         adapter_opts: [
-           compound_fields: [name_or_species: [:name, :species]]
-         ]}
+use Flop.Schema
+
+@flop_options [
+  filterable: [:name_or_species],
+  sortable: [:name],
+  adapter_opts: [
+    compound_fields: [name_or_species: [:name, :species]]
+  ]
+]
 ```
 
 ```elixir

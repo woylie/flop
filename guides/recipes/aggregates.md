@@ -51,10 +51,13 @@ Name the aggregate in the select clause with `Ecto.Query.API.selected_as/2` and
 declare it as an alias field.
 
 ```elixir
-@derive {Flop.Schema,
-         filterable: [:species],
-         sortable: [:species, :total],
-         adapter_opts: [alias_fields: [:total]]}
+use Flop.Schema
+
+@flop_options [
+  filterable: [:species],
+  sortable: [:species, :total],
+  adapter_opts: [alias_fields: [:total]]
+]
 ```
 
 ```elixir

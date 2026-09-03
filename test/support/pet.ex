@@ -3,12 +3,12 @@ defmodule MyApp.Pet do
   Defines an Ecto schema for testing.
   """
   use Ecto.Schema
+  use Flop.Schema
   import Ecto.Query
 
   alias MyApp.Owner
 
-  @derive {
-    Flop.Schema,
+  @flop_options [
     filterable: [
       :id,
       :age,
@@ -61,7 +61,7 @@ defmodule MyApp.Pet do
         ]
       ]
     ]
-  }
+  ]
 
   @primary_key {:id, :id, autogenerate: true}
   schema "pets" do

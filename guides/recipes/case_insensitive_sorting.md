@@ -19,10 +19,13 @@ Select `lower(name)` under a name with `Ecto.Query.API.selected_as/2` and
 declare an alias field.
 
 ```elixir
-@derive {Flop.Schema,
-         filterable: [],
-         sortable: [:name_lower],
-         adapter_opts: [alias_fields: [:name_lower]]}
+use Flop.Schema
+
+@flop_options [
+  filterable: [],
+  sortable: [:name_lower],
+  adapter_opts: [alias_fields: [:name_lower]]
+]
 ```
 
 ```elixir

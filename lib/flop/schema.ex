@@ -1,6 +1,6 @@
-defprotocol Flop.Schema do
+defmodule Flop.Schema do
   @moduledoc """
-  Flop.Schema is a protocol that allows you to customize and set query options
+  Flop.Schema is a behaviour that allows you to customize and set query options
   in your Ecto schemas.
 
   This module allows you to define which fields are filterable and sortable, set
@@ -9,17 +9,17 @@ defprotocol Flop.Schema do
 
   ## Usage
 
-  To utilize this protocol, derive `Flop.Schema` in your Ecto schema and define
+  To utilize this behaviour, add `use Flop.Schema` to your Ecto schema and define
   the filterable and sortable fields.
 
       defmodule MyApp.Pet do
         use Ecto.Schema
+        use Flop.Schema
 
-        @derive {
-          Flop.Schema,
+        @flop_options [
           filterable: [:name, :species],
           sortable: [:name, :age]
-        }
+        ]
 
         schema "pets" do
           field :name, :string
@@ -30,10 +30,13 @@ defprotocol Flop.Schema do
 
   See `t:option/0` for an overview of all available options.
 
-  > #### `@derive Flop.Schema` {: .info}
+  > #### `use Flop.Schema` {: .info}
   >
-  > When you derive `Flop.Schema`, all the functions required for the
-  > `Flop.Schema` protocol will be defined based on the options you set.
+  > When you `use Flop.Schema`, the module will:
+  >
+  > - set `@behaviour Flop.Schema`
+  > - define `__flop_schema__/0`, the callback that behaviour requires, from
+  >   the options in `@flop_options`
 
   After that, you can pass the module as the `:for` option to `Flop.validate/2`.
 
@@ -65,33 +68,35 @@ defprotocol Flop.Schema do
   ## Default and maximum limits
 
   Define a default or maximum limit by setting the `default_limit` and
-  `max_limit` options while deriving Flop.Schema. `Flop.validate/1` will apply
+  `max_limit` options in `@flop_options`. `Flop.validate/1` will apply
   the default limit and validate the maximum limit.
 
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [:name, :species],
         sortable: [:name, :age],
         max_limit: 100,
         default_limit: 50
-      }
+      ]
 
   ## Default sort order
 
   Specify a default sort order by setting the `default_order_by` and
-  `default_order_directions` options when deriving Flop.Schema. The default
+  `default_order_directions` options in `@flop_options`. The default
   values will be applied by `Flop.validate/1`. If no order directions are set,
   `:asc` is the default for all fields.
 
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [:name, :species],
         sortable: [:name, :age],
         default_order: %{
           order_by: [:name, :age],
           order_directions: [:asc, :desc]
         }
-      }
+      ]
 
   ## Tiebreaker
 
@@ -101,12 +106,13 @@ defprotocol Flop.Schema do
   `:tiebreaker` option to change the direction, to name other fields, or to
   turn it off.
 
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [:name],
         sortable: [:name],
         tiebreaker: {:primary_key, :desc}
-      }
+      ]
 
   See `t:Flop.tiebreaker/0` for the accepted values. You can also set the option
   on a backend module, in the application environment, or per query function
@@ -137,12 +143,13 @@ defprotocol Flop.Schema do
   enabled. If you wish to restrict the pagination type for a schema, you can
   set the `:pagination_types` option.
 
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [:name, :species],
         sortable: [:name, :age],
         pagination_types: [:first, :last]
-      }
+      ]
 
   Setting the value to `nil` (default) allows all pagination types.
 
@@ -156,14 +163,15 @@ defprotocol Flop.Schema do
 
   Schema:
 
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [],
         sortable: [:pet_count],
         adapter_opts: [
           alias_fields: [:pet_count]
         ]
-      }
+      ]
 
   Query:
 
@@ -186,14 +194,15 @@ defprotocol Flop.Schema do
   e.g. you might want to search in both the family name and given name field.
   You can do that with Flop by defining a compound field.
 
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [:full_name],
         sortable: [:full_name],
         adapter_opts: [
           compound_fields: [full_name: [:family_name, :given_name]]
         ]
-      }
+      ]
 
   This allows you to use the field name `:full_name` as any other field in the
   filter and order parameters.
@@ -291,8 +300,9 @@ defprotocol Flop.Schema do
   `"E. africanus"`. To do this, first we need to define a join field on the
   `Owner` schema.
 
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [:pet_species],
         sortable: [:pet_species],
         adapter_opts: [
@@ -304,7 +314,7 @@ defprotocol Flop.Schema do
             ]
           ]
         ]
-      }
+      ]
 
   In this case, `:pet_species` would be the alias of the field that you can
   refer to in the filter and order parameters. The options are:
@@ -318,7 +328,7 @@ defprotocol Flop.Schema do
 
   In order to retrieve the pagination cursor value for a join field, Flop needs
   to know how to get the field value from the struct that is returned from the
-  database. `Flop.Schema.get_field/2` is used for that. By default, Flop assumes
+  database. `Flop.Schema.get_field/3` is used for that. By default, Flop assumes
   that the binding name matches the name of the field for the association in
   your Ecto schema (the one you set with `has_one`, `has_many` or `belongs_to`).
 
@@ -328,8 +338,9 @@ defprotocol Flop.Schema do
   If you have joins across multiple tables, or if you can't give the binding
   the same name as the association field, you can specify the path explicitly.
 
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [:pet_species],
         sortable: [:pet_species],
         adapter_opts: [
@@ -341,7 +352,7 @@ defprotocol Flop.Schema do
             ]
           ]
         ]
-      }
+      ]
 
   After setting up the join fields, you can write a query like this:
 
@@ -377,8 +388,9 @@ defprotocol Flop.Schema do
 
   Schema:
 
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [:pet_count],
         sortable: [:pet_count],
         adapter_opts: [
@@ -390,7 +402,7 @@ defprotocol Flop.Schema do
             ]
           ]
         ]
-      }
+      ]
 
   Query:
 
@@ -440,8 +452,9 @@ defprotocol Flop.Schema do
 
   Schema:
 
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [:inserted_at_date],
         sortable: [:inserted_at_date],
         adapter_opts: [
@@ -454,7 +467,7 @@ defprotocol Flop.Schema do
             ]
           ]
         ]
-      }
+      ]
 
   If you pass the `:ecto_type` option like above, the filter value will be
   automatically cast.
@@ -551,8 +564,9 @@ defprotocol Flop.Schema do
   Therefore, you need to specify the `ecto_type` option. This helps Flop cast
   filter values for join and custom fields properly.
 
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [:full_text, :pet_species],
         sortable: [:id],
         adapter_opts: [
@@ -570,7 +584,7 @@ defprotocol Flop.Schema do
             ]
           ]
         ]
-      }
+      ]
 
   You can specify any Ecto type with the `ecto_type` option. Here are some
   examples:
@@ -624,10 +638,27 @@ defprotocol Flop.Schema do
   struct.
   """
 
-  @fallback_to_any true
+  alias Flop.NimbleSchemas
+
+  @instructions """
+  a schema module must use Flop.Schema
+
+  Set both the filterable and the sortable option:
+
+      @flop_options [
+        filterable: [:name, :species],
+        sortable: [:name, :age, :species]
+      ]
+
+      schema "pets" do
+        field :name, :string
+        field :age, :integer
+        field :species, :string
+      end
+  """
 
   @typedoc """
-  Options that can be passed when deriving the Flop.Schema protocol.
+  Options that can be set in `@flop_options`.
 
   These are either general schema options or adapter-specific options nested
   under the `:adapter_opts` key. For backward compatibility, the options of the
@@ -698,7 +729,7 @@ defprotocol Flop.Schema do
   - `:field` (required)
   - `:ecto_type` (required) - The Ecto type of the field. The filter operator
     and value validation is based on this option.
-  - `:path` - This option is used by `Flop.Schema.get_field/2` to retrieve the
+  - `:path` - This option is used by `Flop.Schema.get_field/3` to retrieve the
     field value from a row. That function is also used by the default cursor
     functions in `Flop.Cursor` to determine the cursors. If the option is
     omitted, it defaults to `[binding, field]`.
@@ -729,7 +760,7 @@ defprotocol Flop.Schema do
     is used.
   - `:operators` - Defines which filter operators are allowed for this field.
     If omitted, all operators will be accepted.
-  - `:path` - This option is used by `Flop.Schema.get_field/2` to retrieve the
+  - `:path` - This option is used by `Flop.Schema.get_field/3` to retrieve the
     field value from a row. That function is also used by the default cursor
     functions in `Flop.Cursor` to determine the cursors. If the option is
     omitted, it defaults to `[field_name]`.
@@ -763,9 +794,6 @@ defprotocol Flop.Schema do
 
   `{:from_schema, MyApp.Pet, :mood}`
 
-  This makes the referenced module a compile-time dependency of your schema. See
-  the module documentation for the reason and for a way to avoid it.
-
   Or build an adhoc Ecto.Enum:
 
   - `{:ecto_enum, [:one, :two]}`
@@ -782,13 +810,22 @@ defprotocol Flop.Schema do
           | {:ecto_enum, [atom] | keyword}
 
   @doc """
+  Returns the schema configuration built from `@flop_options`.
+
+  Defined by `use Flop.Schema`. Read it through `flop_schema!/1` rather than
+  calling it directly; its shape is not part of the public API.
+  """
+  @doc since: "0.29.0"
+  @callback __flop_schema__() :: map
+
+  @doc """
   Returns the field information for the given field name.
 
   ## Examples
 
-      iex> field_info(%MyApp.Pet{}, :age)
+      iex> field_info(MyApp.Pet, :age)
       %Flop.FieldInfo{ecto_type: :integer, extra: %{type: :normal, field: :age}}
-      iex> field_info(%MyApp.Pet{}, :full_name)
+      iex> field_info(MyApp.Pet, :full_name)
       %Flop.FieldInfo{
         ecto_type: :string,
         operators: [
@@ -808,7 +845,7 @@ defprotocol Flop.Schema do
         ],
         extra: %{type: :compound, fields: [:family_name, :given_name]}
       }
-      iex> field_info(%MyApp.Pet{}, :owner_name)
+      iex> field_info(MyApp.Pet, :owner_name)
       %Flop.FieldInfo{
         ecto_type: :string,
         extra: %{
@@ -818,7 +855,7 @@ defprotocol Flop.Schema do
           field: :name
         }
       }
-      iex> field_info(%MyApp.Pet{}, :reverse_name)
+      iex> field_info(MyApp.Pet, :reverse_name)
       %Flop.FieldInfo{
         ecto_type: :string,
         extra: %{
@@ -831,32 +868,28 @@ defprotocol Flop.Schema do
       }
   """
   @doc since: "0.22.0"
-  @spec field_info(any, atom) :: Flop.FieldInfo.t()
-  def field_info(data, field)
+  @spec field_info(module, atom) :: Flop.FieldInfo.t()
+  def field_info(module, field) do
+    %{fields: fields} = flop_schema!(module)
 
-  @doc """
-  Returns the filterable fields of a schema.
+    case fields do
+      %{^field => info} ->
+        resolve_ecto_type(info)
 
-      iex> Flop.Schema.filterable(%MyApp.Pet{})
-      [
-        :id,
-        :age,
-        :full_name,
-        :mood,
-        :name,
-        :owner_age,
-        :owner_name,
-        :owner_tags,
-        :pet_and_owner_name,
-        :species,
-        :tags,
-        :custom,
-        :reverse_name
-      ]
-  """
-  @doc since: "0.1.0"
-  @spec filterable(any) :: [atom]
-  def filterable(data)
+      _ ->
+        raise Flop.UnknownFieldError,
+          known_fields: Map.keys(fields),
+          unknown_fields: [field]
+    end
+  end
+
+  defp resolve_ecto_type(
+         %Flop.FieldInfo{ecto_type: {:from_schema, module, field}} = info
+       ) do
+    %{info | ecto_type: module.__schema__(:type, field)}
+  end
+
+  defp resolve_ecto_type(%Flop.FieldInfo{} = info), do: info
 
   @doc """
   Gets the field value from a struct.
@@ -865,14 +898,14 @@ defprotocol Flop.Schema do
 
       # join_fields: [owner_name: [binding: :owner, field: :name]]
       iex> pet = %MyApp.Pet{name: "George", owner: %MyApp.Owner{name: "Carl"}}
-      iex> Flop.Schema.get_field(pet, :name)
+      iex> Flop.Schema.get_field(MyApp.Pet, pet, :name)
       "George"
-      iex> Flop.Schema.get_field(pet, :owner_name)
+      iex> Flop.Schema.get_field(MyApp.Pet, pet, :owner_name)
       "Carl"
 
       # compound_fields: [full_name: [:family_name, :given_name]]
       iex> pet = %MyApp.Pet{given_name: "George", family_name: "Gooney"}
-      iex> Flop.Schema.get_field(pet, :full_name)
+      iex> Flop.Schema.get_field(MyApp.Pet, pet, :full_name)
       "Gooney George"
 
   For join fields, this function relies on the binding name in the schema config
@@ -882,138 +915,64 @@ defprotocol Flop.Schema do
   is computed in the query and is only there if you selected it.
   """
   @doc since: "0.13.0"
-  @spec get_field(any, atom) :: any
-  def get_field(data, field)
-
-  @doc """
-  Returns the allowed pagination types of a schema.
-
-      iex> Flop.Schema.pagination_types(%MyApp.Fruit{})
-      [:first, :last, :offset]
-  """
-  @doc since: "0.9.0"
-  @spec pagination_types(any) :: [Flop.pagination_type()] | nil
-  def pagination_types(data)
-
-  @doc """
-  Returns the default pagination type of a schema.
-
-      iex> Flop.Schema.default_pagination_type(%MyApp.Owner{})
-      :page
-  """
-  @doc since: "0.21.0"
-  @spec default_pagination_type(any) :: Flop.pagination_type() | nil
-  def default_pagination_type(data)
-
-  @doc """
-  Returns the sortable fields of a schema.
-
-      iex> Flop.Schema.sortable(%MyApp.Pet{})
-      [:name, :age, :mood, :owner_name, :owner_age]
-  """
-  @doc since: "0.1.0"
-  @spec sortable(any) :: [atom]
-  def sortable(data)
-
-  @doc """
-  Returns the default limit of a schema.
-
-      iex> Flop.Schema.default_limit(%MyApp.Fruit{})
-      60
-  """
-  @doc since: "0.3.0"
-  @spec default_limit(any) :: pos_integer | nil
-  def default_limit(data)
-
-  @doc """
-  Returns the default order of a schema.
-
-      iex> Flop.Schema.default_order(%MyApp.Fruit{})
-      %{order_by: [:name], order_directions: [:asc]}
-  """
-  @doc since: "0.7.0"
-  # This is a map instead of a keyword list because the default order can also
-  # be passed directly to the `validate_*` functions, where we need it as a map.
-  # Using two different formats would be confusing.
-  @spec default_order(any) ::
-          %{
-            order_by: [atom] | nil,
-            order_directions: [Flop.order_direction()] | nil
-          }
-          | nil
-  def default_order(data)
-
-  @doc """
-  Returns the tiebreaker of a schema.
-
-      iex> Flop.Schema.tiebreaker(%MyApp.Fruit{})
-      nil
-  """
-  @doc since: "0.28.0"
-  @spec tiebreaker(any) :: Flop.tiebreaker() | nil
-  def tiebreaker(data)
+  @spec get_field(module, any, atom) :: any
+  def get_field(module, item, field) do
+    %{adapter: adapter} = flop_schema!(module)
+    adapter.get_field(item, field, field_info(module, field))
+  end
 
   @doc """
   Returns the fields that identify a record, used as the default tiebreaker.
 
-      iex> Flop.Schema.primary_key(%MyApp.Fruit{})
+      iex> Flop.Schema.primary_key(MyApp.Fruit)
       [:id]
   """
   @doc since: "0.28.0"
-  @spec primary_key(any) :: [atom]
-  def primary_key(data)
+  @spec primary_key(module) :: [atom]
+  def primary_key(module) do
+    %{adapter: adapter} = flop_schema!(module)
+    adapter.primary_key(module)
+  end
 
   @doc """
-  Returns the maximum limit of a schema.
+  Returns the schema configuration of the given module.
 
-      iex> Flop.Schema.max_limit(%MyApp.Pet{})
-      1000
+  Raises if the module does not `use Flop.Schema`.
   """
-  @doc since: "0.2.0"
-  @spec max_limit(any) :: pos_integer | nil
-  def max_limit(data)
+  @doc since: "0.29.0"
+  @spec flop_schema!(module) :: map
+  def flop_schema!(module) do
+    module.__flop_schema__()
+  rescue
+    UndefinedFunctionError ->
+      reraise ArgumentError,
+              [message: @instructions <> not_a_schema(module)],
+              __STACKTRACE__
+  end
 
-  @doc """
-  Returns the maximum number of filters of a schema.
+  defp not_a_schema(module), do: "\n#{inspect(module)} does not.\n"
 
-      iex> Flop.Schema.max_filters(%MyApp.Pet{})
-      nil
-  """
-  @doc since: "0.28.0"
-  @spec max_filters(any) :: pos_integer | nil
-  def max_filters(data)
-end
+  defmacro __using__(_opts) do
+    quote do
+      @behaviour Flop.Schema
+      @before_compile Flop.Schema
+    end
+  end
 
-defimpl Flop.Schema, for: Any do
-  alias Flop.NimbleSchemas
+  @doc false
+  defmacro __before_compile__(env) do
+    build_impl(env.module, struct_from_env(env), flop_options!(env))
+  end
 
-  @instructions """
-  Flop.Schema protocol must always be explicitly implemented.
+  defp build_impl(module, struct, options) do
+    caller_module = module
 
-  To do this, you have to derive Flop.Schema in your Ecto schema module. You
-  have to set both the filterable and the sortable option.
-
-      @derive {
-        Flop.Schema,
-        filterable: [:name, :species],
-        sortable: [:name, :age, :species]
-      }
-
-      schema "pets" do
-        field :name, :string
-        field :age, :integer
-        field :species, :string
-      end
-
-  """
-  # credo:disable-for-next-line
-  defmacro __deriving__(module, struct, options) do
     options =
       NimbleSchemas.validate!(
         options,
         :schema_option,
         Flop.Schema,
-        __CALLER__.module
+        caller_module
       )
 
     legacy_adapter_opts =
@@ -1030,70 +989,90 @@ defimpl Flop.Schema, for: Any do
       Keyword.merge(legacy_adapter_opts, Keyword.fetch!(options, :adapter_opts))
 
     adapter_opts =
-      adapter.init_schema_opts(options, adapter_opts, __CALLER__.module, struct)
+      adapter.init_schema_opts(options, adapter_opts, caller_module, struct)
 
     options = Keyword.put(options, :adapter_opts, adapter_opts)
 
     validate_options!(options, adapter_opts, struct)
 
-    filterable_fields = Keyword.get(options, :filterable)
-    sortable_fields = Keyword.get(options, :sortable)
-    default_limit = Keyword.get(options, :default_limit)
-    max_limit = Keyword.get(options, :max_limit)
-    max_filters = Keyword.get(options, :max_filters)
-    pagination_types = Keyword.get(options, :pagination_types)
-    default_pagination_type = Keyword.get(options, :default_pagination_type)
-    default_order = Keyword.get(options, :default_order)
-    tiebreaker = Keyword.get(options, :tiebreaker)
-
-    field_info_func = build_field_info_func(adapter, adapter_opts, struct)
-    get_field_func = build_get_field_func(struct, adapter, adapter_opts)
+    fields = adapter.fields(struct, adapter_opts)
+    config = schema_config(options, fields)
 
     quote do
-      defimpl Flop.Schema, for: unquote(module) do
-        def default_limit(_) do
-          unquote(default_limit)
-        end
-
-        def default_order(_) do
-          unquote(Macro.escape(default_order))
-        end
-
-        def tiebreaker(_) do
-          unquote(Macro.escape(tiebreaker))
-        end
-
-        def primary_key(struct) do
-          unquote(adapter).primary_key(struct)
-        end
-
-        unquote(field_info_func)
-        unquote(get_field_func)
-
-        def filterable(_) do
-          unquote(filterable_fields)
-        end
-
-        def max_limit(_) do
-          unquote(max_limit)
-        end
-
-        def max_filters(_) do
-          unquote(max_filters)
-        end
-
-        def pagination_types(_) do
-          unquote(pagination_types)
-        end
-
-        def default_pagination_type(_) do
-          unquote(default_pagination_type)
-        end
-
-        def sortable(_) do
-          unquote(sortable_fields)
-        end
+      def __flop_schema__ do
+        unquote(Macro.escape(config))
       end
+    end
+  end
+
+  @options [
+    :default_limit,
+    :default_order,
+    :default_pagination_type,
+    :filterable,
+    :max_filters,
+    :max_limit,
+    :pagination_types,
+    :sortable,
+    :tiebreaker
+  ]
+
+  defp schema_config(options, fields) do
+    @options
+    |> Map.new(&{&1, Keyword.get(options, &1)})
+    |> Map.put(:adapter, Keyword.fetch!(options, :adapter))
+    |> Map.put(:fields, Map.new(fields, &resolve_at_compile_time/1))
+  end
+
+  # Build Ecto.Enum once at compile time. {:from_schema, _, _} is not resolved
+  # at compile time, as it would introduce a compile dependency;
+  # Flop.field_info/2 resolves it at runtime instead.
+  defp resolve_at_compile_time(
+         {name, %{ecto_type: {:ecto_enum, values}} = info}
+       ) do
+    {name,
+     %{info | ecto_type: Ecto.ParameterizedType.init(Ecto.Enum, values: values)}}
+  end
+
+  defp resolve_at_compile_time({name, info}), do: {name, info}
+
+  # Macro.struct!/2 is soft-deprecated in favor of Macro.struct_info!/2, which
+  # was introduced in Elixir 1.18. Change when Elixir < 1.18 is not supported
+  # anymore and raise minimum Elixir version then.
+  if function_exported?(Macro, :struct_info!, 2) do
+    defp struct_from_env(env) do
+      env.module
+      |> Macro.struct_info!(env)
+      |> Map.new(fn %{field: field, default: default} -> {field, default} end)
+      |> Map.put(:__struct__, env.module)
+    end
+  else
+    defp struct_from_env(env), do: Macro.struct!(env.module, env)
+  end
+
+  defp flop_options!(env) do
+    if Module.has_attribute?(env.module, :flop_options) do
+      # Reading the attribute in an env that claims to be inside a function
+      # results in a runtime reference rather than a compile-time reference.
+      fun_env = %{env | function: {:__flop_schema__, 0}}
+      {options, _} = Code.eval_quoted(quote(do: @flop_options), [], fun_env)
+      options
+    else
+      raise ArgumentError, """
+      @flop_options is missing
+
+      A module that uses Flop.Schema must set the options in
+      the @flop_options attribute:
+
+          use Flop.Schema
+
+          @flop_options [
+            filterable: [:name],
+            sortable: [:name]
+          ]
+
+      #{inspect(env.module)} sets neither.
+      """
     end
   end
 
@@ -1197,114 +1176,5 @@ defimpl Flop.Schema, for: Any do
         sortable_fields: MapSet.to_list(sortable_fields),
         unsortable_fields: MapSet.to_list(unsortable_fields)
     end
-  end
-
-  def build_field_info_func(adapter, adapter_opts, struct) do
-    fields = adapter.fields(struct, adapter_opts)
-
-    funcs =
-      for {name, field_info} <- fields do
-        case field_info do
-          %{ecto_type: {:from_schema, module, field}} ->
-            quote do
-              def field_info(_, unquote(name)) do
-                %{
-                  unquote(Macro.escape(field_info))
-                  | ecto_type: unquote(module).__schema__(:type, unquote(field))
-                }
-              end
-            end
-
-          %{ecto_type: {:ecto_enum, values}} ->
-            type = Ecto.ParameterizedType.init(Ecto.Enum, values: values)
-            field_info = %{field_info | ecto_type: type}
-
-            quote do
-              def field_info(_, unquote(name)) do
-                unquote(Macro.escape(field_info))
-              end
-            end
-
-          _ ->
-            quote do
-              def field_info(_, unquote(name)) do
-                unquote(Macro.escape(field_info))
-              end
-            end
-        end
-      end
-
-    funcs ++ [build_unknown_field_func(:field_info, fields)]
-  end
-
-  def build_get_field_func(struct, adapter, adapter_opts) do
-    fields = adapter.fields(struct, adapter_opts)
-
-    funcs =
-      for {field, field_info} <- fields do
-        quote do
-          def get_field(struct, unquote(field)) do
-            unquote(adapter).get_field(
-              struct,
-              unquote(field),
-              unquote(Macro.escape(field_info))
-            )
-          end
-        end
-      end
-
-    funcs ++ [build_unknown_field_func(:get_field, fields)]
-  end
-
-  defp build_unknown_field_func(func_name, fields) do
-    known_fields = Enum.map(fields, fn {name, _} -> name end)
-
-    quote do
-      def unquote(func_name)(_, field) do
-        raise Flop.UnknownFieldError,
-          known_fields: unquote(known_fields),
-          unknown_fields: [field]
-      end
-    end
-  end
-
-  function_names = [
-    :default_limit,
-    :default_order,
-    :filterable,
-    :max_filters,
-    :max_limit,
-    :pagination_types,
-    :default_pagination_type,
-    :primary_key,
-    :sortable,
-    :tiebreaker
-  ]
-
-  for function_name <- function_names do
-    def unquote(function_name)(struct) do
-      raise Protocol.UndefinedError,
-        protocol: @protocol,
-        value: struct,
-        description: @instructions
-    end
-  end
-
-  def field_info(struct, _) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: @instructions
-  end
-
-  # add default implementation for maps, so that cursor value functions can use
-  # it without checking protocol implementation
-  def get_field(%{} = map, field), do: Map.get(map, field)
-
-  def get_field(thing, _) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: thing,
-      description: @instructions
   end
 end

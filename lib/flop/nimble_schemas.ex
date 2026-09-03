@@ -229,11 +229,12 @@ defmodule Flop.NimbleSchemas do
     if cursor_value_func?(value) do
       {:ok, value}
     else
-      {:error, "expected a function of arity 2, got: #{inspect(value)}"}
+      {:error, "expected a function of arity 2 or 3, got: #{inspect(value)}"}
     end
   end
 
   defp cursor_value_func?(value) when is_function(value, 2), do: true
+  defp cursor_value_func?(value) when is_function(value, 3), do: true
 
   # `use Flop` validates its options before they are expanded, where a function
   # literal is still a capture or an anonymous function node. `{:fun, 2}` would

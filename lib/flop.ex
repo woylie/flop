@@ -96,17 +96,19 @@ defmodule Flop do
 
   ## Schema options
 
-  You can set some options for a schema by deriving `Flop.Schema`. The options
+  You can set some options for a schema with `Flop.Schema`. The options
   are evaluated at the validation step.
 
       defmodule Pet do
         use Ecto.Schema
+        use Flop.Schema
 
-        @derive {Flop.Schema,
-                 filterable: [:name, :species],
-                 sortable: [:name, :age],
-                 default_limit: 20,
-                 max_limit: 100}
+        @flop_options [
+          filterable: [:name, :species],
+          sortable: [:name, :age],
+          default_limit: 20,
+          max_limit: 100
+        ]
 
         schema "pets" do
           field :name, :string
@@ -324,9 +326,11 @@ defmodule Flop do
   alias Flop.Adapter
   alias Flop.Cursor
   alias Flop.CustomTypes.ExistingAtom
+  alias Flop.FieldInfo
   alias Flop.Filter
   alias Flop.Meta
   alias Flop.NimbleSchemas
+  alias Flop.Schema
 
   @default_opts [default_limit: 50, max_limit: 1000, max_filters: 20]
 
@@ -409,7 +413,7 @@ defmodule Flop do
   ### General
 
   - `:for` - The Ecto schema module for validation and query building.
-    `Flop.Schema` must be derived for this module.
+    The module must use `Flop.Schema`.
   - `:filterable` - The fields that may be used in filters. A list passed to a
     query function narrows the list configured on the schema; it cannot widen
     it.
@@ -419,8 +423,11 @@ defmodule Flop do
   - `:cursor_value_func` - A function used to extract the cursor value from a
     record. It takes the record and the list of fields used in the `ORDER BY`
     clause as arguments, and returns a map with the order fields as keys and the
-    corresponding record values as values. Default is
-    `Flop.Cursor.get_cursor_from_node/2`.
+    corresponding record values as values. A 3-arity function is also passed the
+    options given to the Flop function, so that it can read `:for` to resolve a
+    field with a `:path` when the record is a plain map rather than a struct,
+    and `:extra_opts` for runtime context. Default is
+    `Flop.Cursor.get_cursor_from_node/3`.
   - `:replace_invalid_params` - If set to `true`, invalid parameters are
     replaced with default values or removed instead of causing errors. Default
     is `false`.
@@ -559,7 +566,8 @@ defmodule Flop do
   at the root wins over the same option nested under `:adapter_opts`.
   """
   @type option ::
-          {:cursor_value_func, (any, [atom] -> map)}
+          {:cursor_value_func,
+           (any, [atom] -> map) | (any, [atom], keyword -> map)}
           | {:default_limit, pos_integer | false}
           | {:default_order, default_order()}
           | {:default_pagination_type, pagination_type() | false}
@@ -668,7 +676,7 @@ defmodule Flop do
   - `page`, `page_size`: Used for offset-based pagination as an alternative to
     `offset` and `limit`.
   - `order_by`: List of fields to order by. Fields can be restricted by
-    deriving `Flop.Schema` in your Ecto schema.
+    `Flop.Schema` in your Ecto schema.
   - `order_directions`: List of order directions applied to the fields defined
     in `order_by`. If empty or the list is shorter than the `order_by` list,
     `:asc` will be used as a default for each missing order direction.
@@ -908,10 +916,11 @@ defmodule Flop do
   - `for`: Passed to `Flop.validate/2`. Also used to look up the join, alias,
     compound and custom field configuration.
   - `repo`: The `Ecto.Repo` module. Required if no default repo is configured.
-  - `cursor_value_func`: An arity-2 function to be used to retrieve an
-    unencoded cursor value from a query result item and the cursor fields. The
-    cursor fields are the order fields plus the tiebreaker, see
-    `Flop.cursor_fields/2`. Defaults to `Flop.Cursor.get_cursor_from_node/2`.
+  - `cursor_value_func`: An arity-2 or arity-3 function to be used to retrieve
+    an unencoded cursor value from a query result item and the cursor fields.
+    The cursor fields are the order fields plus the tiebreaker, see
+    `Flop.cursor_fields/2`. An arity-3 function is also passed the options given
+    to the Flop function. Defaults to `Flop.Cursor.get_cursor_from_node/3`.
   - `count_query`: Lets you override the base query for counting, e.g. if you
     don't want to include unnecessary joins. The filter parameters are applied
     to the given query. See also `Flop.count/3`.
@@ -1345,8 +1354,7 @@ defmodule Flop do
 
   defp primary_key_ordering(module, direction) do
     module
-    |> struct()
-    |> Flop.Schema.primary_key()
+    |> Schema.primary_key()
     |> Enum.map(&{direction, &1})
   end
 
@@ -1423,10 +1431,10 @@ defmodule Flop do
       )
       when is_integer(first) do
     adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
-    struct = if module = opts[:for], do: struct(module)
+    module = opts[:for]
     orderings = ordering(flop, opts)
     decoded_cursor = decoded_cursor || Cursor.decode!(after_)
-    cursor_fields = prepare_cursor_fields(struct, decoded_cursor, orderings)
+    cursor_fields = prepare_cursor_fields(module, decoded_cursor, orderings)
 
     q
     |> adapter.apply_cursor(cursor_fields, opts)
@@ -1463,11 +1471,11 @@ defmodule Flop do
       )
       when is_integer(last) do
     adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
-    struct = if module = opts[:for], do: struct(module)
+    module = opts[:for]
     orderings = flop |> ordering(opts) |> reverse_ordering()
 
     decoded_cursor = decoded_cursor || Cursor.decode!(before)
-    cursor_fields = prepare_cursor_fields(struct, decoded_cursor, orderings)
+    cursor_fields = prepare_cursor_fields(module, decoded_cursor, orderings)
 
     q
     |> adapter.apply_cursor(cursor_fields, opts)
@@ -1477,10 +1485,10 @@ defmodule Flop do
 
   def paginate(q, _, _), do: q
 
-  @spec prepare_cursor_fields(struct | nil, map, [{atom, atom}]) :: [
-          {order_direction(), atom, any, Flop.FieldInfo.t()}
+  @spec prepare_cursor_fields(module | nil, map, [{atom, atom}]) :: [
+          {order_direction(), atom, any, FieldInfo.t()}
         ]
-  defp prepare_cursor_fields(struct, decoded_cursor, ordering) do
+  defp prepare_cursor_fields(module, decoded_cursor, ordering) do
     ordering
     # Only take order fields until a key is not found in the cursor. This
     # ensures that cursors that were generated without a tiebreaker will not
@@ -1490,7 +1498,7 @@ defmodule Flop do
       Map.has_key?(decoded_cursor, field)
     end)
     |> Enum.map(fn {direction, field} ->
-      field_info = struct && Flop.Schema.field_info(struct, field)
+      field_info = module && Schema.field_info(module, field)
       {direction, field, Map.fetch!(decoded_cursor, field), field_info}
     end)
   end
@@ -1556,21 +1564,15 @@ defmodule Flop do
   def filter(q, %Flop{filters: []}, _), do: q
 
   def filter(q, %Flop{filters: filters}, opts) when is_list(filters) do
-    schema_struct =
-      case opts[:for] do
-        nil -> nil
-        module -> struct(module)
-      end
-
-    Enum.reduce(filters, q, &apply_filter(&2, &1, schema_struct, opts))
+    Enum.reduce(filters, q, &apply_filter(&2, &1, opts[:for], opts))
   end
 
   defp apply_filter(query, %Filter{field: nil}, _, _), do: query
   defp apply_filter(query, %Filter{value: nil}, _, _), do: query
 
-  defp apply_filter(query, %Filter{} = filter, schema_struct, opts) do
+  defp apply_filter(query, %Filter{} = filter, schema_module, opts) do
     adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
-    adapter.apply_filter(query, filter, schema_struct, opts)
+    adapter.apply_filter(query, filter, schema_module, opts)
   end
 
   ## Validation
@@ -1610,7 +1612,7 @@ defmodule Flop do
       iex> meta.errors
       [limit: [{"cannot combine multiple pagination types", []}]]
 
-  If you derived `Flop.Schema` in your Ecto schema to define the filterable
+  If your Ecto schema uses `Flop.Schema` to define the filterable
   and sortable fields, you can pass the module name to the function to validate
   that only allowed fields are used. The function will also apply any default
   values set for the schema.
@@ -2515,7 +2517,7 @@ defmodule Flop do
   The look-up order is:
 
   1. the keyword list passed as the second argument
-  2. the schema module that derives `Flop.Schema`, if the passed list includes
+  2. the schema module that uses `Flop.Schema`, if the passed list includes
      the `:for` option
   3. the backend module with `use Flop`
   4. the application environment
@@ -2533,7 +2535,22 @@ defmodule Flop do
     end
   end
 
-  @doc false
+  @doc """
+  Returns the fields that may be filtered or sorted for the given options.
+
+  The function takes the fields that the schema declares and narrows them with
+  the list passed in the options. This means the caller can restrict to
+  fewer fields but never use a field the schema excludes.
+
+  Pass the options the query ran with. `Flop.Meta` holds them in `:opts`, but a
+  meta built by hand might only `:schema`.
+
+      opts = Keyword.put(meta.opts, :for, meta.opts[:for] || meta.schema)
+      Flop.allowed_fields(:sortable, opts)
+
+  Returns `nil` when neither the schema nor the options set the field list.
+  """
+  @doc since: "0.29.0"
   @spec allowed_fields(:filterable | :sortable, [option()]) :: [atom] | nil
   def allowed_fields(key, opts) when key in [:filterable, :sortable] do
     schema_fields = schema_option(opts[:for], key)
@@ -2549,23 +2566,25 @@ defmodule Flop do
     Enum.filter(schema_fields, &(&1 in fields))
   end
 
-  defp schema_option(module, key)
-       when is_atom(module) and module != nil and
-              key in [
-                :default_limit,
-                :default_order,
-                :filterable,
-                :max_filters,
-                :max_limit,
-                :pagination_types,
-                :default_pagination_type,
-                :sortable,
-                :tiebreaker
-              ] do
-    apply(Flop.Schema, key, [struct(module)])
+  @doc false
+  @spec schema_option(module | nil, atom) :: any
+  def schema_option(module, key)
+      when is_atom(module) and module != nil and
+             key in [
+               :default_limit,
+               :default_order,
+               :filterable,
+               :max_filters,
+               :max_limit,
+               :pagination_types,
+               :default_pagination_type,
+               :sortable,
+               :tiebreaker
+             ] do
+    module |> Schema.flop_schema!() |> Map.get(key)
   end
 
-  defp schema_option(_, _), do: nil
+  def schema_option(_, _), do: nil
 
   defp backend_option(module, key)
        when is_atom(module) and module != nil do
@@ -2984,12 +3003,13 @@ defmodule Flop do
   Returns the names of the bindings that are required for the filters and order
   clauses of the given Flop.
 
-  The second argument is the schema module that derives `Flop.Schema`.
+  The second argument is the schema module that uses `Flop.Schema`.
 
   For example, your schema module might define a join field called `:owner_age`.
 
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [:name, :owner_age],
         sortable: [:name, :owner_age],
         adapter_opts: [
@@ -3000,7 +3020,7 @@ defmodule Flop do
             ]
           ]
         ]
-      }
+      ]
 
   If you pass a Flop with a filter on the `:owner_age` field, the returned list
   will include the `:owner` binding.
@@ -3040,8 +3060,8 @@ defmodule Flop do
       ...> )
       [:owner]
 
-  For custom fields, you can set the `:bindings` option when you derive the
-  `Flop.Schema` protocol.
+  For custom fields, you can set the `:bindings` option when you use
+  `Flop.Schema`.
 
   You can use this to dynamically build the join clauses needed for the query.
   See also `Flop.with_named_bindings/4`.
@@ -3077,23 +3097,21 @@ defmodule Flop do
     if order_by == [] && filters == [] do
       []
     else
-      schema_struct = struct(module)
-
       filter_fields =
         filters |> Enum.reject(&is_nil(&1.value)) |> Enum.map(& &1.field)
 
       fields = Enum.uniq(order_by ++ filter_fields)
 
       fields
-      |> Enum.map(&get_binding(schema_struct, &1))
+      |> Enum.map(&get_binding(module, &1))
       |> List.flatten()
       |> Enum.uniq()
     end
   end
 
-  defp get_binding(schema_struct, field) when is_atom(field) do
-    field_info = Flop.Schema.field_info(schema_struct, field)
-    get_binding(schema_struct, field_info)
+  defp get_binding(schema_module, field) when is_atom(field) do
+    field_info = Schema.field_info(schema_module, field)
+    get_binding(schema_module, field_info)
   end
 
   defp get_binding(_, %{extra: %{type: :join, binding: binding}}), do: binding
@@ -3116,7 +3134,7 @@ defmodule Flop do
 
   ## Options
 
-  - `:for` (required) - The schema module that derives `Flop.Schema`.
+  - `:for` (required) - The schema module that uses `Flop.Schema`.
   - `:order` - If `false`, only bindings needed for filtering are included.
     Defaults to `true`.
 
@@ -3190,19 +3208,20 @@ defmodule Flop do
   Returns the names of the alias fields that are required for the order clause
   of the given Flop.
 
-  The second argument is the schema module that derives `Flop.Schema`.
+  The second argument is the schema module that uses `Flop.Schema`.
 
   For example, your schema module might define an alias field called
   `:pet_count`.
 
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [],
         sortable: [:name, :pet_count],
         adapter_opts: [
           alias_fields: [:pet_count]
         ]
-      }
+      ]
 
   If you pass a Flop that orders by the `:pet_count` field, the returned list
   will include the `:pet_count` alias.
@@ -3266,17 +3285,15 @@ defmodule Flop do
     if order_by == [] do
       []
     else
-      schema_struct = struct(module)
-
       order_by
-      |> filter_alias_fields(schema_struct)
+      |> filter_alias_fields(module)
       |> Enum.uniq()
     end
   end
 
-  defp filter_alias_fields(order_fields, schema_struct) do
+  defp filter_alias_fields(order_fields, schema_module) do
     Enum.reduce(order_fields, [], fn order_field, alias_fields ->
-      case Flop.Schema.field_info(schema_struct, order_field) do
+      case Schema.field_info(schema_module, order_field) do
         %{extra: %{type: :alias}} -> [order_field | alias_fields]
         _ -> alias_fields
       end

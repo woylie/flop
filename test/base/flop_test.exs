@@ -613,8 +613,12 @@ defmodule FlopTest do
   describe "ordering/2" do
     defmodule CompositeKey do
       use Ecto.Schema
+      use Flop.Schema
 
-      @derive {Flop.Schema, filterable: [], sortable: [:name, :tenant_id]}
+      @flop_options [
+        filterable: [],
+        sortable: [:name, :tenant_id]
+      ]
 
       @primary_key false
       schema "composite_keys" do
@@ -626,8 +630,12 @@ defmodule FlopTest do
 
     defmodule NoKey do
       use Ecto.Schema
+      use Flop.Schema
 
-      @derive {Flop.Schema, filterable: [], sortable: [:name]}
+      @flop_options [
+        filterable: [],
+        sortable: [:name]
+      ]
 
       @primary_key false
       schema "no_keys" do
@@ -699,7 +707,7 @@ defmodule FlopTest do
   describe "get_option/3" do
     test "returns value from option list" do
       # sanity check
-      default_limit = Flop.Schema.default_limit(%Fruit{})
+      default_limit = Flop.schema_option(Fruit, :default_limit)
       assert default_limit && default_limit != 40
 
       assert Flop.get_option(
@@ -711,7 +719,7 @@ defmodule FlopTest do
 
     test "falls back to schema option" do
       # sanity check
-      assert default_limit = Flop.Schema.default_limit(%Fruit{})
+      assert default_limit = Flop.schema_option(Fruit, :default_limit)
 
       assert Flop.get_option(
                :default_limit,
@@ -722,7 +730,7 @@ defmodule FlopTest do
 
     test "falls back to backend config if schema option is not set" do
       # sanity check
-      assert Flop.Schema.default_limit(%Pet{}) == nil
+      assert Flop.schema_option(Pet, :default_limit) == nil
 
       assert Flop.get_option(
                :default_limit,
@@ -749,7 +757,7 @@ defmodule FlopTest do
 
     test "resolves the filterable fields of a schema" do
       assert Flop.get_option(:filterable, for: Pet) ==
-               Flop.Schema.filterable(%Pet{})
+               Flop.schema_option(Pet, :filterable)
     end
   end
 
@@ -849,8 +857,13 @@ defmodule FlopTest do
 
     defmodule SchemaWithoutMaxLimit do
       use Ecto.Schema
+      use Flop.Schema
 
-      @derive {Flop.Schema, filterable: [], sortable: [:name], max_limit: false}
+      @flop_options [
+        filterable: [],
+        sortable: [:name],
+        max_limit: false
+      ]
 
       schema "pets" do
         field :name, :string

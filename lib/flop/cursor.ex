@@ -241,7 +241,7 @@ defmodule Flop.Cursor do
       iex> Flop.Cursor.get_cursor_from_edge(record, [:id])
       %{id: 20}
 
-  If the edge is a struct that derives `Flop.Schema`, join and compound fields
+  If the edge is a struct whose module uses `Flop.Schema`, join and compound fields
   are resolved according to the configuration.
 
       iex> record = %{id: 25, relation: "sibling"}
@@ -267,17 +267,24 @@ defmodule Flop.Cursor do
   """
   @doc since: "0.11.0"
   @spec get_cursor_from_edge({map, map} | map, [atom]) :: map
-  def get_cursor_from_edge({_, %{} = item}, order_by) do
-    Enum.into(order_by, %{}, fn field ->
-      {field, Flop.Schema.get_field(item, field)}
-    end)
-  end
+  def get_cursor_from_edge(item, order_by),
+    do: get_cursor_from_edge(item, order_by, [])
 
-  def get_cursor_from_edge(%{} = item, order_by) do
-    Enum.into(order_by, %{}, fn field ->
-      {field, Flop.Schema.get_field(item, field)}
-    end)
-  end
+  @doc """
+  Same as `get_cursor_from_edge/2`, but takes the options passed to the Flop
+  function and resolves the field against the schema given as `:for`, instead of
+  against the type of `item`.
+
+  Without a schema, a plain map falls back to reading the field name at the top
+  level, which ignores a configured `:path`.
+  """
+  @doc since: "0.29.0"
+  @spec get_cursor_from_edge({map, map} | map, [atom], [Flop.option()]) :: map
+  def get_cursor_from_edge({_, %{} = item}, order_by, opts),
+    do: get_cursor_from_edge(item, order_by, opts)
+
+  def get_cursor_from_edge(%{} = item, order_by, opts),
+    do: cursor_values(item, order_by, opts)
 
   @doc """
   Takes a tuple with the node and the edge and the cursor field list and
@@ -299,7 +306,7 @@ defmodule Flop.Cursor do
       iex> Flop.Cursor.get_cursor_from_node(record, [:id])
       %{id: 20}
 
-  If the node is a struct that derives `Flop.Schema`, join and compound fields
+  If the node is a struct whose module uses `Flop.Schema`, join and compound fields
   are resolved according to the configuration.
 
       iex> record = %MyApp.Pet{
@@ -325,20 +332,50 @@ defmodule Flop.Cursor do
   """
   @doc since: "0.11.0"
   @spec get_cursor_from_node({map, map} | map, [atom]) :: map
-  def get_cursor_from_node({%{} = item, _}, order_by) do
-    Enum.into(order_by, %{}, fn field ->
-      {field, Flop.Schema.get_field(item, field)}
-    end)
+  def get_cursor_from_node(item, order_by),
+    do: get_cursor_from_node(item, order_by, [])
+
+  @doc """
+  Same as `get_cursor_from_node/2`, but takes the options passed to the Flop
+  function and resolves the field against the schema given as `:for`, instead of
+  against the type of `item`.
+
+  Without a schema, a plain map falls back to reading the field name at the top
+  level, which ignores a configured `:path`.
+  """
+  @doc since: "0.29.0"
+  @spec get_cursor_from_node({map, map} | map, [atom], [Flop.option()]) :: map
+  def get_cursor_from_node({%{} = item, _}, order_by, opts),
+    do: get_cursor_from_node(item, order_by, opts)
+
+  def get_cursor_from_node(%{} = item, order_by, opts),
+    do: cursor_values(item, order_by, opts)
+
+  defp cursor_values(item, order_by, opts) do
+    case opts[:for] do
+      nil ->
+        Enum.into(order_by, %{}, &{&1, get_field_without_schema(item, &1)})
+
+      module ->
+        Enum.into(order_by, %{}, &{&1, Flop.Schema.get_field(module, item, &1)})
+    end
   end
 
-  def get_cursor_from_node(%{} = item, order_by) do
-    Enum.into(order_by, %{}, fn field ->
-      {field, Flop.Schema.get_field(item, field)}
-    end)
+  defp get_field_without_schema(%module{} = item, field) do
+    if Code.ensure_loaded?(module) and
+         function_exported?(module, :__flop_schema__, 0) do
+      Flop.Schema.get_field(module, item, field)
+    else
+      Map.get(item, field)
+    end
   end
+
+  defp get_field_without_schema(item, field), do: Map.get(item, field)
 
   @doc false
   def cursor_value_func(opts \\ []) do
-    Flop.get_option(:cursor_value_func, opts, &get_cursor_from_node/2)
+    func = Flop.get_option(:cursor_value_func, opts, &get_cursor_from_node/3)
+
+    if is_function(func, 3), do: &func.(&1, &2, opts), else: func
   end
 end

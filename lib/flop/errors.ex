@@ -30,7 +30,7 @@ defmodule Flop.InvalidConfigError do
   end
 
   defp hint(Flop.Schema, caller_name) do
-    "An invalid option was passed to `@derive Flop.Schema` in the module `#{caller_name}`."
+    "An invalid option was passed to `@flop_options` in the module `#{caller_name}`."
   end
 
   defp hint(module, caller_name) do
@@ -171,14 +171,13 @@ defmodule Flop.InvalidDefaultPaginationTypeError do
     The default pagination type (#{inspect(default_pagination_type)}) set on the
     schema is not included in the allowed pagination types.
 
-    You derived your schema configuration similar to:
+    You configured your schema similar to:
 
-        @derive {
-          Flop.Schema,
+        @flop_options [
           # ...
-          default_pagination_type: #{inspect(default_pagination_type)}
+          default_pagination_type: #{inspect(default_pagination_type)},
           pagination_types: #{inspect(pagination_types)}
-        }
+        ]
 
     Here are a few ways to address this issue:
 

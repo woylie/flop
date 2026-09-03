@@ -5,6 +5,82 @@ defmodule Flop.CursorTest do
 
   doctest Flop.Cursor
 
+  describe "get_cursor_from_node/3" do
+    test "resolves a field path against the schema for a plain map" do
+      map = %{name: "George", owner: %{name: "Ann"}}
+
+      assert Cursor.get_cursor_from_node(map, [:owner_name], for: MyApp.Pet) ==
+               %{owner_name: "Ann"}
+    end
+
+    test "without a schema a plain map reads the field name at the top level" do
+      map = %{name: "George", owner: %{name: "Ann"}}
+
+      assert Cursor.get_cursor_from_node(map, [:owner_name]) ==
+               %{owner_name: nil}
+    end
+
+    test "a struct resolves the path either way" do
+      pet = %MyApp.Pet{name: "George", owner: %MyApp.Owner{name: "Ann"}}
+
+      assert Cursor.get_cursor_from_node(pet, [:owner_name]) ==
+               %{owner_name: "Ann"}
+
+      assert Cursor.get_cursor_from_node(pet, [:owner_name], for: MyApp.Pet) ==
+               %{owner_name: "Ann"}
+    end
+  end
+
+  describe "get_cursors/3" do
+    test "passes the schema to an arity-3 cursor value function" do
+      map = %{name: "George", owner: %{name: "Ann"}}
+
+      {start_cursor, _} =
+        Cursor.get_cursors([map], [:owner_name], for: MyApp.Pet)
+
+      assert Cursor.decode!(start_cursor) == %{owner_name: "Ann"}
+    end
+
+    test "an arity-2 cursor value function is called with two arguments" do
+      func = fn item, order_by -> Map.take(item, order_by) end
+
+      {start_cursor, _} =
+        Cursor.get_cursors([%{name: "George"}], [:name],
+          for: MyApp.Pet,
+          cursor_value_func: func
+        )
+
+      assert Cursor.decode!(start_cursor) == %{name: "George"}
+    end
+
+    test "an arity-3 cursor value function receives the options" do
+      func = fn _item, _order_by, opts -> %{schema: opts[:for]} end
+
+      {start_cursor, _} =
+        Cursor.get_cursors([%{}], [:name],
+          for: MyApp.Pet,
+          cursor_value_func: func
+        )
+
+      assert Cursor.decode!(start_cursor) == %{schema: MyApp.Pet}
+    end
+
+    test "an arity-3 cursor value function can read extra_opts" do
+      func = fn _item, _order_by, opts ->
+        %{tz: opts[:extra_opts][:timezone]}
+      end
+
+      {start_cursor, _} =
+        Cursor.get_cursors([%{}], [:name],
+          for: MyApp.Pet,
+          extra_opts: [timezone: "Asia/Tokyo"],
+          cursor_value_func: func
+        )
+
+      assert Cursor.decode!(start_cursor) == %{tz: "Asia/Tokyo"}
+    end
+  end
+
   describe "encoding/decoding" do
     test "encoding and decoding returns original value" do
       value = %{a: "b", c: [:d], e: {:f, "g", 5}, h: ~U[2020-09-25 11:09:41Z]}
