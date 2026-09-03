@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-09-03
+
 ### Added
 
 - Add `Flop.allowed_fields/2`, which returns the fields that may be filtered or
@@ -22,8 +24,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- Turn `Flop.Schema` from a protocol into a behaviour. Configure a schema with
-  `use Flop.Schema` and the `@flop_options` attribute.
+- Turn `Flop.Schema` from a protocol into a behaviour. Schemas are configured
+  with `use Flop.Schema` and the `@flop_options` attribute now.
 - Take the schema module instead of a struct in `Flop.Schema.field_info/2`,
   `Flop.Schema.get_field/3` and `Flop.Schema.primary_key/1`.
 - Default `cursor_value_func` to `Flop.Cursor.get_cursor_from_node/3`.
@@ -1255,7 +1257,8 @@ equivalent:
 
 - Initial release.
 
-[unreleased]: https://github.com/woylie/flop/compare/0.28.0...HEAD
+[unreleased]: https://github.com/woylie/flop/compare/0.29.0...HEAD
+[0.29.0]: https://github.com/woylie/flop/compare/0.28.0...0.29.0
 [0.28.0]: https://github.com/woylie/flop/compare/0.27.2...0.28.0
 [0.27.2]: https://github.com/woylie/flop/compare/0.27.1...0.27.2
 [0.27.1]: https://github.com/woylie/flop/compare/0.27.0...0.27.1
