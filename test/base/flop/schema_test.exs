@@ -48,6 +48,18 @@ defmodule Flop.SchemaTest do
     defstruct [:name]
   end
 
+  defmodule Basil do
+    use Flop.Schema
+
+    @flop_options [
+      adapter: Flop.TestAdapter,
+      adapter_opts: [declared_fields: [name: :string, age: :integer]],
+      filterable: [:name],
+      sortable: [:name, :age],
+      default_limit: 25
+    ]
+  end
+
   test "schema_option/2 returns the default order passed as an option" do
     assert Flop.schema_option(Panini, :default_order) == %{
              order_by: [:name, :age],
@@ -99,6 +111,63 @@ defmodule Flop.SchemaTest do
   test "calling get_field/3 without using Flop.Schema raises error" do
     assert_raise ArgumentError, fn ->
       Schema.get_field(Chard, %{}, :field)
+    end
+  end
+
+  describe "schema module without struct" do
+    test "implements the behaviour" do
+      refute function_exported?(Basil, :__struct__, 0)
+      assert function_exported?(Basil, :__flop_schema__, 0)
+    end
+
+    test "field_info/2 returns a field declared in adapter_opts" do
+      assert Schema.field_info(Basil, :name) == %Flop.FieldInfo{
+               ecto_type: :string,
+               extra: %{type: :normal, field: :name}
+             }
+    end
+
+    test "get_field/3 reads the field from a map" do
+      assert Schema.get_field(Basil, %{name: "George"}, :name) == "George"
+    end
+
+    test "primary_key/1 is empty" do
+      assert Schema.primary_key(Basil) == []
+    end
+
+    test "the options resolve" do
+      assert Flop.get_option(:default_limit, for: Basil) == 25
+      assert Flop.allowed_fields(:sortable, for: Basil) == [:name, :age]
+      assert Flop.allowed_fields(:filterable, for: Basil) == [:name]
+    end
+
+    test "validation applies the declared fields" do
+      assert {:ok, %Flop{order_by: [:name]}} =
+               Flop.validate(%{order_by: [:name]}, for: Basil)
+
+      assert {:error, %Flop.Meta{errors: errors}} =
+               Flop.validate(%{order_by: [:nope]}, for: Basil)
+
+      assert Keyword.has_key?(errors, :order_by)
+    end
+
+    test "an unknown sortable field raises at compile time" do
+      error =
+        assert_raise Flop.UnknownFieldError, fn ->
+          defmodule Sage do
+            use Flop.Schema
+
+            @flop_options [
+              adapter: Flop.TestAdapter,
+              adapter_opts: [declared_fields: [name: :string]],
+              filterable: [],
+              sortable: [:nope]
+            ]
+          end
+        end
+
+      assert Exception.message(error) =~ ":nope"
+      assert Exception.message(error) =~ ":name"
     end
   end
 

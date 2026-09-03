@@ -961,7 +961,11 @@ defmodule Flop.Schema do
 
   @doc false
   defmacro __before_compile__(env) do
-    build_impl(env.module, struct_from_env(env), flop_options!(env))
+    struct =
+      if Module.defines?(env.module, {:__struct__, 0}),
+        do: struct_from_env(env)
+
+    build_impl(env.module, struct, flop_options!(env))
   end
 
   defp build_impl(module, struct, options) do

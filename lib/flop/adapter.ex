@@ -9,11 +9,9 @@ defmodule Flop.Adapter do
 
   @callback init_backend_opts(keyword, keyword, module) :: keyword
 
-  # Struct is available while the schema is compiled. Change when
-  # replaced.
-  @callback init_schema_opts(keyword, keyword, module, struct) :: map
+  @callback init_schema_opts(keyword, keyword, module, struct | nil) :: map
 
-  @callback fields(struct, adapter_opts) :: [{field, Flop.FieldInfo.t()}]
+  @callback fields(struct | nil, adapter_opts) :: [{field, Flop.FieldInfo.t()}]
             when adapter_opts: map,
                  field: atom
 
