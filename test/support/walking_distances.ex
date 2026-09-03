@@ -3,12 +3,12 @@ defmodule MyApp.WalkingDistances do
   Defines an Ecto schema for testing.
   """
   use Ecto.Schema
+  use Flop.Schema
 
   alias Ecto.Changeset
   alias Flop.DistanceType
 
-  @derive {
-    Flop.Schema,
+  @flop_options [
     filterable: [
       :trip
     ],
@@ -17,7 +17,7 @@ defmodule MyApp.WalkingDistances do
       order_by: [:trip],
       order_directions: [:desc]
     }
-  }
+  ]
 
   schema "walking_distances" do
     field :trip, DistanceType

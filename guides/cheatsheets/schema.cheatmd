@@ -8,12 +8,12 @@
 ```elixir
 defmodule Pet do
   use Ecto.Schema
+  use Flop.Schema
 
-  @derive {
-    Flop.Schema,
+  @flop_options [
     filterable: [:name, :species],
     sortable: [:name, :age]
-  }
+  ]
 
   schema "pets" do
     field :name, :string
@@ -28,27 +28,29 @@ end
 #### Limit
 
 ```elixir
-@derive {
-  Flop.Schema,
+use Flop.Schema
+
+@flop_options [
   filterable: [:name, :species],
   sortable: [:name, :age],
   max_limit: 100,
   default_limit: 50
-}
+]
 ```
 
 #### Order
 
 ```elixir
-@derive {
-  Flop.Schema,
+use Flop.Schema
+
+@flop_options [
   filterable: [:name, :species],
   sortable: [:name, :age],
   default_order: %{
     order_by: [:name, :age],
     order_directions: [:asc, :desc]
   }
-}
+]
 ```
 
 #### Tiebreaker
@@ -56,24 +58,26 @@ end
 Appended to every order Flop applies. Defaults to the primary key, ascending.
 
 ```elixir
-@derive {
-  Flop.Schema,
+use Flop.Schema
+
+@flop_options [
   filterable: [:name, :species],
   sortable: [:name, :age],
   tiebreaker: {:primary_key, :desc}
-}
+]
 ```
 
 #### Pagination types
 
 ```elixir
-@derive {
-  Flop.Schema,
+use Flop.Schema
+
+@flop_options [
   filterable: [:name, :species],
   sortable: [:name, :age],
   pagination_types: [:first, :last],
   default_pagination_type: :first
-}
+]
 ```
 
 ## Alias fields
@@ -84,15 +88,15 @@ Appended to every order Flop applies. Defaults to the primary key, ascending.
 ```elixir
 defmodule Owner do
   use Ecto.Schema
+  use Flop.Schema
 
-  @derive {
-    Flop.Schema,
+  @flop_options [
     filterable: [:name],
     sortable: [:name, :pet_count],
     adapter_opts: [
       alias_fields: [:pet_count]
     ]
-  }
+  ]
 
   schema "owners" do
     field :name, :string
@@ -124,9 +128,9 @@ Owner
 ```elixir
 defmodule User do
   use Ecto.Schema
+  use Flop.Schema
 
-  @derive {
-    Flop.Schema,
+  @flop_options [
     filterable: [:full_name],
     sortable: [:full_name],
     adapter_opts: [
@@ -134,7 +138,7 @@ defmodule User do
         full_name: [:family_name, :given_name]
       ]
     ]
-  }
+  ]
 
   schema "users" do
     field :family_name, :string
@@ -165,9 +169,9 @@ Flop.validate_and_run(User, params, for: User)
 ```elixir
 defmodule Owner do
   use Ecto.Schema
+  use Flop.Schema
 
-  @derive {
-    Flop.Schema,
+  @flop_options [
     filterable: [:name, :pet_age],
     sortable: [:name],
     adapter_opts: [
@@ -179,7 +183,7 @@ defmodule Owner do
         ]
       ]
     ]
-  }
+  ]
 
   schema "owners" do
     field :name, :string
@@ -236,9 +240,9 @@ Owner
 ```elixir
 defmodule Pet do
   use Ecto.Schema
+  use Flop.Schema
 
-  @derive {
-    Flop.Schema,
+  @flop_options [
     filterable: [:name, :owner_city],
     sortable: [:name, :owner_city],
     adapter_opts: [
@@ -255,7 +259,7 @@ defmodule Pet do
         ]
       ]
     ]
-  }
+  ]
 
   schema "pets" do
     field :name, :string
@@ -311,9 +315,9 @@ Pet
 ```elixir
 defmodule Owner do
   use Ecto.Schema
+  use Flop.Schema
 
-  @derive {
-    Flop.Schema,
+  @flop_options [
     filterable: [:name, :pet_count],
     sortable: [:name, :pet_count],
     adapter_opts: [
@@ -325,7 +329,7 @@ defmodule Owner do
         ]
       ]
     ]
-  }
+  ]
 
   schema "owners" do
     field :name, :string
@@ -375,9 +379,9 @@ q =
 ```elixir
 defmodule Pet do
   use Ecto.Schema
+  use Flop.Schema
 
-  @derive {
-    Flop.Schema,
+  @flop_options [
     filterable: [:name, :human_age],
     sortable: [:name, :human_age],
     adapter_opts: [
@@ -389,7 +393,7 @@ defmodule Pet do
         ]
       ]
     ]
-  }
+  ]
 
   schema "pets" do
     field :name, :string
@@ -503,30 +507,6 @@ ecto_type: {:from_schema, MyApp.Pet, :mood}
 
 A custom Ecto type used in a filter or a cursor has to return the database type
 name from `type/0`, since Flop casts those values with `Ecto.Query.API.type/2`.
-
-### Compile-time dependencies
-
-Naming a module in `@derive` makes it a compile-time dependency. Build the
-module name without an alias to avoid that.
-
-```elixir
-@pet Module.concat(["MyApp", "Pet"])
-
-@derive {
-  Flop.Schema,
-  filterable: [:pet_mood],
-  sortable: [],
-  adapter_opts: [
-    join_fields: [
-      pet_mood: [
-        binding: :pets,
-        field: :mood,
-        ecto_type: {:from_schema, @pet, :mood}
-      ]
-    ]
-  ]
-}
-```
 
 ## Cursor pagination
 {: .col-2}

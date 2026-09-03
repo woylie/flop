@@ -28,7 +28,7 @@ defmodule Flop.Generators do
   defp moods, do: Ecto.Enum.values(MyApp.Pet, :mood)
 
   def filterable_pet_field do
-    member_of(Flop.Schema.filterable(%MyApp.Pet{}))
+    member_of(Flop.schema_option(MyApp.Pet, :filterable))
   end
 
   def filterable_pet_field(:string) do
@@ -166,17 +166,17 @@ defmodule Flop.Generators do
   defp operator_by_type(a) when is_number(a),
     do: member_of([:==, :!=, :<=, :<, :>=, :>])
 
-  def cursor_fields(%{} = schema) do
-    schema
-    |> Flop.Schema.sortable()
+  def cursor_fields(%{__struct__: module}) do
+    module
+    |> Flop.schema_option(:sortable)
     |> Enum.shuffle()
     |> constant()
   end
 
-  def order_directions(%{} = schema) do
+  def order_directions(%{__struct__: module}) do
     field_count =
-      schema
-      |> Flop.Schema.sortable()
+      module
+      |> Flop.schema_option(:sortable)
       |> length()
 
     @order_directions

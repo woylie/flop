@@ -95,10 +95,13 @@ Change the direction, name other fields, or turn the tiebreaker off when the
 order is already unique:
 
 ```elixir
-@derive {Flop.Schema,
-         filterable: [],
-         sortable: [:id, :name],
-         tiebreaker: {:primary_key, :desc}}
+use Flop.Schema
+
+@flop_options [
+  filterable: [],
+  sortable: [:id, :name],
+  tiebreaker: {:primary_key, :desc}
+]
 ```
 
 > #### Tiebreaker fields have to be selected {: .warning}
@@ -152,7 +155,7 @@ pagination.
 ```
 
 Flop reads the cursor value of each order field from the returned row with
-`Flop.Schema.get_field/2`. For a field of the schema this is the struct field of
+`Flop.Schema.get_field/3`. For a field of the schema this is the struct field of
 the same name, and there is nothing to configure.
 
 A join field is read through its `path`, which defaults to `[binding, field]`.

@@ -340,11 +340,10 @@ defmodule Flop.Validation do
 
     if module && sortable_fields do
       order_by = get_value(changeset, :order_by) || []
-      struct = struct(module)
 
       unsupported =
         Enum.filter(order_by, fn field ->
-          field in sortable_fields and unsupported_cursor_field?(struct, field)
+          field in sortable_fields and unsupported_cursor_field?(module, field)
         end)
 
       remove_unsupported_cursor_fields(
@@ -357,8 +356,8 @@ defmodule Flop.Validation do
     end
   end
 
-  defp unsupported_cursor_field?(struct, field) do
-    case Flop.Schema.field_info(struct, field) do
+  defp unsupported_cursor_field?(module, field) do
+    case Flop.Schema.field_info(module, field) do
       %FieldInfo{extra: %{type: type}}
       when type in [:compound, :alias] ->
         true
@@ -498,23 +497,21 @@ defmodule Flop.Validation do
   defp cast_cursor_map(cursor_map, nil, _opts), do: {:ok, cursor_map}
 
   defp cast_cursor_map(cursor_map, module, opts) do
-    struct = struct(module)
-
     # A tiebreaker field is not necessarily sortable.
     castable_fields =
-      Flop.Schema.sortable(struct) ++ Flop.tiebreaker_fields(opts)
+      Flop.schema_option(module, :sortable) ++ Flop.tiebreaker_fields(opts)
 
     Enum.reduce_while(cursor_map, {:ok, %{}}, fn {field, value}, {:ok, acc} ->
-      case cast_cursor_value(struct, field, value, castable_fields) do
+      case cast_cursor_value(module, field, value, castable_fields) do
         {:ok, cast_value} -> {:cont, {:ok, Map.put(acc, field, cast_value)}}
         :error -> {:halt, :error}
       end
     end)
   end
 
-  defp cast_cursor_value(struct, field, value, castable_fields) do
+  defp cast_cursor_value(module, field, value, castable_fields) do
     if field in castable_fields do
-      %FieldInfo{ecto_type: ecto_type} = Flop.Schema.field_info(struct, field)
+      %FieldInfo{ecto_type: ecto_type} = Flop.Schema.field_info(module, field)
       cast_cursor_value(expand_type(ecto_type), value)
     else
       {:ok, value}

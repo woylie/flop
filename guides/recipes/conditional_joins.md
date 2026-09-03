@@ -187,27 +187,30 @@ defmodule MyApp.Pet do
 
   import Ecto.Query
 
-  @derive {Flop.Schema,
-           filterable: [:name, :owner_name, :breed_name],
-           sortable: [:name, :owner_name, :breed_name],
-           default_order: %{
-             order_by: [:name],
-             order_directions: [:asc]
-           },
-           adapter_opts: [
-             join_fields: [
-               owner_name: [
-                 binding: :owner,
-                 field: :name,
-                 ecto_type: :string
-               ],
-               breed_name: [
-                 binding: :breed,
-                 field: :name,
-                 ecto_type: :string
-               ]
-             ]
-           ]}
+  use Flop.Schema
+
+  @flop_options [
+    filterable: [:name, :owner_name, :breed_name],
+    sortable: [:name, :owner_name, :breed_name],
+    default_order: %{
+      order_by: [:name],
+      order_directions: [:asc]
+    },
+    adapter_opts: [
+      join_fields: [
+        owner_name: [
+          binding: :owner,
+          field: :name,
+          ecto_type: :string
+        ],
+        breed_name: [
+          binding: :breed,
+          field: :name,
+          ecto_type: :string
+        ]
+      ]
+    ]
+  ]
 
   schema "pets" do
     field :name, :string

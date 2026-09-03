@@ -257,7 +257,7 @@ defmodule Flop.Adapter.Ecto do
   end
 
   @impl Flop.Adapter
-  def primary_key(%module{}) do
+  def primary_key(module) do
     if Code.ensure_loaded?(module) and
          function_exported?(module, :__schema__, 1) do
       module.__schema__(:primary_key)
@@ -306,10 +306,10 @@ defmodule Flop.Adapter.Ecto do
   def apply_filter(
         query,
         %Flop.Filter{field: field} = filter,
-        schema_struct,
+        schema_module,
         opts
       ) do
-    case get_field_info(schema_struct, field) do
+    case get_field_info(schema_module, field) do
       %FieldInfo{
         extra: %{type: :custom, filter: {mod, fun, custom_filter_opts}}
       } ->
@@ -348,7 +348,7 @@ defmodule Flop.Adapter.Ecto do
       field_info ->
         Query.where(
           query,
-          ^build_op(schema_struct, field_info, filter, dialect(opts))
+          ^build_op(schema_module, field_info, filter, dialect(opts))
         )
     end
   end
@@ -375,11 +375,9 @@ defmodule Flop.Adapter.Ecto do
         end)
 
       module ->
-        struct = struct(module)
-
         Enum.reduce(directions, query, fn {_, field} = expr, acc_query ->
-          field_info = Flop.Schema.field_info(struct, field)
-          apply_order_by_field(acc_query, expr, field_info, struct, opts)
+          field_info = Flop.Schema.field_info(module, field)
+          apply_order_by_field(acc_query, expr, field_info, module, opts)
         end)
     end
   end
@@ -451,17 +449,17 @@ defmodule Flop.Adapter.Ecto do
          %FieldInfo{
            extra: %{type: :compound, fields: fields}
          },
-         struct,
+         module,
          opts
        ) do
     Enum.reduce(fields, q, fn field, acc_query ->
-      field_info = Flop.Schema.field_info(struct, field)
+      field_info = Flop.Schema.field_info(module, field)
 
       apply_order_by_field(
         acc_query,
         {direction, field},
         field_info,
-        struct,
+        module,
         opts
       )
     end)
@@ -795,12 +793,12 @@ defmodule Flop.Adapter.Ecto do
       end
 
     defp build_op(
-           schema_struct,
+           schema_module,
            %FieldInfo{extra: %{type: :compound, fields: fields}},
            %Filter{op: unquote(op), value: value},
            dialect
          ) do
-      fields = Enum.map(fields, &get_field_info(schema_struct, &1))
+      fields = Enum.map(fields, &get_field_info(schema_module, &1))
 
       value =
         case value do
@@ -812,7 +810,7 @@ defmodule Flop.Adapter.Ecto do
         Enum.reduce(fields, false, fn field, inner_dynamic ->
           dynamic_for_field =
             build_op(
-              schema_struct,
+              schema_module,
               field,
               %Filter{
                 field: field,
@@ -829,7 +827,7 @@ defmodule Flop.Adapter.Ecto do
   end
 
   defp build_op(
-         schema_struct,
+         schema_module,
          %FieldInfo{extra: %{type: :compound, fields: fields}},
          %Filter{op: op} = filter,
          dialect
@@ -844,11 +842,11 @@ defmodule Flop.Adapter.Ecto do
               :ends_with
             ] do
     fields
-    |> Enum.map(&get_field_info(schema_struct, &1))
+    |> Enum.map(&get_field_info(schema_module, &1))
     |> Enum.reduce(false, fn field, dynamic ->
       dynamic_for_field =
         build_op(
-          schema_struct,
+          schema_module,
           field,
           %{filter | field: field},
           dialect
@@ -859,7 +857,7 @@ defmodule Flop.Adapter.Ecto do
   end
 
   defp build_op(
-         schema_struct,
+         schema_module,
          %FieldInfo{extra: %{type: :compound, fields: fields}},
          %Filter{op: op, value: value} = filter,
          dialect
@@ -868,11 +866,11 @@ defmodule Flop.Adapter.Ecto do
     # a compound field is empty when every subfield is, and not empty when any
     # subfield is
     combinator = if match_empty?(op, value), do: :and, else: :or
-    fields = Enum.map(fields, &get_field_info(schema_struct, &1))
+    fields = Enum.map(fields, &get_field_info(schema_module, &1))
 
     reduce_dynamic(combinator, fields, fn field ->
       build_op(
-        schema_struct,
+        schema_module,
         field,
         %{filter | field: field},
         dialect
@@ -882,7 +880,7 @@ defmodule Flop.Adapter.Ecto do
 
   # only reachable with an unvalidated Flop struct
   defp build_op(
-         _schema_struct,
+         _schema_module,
          %FieldInfo{extra: %{type: :compound}},
          %Filter{field: field, op: op},
          _dialect
@@ -901,14 +899,15 @@ defmodule Flop.Adapter.Ecto do
   end
 
   defp build_op(
-         %module{},
-         %FieldInfo{extra: %{type: :normal, field: field}},
+         _schema_module,
+         %FieldInfo{
+           ecto_type: ecto_type,
+           extra: %{type: :normal, field: field}
+         },
          %Filter{op: op, value: value},
          dialect
        )
        when op in [:empty, :not_empty] do
-    ecto_type = module.__schema__(:type, field)
-
     condition =
       case {array_or_map(ecto_type), dialect} do
         {:array, %Dialect{arrays?: false}} -> dynamic([r], empty(:json_array))
@@ -920,20 +919,8 @@ defmodule Flop.Adapter.Ecto do
     match_empty(condition, op, value)
   end
 
-  # without a schema there is no field type, so an empty array or map cannot be
-  # told apart from a nil and only the nil check is available
   defp build_op(
-         _schema_struct,
-         %FieldInfo{extra: %{type: :normal, field: field}},
-         %Filter{op: op, value: value},
-         _dialect
-       )
-       when op in [:empty, :not_empty] do
-    match_empty(dynamic([r], empty(:other)), op, value)
-  end
-
-  defp build_op(
-         _schema_struct,
+         _schema_module,
          %FieldInfo{
            ecto_type: ecto_type,
            extra: %{type: :join, binding: binding, field: field}
@@ -963,30 +950,20 @@ defmodule Flop.Adapter.Ecto do
   # Ecto's MyXQL adapter cannot build array operations, so the array operators
   # are built with MySQL's JSON functions instead. See the Dialect module.
   defp build_op(
-         %module{},
-         %FieldInfo{extra: %{type: :normal, field: field}},
+         _schema_module,
+         %FieldInfo{
+           ecto_type: ecto_type,
+           extra: %{type: :normal, field: field}
+         },
          %Filter{op: op, value: value},
          %Dialect{arrays?: false}
        )
        when op in [:contains, :not_contains] do
-    ecto_type = module.__schema__(:type, field)
-    match_contains(dynamic([r], json_contains()), op)
-  end
-
-  # without a schema there is no field type to dump the value with
-  defp build_op(
-         _schema_struct,
-         %FieldInfo{extra: %{type: :normal, field: field}},
-         %Filter{op: op, value: value},
-         %Dialect{arrays?: false}
-       )
-       when op in [:contains, :not_contains] do
-    ecto_type = nil
     match_contains(dynamic([r], json_contains()), op)
   end
 
   defp build_op(
-         _schema_struct,
+         _schema_module,
          %FieldInfo{
            ecto_type: ecto_type,
            extra: %{type: :join, binding: binding, field: field}
@@ -1004,7 +981,7 @@ defmodule Flop.Adapter.Ecto do
     {fragment, prelude, combinator} = op_config(op, :column)
 
     defp build_op(
-           _schema_struct,
+           _schema_module,
            %FieldInfo{extra: %{type: :normal, field: field}},
            %Filter{op: unquote(op), value: value},
            _dialect
@@ -1014,7 +991,7 @@ defmodule Flop.Adapter.Ecto do
     end
 
     defp build_op(
-           _schema_struct,
+           _schema_module,
            %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
            %Filter{op: unquote(op), value: value},
            _dialect
@@ -1029,7 +1006,7 @@ defmodule Flop.Adapter.Ecto do
     {fragment, prelude, combinator} = op_config(op, ilike?, :column)
 
     defp build_op(
-           _schema_struct,
+           _schema_module,
            %FieldInfo{extra: %{type: :normal, field: field}},
            %Filter{op: unquote(op), value: value},
            %Dialect{ilike?: unquote(ilike?)}
@@ -1039,7 +1016,7 @@ defmodule Flop.Adapter.Ecto do
     end
 
     defp build_op(
-           _schema_struct,
+           _schema_module,
            %FieldInfo{extra: %{type: :join, binding: binding, field: field}},
            %Filter{op: unquote(op), value: value},
            %Dialect{ilike?: unquote(ilike?)}
@@ -1126,8 +1103,8 @@ defmodule Flop.Adapter.Ecto do
   defp get_field_info(nil, field),
     do: %FieldInfo{extra: %{type: :normal, field: field}}
 
-  defp get_field_info(struct, field) when is_atom(field) do
-    Flop.Schema.field_info(struct, field)
+  defp get_field_info(module, field) when is_atom(field) do
+    Flop.Schema.field_info(module, field)
   end
 
   ## Option normalization

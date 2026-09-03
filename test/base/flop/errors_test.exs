@@ -23,7 +23,7 @@ defmodule Flop.ErrorsTest do
           message: "unknown options [:filterables]"
         })
 
-      assert message =~ "passed to `@derive Flop.Schema` in the module"
+      assert message =~ "passed to `@flop_options` in the module"
       assert message =~ "MyApp.Pet"
     end
 

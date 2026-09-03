@@ -9,7 +9,7 @@ defmodule Flop.Adapter do
 
   @callback init_backend_opts(keyword, keyword, module) :: keyword
 
-  # Struct is available when deriving protocol. Change when protocol is
+  # Struct is available while the schema is compiled. Change when
   # replaced.
   @callback init_schema_opts(keyword, keyword, module, struct) :: map
 
@@ -17,7 +17,7 @@ defmodule Flop.Adapter do
             when adapter_opts: map,
                  field: atom
 
-  @callback apply_filter(queryable, Flop.Filter.t(), struct, keyword) ::
+  @callback apply_filter(queryable, Flop.Filter.t(), module | nil, keyword) ::
               queryable
 
   @callback apply_order_by(queryable, keyword, opts) :: queryable
@@ -58,5 +58,5 @@ defmodule Flop.Adapter do
 
   Returns an empty list if the data source has no primary key.
   """
-  @callback primary_key(struct) :: [atom]
+  @callback primary_key(module) :: [atom]
 end

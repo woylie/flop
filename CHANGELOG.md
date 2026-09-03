@@ -8,6 +8,105 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Add `Flop.allowed_fields/2`, which returns the fields that may be filtered or
+  sorted for the given options.
+- Add `Flop.Schema.flop_schema!/1`, which returns the configuration of a schema
+  module.
+- Add `Flop.Cursor.get_cursor_from_node/3` and
+  `Flop.Cursor.get_cursor_from_edge/3`, which take the query options and resolve
+  a field against the schema given as `:for`.
+- Accept an arity-3 `cursor_value_func`, which also receives the options the
+  query ran with.
+
+### Changed
+
+- Turn `Flop.Schema` from a protocol into a behaviour. Configure a schema with
+  `use Flop.Schema` and the `@flop_options` attribute.
+- Take the schema module instead of a struct in `Flop.Schema.field_info/2`,
+  `Flop.Schema.get_field/3` and `Flop.Schema.primary_key/1`.
+- Default `cursor_value_func` to `Flop.Cursor.get_cursor_from_node/3`.
+
+### Removed
+
+- Remove `default_limit/1`, `default_order/1`, `default_pagination_type/1`,
+  `filterable/1`, `max_filters/1`, `max_limit/1`, `pagination_types/1`,
+  `sortable/1` and `tiebreaker/1` from `Flop.Schema`.
+
+### Fixed
+
+- Do not make a module named in an `ecto_type` a compile-time dependency of the
+  schema.
+- Read a cursor value through the schema given as `:for`, so that a field's
+  `:path` is applied when the query returns plain maps rather than structs.
+
+### How to upgrade
+
+Change your code to `use Flop.Schema` and set the options as `@flop_options`
+instead of using `@derive` to derive the protocol.
+
+```diff
+ defmodule MyApp.Pet do
+   use Ecto.Schema
++  use Flop.Schema
+
+-  @derive {
+-    Flop.Schema,
+-    filterable: [:name, :species],
+-    sortable: [:name, :age]
+-  }
++  @flop_options [
++    filterable: [:name, :species],
++    sortable: [:name, :age]
++  ]
+
+   schema "pets" do
+     field :name, :string
+     field :age, :integer
+     field :species, :string
+   end
+ end
+```
+
+The attribute is read when the module finishes compiling, so it can go anywhere
+in the module body. If you use an alias in the options, the alias has to be
+declared before the module attribute.
+
+The functions that returned a single schema option are gone. Read the effective
+value through `Flop.get_option/3`, which also applies the backend module and the
+application environment, or `Flop.allowed_fields/2` for `filterable` and
+`sortable`, which applies the narrowing a query function may have set:
+
+```diff
+-Flop.Schema.sortable(%MyApp.Pet{})
++Flop.allowed_fields(:sortable, for: MyApp.Pet)
+
+-Flop.Schema.max_limit(%MyApp.Pet{})
++Flop.get_option(:max_limit, for: MyApp.Pet)
+```
+
+The remaining functions take the schema module instead of a struct:
+
+```diff
+-Flop.Schema.field_info(%MyApp.Pet{}, :name)
++Flop.Schema.field_info(MyApp.Pet, :name)
+
+-Flop.Schema.get_field(pet, :owner_name)
++Flop.Schema.get_field(MyApp.Pet, pet, :owner_name)
+```
+
+An arity-2 `cursor_value_func` is still supported. You can use a 3-arity
+function if you need the schema or other options passed to Flop, for example if
+you need to apply the `path` option of join or custom fields.
+
+```diff
+-cursor_value_func: fn item, fields -> Map.take(item, fields) end
++cursor_value_func: fn item, fields, opts ->
++  Map.new(fields, &{&1, Flop.Schema.get_field(opts[:for], item, &1)})
++end
+```
+
 ## [0.28.0] - 2026-08-24
 
 ### Added

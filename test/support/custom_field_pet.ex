@@ -2,13 +2,13 @@ defmodule MyApp.CustomFieldPet do
   @moduledoc false
 
   use Ecto.Schema
+  use Flop.Schema
 
   import Ecto.Query
 
   alias MyApp.Owner
 
-  @derive {
-    Flop.Schema,
+  @flop_options [
     filterable: [:age_score, :name_lower, :tag_list, :owner_age_score],
     sortable: [:age_score, :owner_age_score],
     adapter_opts: [
@@ -35,7 +35,7 @@ defmodule MyApp.CustomFieldPet do
         ]
       ]
     ]
-  }
+  ]
 
   schema "pets" do
     field :age, :integer

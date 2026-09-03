@@ -34,7 +34,7 @@ defmodule Flop.TestUtil do
         ecto_adapter
       )
       when is_atom(field) do
-    case Flop.Schema.field_info(struct, field) do
+    case Flop.Schema.field_info(struct.__struct__, field) do
       %FieldInfo{ecto_type: ecto_type, extra: %{type: :join}} = field_info
       when not is_nil(ecto_type) ->
         filter_func = matches?(op, value, ecto_adapter)
@@ -79,7 +79,7 @@ defmodule Flop.TestUtil do
     filter_func = matches?(:empty, value, ecto_adapter)
 
     Enum.all?(fields, fn field ->
-      field_info = Flop.Schema.field_info(%Pet{}, field)
+      field_info = Flop.Schema.field_info(Pet, field)
       pet |> get_field(field_info) |> filter_func.()
     end)
   end
@@ -97,7 +97,7 @@ defmodule Flop.TestUtil do
       filter_func = matches?(:like, substring, ecto_adapter)
 
       Enum.any?(fields, fn field ->
-        field_info = Flop.Schema.field_info(%Pet{}, field)
+        field_info = Flop.Schema.field_info(Pet, field)
         pet |> get_field(field_info) |> filter_func.()
       end)
     end)
@@ -116,7 +116,7 @@ defmodule Flop.TestUtil do
       filter_func = matches?(:ilike, substring, ecto_adapter)
 
       Enum.any?(fields, fn field ->
-        field_info = Flop.Schema.field_info(%Pet{}, field)
+        field_info = Flop.Schema.field_info(Pet, field)
         pet |> get_field(field_info) |> filter_func.()
       end)
     end)
@@ -135,7 +135,7 @@ defmodule Flop.TestUtil do
       filter_func = matches?(:like, substring, ecto_adapter)
 
       Enum.any?(fields, fn field ->
-        field_info = Flop.Schema.field_info(%Pet{}, field)
+        field_info = Flop.Schema.field_info(Pet, field)
         pet |> get_field(field_info) |> filter_func.()
       end)
     end)
@@ -154,7 +154,7 @@ defmodule Flop.TestUtil do
       filter_func = matches?(:ilike, substring, ecto_adapter)
 
       Enum.any?(fields, fn field ->
-        field_info = Flop.Schema.field_info(%Pet{}, field)
+        field_info = Flop.Schema.field_info(Pet, field)
         pet |> get_field(field_info) |> filter_func.()
       end)
     end)
@@ -164,7 +164,7 @@ defmodule Flop.TestUtil do
     filter_func = matches?(op, value, ecto_adapter)
 
     Enum.any?(fields, fn field ->
-      field_info = Flop.Schema.field_info(%Pet{}, field)
+      field_info = Flop.Schema.field_info(Pet, field)
       pet |> get_field(field_info) |> filter_func.()
     end)
   end

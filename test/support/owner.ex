@@ -3,11 +3,11 @@ defmodule MyApp.Owner do
   Defines an Ecto schema for testing.
   """
   use Ecto.Schema
+  use Flop.Schema
 
   alias MyApp.Pet
 
-  @derive {
-    Flop.Schema,
+  @flop_options [
     filterable: [
       :name,
       :pet_mood_as_reference,
@@ -41,7 +41,7 @@ defmodule MyApp.Owner do
     compound_fields: [age_and_pet_age: [:age, :pet_age]],
     alias_fields: [:pet_count],
     default_pagination_type: :page
-  }
+  ]
 
   schema "owners" do
     field :age, :integer

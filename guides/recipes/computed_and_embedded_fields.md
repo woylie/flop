@@ -40,19 +40,22 @@ In the Ecto schema, you define a join field that points at the binding of the
 lateral join and mark it as filterable and sortable.
 
 ```elixir
-@derive {Flop.Schema,
-         filterable: [:name_lower],
-         sortable: [:name_lower],
-         adapter_opts: [
-           join_fields: [
-             name_lower: [
-               binding: :computed,
-               field: :name_lower,
-               path: [:name_lower],
-               ecto_type: :string
-             ]
-           ]
-         ]}
+use Flop.Schema
+
+@flop_options [
+  filterable: [:name_lower],
+  sortable: [:name_lower],
+  adapter_opts: [
+    join_fields: [
+      name_lower: [
+        binding: :computed,
+        field: :name_lower,
+        path: [:name_lower],
+        ecto_type: :string
+      ]
+    ]
+  ]
+]
 ```
 
 The `path` option tells Flop where to read the value from the returned struct
@@ -216,24 +219,26 @@ among them.
 ```elixir
 defmodule MyApp.Pet do
   use Ecto.Schema
+  use Flop.Schema
 
-  @derive {Flop.Schema,
-           filterable: [:name_lower],
-           sortable: [:name, :name_lower],
-           default_order: %{
-             order_by: [:name],
-             order_directions: [:asc]
-           },
-           adapter_opts: [
-             join_fields: [
-               name_lower: [
-                 binding: :computed,
-                 field: :name_lower,
-                 path: [:name_lower],
-                 ecto_type: :string
-               ]
-             ]
-           ]}
+  @flop_options [
+    filterable: [:name_lower],
+    sortable: [:name, :name_lower],
+    default_order: %{
+      order_by: [:name],
+      order_directions: [:asc]
+    },
+    adapter_opts: [
+      join_fields: [
+        name_lower: [
+          binding: :computed,
+          field: :name_lower,
+          path: [:name_lower],
+          ecto_type: :string
+        ]
+      ]
+    ]
+  ]
 
   schema "pets" do
     field :name, :string

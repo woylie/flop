@@ -8,32 +8,34 @@ defmodule Flop.SchemaTest do
 
   defmodule Panini do
     use Ecto.Schema
+    use Flop.Schema
 
-    @derive {Flop.Schema,
-             filterable: [:name, :age],
-             sortable: [:name, :age, :topping_count],
-             default_limit: 20,
-             max_limit: 50,
-             max_filters: 5,
-             default_order: %{
-               order_by: [:name, :age],
-               order_directions: [:desc, :asc]
-             },
-             compound_fields: [name_or_email: [:name, :email]],
-             join_fields: [
-               topping_name: [
-                 binding: :toppings,
-                 field: :name,
-                 ecto_type: :string
-               ]
-             ],
-             alias_fields: [:topping_count],
-             custom_fields: [
-               inserted_at: [
-                 filter: {__MODULE__, :date_filter, [some: "option"]},
-                 ecto_type: :date
-               ]
-             ]}
+    @flop_options [
+      filterable: [:name, :age],
+      sortable: [:name, :age, :topping_count],
+      default_limit: 20,
+      max_limit: 50,
+      max_filters: 5,
+      default_order: %{
+        order_by: [:name, :age],
+        order_directions: [:desc, :asc]
+      },
+      compound_fields: [name_or_email: [:name, :email]],
+      join_fields: [
+        topping_name: [
+          binding: :toppings,
+          field: :name,
+          ecto_type: :string
+        ]
+      ],
+      alias_fields: [:topping_count],
+      custom_fields: [
+        inserted_at: [
+          filter: {__MODULE__, :date_filter, [some: "option"]},
+          ecto_type: :date
+        ]
+      ]
+    ]
 
     schema "paninis" do
       field :name, :string
@@ -42,47 +44,45 @@ defmodule Flop.SchemaTest do
     end
   end
 
-  test "default_order/1 returns the default order passed as an option" do
-    assert Schema.default_order(%Panini{}) == %{
+  defmodule Chard do
+    defstruct [:name]
+  end
+
+  test "schema_option/2 returns the default order passed as an option" do
+    assert Flop.schema_option(Panini, :default_order) == %{
              order_by: [:name, :age],
              order_directions: [:desc, :asc]
            }
   end
 
-  test "default_limit/1 returns the default limit passed as option" do
-    assert Schema.default_limit(%Panini{}) == 20
+  test "schema_option/2 returns the default limit passed as option" do
+    assert Flop.schema_option(Panini, :default_limit) == 20
   end
 
-  test "max_filters/1 returns the max filters passed as option" do
-    assert Schema.max_filters(%Panini{}) == 5
+  test "schema_option/2 returns the max filters passed as option" do
+    assert Flop.schema_option(Panini, :max_filters) == 5
   end
 
-  test "max_limit/1 returns the max limit passed as option" do
-    assert Schema.max_limit(%Panini{}) == 50
+  test "schema_option/2 returns the max limit passed as option" do
+    assert Flop.schema_option(Panini, :max_limit) == 50
   end
 
-  test "calling default_limit/1 without deriving raises error" do
-    assert_raise Protocol.UndefinedError, fn ->
-      Schema.default_limit(%{})
+  test "schema_option/2 without deriving raises error" do
+    assert_raise ArgumentError, fn ->
+      Flop.schema_option(Chard, :default_limit)
     end
   end
 
-  test "calling default_order/1 without deriving raises error" do
-    assert_raise Protocol.UndefinedError, fn ->
-      Schema.default_order(%{})
-    end
-  end
-
-  test "calling field_info/2 without deriving raises error" do
-    assert_raise Protocol.UndefinedError, fn ->
-      Schema.field_info(%{}, :field)
+  test "calling field_info/2 without using Flop.Schema raises error" do
+    assert_raise ArgumentError, fn ->
+      Schema.field_info(Chard, :field)
     end
   end
 
   test "field_info/2 raises error for unknown field" do
     error =
       assert_raise Flop.UnknownFieldError, fn ->
-        Schema.field_info(%Panini{}, :nonexistent)
+        Schema.field_info(Panini, :nonexistent)
       end
 
     assert Exception.message(error) =~ "unknown field(s)"
@@ -92,47 +92,13 @@ defmodule Flop.SchemaTest do
 
   test "get_field/2 raises error for unknown field" do
     assert_raise Flop.UnknownFieldError, fn ->
-      Schema.get_field(%Panini{}, :nonexistent)
+      Schema.get_field(Panini, %Panini{}, :nonexistent)
     end
   end
 
-  test "calling filterable/1 without deriving raises error" do
-    assert_raise Protocol.UndefinedError, fn ->
-      Schema.filterable(%{})
-    end
-  end
-
-  test "calling get_field/2 without deriving raises error" do
-    assert_raise Protocol.UndefinedError, fn ->
-      Schema.get_field(:a, :field)
-    end
-  end
-
-  test "get_field/2 has default implementation for maps" do
-    assert Schema.get_field(%{wait: "what?"}, :wait) == "what?"
-  end
-
-  test "calling max_limit/1 without deriving raises error" do
-    assert_raise Protocol.UndefinedError, fn ->
-      Schema.max_limit(%{})
-    end
-  end
-
-  test "calling sortable/1 without deriving raises error" do
-    assert_raise Protocol.UndefinedError, fn ->
-      Schema.sortable(%{})
-    end
-  end
-
-  test "calling pagination_types/1 without deriving raises error" do
-    assert_raise Protocol.UndefinedError, fn ->
-      Schema.pagination_types(%{})
-    end
-  end
-
-  test "calling default_pagination_type/1 without deriving raises error" do
-    assert_raise Protocol.UndefinedError, fn ->
-      Schema.default_pagination_type(%{})
+  test "calling get_field/3 without using Flop.Schema raises error" do
+    assert_raise ArgumentError, fn ->
+      Schema.get_field(Chard, %{}, :field)
     end
   end
 
@@ -140,13 +106,14 @@ defmodule Flop.SchemaTest do
     test "raises if default_pagination_type is not allowed" do
       assert_raise Flop.InvalidDefaultPaginationTypeError, fn ->
         defmodule Bulgur do
-          @derive {
-            Flop.Schema,
+          use Flop.Schema
+
+          @flop_options [
             filterable: [],
             sortable: [],
             default_pagination_type: :first,
             pagination_types: [:page]
-          }
+          ]
           defstruct [:name]
         end
       end
@@ -155,7 +122,12 @@ defmodule Flop.SchemaTest do
     test "raises if filterable field is unknown" do
       assert_raise Flop.UnknownFieldError, fn ->
         defmodule Pita do
-          @derive {Flop.Schema, filterable: [:smell], sortable: []}
+          use Flop.Schema
+
+          @flop_options [
+            filterable: [:smell],
+            sortable: []
+          ]
           defstruct [:name]
         end
       end
@@ -164,7 +136,12 @@ defmodule Flop.SchemaTest do
     test "raises if sortable field is unknown" do
       assert_raise Flop.UnknownFieldError, fn ->
         defmodule Marmelade do
-          @derive {Flop.Schema, filterable: [], sortable: [:smell]}
+          use Flop.Schema
+
+          @flop_options [
+            filterable: [],
+            sortable: [:smell]
+          ]
           defstruct [:name]
         end
       end
@@ -174,8 +151,9 @@ defmodule Flop.SchemaTest do
       error =
         assert_raise Flop.InvalidConfigError, fn ->
           defmodule Tabbouleh do
-            @derive {
-              Flop.Schema,
+            use Flop.Schema
+
+            @flop_options [
               filterable: [:thing],
               sortable: [],
               adapter_opts: [
@@ -183,7 +161,7 @@ defmodule Flop.SchemaTest do
                   thing: [filter: {__MODULE__, :filter, []}, ecto_type: nil]
                 ]
               ]
-            }
+            ]
             defstruct [:name]
           end
         end
@@ -196,8 +174,9 @@ defmodule Flop.SchemaTest do
       error =
         assert_raise Flop.InvalidConfigError, fn ->
           defmodule Falafel do
-            @derive {
-              Flop.Schema,
+            use Flop.Schema
+
+            @flop_options [
               filterable: [:owner_name],
               sortable: [],
               adapter_opts: [
@@ -205,7 +184,7 @@ defmodule Flop.SchemaTest do
                   owner_name: [binding: :owner, field: :name, ecto_type: nil]
                 ]
               ]
-            }
+            ]
             defstruct [:name]
           end
         end
@@ -218,14 +197,15 @@ defmodule Flop.SchemaTest do
       error =
         assert_raise Flop.InvalidConfigError, fn ->
           defmodule Baklava do
-            @derive {
-              Flop.Schema,
+            use Flop.Schema
+
+            @flop_options [
               filterable: [:thing],
               sortable: [],
               custom_fields: [
                 thing: [filter: {__MODULE__, :filter, []}, ecto_type: nil]
               ]
-            }
+            ]
             defstruct [:name]
           end
         end
@@ -237,12 +217,13 @@ defmodule Flop.SchemaTest do
     test "raises if default order field is not sortable" do
       assert_raise Flop.InvalidDefaultOrderError, fn ->
         defmodule Broomstick do
-          @derive {
-            Flop.Schema,
+          use Flop.Schema
+
+          @flop_options [
             filterable: [],
             sortable: [:name],
             default_order: %{order_by: [:age], order_directions: [:desc]}
-          }
+          ]
           defstruct [:name, :age]
         end
       end
@@ -252,12 +233,13 @@ defmodule Flop.SchemaTest do
       error =
         assert_raise ArgumentError, fn ->
           defmodule Potato do
-            @derive {
-              Flop.Schema,
+            use Flop.Schema
+
+            @flop_options [
               filterable: [],
               sortable: [],
               compound_fields: [full_name: [:family_name, :given_name]]
-            }
+            ]
             defstruct [:family_name]
           end
         end
@@ -269,8 +251,9 @@ defmodule Flop.SchemaTest do
       error =
         assert_raise ArgumentError, fn ->
           defmodule Cannelloni do
-            @derive {
-              Flop.Schema,
+            use Flop.Schema
+
+            @flop_options [
               filterable: [],
               sortable: [],
               join_fields: [
@@ -281,7 +264,7 @@ defmodule Flop.SchemaTest do
                 ]
               ],
               compound_fields: [name: [:name, :nickname]]
-            }
+            ]
             defstruct [:name, :nickname]
           end
         end
@@ -293,13 +276,14 @@ defmodule Flop.SchemaTest do
       error =
         assert_raise ArgumentError, fn ->
           defmodule Pickles do
-            @derive {
-              Flop.Schema,
+            use Flop.Schema
+
+            @flop_options [
               filterable: [],
               sortable: [],
               compound_fields: [name: [:name, :nickname]],
               alias_fields: [:name]
-            }
+            ]
             defstruct [:id]
           end
         end
@@ -311,8 +295,9 @@ defmodule Flop.SchemaTest do
       error =
         assert_raise ArgumentError, fn ->
           defmodule Juice do
-            @derive {
-              Flop.Schema,
+            use Flop.Schema
+
+            @flop_options [
               filterable: [],
               sortable: [],
               join_fields: [
@@ -323,7 +308,7 @@ defmodule Flop.SchemaTest do
                 ]
               ],
               alias_fields: [:owner_name]
-            }
+            ]
             defstruct [:id]
           end
         end
@@ -335,8 +320,9 @@ defmodule Flop.SchemaTest do
       error =
         assert_raise ArgumentError, fn ->
           defmodule Pasta do
-            @derive {
-              Flop.Schema,
+            use Flop.Schema
+
+            @flop_options [
               filterable: [],
               sortable: [],
               compound_fields: [name: [:name, :nickname]],
@@ -346,7 +332,7 @@ defmodule Flop.SchemaTest do
                   ecto_type: :string
                 ]
               ]
-            }
+            ]
             defstruct [:id, :nickname]
           end
         end
@@ -358,8 +344,9 @@ defmodule Flop.SchemaTest do
       error =
         assert_raise ArgumentError, fn ->
           defmodule Vegetable do
-            @derive {
-              Flop.Schema,
+            use Flop.Schema
+
+            @flop_options [
               filterable: [],
               sortable: [],
               join_fields: [
@@ -375,7 +362,7 @@ defmodule Flop.SchemaTest do
                   ecto_type: :string
                 ]
               ]
-            }
+            ]
             defstruct [:id]
           end
         end
@@ -387,8 +374,9 @@ defmodule Flop.SchemaTest do
       error =
         assert_raise ArgumentError, fn ->
           defmodule Cranberry do
-            @derive {
-              Flop.Schema,
+            use Flop.Schema
+
+            @flop_options [
               filterable: [],
               sortable: [],
               alias_fields: [:name],
@@ -398,7 +386,7 @@ defmodule Flop.SchemaTest do
                   ecto_type: :string
                 ]
               ]
-            }
+            ]
             defstruct [:id]
           end
         end
@@ -408,10 +396,13 @@ defmodule Flop.SchemaTest do
 
     test "does not raise if alias field uses existing schema field name" do
       defmodule Vegetaburu do
-        @derive {
-          Flop.Schema,
-          filterable: [], sortable: [], alias_fields: [:nickname]
-        }
+        use Flop.Schema
+
+        @flop_options [
+          filterable: [],
+          sortable: [],
+          alias_fields: [:nickname]
+        ]
         defstruct [:name, :nickname]
       end
     end
@@ -420,10 +411,13 @@ defmodule Flop.SchemaTest do
       error =
         assert_raise ArgumentError, fn ->
           defmodule Bejitaburu do
-            @derive {
-              Flop.Schema,
-              filterable: [:count], sortable: [], alias_fields: [:count]
-            }
+            use Flop.Schema
+
+            @flop_options [
+              filterable: [:count],
+              sortable: [],
+              alias_fields: [:count]
+            ]
             defstruct [:id]
           end
         end
@@ -434,7 +428,7 @@ defmodule Flop.SchemaTest do
 
   test "field_info/2 returns parameterized type for ecto_enum" do
     assert %Flop.FieldInfo{ecto_type: ecto_type} =
-             Schema.field_info(%MyApp.Owner{}, :pet_mood_as_enum)
+             Schema.field_info(MyApp.Owner, :pet_mood_as_enum)
 
     assert ecto_type ==
              Ecto.ParameterizedType.init(Ecto.Enum, values: [:happy, :playful])
@@ -461,8 +455,9 @@ defmodule Flop.SchemaTest do
     error =
       assert_raise ArgumentError, fn ->
         defmodule Parsley do
-          @derive {
-            Flop.Schema,
+          use Flop.Schema
+
+          @flop_options [
             filterable: [],
             sortable: [:inserted_at],
             custom_fields: [
@@ -471,7 +466,7 @@ defmodule Flop.SchemaTest do
                 ecto_type: :utc_datetime
               ]
             ]
-          }
+          ]
           defstruct [:id, :inserted_at]
         end
       end
@@ -486,10 +481,13 @@ defmodule Flop.SchemaTest do
     error =
       assert_raise Flop.UnknownFieldError, fn ->
         defmodule Chervil do
-          @derive {
-            Flop.Schema,
-            filterable: [], sortable: [:name], tiebreaker: [asc: :nanoid]
-          }
+          use Flop.Schema
+
+          @flop_options [
+            filterable: [],
+            sortable: [:name],
+            tiebreaker: [asc: :nanoid]
+          ]
           defstruct [:id, :name]
         end
       end
@@ -502,13 +500,14 @@ defmodule Flop.SchemaTest do
     error =
       assert_raise ArgumentError, fn ->
         defmodule Lovage do
-          @derive {
-            Flop.Schema,
+          use Flop.Schema
+
+          @flop_options [
             filterable: [],
             sortable: [:full_name],
             tiebreaker: [asc: :full_name],
             compound_fields: [full_name: [:family_name, :given_name]]
-          }
+          ]
           defstruct [:id, :family_name, :given_name]
         end
       end
@@ -520,15 +519,16 @@ defmodule Flop.SchemaTest do
     error =
       assert_raise ArgumentError, fn ->
         defmodule Borage do
-          @derive {
-            Flop.Schema,
+          use Flop.Schema
+
+          @flop_options [
             filterable: [:thing],
             sortable: [],
             tiebreaker: [asc: :thing],
             custom_fields: [
               thing: [filter: {__MODULE__, :f, []}, ecto_type: :string]
             ]
-          }
+          ]
           defstruct [:id, :name]
 
           def f(q, _, _), do: q
@@ -543,12 +543,13 @@ defmodule Flop.SchemaTest do
     error =
       assert_raise ArgumentError, fn ->
         defmodule Sage do
-          @derive {
-            Flop.Schema,
+          use Flop.Schema
+
+          @flop_options [
             filterable: [:inserted_at],
             sortable: [],
             custom_fields: [inserted_at: [ecto_type: :utc_datetime]]
-          }
+          ]
           defstruct [:id, :inserted_at]
         end
       end
@@ -561,8 +562,9 @@ defmodule Flop.SchemaTest do
 
   test "allows a filterable custom field with only field_dynamic" do
     defmodule Sorrel do
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [:inserted_at],
         sortable: [:inserted_at],
         custom_fields: [
@@ -571,17 +573,18 @@ defmodule Flop.SchemaTest do
             ecto_type: :utc_datetime
           ]
         ]
-      }
+      ]
       defstruct [:id, :inserted_at]
     end
 
-    assert Schema.filterable(struct(Sorrel)) == [:inserted_at]
+    assert Flop.schema_option(Sorrel, :filterable) == [:inserted_at]
   end
 
   test "allows a custom field with only the callback it needs" do
     defmodule Thyme do
-      @derive {
-        Flop.Schema,
+      use Flop.Schema
+
+      @flop_options [
         filterable: [:filtered],
         sortable: [:sorted],
         custom_fields: [
@@ -594,14 +597,14 @@ defmodule Flop.SchemaTest do
             ecto_type: :string
           ]
         ]
-      }
+      ]
       defstruct [:id]
     end
 
     assert %Flop.FieldInfo{extra: %{type: :custom, field_dynamic: nil}} =
-             Schema.field_info(struct(Thyme), :filtered)
+             Schema.field_info(Thyme, :filtered)
 
     assert %Flop.FieldInfo{extra: %{type: :custom, filter: nil}} =
-             Schema.field_info(struct(Thyme), :sorted)
+             Schema.field_info(Thyme, :sorted)
   end
 end

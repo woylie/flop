@@ -27,7 +27,7 @@ defmodule Flop.Filter do
   ### Fields
 
   - `field`: The field the filter is applied to. The allowed fields can be
-    restricted by deriving `Flop.Schema` in your Ecto schema.
+    restricted with `Flop.Schema` in your Ecto schema.
   - `op`: The filter operator.
   - `value`: The comparison value of the filter.
   """
@@ -305,7 +305,7 @@ defmodule Flop.Filter do
 
   For regular Ecto schema fields, the type is derived via schema reflection.
 
-  If the given schema module derives `Flop.Schema`, the type of join and
+  If the given schema module uses `Flop.Schema`, the type of join and
   custom fields is determined via the `ecto_type` option. Compound files are
   always handled as string fields, minus unsupported operators.
 
@@ -324,10 +324,9 @@ defmodule Flop.Filter do
   end
 
   defp get_field_info(module, field) do
-    struct = struct(module)
-
-    if Flop.Schema.impl_for(struct) != Flop.Schema.Any do
-      Flop.Schema.field_info(struct, field)
+    if Code.ensure_loaded?(module) and
+         function_exported?(module, :__flop_schema__, 0) do
+      Flop.Schema.field_info(module, field)
     else
       module.__schema__(:type, field)
     end

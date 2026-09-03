@@ -81,18 +81,21 @@ end
 ```
 
 ```elixir
-@derive {Flop.Schema,
-         filterable: [:search],
-         sortable: [:name],
-         adapter_opts: [
-           custom_fields: [
-             search: [
-               filter: {MyApp.Filters, :search, []},
-               ecto_type: :string,
-               operators: [:like]
-             ]
-           ]
-         ]}
+use Flop.Schema
+
+@flop_options [
+  filterable: [:search],
+  sortable: [:name],
+  adapter_opts: [
+    custom_fields: [
+      search: [
+        filter: {MyApp.Filters, :search, []},
+        ecto_type: :string,
+        operators: [:like]
+      ]
+    ]
+  ]
+]
 ```
 
 The function needs no guard for an empty search box. `Flop.validate/2` casts a
@@ -169,19 +172,22 @@ select clause under a name. You can use `Ecto.Query.API.selected_as/2` and an
 alias field for this.
 
 ```elixir
-@derive {Flop.Schema,
-         filterable: [:search],
-         sortable: [:name, :rank],
-         adapter_opts: [
-           alias_fields: [:rank],
-           custom_fields: [
-             search: [
-               filter: {MyApp.Filters, :search, []},
-               ecto_type: :string,
-               operators: [:like]
-             ]
-           ]
-         ]}
+use Flop.Schema
+
+@flop_options [
+  filterable: [:search],
+  sortable: [:name, :rank],
+  adapter_opts: [
+    alias_fields: [:rank],
+    custom_fields: [
+      search: [
+        filter: {MyApp.Filters, :search, []},
+        ecto_type: :string,
+        operators: [:like]
+      ]
+    ]
+  ]
+]
 ```
 
 `ts_rank` takes the search term as an argument, and the term arrives as a filter
@@ -238,25 +244,27 @@ Ranking has two limits that come from the alias field:
 ```elixir
 defmodule MyApp.Pet do
   use Ecto.Schema
+  use Flop.Schema
 
-  @derive {Flop.Schema,
-           filterable: [:search],
-           sortable: [:name, :rank],
-           default_order: %{
-             order_by: [:name],
-             order_directions: [:asc]
-           },
-           pagination_types: [:page, :offset],
-           adapter_opts: [
-             alias_fields: [:rank],
-             custom_fields: [
-               search: [
-                 filter: {MyApp.Filters, :search, []},
-                 ecto_type: :string,
-                 operators: [:like]
-               ]
-             ]
-           ]}
+  @flop_options [
+    filterable: [:search],
+    sortable: [:name, :rank],
+    default_order: %{
+      order_by: [:name],
+      order_directions: [:asc]
+    },
+    pagination_types: [:page, :offset],
+    adapter_opts: [
+      alias_fields: [:rank],
+      custom_fields: [
+        search: [
+          filter: {MyApp.Filters, :search, []},
+          ecto_type: :string,
+          operators: [:like]
+        ]
+      ]
+    ]
+  ]
 
   schema "pets" do
     field :name, :string

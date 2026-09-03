@@ -104,21 +104,21 @@ for the array operators.
 
 ### Define sortable and filterable fields
 
-To define sortable and filterable fields in your Ecto schema, you can derive
+To define sortable and filterable fields in your Ecto schema, you can use
 `Flop.Schema`. This step is optional but highly recommended, particularly when
-the parameters passed to Flop's functions are user-provided. Deriving
+the parameters passed to Flop's functions are user-provided. Using
 `Flop.Schema` ensures that Flop applies filtering and sorting parameters only to
 the fields you've explicitly configured.
 
 ```elixir
 defmodule MyApp.Pet do
   use Ecto.Schema
+  use Flop.Schema
 
-  @derive {
-    Flop.Schema,
+  @flop_options [
     filterable: [:name, :species],
     sortable: [:name, :age, :species]
-  }
+  ]
 
   schema "pets" do
     field :name, :string
@@ -157,8 +157,8 @@ defmodule MyApp.Pets do
 end
 ```
 
-The `for` option sets the Ecto schema for which you derived `Flop.Schema`. If
-you haven't derived `Flop.Schema` as described above, this option can be
+The `for` option sets the Ecto schema that uses `Flop.Schema`. If you haven't
+set up `Flop.Schema` as described above, this option can be
 omitted. However, this is not recommended unless all parameters are generated
 internally and are guaranteed to be safe.
 

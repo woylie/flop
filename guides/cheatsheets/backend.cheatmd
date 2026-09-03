@@ -39,7 +39,7 @@ Accepts the same options as a backend module. Anything else is ignored.
 ### Look-up order
 
 1. Function arguments
-2. Schema options with `@derive Flop.Schema`
+2. Schema options with `@flop_options`
 3. Backend module with `use Flop`
 4. Application environment
 5. Library defaults
@@ -153,7 +153,7 @@ Flop.validate_and_run(MyApp.Pet, params,
 
 | Option | Purpose |
 | ------ | ------- |
-| `for` | Schema module that derives `Flop.Schema` |
+| `for` | Schema module that uses `Flop.Schema` |
 | `default_order` | Also a schema option |
 | `count` | Known count, skips the count query |
 | `count_query` | Separate query for counting |
