@@ -47,7 +47,7 @@ end
 Enable debug checks in `config/dev.exs` and `config/test.exs`:
 
 ```elixir
-config :flop, debug: true
+config :flop, diagnostics: true
 ```
 
 You can also configure a default repo for Flop by adding the following line to
