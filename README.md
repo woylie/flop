@@ -134,6 +134,75 @@ of join fields, compound fields, or custom fields. You can also set maximum or
 default limits, among other options. For a comprehensive list of available
 options, check the `Flop.Schema` documentation.
 
+### Default filters
+
+You can define default filters with the `default_filter` option. It takes a
+list of `Flop.Filter` structs. Each default is applied when the parameters
+contain no filter for that field. This is useful for filters that are
+controlled by the server rather than the client, for example to exclude
+soft-deleted records from a listing unless the client explicitly opts in.
+
+```elixir
+defmodule MyApp.Pet do
+  use Ecto.Schema
+  use Flop.Schema
+
+  @flop_options [
+    filterable: [:name, :age, :deleted],
+    sortable: [:name, :age],
+    default_filter: [%Flop.Filter{field: :deleted, value: false}]
+  ]
+
+  schema "pets" do
+    field :name, :string
+    field :age, :integer
+    field :deleted, :boolean
+  end
+end
+```
+
+The `op` field of the filter defaults to `:==`. To use a different operator,
+set it explicitly:
+
+```elixir
+@flop_options [
+  filterable: [:name, :age],
+  sortable: [:name, :age],
+  default_filter: [%Flop.Filter{field: :age, op: :>=, value: 8}]
+]
+```
+
+If you prefer the map style, you can use `Flop.Filter.new/1` to build the list
+from a map of field names to values, which applies the default `:==`
+operator:
+
+```elixir
+@flop_options [
+  filterable: [:name, :age, :deleted],
+  sortable: [:name, :age],
+  default_filter: Flop.Filter.new(%{deleted: false})
+]
+```
+
+A default filter is only applied for a field if the parameters contain no
+filter for that field. If the client filters the same field, the default for
+that field is not applied, regardless of the operator the client used. Filters
+for other fields are combined with the default filters as usual.
+
+The filter values are cast to the field type like filter parameters, so a
+default filter value of `"8"` for an integer field results in a filter value
+of `8`. If a default filter cannot be cast, `Flop.validate/2` returns an
+error, like it does for invalid filter parameters.
+
+Default filters are applied by `Flop.validate/2` and the functions that validate
+for you, like `Flop.validate_and_run/3`. They are applied after invalid client
+filters have been removed, and they do not count towards the `max_filters`
+limit. Since the applied filters are part of the validated `Flop` struct, they
+also show up in `Flop.Meta.flop`.
+
+To disable the default filters for a single query, pass `default_filter: false`
+to the function.
+
 ### Query data
 
 Use the `Flop.validate_and_run/3` or `Flop.validate_and_run!/3` function to both

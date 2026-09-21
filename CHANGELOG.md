@@ -8,6 +8,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Add the `:default_filter` schema and function option, a list of `Flop.Filter`
+  structs that is applied when the validated parameters contain no filter for
+  the respective field; client filters take precedence per field.
+  `Flop.Filter.new/1` builds the list from a map of field names to values.
+  Default filters do not count towards the `max_filters` limit.
+
 ## [0.29.0] - 2026-09-03
 
 ### Added
