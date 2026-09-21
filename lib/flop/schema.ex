@@ -98,6 +98,31 @@ defmodule Flop.Schema do
         }
       ]
 
+  ## Default filters
+
+  Specify default filters by setting the `default_filter` option in
+  `@flop_options`. It takes a list of `Flop.Filter` structs, which `Flop.validate/1`
+  applies when the parameters contain no filter for the respective field. If
+  the parameters contain a filter for the field, the default for that field is
+  not applied, regardless of the operator used by the client filter.
+
+      use Flop.Schema
+
+      @flop_options [
+        filterable: [:name, :age],
+        sortable: [:name, :age],
+        default_filter: [%Flop.Filter{field: :age, op: :>=, value: 8}]
+      ]
+
+  `Flop.Filter.new/1` builds a list of filters from a map of field names to
+  values, applying the default `:==` operator:
+
+      default_filter: Flop.Filter.new(%{species: "cat"})
+
+  The filter values are cast to the field type like filter parameters. Default
+  filters are applied after invalid client filters have been removed, and they
+  do not count towards the `max_filters` limit.
+
   ## Tiebreaker
 
   If your order does not identify each row uniquely, tied rows come back in an
@@ -153,7 +178,7 @@ defmodule Flop.Schema do
 
   Setting the value to `nil` (default) allows all pagination types.
 
-  See also `t:Flop.option/0`. 
+  See also `t:Flop.option/0`.
 
   ## Alias fields
 
@@ -246,18 +271,18 @@ defmodule Flop.Schema do
 
   ### Filter operator rules
 
-  - `:=~` `:like` `:not_like` `:like_and` `:like_or` `:ilike` `:not_ilike` `:ilike_and` `:ilike_or`  
+  - `:=~` `:like` `:not_like` `:like_and` `:like_or` `:ilike` `:not_ilike` `:ilike_and` `:ilike_or`
     If a string value is passed it will be split at whitespace
     characters and each segment will be checked separately. If a list of strings is
     passed the individual strings are not split. The filter matches for a value
     if it matches for any of the fields.
-  - `:empty`  
+  - `:empty`
     Matches if all fields of the compound field are `nil`.
-  - `:not_empty`  
+  - `:not_empty`
     Matches if any field of the compound field is not `nil`.
-  - `:==` `:!=` `:<=` `:<` `:>=` `:>` `:in` `:not_in` `:contains` `:not_contains`  
+  - `:==` `:!=` `:<=` `:<` `:>=` `:>` `:in` `:not_in` `:contains` `:not_contains`
     ** These filter operators are ignored for compound fields at the moment.
-    This will be added in a future version.**  
+    This will be added in a future version.**
     The filter value is normalized by splitting the string at whitespaces and
     joining it with a space. The values of all fields of the compound field are
     split by whitespace character and joined with a space, and the resulting
@@ -684,6 +709,9 @@ defmodule Flop.Schema do
     `false` to not set any maximum limit.
   - `:default_order` - The default order applied when no order parameters are
     set.
+  - `:default_filter` - A list of `Flop.Filter` structs that `Flop.validate/1`
+    applies as default filters when the parameters contain no filter for the
+    respective field. See `t:Flop.default_filter/0`.
   - `:tiebreaker` - The order fields appended to every query to make the order
     unambiguous. Defaults to the primary key, ascending. See
     `t:Flop.tiebreaker/0`.
@@ -699,6 +727,7 @@ defmodule Flop.Schema do
           | {:max_filters, pos_integer | false}
           | {:max_limit, integer}
           | {:default_order, Flop.default_order()}
+          | {:default_filter, Flop.default_filter()}
           | {:tiebreaker, Flop.tiebreaker()}
           | {:pagination_types, [Flop.pagination_type()]}
           | {:default_pagination_type, Flop.pagination_type()}
@@ -1010,6 +1039,7 @@ defmodule Flop.Schema do
   end
 
   @options [
+    :default_filter,
     :default_limit,
     :default_order,
     :default_pagination_type,
@@ -1092,6 +1122,7 @@ defmodule Flop.Schema do
     validate_no_unknown_field!(opts[:filterable], fields, "filterable")
     validate_no_unknown_field!(opts[:sortable], fields, "sortable")
     validate_default_order!(opts[:default_order], opts[:sortable])
+    validate_default_filter!(opts[:default_filter], opts[:filterable])
 
     validate_tiebreaker!(
       opts[:tiebreaker],
@@ -1180,5 +1211,16 @@ defmodule Flop.Schema do
         sortable_fields: MapSet.to_list(sortable_fields),
         unsortable_fields: MapSet.to_list(unsortable_fields)
     end
+  end
+
+  defp validate_default_filter!(nil, _), do: :ok
+
+  defp validate_default_filter!(default_filter, filterable)
+       when is_list(default_filter) do
+    validate_no_unknown_field!(
+      Enum.map(default_filter, & &1.field),
+      filterable,
+      "default_filter"
+    )
   end
 end

@@ -69,6 +69,9 @@ defmodule Flop.NimbleSchemas do
         ]
       ]
     ],
+    default_filter: [
+      type: {:custom, __MODULE__, :validate_default_filter, []}
+    ],
     default_limit: [type: {:or, [:pos_integer, {:in, [false]}]}],
     max_limit: [type: {:or, [:pos_integer, {:in, [false]}]}],
     max_filters: [type: {:or, [:pos_integer, {:in, [false]}]}],
@@ -169,6 +172,21 @@ defmodule Flop.NimbleSchemas do
   end
 
   def validate_ecto_type(ecto_type), do: {:ok, ecto_type}
+
+  @doc false
+  def validate_default_filter(default_filter) when is_list(default_filter) do
+    if Enum.all?(default_filter, &match?(%Flop.Filter{}, &1)) do
+      {:ok, default_filter}
+    else
+      {:error, default_filter_error(default_filter)}
+    end
+  end
+
+  def validate_default_filter(value), do: {:error, default_filter_error(value)}
+
+  defp default_filter_error(value) do
+    "expected a list of %Flop.Filter{} structs, got: " <> inspect(value)
+  end
 
   @order_directions [
     :asc,

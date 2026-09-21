@@ -20,6 +20,7 @@ defmodule Flop.SchemaTest do
         order_by: [:name, :age],
         order_directions: [:desc, :asc]
       },
+      default_filter: [%Flop.Filter{field: :name, value: "George"}],
       compound_fields: [name_or_email: [:name, :email]],
       join_fields: [
         topping_name: [
@@ -65,6 +66,32 @@ defmodule Flop.SchemaTest do
              order_by: [:name, :age],
              order_directions: [:desc, :asc]
            }
+  end
+
+  test "schema_option/2 returns the default filter passed as an option" do
+    assert Flop.schema_option(Panini, :default_filter) == [
+             %Flop.Filter{field: :name, value: "George"}
+           ]
+  end
+
+  test "raises if the default filter has an invalid format" do
+    error =
+      assert_raise Flop.InvalidConfigError, fn ->
+        defmodule Ziti do
+          use Flop.Schema
+
+          @flop_options [
+            filterable: [:name],
+            sortable: [:name],
+            default_filter: [%{field: :name}]
+          ]
+
+          defstruct [:name]
+        end
+      end
+
+    assert Exception.message(error) =~
+             "expected a list of %Flop.Filter{} structs"
   end
 
   test "schema_option/2 returns the default limit passed as option" do
@@ -296,6 +323,25 @@ defmodule Flop.SchemaTest do
           defstruct [:name, :age]
         end
       end
+    end
+
+    test "raises if default filter field is not filterable" do
+      error =
+        assert_raise Flop.UnknownFieldError, fn ->
+          defmodule Rake do
+            use Flop.Schema
+
+            @flop_options [
+              filterable: [:name],
+              sortable: [:name],
+              default_filter: [%Flop.Filter{field: :age, value: 8}]
+            ]
+            defstruct [:name, :age]
+          end
+        end
+
+      assert Exception.message(error) =~ "unknown default_filter field(s)"
+      assert Exception.message(error) =~ ":age"
     end
 
     test "raises if compound field references unknown field" do

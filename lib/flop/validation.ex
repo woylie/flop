@@ -35,6 +35,7 @@ defmodule Flop.Validation do
     |> put_default_order(opts)
     |> validate_pagination(opts)
     |> maybe_remove_invalid_filters(replace_invalid_params?)
+    |> put_default_filters(opts)
   end
 
   defp maybe_remove_invalid_filters(changeset, true) do
@@ -557,6 +558,83 @@ defmodule Flop.Validation do
     else
       changeset
     end
+  end
+
+  # Applied last so that invalid client filters removed under
+  # `replace_invalid_params: true` do not suppress the default for their field.
+  # Defaults do not count towards `:max_filters`.
+  defp put_default_filters(changeset, opts) do
+    case Flop.get_option(:default_filter, opts) do
+      default_filters when is_list(default_filters) and default_filters != [] ->
+        put_default_filters(changeset, default_filters, opts)
+
+      _ ->
+        changeset
+    end
+  end
+
+  defp put_default_filters(changeset, default_filters, opts) do
+    covered_fields = covered_filter_fields(changeset)
+
+    opts = Keyword.put(opts, :repo, Flop.adapter_opts(opts)[:repo])
+
+    default_filters = Enum.map(default_filters, &cast_default_filter(&1, opts))
+
+    if Enum.all?(default_filters, &match?({:ok, _}, &1)) do
+      applied_filters =
+        default_filters
+        |> Enum.map(fn {:ok, filter} -> filter end)
+        |> Enum.reject(&(&1.field in covered_fields))
+
+      case applied_filters do
+        [] ->
+          changeset
+
+        applied_filters ->
+          Changeset.put_change(
+            changeset,
+            :filters,
+            applied_filters ++ (get_value(changeset, :filters) || [])
+          )
+      end
+    else
+      {:error, invalid} = Enum.find(default_filters, &match?({:error, _}, &1))
+      add_default_filter_error(changeset, invalid)
+    end
+  end
+
+  defp covered_filter_fields(changeset) do
+    changeset
+    |> get_value(:filters)
+    |> List.wrap()
+    |> Enum.map(&Changeset.get_field(&1, :field))
+    |> Enum.reject(&is_nil/1)
+  end
+
+  defp cast_default_filter(%Filter{} = filter, opts) do
+    params =
+      filter
+      |> Map.from_struct()
+      |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+      |> Enum.into(%{})
+
+    filter_changeset = Filter.changeset(filter, params, opts)
+
+    if filter_changeset.valid? do
+      {:ok, Changeset.apply_changes(filter_changeset)}
+    else
+      {:error, filter}
+    end
+  end
+
+  defp cast_default_filter(invalid, _opts), do: {:error, invalid}
+
+  defp add_default_filter_error(changeset, invalid) do
+    Changeset.add_error(
+      changeset,
+      :filters,
+      "invalid default filter: #{inspect(invalid)}"
+    )
   end
 
   defp put_default_value(changeset, _, nil), do: changeset
