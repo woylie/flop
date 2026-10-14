@@ -123,7 +123,9 @@ defmodule Flop.Schema do
 
   The filter values are cast to the field type like filter parameters. Default
   filters are applied after invalid client filters have been removed, and they
-  do not count towards the `max_filters` limit.
+  do not count towards the `max_filters` limit. An invalid default filter
+  raises an `ArgumentError`, since default filters are configured by the
+  application rather than derived from client input.
 
   ## Tiebreaker
 

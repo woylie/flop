@@ -17,7 +17,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Default filters do not count towards the `max_filters` limit. Filters that
   are identical to a default filter are applied as default filters again, so
   submitting the filters of a validated Flop struct back neither duplicates
-  them nor adds to the `max_filters` count.
+  them nor adds to the `max_filters` count. Invalid default filters raise an
+  `ArgumentError`.
 
 ## [0.29.0] - 2026-09-03
 

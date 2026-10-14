@@ -330,37 +330,22 @@ defmodule FlopTest do
                Flop.validate(%{}, for: DefaultFilterPet, default_filter: false)
     end
 
-    test "returns error if the default filter value is invalid" do
-      assert {:error, %Meta{errors: errors}} =
-               Flop.validate(%{},
-                 for: DefaultFilterPet,
-                 default_filter: [%Flop.Filter{field: :age, value: "eight"}]
-               )
-
-      assert [{message, _}] = Keyword.get(errors, :filters)
-      assert message == "invalid default filter"
+    test "raises if the default filter value is invalid" do
+      assert_raise ArgumentError, ~r/invalid default filter.*:age/, fn ->
+        Flop.validate(%{},
+          for: DefaultFilterPet,
+          default_filter: [%Flop.Filter{field: :age, value: "eight"}]
+        )
+      end
     end
 
-    test "logs the invalid default filter" do
-      import ExUnit.CaptureLog
-
-      assert capture_log(fn ->
-               Flop.validate(%{},
-                 for: DefaultFilterPet,
-                 default_filter: [%Flop.Filter{field: :age, value: "eight"}]
-               )
-             end) =~ "invalid default filter"
-    end
-
-    test "returns error if the default filter has no value" do
-      assert {:error, %Meta{errors: errors}} =
-               Flop.validate(%{},
-                 for: DefaultFilterPet,
-                 default_filter: [%Flop.Filter{field: :species, op: :empty}]
-               )
-
-      assert [{message, _}] = Keyword.get(errors, :filters)
-      assert message =~ "invalid default filter"
+    test "raises if the default filter has no value" do
+      assert_raise ArgumentError, ~r/invalid default filter/, fn ->
+        Flop.validate(%{},
+          for: DefaultFilterPet,
+          default_filter: [%Flop.Filter{field: :species, op: :empty}]
+        )
+      end
     end
 
     test "supports cursor pagination" do
@@ -424,28 +409,24 @@ defmodule FlopTest do
                )
     end
 
-    test "returns error if the default filter operator is not allowed" do
-      assert {:error, %Meta{errors: errors}} =
-               Flop.validate(%{},
-                 for: DefaultFilterPet,
-                 default_filter: [
-                   %Flop.Filter{field: :age, op: :=~, value: "8"}
-                 ]
-               )
-
-      assert [{message, _}] = Keyword.get(errors, :filters)
-      assert message =~ "invalid default filter"
+    test "raises if the default filter operator is not allowed" do
+      assert_raise ArgumentError, ~r/invalid default filter/, fn ->
+        Flop.validate(%{},
+          for: DefaultFilterPet,
+          default_filter: [
+            %Flop.Filter{field: :age, op: :=~, value: "8"}
+          ]
+        )
+      end
     end
 
-    test "returns error for invalid entries" do
-      assert {:error, %Meta{errors: errors}} =
-               Flop.validate(%{},
-                 for: DefaultFilterPet,
-                 default_filter: [%{field: :age}]
-               )
-
-      assert [{message, _}] = Keyword.get(errors, :filters)
-      assert message =~ "invalid default filter"
+    test "raises for invalid entries" do
+      assert_raise ArgumentError, ~r/invalid default filter/, fn ->
+        Flop.validate(%{},
+          for: DefaultFilterPet,
+          default_filter: [%{field: :age}]
+        )
+      end
     end
 
     test "applies default filter if the client submits an empty value for the field" do

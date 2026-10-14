@@ -644,7 +644,7 @@ defmodule Flop do
 
   The filter values are cast to the field type like filter parameters, so a
   default filter value of `"8"` for an integer field results in a filter value
-  of `8`.
+  of `8`. An invalid default filter raises an `ArgumentError`.
 
   `Flop.Filter.new/1` builds a list of filters from a map of field names to
   values, applying the default `:==` operator.

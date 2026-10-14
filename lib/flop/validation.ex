@@ -8,8 +8,6 @@ defmodule Flop.Validation do
   alias Flop.FieldInfo
   alias Flop.Filter
 
-  require Logger
-
   @spec changeset(map, [Flop.option()]) :: Changeset.t()
   def changeset(%{} = params, opts) do
     replace_invalid_params? =
@@ -642,7 +640,10 @@ defmodule Flop.Validation do
       end
     else
       {:error, invalid} = Enum.find(default_filters, &match?({:error, _}, &1))
-      add_default_filter_error(changeset, invalid)
+
+      # Default filters are configured by the application, so an invalid
+      # default is a configuration error rather than a validation error.
+      raise ArgumentError, "invalid default filter: #{inspect(invalid)}"
     end
   end
 
@@ -677,14 +678,6 @@ defmodule Flop.Validation do
   end
 
   defp cast_default_filter(invalid, _opts), do: {:error, invalid}
-
-  defp add_default_filter_error(changeset, invalid) do
-    # The default filter is configured by the application, so the details are
-    # logged instead of being exposed in the validation error.
-    Logger.error("invalid default filter: #{inspect(invalid)}")
-
-    Changeset.add_error(changeset, :filters, "invalid default filter")
-  end
 
   defp put_default_value(changeset, _, nil), do: changeset
   defp put_default_value(changeset, _, false), do: changeset

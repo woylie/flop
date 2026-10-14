@@ -194,8 +194,9 @@ combined with the default filters as usual.
 
 The filter values are cast to the field type like filter parameters, so a
 default filter value of `"8"` for an integer field results in a filter value
-of `8`. If a default filter cannot be cast, `Flop.validate/2` returns an
-error, like it does for invalid filter parameters.
+of `8`. If a default filter cannot be cast, `Flop.validate/2` raises an
+`ArgumentError`, since default filters are configured by the application
+rather than derived from client input.
 
 Default filters are applied by `Flop.validate/2` and the functions that validate
 for you, like `Flop.validate_and_run/3`. They are applied after invalid client
