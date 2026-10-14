@@ -621,8 +621,6 @@ defmodule Flop.Validation do
 
     case cast_and_validate_default_filters(default_filters, opts) do
       {:error, invalid} ->
-        # Default filters are configured by the application, so an invalid
-        # default is a configuration error rather than a validation error.
         raise ArgumentError, "invalid default filter: #{inspect(invalid)}"
 
       {:ok, cast_filters} ->
@@ -645,8 +643,6 @@ defmodule Flop.Validation do
     end
   end
 
-  # Casts and validates all default filters in a single pass, halting on the
-  # first invalid one.
   defp cast_and_validate_default_filters(default_filters, opts) do
     Enum.reduce_while(default_filters, {:ok, []}, fn filter, {:ok, acc} ->
       case cast_default_filter(filter, opts) do
