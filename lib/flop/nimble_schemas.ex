@@ -175,7 +175,7 @@ defmodule Flop.NimbleSchemas do
 
   @doc false
   def validate_default_filter(default_filter) when is_list(default_filter) do
-    if Enum.all?(default_filter, &match?(%Flop.Filter{}, &1)) do
+    if Enum.all?(default_filter, &valid_default_filter?/1) do
       {:ok, default_filter}
     else
       {:error, default_filter_error(default_filter)}
@@ -184,8 +184,13 @@ defmodule Flop.NimbleSchemas do
 
   def validate_default_filter(value), do: {:error, default_filter_error(value)}
 
+  # A filter without a value would be skipped when the query is built.
+  defp valid_default_filter?(%Flop.Filter{value: value}), do: value != nil
+  defp valid_default_filter?(_), do: false
+
   defp default_filter_error(value) do
-    "expected a list of %Flop.Filter{} structs, got: " <> inspect(value)
+    "expected a list of %Flop.Filter{} structs with values, got: " <>
+      inspect(value)
   end
 
   @order_directions [

@@ -94,6 +94,26 @@ defmodule Flop.SchemaTest do
              "expected a list of %Flop.Filter{} structs"
   end
 
+  test "raises if the default filter has no value" do
+    error =
+      assert_raise Flop.InvalidConfigError, fn ->
+        defmodule Fettuccine do
+          use Flop.Schema
+
+          @flop_options [
+            filterable: [:name],
+            sortable: [:name],
+            default_filter: [%Flop.Filter{field: :name, op: :empty}]
+          ]
+
+          defstruct [:name]
+        end
+      end
+
+    assert Exception.message(error) =~
+             "expected a list of %Flop.Filter{} structs"
+  end
+
   test "schema_option/2 returns the default limit passed as option" do
     assert Flop.schema_option(Panini, :default_limit) == 20
   end

@@ -11,10 +11,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Add the `:default_filter` schema and function option, a list of `Flop.Filter`
-  structs that is applied when the validated parameters contain no filter for
-  the respective field; client filters take precedence per field.
+  structs that is applied when the validated parameters contain no filter with
+  a value for the respective field; client filters take precedence per field.
   `Flop.Filter.new/1` builds the list from a map of field names to values.
-  Default filters do not count towards the `max_filters` limit.
+  Default filters do not count towards the `max_filters` limit. Filters that
+  are identical to a default filter are applied as default filters again, so
+  submitting the filters of a validated Flop struct back neither duplicates
+  them nor adds to the `max_filters` count.
 
 ## [0.29.0] - 2026-09-03
 

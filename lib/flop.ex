@@ -444,10 +444,10 @@ defmodule Flop do
     specified in the parameters, or if ordering is disabled. Can be set in the
     schema or in the options passed to the query functions.
   - `:default_filter` - A list of `Flop.Filter` structs that are applied as
-    default filters when the parameters contain no filter for the respective
-    field. `Flop.Filter.new/1` builds the list from a map of field names to
-    values. Can be set in the schema or in the options passed to the query
-    functions. See `t:Flop.default_filter/0`.
+    default filters when the parameters contain no filter with a value for the
+    respective field. `Flop.Filter.new/1` builds the list from a map of field
+    names to values. Can be set in the schema or in the options passed to the
+    query functions. See `t:Flop.default_filter/0`.
   - `:default_pagination_type` - The default pagination type when it cannot be
     inferred from the parameters.
   - `:tiebreaker` - The order fields appended to every query to make the order
@@ -576,6 +576,9 @@ defmodule Flop do
            (any, [atom] -> map) | (any, [atom], keyword -> map)}
           | {:default_limit, pos_integer | false}
           | {:default_order, default_order()}
+          # `false` disables the schema defaults for a single query. It is
+          # rejected at the schema level, so `Flop.Schema.option/0` does not
+          # include it.
           | {:default_filter, default_filter() | false}
           | {:default_pagination_type, pagination_type() | false}
           | {:filterable, [atom]}
@@ -628,10 +631,16 @@ defmodule Flop do
 
   @typedoc """
   A list of `Flop.Filter` structs applied as default filters when the
-  parameters contain no filter for the respective field.
+  parameters contain no filter for the respective field. Each filter must have
+  a value; a default without one would be skipped when the query is built, so
+  it is rejected.
 
-  If the parameters contain a filter for the field, the default for that field
-  is not applied, regardless of the operator used by the client filter.
+  If the parameters contain a filter with a value for the field, the default
+  for that field is not applied, regardless of the operator used by the client
+  filter. Filters with an empty value don't count as a filter for the field,
+  and filters that are identical to a default filter are applied as default
+  filters again, so submitting the filters of a validated Flop struct back
+  neither duplicates them nor adds to the `max_filters` count.
 
   The filter values are cast to the field type like filter parameters, so a
   default filter value of `"8"` for an integer field results in a filter value

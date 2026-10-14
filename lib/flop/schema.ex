@@ -102,9 +102,11 @@ defmodule Flop.Schema do
 
   Specify default filters by setting the `default_filter` option in
   `@flop_options`. It takes a list of `Flop.Filter` structs, which `Flop.validate/1`
-  applies when the parameters contain no filter for the respective field. If
-  the parameters contain a filter for the field, the default for that field is
-  not applied, regardless of the operator used by the client filter.
+  applies when the parameters contain no filter with a value for the respective
+  field. If the parameters contain a filter for the field, the default for that
+  field is not applied, regardless of the operator used by the client filter.
+  Filters with an empty value don't suppress the default, and filters that are
+  identical to a default filter are applied as default filters again.
 
       use Flop.Schema
 
@@ -710,8 +712,8 @@ defmodule Flop.Schema do
   - `:default_order` - The default order applied when no order parameters are
     set.
   - `:default_filter` - A list of `Flop.Filter` structs that `Flop.validate/1`
-    applies as default filters when the parameters contain no filter for the
-    respective field. See `t:Flop.default_filter/0`.
+    applies as default filters when the parameters contain no filter with a
+    value for the respective field. See `t:Flop.default_filter/0`.
   - `:tiebreaker` - The order fields appended to every query to make the order
     unambiguous. Defaults to the primary key, ascending. See
     `t:Flop.tiebreaker/0`.
