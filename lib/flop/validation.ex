@@ -619,32 +619,41 @@ defmodule Flop.Validation do
 
     opts = Keyword.put(opts, :repo, Flop.adapter_opts(opts)[:repo])
 
-    default_filters = Enum.map(default_filters, &cast_default_filter(&1, opts))
+    case cast_and_validate_default_filters(default_filters, opts) do
+      {:error, invalid} ->
+        # Default filters are configured by the application, so an invalid
+        # default is a configuration error rather than a validation error.
+        raise ArgumentError, "invalid default filter: #{inspect(invalid)}"
 
-    if Enum.all?(default_filters, &match?({:ok, _}, &1)) do
-      applied_filters =
-        default_filters
-        |> Enum.map(fn {:ok, filter} -> filter end)
-        |> Enum.reject(&(&1.field in covered_fields))
+      {:ok, cast_filters} ->
+        applied_filters =
+          cast_filters
+          |> Enum.reverse()
+          |> Enum.reject(&(&1.field in covered_fields))
 
-      case applied_filters do
-        [] ->
-          changeset
+        case applied_filters do
+          [] ->
+            changeset
 
-        applied_filters ->
-          Changeset.put_change(
-            changeset,
-            :filters,
-            applied_filters ++ (get_value(changeset, :filters) || [])
-          )
-      end
-    else
-      {:error, invalid} = Enum.find(default_filters, &match?({:error, _}, &1))
-
-      # Default filters are configured by the application, so an invalid
-      # default is a configuration error rather than a validation error.
-      raise ArgumentError, "invalid default filter: #{inspect(invalid)}"
+          applied_filters ->
+            Changeset.put_change(
+              changeset,
+              :filters,
+              applied_filters ++ (get_value(changeset, :filters) || [])
+            )
+        end
     end
+  end
+
+  # Casts and validates all default filters in a single pass, halting on the
+  # first invalid one.
+  defp cast_and_validate_default_filters(default_filters, opts) do
+    Enum.reduce_while(default_filters, {:ok, []}, fn filter, {:ok, acc} ->
+      case cast_default_filter(filter, opts) do
+        {:ok, cast} -> {:cont, {:ok, [cast | acc]}}
+        {:error, _} = error -> {:halt, error}
+      end
+    end)
   end
 
   # Filters with an empty value are skipped when the query is built.

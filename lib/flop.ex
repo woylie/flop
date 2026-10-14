@@ -646,8 +646,8 @@ defmodule Flop do
   default filter value of `"8"` for an integer field results in a filter value
   of `8`. An invalid default filter raises an `ArgumentError`.
 
-  `Flop.Filter.new/1` builds a list of filters from a map of field names to
-  values, applying the default `:==` operator.
+  You can use `Flop.Filter.new/1` to build a list of filters from a map of
+  field names to values, applying the default `:==` operator.
 
   Pass `false` as the option value at the call site to disable the default
   filters for a single query.

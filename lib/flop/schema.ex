@@ -116,8 +116,8 @@ defmodule Flop.Schema do
         default_filter: [%Flop.Filter{field: :age, op: :>=, value: 8}]
       ]
 
-  `Flop.Filter.new/1` builds a list of filters from a map of field names to
-  values, applying the default `:==` operator:
+  You can use `Flop.Filter.new/1` to build a list of filters from a map of
+  field names to values, applying the default `:==` operator:
 
       default_filter: Flop.Filter.new(%{species: "cat"})
 

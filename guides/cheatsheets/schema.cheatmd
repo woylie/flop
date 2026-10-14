@@ -67,8 +67,8 @@ use Flop.Schema
 ]
 ```
 
-`Flop.Filter.new/1` builds the list from a map, applying the default `:==`
-operator.
+You can use `Flop.Filter.new/1` to build the list from a map, applying the
+default `:==` operator.
 
 ```elixir
 default_filter: Flop.Filter.new(%{species: "cat"})
