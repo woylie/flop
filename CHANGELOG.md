@@ -21,6 +21,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Raise an `ArgumentError` when a module without a struct uses `Flop.Schema`
   with the Ecto adapter.
 - Apply `max_cursor_size` from every option level in `Flop.paginate/3`.
+- Cast cursor values for custom fields defined with `field_dynamic`.
 
 ### Security
 
