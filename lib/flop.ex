@@ -443,6 +443,11 @@ defmodule Flop do
   - `:default_order` - The default ordering for a query when no order is
     specified in the parameters, or if ordering is disabled. Can be set in the
     schema or in the options passed to the query functions.
+  - `:default_filter` - A list of `Flop.Filter` structs that are applied as
+    default filters when the parameters contain no filter with a value for the
+    respective field. `Flop.Filter.new/1` builds the list from a map of field
+    names to values. Can be set in the schema or in the options passed to the
+    query functions. See `t:Flop.default_filter/0`.
   - `:default_pagination_type` - The default pagination type when it cannot be
     inferred from the parameters.
   - `:tiebreaker` - The order fields appended to every query to make the order
@@ -466,7 +471,7 @@ defmodule Flop do
   ### Disabling features
 
   - `:filtering` (boolean) - Enables or disables filtering. When set to `false`,
-    filter parameters are ignored.
+    filter parameters are ignored, but default filters are still applied.
   - `:ordering` (boolean) - Enables or disables ordering. When set to `false`,
     order parameters are ignored, but the default order is still applied.
   - `:pagination` (boolean) - Enables or disables pagination. When set to
@@ -514,6 +519,7 @@ defmodule Flop do
   | `:max_limit`               | yes      | yes    | yes     | yes     |
   | `:max_filters`             | yes      | yes    | yes     | yes     |
   | `:default_order`           | yes      | yes    | no      | no      |
+  | `:default_filter`          | yes      | yes    | no      | no      |
   | `:default_pagination_type` | yes      | yes    | yes     | yes     |
   | `:pagination_types`        | yes      | yes    | yes     | yes     |
   | `:tiebreaker`              | yes      | yes    | yes     | yes²    |
@@ -536,8 +542,8 @@ defmodule Flop do
      `compound_fields`, `custom_fields` and `alias_fields`. The other levels
      hold `:repo` and `:query_opts`. See "Adapter option look-up" below.
 
-  `:default_order` follows the same rule as the tiebreaker: it names fields, so
-  the application environment ignores it.
+  `:default_order` and `:default_filter` follow the same rule as the tiebreaker:
+  they name fields, so the application environment ignores them.
 
   The application environment accepts the same options as a backend module, plus
   `:diagnostics`, which is read at compile time and cannot be set anywhere else.
@@ -570,6 +576,10 @@ defmodule Flop do
            (any, [atom] -> map) | (any, [atom], keyword -> map)}
           | {:default_limit, pos_integer | false}
           | {:default_order, default_order()}
+          # `false` disables the schema defaults for a single query. It is
+          # rejected at the schema level, so `Flop.Schema.option/0` does not
+          # include it.
+          | {:default_filter, default_filter() | false}
           | {:default_pagination_type, pagination_type() | false}
           | {:filterable, [atom]}
           | {:filtering, boolean}
@@ -618,6 +628,31 @@ defmodule Flop do
             required(:order_by) => [atom],
             optional(:order_directions) => [order_direction()]
           }
+
+  @typedoc """
+  A list of `Flop.Filter` structs applied as default filters when the
+  parameters contain no filter for the respective field. Each filter must have
+  a value; a default without one would be skipped when the query is built, so
+  it is rejected.
+
+  If the parameters contain a filter with a value for the field, the default
+  for that field is not applied, regardless of the operator used by the client
+  filter. Filters with an empty value don't count as a filter for the field,
+  and filters that are identical to a default filter are applied as default
+  filters again, so submitting the filters of a validated Flop struct back
+  neither duplicates them nor adds to the `max_filters` count.
+
+  The filter values are cast to the field type like filter parameters, so a
+  default filter value of `"8"` for an integer field results in a filter value
+  of `8`. An invalid default filter raises an `ArgumentError`.
+
+  You can use `Flop.Filter.new/1` to build a list of filters from a map of
+  field names to values, applying the default `:==` operator.
+
+  Pass `false` as the option value at the call site to disable the default
+  filters for a single query.
+  """
+  @type default_filter :: [Flop.Filter.t()]
 
   @typedoc """
   The order fields appended to every query to make the order unambiguous.
@@ -2571,6 +2606,7 @@ defmodule Flop do
   def schema_option(module, key)
       when is_atom(module) and module != nil and
              key in [
+               :default_filter,
                :default_limit,
                :default_order,
                :filterable,
@@ -2593,9 +2629,10 @@ defmodule Flop do
 
   defp backend_option(_, _), do: nil
 
-  # `:default_order` names fields, which belong to a schema, so a global value
-  # would apply the same field names to every schema.
+  # `:default_order` and `:default_filter` name fields, which belong to a
+  # schema, so a global value would apply the same field names to every schema.
   defp global_option(:default_order), do: nil
+  defp global_option(:default_filter), do: nil
 
   defp global_option(:tiebreaker) do
     case Application.get_env(:flop, :tiebreaker) do
