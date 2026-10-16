@@ -103,7 +103,7 @@ defmodule Flop.OptionLevelsTest do
       assert Flop.ordering(%Flop{order_by: [:name]}, for: Pet) == [asc: :name]
     end
 
-    test "raises when it names fields in the application environment" do
+    test "raises for a list of fields in the application environment" do
       Application.put_env(:flop, :tiebreaker, asc: :id)
 
       assert_raise ArgumentError,

@@ -185,8 +185,8 @@ defmodule Flop.NimbleSchemas do
   def validate_schemaless_tiebreaker(fields) when is_list(fields) do
     {:error,
      """
-     a tiebreaker that names fields can only be set on a schema or passed to a \
-     query function, got: #{inspect(fields)}\
+     a tiebreaker given as a list of fields can only be set on a schema or \
+     passed to a query function, got: #{inspect(fields)}\
      """}
   end
 
