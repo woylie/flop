@@ -266,6 +266,12 @@ defmodule Flop.Adapter.Ecto do
     end
   end
 
+  # the query selected `%{owner_name: o.name}` instead of
+  # `%{owner: %{name: o.name}}`
+  defp walk_path(%{} = item, field, [first | _])
+       when not is_struct(item) and not is_map_key(item, first),
+       do: Map.get(item, field)
+
   defp walk_path(item, field, path) do
     value =
       Enum.reduce(path, item, fn

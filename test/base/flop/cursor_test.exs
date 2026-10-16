@@ -13,6 +13,27 @@ defmodule Flop.CursorTest do
                %{owner_name: "Ann"}
     end
 
+    test "reads a plain map by field name with a schema" do
+      map = %{name: "George", owner_name: "Ann"}
+
+      assert Cursor.get_cursor_from_node(map, [:owner_name], for: MyApp.Pet) ==
+               %{owner_name: "Ann"}
+    end
+
+    test "prefers the path over the field name for a plain map" do
+      map = %{owner_name: "Ann (owner)", owner: %{name: "Ann"}}
+
+      assert Cursor.get_cursor_from_node(map, [:owner_name], for: MyApp.Pet) ==
+               %{owner_name: "Ann"}
+    end
+
+    test "reads nil from a plain map whose association is nil" do
+      map = %{owner_name: "Ann (owner)", owner: nil}
+
+      assert Cursor.get_cursor_from_node(map, [:owner_name], for: MyApp.Pet) ==
+               %{owner_name: nil}
+    end
+
     test "without a schema a plain map reads the field name at the top level" do
       map = %{name: "George", owner: %{name: "Ann"}}
 
