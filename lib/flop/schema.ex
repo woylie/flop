@@ -911,8 +911,9 @@ defmodule Flop.Schema do
   For join fields, this function relies on the binding name in the schema config
   matching the field name for the association in the struct.
 
-  Join and custom fields are read through their `path`. A custom field's value
-  is computed in the query and is only there if you selected it.
+  Join and custom fields are read through their `path`. A plain map without the
+  first key of the path is read by field name instead. A custom field's value is
+  computed in the query and is only there if you selected it.
   """
   @doc since: "0.13.0"
   @spec get_field(module, any, atom) :: any

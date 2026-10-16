@@ -8,6 +8,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fall back to reading a join or custom field's cursor value by field name if a
+  plain map does not have the first key of the field's path, as in
+  `%{id: p.id, owner_name: o.name}`.
+
 ### Security
 
 - Leave the parameter values out of the `Flop.InvalidParamsError` message. The

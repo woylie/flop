@@ -275,8 +275,8 @@ defmodule Flop.Cursor do
   function and resolves the field against the schema given as `:for`, instead of
   against the type of `item`.
 
-  Without a schema, a plain map falls back to reading the field name at the top
-  level, which ignores a configured `:path`.
+  A plain map without the first key of a field's `:path` is read by field name.
+  Without a schema, every plain map is read by field name.
   """
   @doc since: "0.29.0"
   @spec get_cursor_from_edge({map, map} | map, [atom], [Flop.option()]) :: map
@@ -340,8 +340,8 @@ defmodule Flop.Cursor do
   function and resolves the field against the schema given as `:for`, instead of
   against the type of `item`.
 
-  Without a schema, a plain map falls back to reading the field name at the top
-  level, which ignores a configured `:path`.
+  A plain map without the first key of a field's `:path` is read by field name.
+  Without a schema, every plain map is read by field name.
   """
   @doc since: "0.29.0"
   @spec get_cursor_from_node({map, map} | map, [atom], [Flop.option()]) :: map
