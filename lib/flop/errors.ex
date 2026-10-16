@@ -55,13 +55,14 @@ defmodule Flop.InvalidCursorError do
 
   defexception [:cursor]
 
-  def message(%{cursor: cursor}) do
+  def message(_) do
     """
     invalid cursor
 
-    Attempted to decode an invalid pagination cursor:
+    The pagination cursor could not be decoded.
 
-        #{inspect(cursor)}
+    The cursor is left out of this message. It is in the `cursor` field of the
+    exception.
     """
   end
 end
