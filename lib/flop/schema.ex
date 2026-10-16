@@ -30,6 +30,15 @@ defmodule Flop.Schema do
 
   See `t:option/0` for an overview of all available options.
 
+  ## What filterable and sortable fields reveal
+
+  A client can learn the values of a filterable or sortable field, even if your
+  response leaves the field out. Sorting by it returns the rows in the order of
+  its values, and filtering it with `:<` or `:>` narrows a value down with each
+  request. Response times can also differ between a field with an index and one
+  without. Only make a field filterable or sortable if the client may know its
+  values.
+
   > #### `use Flop.Schema` {: .info}
   >
   > When you `use Flop.Schema`, the module will:
@@ -68,7 +77,7 @@ defmodule Flop.Schema do
   ## Default and maximum limits
 
   Define a default or maximum limit by setting the `default_limit` and
-  `max_limit` options in `@flop_options`. `Flop.validate/1` will apply
+  `max_limit` options in `@flop_options`. `Flop.validate/2` will apply
   the default limit and validate the maximum limit.
 
       use Flop.Schema
@@ -82,10 +91,9 @@ defmodule Flop.Schema do
 
   ## Default sort order
 
-  Specify a default sort order by setting the `default_order_by` and
-  `default_order_directions` options in `@flop_options`. The default
-  values will be applied by `Flop.validate/1`. If no order directions are set,
-  `:asc` is the default for all fields.
+  Specify a default sort order by setting the `default_order` option in
+  `@flop_options`. The default values will be applied by `Flop.validate/2`. If
+  no order directions are set, `:asc` is the default for all fields.
 
       use Flop.Schema
 
@@ -256,12 +264,7 @@ defmodule Flop.Schema do
   - `:not_empty`  
     Matches if any field of the compound field is not `nil`.
   - `:==` `:!=` `:<=` `:<` `:>=` `:>` `:in` `:not_in` `:contains` `:not_contains`  
-    ** These filter operators are ignored for compound fields at the moment.
-    This will be added in a future version.**  
-    The filter value is normalized by splitting the string at whitespaces and
-    joining it with a space. The values of all fields of the compound field are
-    split by whitespace character and joined with a space, and the resulting
-    values are joined with a space again.
+    These filter operators are not supported for compound fields.
 
   ### Sorting
 
@@ -423,8 +426,8 @@ defmodule Flop.Schema do
 
   ## Custom fields
 
-  Custom fields allow for precise control over filtering and ordering, making it
-  possible to implement logic that the built-in options cannot satisfy.
+  Custom fields let you implement filtering and ordering logic that the built-in
+  options do not cover.
 
   For example, you might need to handle dates and times in a particular way that
   takes into account different time zones, or perform database-specific queries
@@ -437,8 +440,8 @@ defmodule Flop.Schema do
     It only receives an options keyword list, and Flop applies the ordering
     clauses and the filter operators on the expression it returns. This
     option is required to make a custom field sortable. It is also the simpler
-    way to make a custom field filterable, as you only need to define a dynamic
-    that returns a field value, and Flop can apply all operators on it.
+    way to make a custom field filterable, because Flop applies all operators
+    to the expression.
   - `filter` takes the Ecto query, the Flop filter and an options keyword list,
     and returns the updated query. With this option, you can build more complex
     filter expressions, but you have to handle all operators yourself.
@@ -550,9 +553,9 @@ defmodule Flop.Schema do
   > #### Cursor values have to be selected {: .warning}
   >
   > Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is your
-  > responsibility. A custom field is an expression, not a column, so nothing
-  > puts it into the result unless you do. A missing value breaks pagination
-  > silently.
+  > responsibility. A custom field is computed in the query, so it is only in
+  > the result if you select it. A missing value breaks pagination without an
+  > error.
 
   ## Ecto type option
 
@@ -606,30 +609,6 @@ defmodule Flop.Schema do
   Furthermore, you can reference a type from another schema:
 
   - `ecto_type: {:from_schema, MyApp.Pet, :mood}`
-
-  Naming a module here makes it a compile-time dependency of your schema, so
-  changing `MyApp.Pet` recompiles every schema that references it. This is not
-  specific to Flop: `Ecto.Schema` reads the `@derive` attribute at compile time,
-  which turns any module named in it into a compile-time dependency. Setting the
-  type directly (`ecto_type: :string`) avoids it. If you want the reference and
-  not the dependency, build the module name without an alias:
-
-      @pet Module.concat(["MyApp", "Pet"])
-
-      @derive {
-        Flop.Schema,
-        filterable: [:pet_mood],
-        sortable: [],
-        adapter_opts: [
-          join_fields: [
-            pet_mood: [
-              binding: :pets,
-              field: :mood,
-              ecto_type: {:from_schema, @pet, :mood}
-            ]
-          ]
-        ]
-      }
 
   Note that `Flop.Phoenix` encodes all filters in query string using
   `Plug.Conn.Query`. It is expected that filter values can be converted to
@@ -713,7 +692,7 @@ defmodule Flop.Schema do
     example a family name plus a given name field.
   - `:custom_fields` - Custom fields with user-defined filter and order
     functions.
-  - `:alias_field` - Fields that reference aliases defined with
+  - `:alias_fields` - Fields that reference aliases defined with
     `Ecto.Query.API.selected_as/2`.
   """
   @type adapter_option ::
@@ -812,8 +791,8 @@ defmodule Flop.Schema do
   @doc """
   Returns the schema configuration built from `@flop_options`.
 
-  Defined by `use Flop.Schema`. Read it through `flop_schema!/1` rather than
-  calling it directly; its shape is not part of the public API.
+  Defined by `use Flop.Schema`. Read it through `flop_schema!/1`. Its shape is
+  not part of the public API.
   """
   @doc since: "0.29.0"
   @callback __flop_schema__() :: map

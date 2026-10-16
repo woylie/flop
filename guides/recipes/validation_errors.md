@@ -32,7 +32,7 @@ meta.errors == [
 ```
 
 The message holds `%{key}` placeholders and the options hold the values to
-interpolate. The options also name what would have been accepted: an `order_by`
+interpolate. The options also show what would have been accepted: an `order_by`
 error lists the sortable fields, an unknown filter field lists the filterable
 fields, and an operator error lists the operators the field allows.
 

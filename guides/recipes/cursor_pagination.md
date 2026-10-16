@@ -9,8 +9,8 @@ Cy and Dee with no age at all.
 ## Trade-offs
 
 Offset and page pagination count rows from the start of the result set, so a
-page depends on how many rows come before it. A cursor names a position instead,
-which gives it three advantages:
+page depends on how many rows come before it. A cursor points to a position
+instead, which gives it three advantages:
 
 - Paging is stable. An insert or a delete before the current position does not
   move the rows after it, so no row is skipped or repeated between two requests.
@@ -52,7 +52,7 @@ request. The parameters are based on the
 Both cursors are exclusive: the row a cursor points at is not repeated on the
 adjacent page.
 
-`meta.has_next_page?` costs no second query. Flop asks the database for one row
+`meta.has_next_page?` needs no second query. Flop asks the database for one row
 more than requested and checks whether it arrived. `has_previous_page?` is not
 read from the data at all when paging forward: it is `true` whenever `after` was
 set. Paging backward with `last` and `before` reverses this, so
@@ -75,11 +75,11 @@ using it as the only order field leads to unstable pagination.
 | 2 | Bo 1, Cy | |
 
 The third Ada is gone. Page 2 asks for the rows after the name "Ada", and all
-three Adas share that name. Six rows go in, five come out, and nothing in the
-metadata says so.
+three Adas share that name. Only five of the six rows are returned, and nothing
+in the metadata says so.
 
-This is why Flop appends the primary key to every order. The same walk returns
-every row, and the parameters stay as they were:
+This is why Flop appends the primary key to every order. Paging the same way now
+returns every row, and the parameters stay as they were:
 
 | page | rows |
 |---|---|
@@ -199,6 +199,9 @@ A cursor is `:erlang.term_to_binary/1` with Base64 on top, so the values inside
 it keep their type. A `DateTime` in an order field survives the round trip and
 needs nothing from you, and the cursor itself is a plain string.
 
+A cursor is not encrypted. Anyone who has it can decode it and read the order
+values of the row it came from, including the primary key.
+
 On the way back in, Flop casts every cursor value with the Ecto type of its
 order field, and rejects the cursor if a value does not cast.
 
@@ -219,6 +222,10 @@ Nothing binds a cursor to the row it came from. Flop compares values, so:
 - Editing a row's order values moves it. It can turn up on a page you already
   saw, or vanish from the pages that are left.
 - A cursor remains valid across inserts.
+
+Choose order fields whose values do not change when a row is edited. If you
+sort by `updated_at`, an edit between two requests makes the client see the row
+twice or miss it.
 
 A cursor that does not fit the current parameters is rejected. That happens when
 a client keeps a cursor after changing the sort, so that its fields no longer
