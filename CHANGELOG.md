@@ -28,8 +28,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
-- Leave the parameter values out of the `Flop.InvalidParamsError` message. The
-  `params` field of the exception still holds them.
+- Leave the parameter values out of the `Flop.InvalidParamsError` message and
+  the cursor out of the `Flop.InvalidCursorError` message. The `params` and
+  `cursor` fields of the exceptions still hold them.
 
 ## [0.29.0] - 2026-09-03
 

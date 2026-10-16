@@ -119,6 +119,14 @@ defmodule Flop.CursorTest do
       end
     end
 
+    test "leaves the cursor out of the error message" do
+      error =
+        assert_raise Flop.InvalidCursorError, fn -> Cursor.decode!("AAAH") end
+
+      assert error.cursor == "AAAH"
+      refute Exception.message(error) =~ "AAAH"
+    end
+
     test "rejects a cursor above the maximum size" do
       cursor = Cursor.encode(%{name: String.duplicate("a", 10_000)})
 
