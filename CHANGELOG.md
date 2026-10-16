@@ -18,6 +18,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Fall back to reading a join or custom field's cursor value by field name if a
   plain map does not have the first key of the field's path, as in
   `%{id: p.id, owner_name: o.name}`.
+- Raise an `ArgumentError` when a module without a struct uses `Flop.Schema`
+  with the Ecto adapter.
 
 ### Security
 

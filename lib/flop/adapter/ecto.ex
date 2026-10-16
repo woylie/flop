@@ -143,6 +143,18 @@ defmodule Flop.Adapter.Ecto do
   end
 
   @impl Flop.Adapter
+  def init_schema_opts(_opts, _schema_opts, caller_module, nil) do
+    raise ArgumentError, """
+    schema module is not an Ecto schema
+
+    The Ecto adapter requires `Flop.Schema` to be used in an Ecto schema module.
+
+    Module:
+
+        #{inspect(caller_module)}
+    """
+  end
+
   def init_schema_opts(opts, schema_opts, caller_module, struct) do
     schema_opts =
       NimbleSchemas.validate!(
