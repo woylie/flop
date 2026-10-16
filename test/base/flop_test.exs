@@ -215,6 +215,26 @@ defmodule FlopTest do
       assert [[], [op: [{"is invalid", _}]]] =
                Keyword.get(error.errors, :filters)
     end
+
+    test "leaves the parameter values out of the message" do
+      error =
+        assert_raise Flop.InvalidParamsError, fn ->
+          Flop.validate!(
+            %{
+              limit: -1,
+              filters: [%{field: :age, op: :==, value: "secret-value"}]
+            },
+            for: Pet
+          )
+        end
+
+      message = Exception.message(error)
+
+      assert message =~ "must be greater than %{number}"
+      assert message =~ "limit:"
+      assert message =~ "value:"
+      refute message =~ "secret-value"
+    end
   end
 
   describe "adapter options with a backend module" do
