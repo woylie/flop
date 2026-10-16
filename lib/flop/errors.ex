@@ -88,15 +88,14 @@ defmodule Flop.InvalidParamsError do
 
   defexception [:errors, :params]
 
-  def message(%{errors: errors, params: params}) do
+  def message(%{errors: errors}) do
     """
     invalid Flop parameters
 
-    The parameters provided to Flop:
+    The parameter values are left out of this message. They are in the `params`
+    field of the exception.
 
-    #{Flop.Misc.indent(params)}
-
-    Resulted in the following validation errors:
+    Validation errors:
 
     #{Flop.Misc.indent(errors)}
     """

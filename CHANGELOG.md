@@ -8,6 +8,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+
+- Leave the parameter values out of the `Flop.InvalidParamsError` message. The
+  `params` field of the exception still holds them.
+
 ## [0.29.0] - 2026-09-03
 
 ### Added
