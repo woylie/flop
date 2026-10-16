@@ -179,7 +179,7 @@ defmodule Flop.Cursor do
   logged. The tiebreaker fields have to be selected in the query.
 
   The default function to retrieve the cursor value from the query result is
-  `Flop.Cursor.get_cursor_from_node/2`, which expects the query result to be a
+  `Flop.Cursor.get_cursor_from_node/3`, which expects the query result to be a
   map or a 2-tuple. You can set the `cursor_value_func` option to use
   another function. Flop also comes with `Flop.Cursor.get_cursor_from_edge/2`.
 
