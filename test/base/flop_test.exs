@@ -185,6 +185,19 @@ defmodule FlopTest do
     end
   end
 
+  describe "paginate/3" do
+    test "raises for a cursor above max_cursor_size" do
+      cursor = Flop.Cursor.encode(%{age: 5, id: 1})
+
+      assert_raise Flop.InvalidCursorError, fn ->
+        Flop.paginate(Pet, %Flop{first: 1, after: cursor, order_by: [:age]},
+          for: Pet,
+          max_cursor_size: 10
+        )
+      end
+    end
+  end
+
   describe "validate!/1" do
     test "returns a flop struct" do
       assert Flop.validate!(%Flop{}) == %Flop{limit: 50}

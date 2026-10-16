@@ -1436,7 +1436,7 @@ defmodule Flop do
     adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
     module = opts[:for]
     orderings = ordering(flop, opts)
-    decoded_cursor = decoded_cursor || Cursor.decode!(after_)
+    decoded_cursor = decoded_cursor || Cursor.decode!(after_, opts)
     cursor_fields = prepare_cursor_fields(module, decoded_cursor, orderings)
 
     q
@@ -1477,7 +1477,7 @@ defmodule Flop do
     module = opts[:for]
     orderings = flop |> ordering(opts) |> reverse_ordering()
 
-    decoded_cursor = decoded_cursor || Cursor.decode!(before)
+    decoded_cursor = decoded_cursor || Cursor.decode!(before, opts)
     cursor_fields = prepare_cursor_fields(module, decoded_cursor, orderings)
 
     q
