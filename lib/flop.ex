@@ -90,8 +90,10 @@ defmodule Flop do
   The module also defines a `__flop_options__/0` function that returns the
   options passed to `use Flop`.
 
-  If you have both a config module and a global application config, Flop will
-  fall back to the application config if an option is not set.
+  A config module sets defaults for `:default_limit`, `:max_limit`,
+  `:max_filters`, `:default_pagination_type`, `:pagination_types`, `:filtering`,
+  `:ordering` and `:pagination`. Options without a default fall back to the
+  application environment.
 
   See `t:Flop.option/0` for a description of all available options.
 
