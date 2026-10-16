@@ -181,6 +181,27 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       end
     end
 
+    test "pages by a custom field with an Ecto.Enum type" do
+      for mood <- [:happy, :playful, :relaxed] do
+        Repo.insert!(%CustomFieldPet{mood: mood})
+      end
+
+      {:ok, flop} =
+        Flop.validate(%{first: 1, order_by: [:mood_value]}, for: CustomFieldPet)
+
+      assert {[%{mood: :happy}], meta} =
+               Flop.run(CustomFieldPet, flop, for: CustomFieldPet)
+
+      {:ok, flop} =
+        Flop.validate(
+          %{first: 1, after: meta.end_cursor, order_by: [:mood_value]},
+          for: CustomFieldPet
+        )
+
+      assert {[%{mood: :playful}], _} =
+               Flop.run(CustomFieldPet, flop, for: CustomFieldPet)
+    end
+
     test "merges runtime and compile-time custom field options" do
       insert_custom_field_pets([30, 10, 20])
 

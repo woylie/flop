@@ -10,7 +10,7 @@ defmodule MyApp.CustomFieldPet do
 
   @flop_options [
     filterable: [:age_score, :name_lower, :tag_list, :owner_age_score],
-    sortable: [:age_score, :owner_age_score],
+    sortable: [:age_score, :owner_age_score, :mood_value],
     adapter_opts: [
       custom_fields: [
         age_score: [
@@ -32,6 +32,11 @@ defmodule MyApp.CustomFieldPet do
         tag_list: [
           field_dynamic: {__MODULE__, :tag_list_dynamic, []},
           ecto_type: {:array, :string}
+        ],
+        mood_value: [
+          field_dynamic: {__MODULE__, :mood_dynamic, []},
+          ecto_type: {:ecto_enum, [:happy, :relaxed, :playful]},
+          path: [:mood]
         ]
       ]
     ]
@@ -41,6 +46,7 @@ defmodule MyApp.CustomFieldPet do
     field :age, :integer
     field :name, :string
     field :tags, {:array, :string}
+    field :mood, Ecto.Enum, values: [:happy, :relaxed, :playful]
     field :age_score, :integer, virtual: true
     field :owner_age, :integer, virtual: true
     belongs_to :owner, Owner
@@ -65,5 +71,9 @@ defmodule MyApp.CustomFieldPet do
 
   def tag_list_dynamic(_opts) do
     dynamic([pet], pet.tags)
+  end
+
+  def mood_dynamic(_opts) do
+    dynamic([pet], pet.mood)
   end
 end
