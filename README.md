@@ -198,8 +198,8 @@ Flop.all(Pet, flop, repo: MyApp.Repo)
 Flop.meta(Pet, flop, repo: MyApp.Repo)
 ```
 
-For more detailed information, refer the
-[documentation](https://flop.hexdocs.pm).
+For more detailed information, refer to the
+[documentation](https://hexdocs.pm/flop).
 
 ## Parameter format
 
