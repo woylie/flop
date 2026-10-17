@@ -8,11 +8,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Changed
-
-- Log a warning when a cursor is built from a row whose tiebreaker value is
-  `nil`.
-
 ### Fixed
 
 - Fall back to reading a join or custom field's cursor value by field name if a
