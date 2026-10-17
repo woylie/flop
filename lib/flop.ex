@@ -2610,9 +2610,11 @@ defmodule Flop do
 
         A tiebreaker given as a list of fields applies those field names to
         every schema, so it can only be set on a schema or passed to a query
-        function: #{inspect(tiebreaker)}
+        function. Set :primary_key, {:primary_key, direction} or false instead.
 
-        Set :primary_key, {:primary_key, direction} or false instead.
+        Got:
+
+            #{inspect(tiebreaker)}
         """
 
       tiebreaker ->
