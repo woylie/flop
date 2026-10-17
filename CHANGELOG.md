@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.29.1] - 2026-10-17
+
 ### Fixed
 
 - Fall back to the field name when a cursor or `Flop.Schema.get_field/3` reads
@@ -1273,7 +1275,8 @@ equivalent:
 
 - Initial release.
 
-[unreleased]: https://github.com/woylie/flop/compare/0.29.0...HEAD
+[unreleased]: https://github.com/woylie/flop/compare/0.29.1...HEAD
+[0.29.1]: https://github.com/woylie/flop/compare/0.29.0...0.29.1
 [0.29.0]: https://github.com/woylie/flop/compare/0.28.0...0.29.0
 [0.28.0]: https://github.com/woylie/flop/compare/0.27.2...0.28.0
 [0.27.2]: https://github.com/woylie/flop/compare/0.27.1...0.27.2
