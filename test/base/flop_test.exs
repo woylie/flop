@@ -31,6 +31,10 @@ defmodule FlopTest do
     end
   end
 
+  defmodule BackendWithSmallCursorSize do
+    use Flop, repo: Flop.Repo, max_cursor_size: 10
+  end
+
   defmodule BackendWithQueryOpts do
     use Flop, repo: FlopTest.StubRepo, query_opts: [prefix: "backend"]
   end
@@ -205,6 +209,15 @@ defmodule FlopTest do
           for: Pet,
           max_cursor_size: 10
         )
+      end
+    end
+
+    test "raises for a cursor above the max_cursor_size of a backend module" do
+      cursor = Flop.Cursor.encode(%{age: 5, id: 1})
+      flop = %Flop{first: 1, after: cursor, order_by: [:age]}
+
+      assert_raise Flop.InvalidCursorError, fn ->
+        BackendWithSmallCursorSize.paginate(Pet, flop, for: Pet)
       end
     end
   end
