@@ -279,6 +279,8 @@ defmodule Flop do
 
   - a join field needs the association preloaded
   - a custom field needs its expression selected under its `path`
+  - a query that selects a plain map can put a join or custom field under its
+    field name instead of its `path`
   - a `select` that lists specific fields, such as
     `select: struct(p, [:id, :name])`, has to list the cursor fields too
 
