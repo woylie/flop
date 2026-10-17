@@ -22,9 +22,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with the Ecto adapter.
 - Apply `max_cursor_size` from function options and backend modules in
   `Flop.paginate/3`.
-- Fix cursor pagination by a custom field with `field_dynamic` and a type such
-  as `Ecto.Enum` or `Ecto.UUID`. On MySQL, cursor pagination by a custom field
-  now needs the collation setting from the README.
 
 ### Security
 

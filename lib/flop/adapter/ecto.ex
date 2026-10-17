@@ -620,12 +620,11 @@ defmodule Flop.Adapter.Ecto do
   defp field_source(
          _field,
          %FieldInfo{
-           ecto_type: ecto_type,
            extra: %{type: :custom, field_dynamic: {mod, fun, dyn_opts}}
          },
          opts
        ) do
-    {:dynamic, custom_field_dynamic(mod, fun, dyn_opts, opts), ecto_type}
+    {:dynamic, custom_field_dynamic(mod, fun, dyn_opts, opts)}
   end
 
   # only reachable with an unvalidated Flop struct
@@ -723,9 +722,7 @@ defmodule Flop.Adapter.Ecto do
     end
   end
 
-  defp compare(op, {:dynamic, field_dynamic, ecto_type}, value) do
-    value = dynamic([], type(^value, ^ecto_type))
-
+  defp compare(op, {:dynamic, field_dynamic}, value) do
     case op do
       :> -> dynamic(^field_dynamic > ^value)
       :< -> dynamic(^field_dynamic < ^value)
@@ -745,7 +742,7 @@ defmodule Flop.Adapter.Ecto do
     dynamic([{^binding, r}], is_nil(field(r, ^field)))
   end
 
-  defp null_dynamic({:dynamic, field_dynamic, _ecto_type}) do
+  defp null_dynamic({:dynamic, field_dynamic}) do
     dynamic(is_nil(^field_dynamic))
   end
 
@@ -757,7 +754,7 @@ defmodule Flop.Adapter.Ecto do
     dynamic([{^binding, r}], not is_nil(field(r, ^field)))
   end
 
-  defp not_null_dynamic({:dynamic, field_dynamic, _ecto_type}) do
+  defp not_null_dynamic({:dynamic, field_dynamic}) do
     dynamic(not is_nil(^field_dynamic))
   end
 
