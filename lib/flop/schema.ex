@@ -376,7 +376,8 @@ defmodule Flop.Schema do
   >
   > Flop adds the `WHERE` and `ORDER BY` clauses, but the `SELECT` is your
   > responsibility. Cursor pagination reads the join field from the returned
-  > struct, so the association has to be preloaded, as in the example above.
+  > row, so the association has to be preloaded, as in the example above, or
+  > the value selected under the field name in a plain map.
 
   Note that Flop doesn't create the join clauses for you. The named bindings
   already have to be present in the query you pass to the Flop functions. You

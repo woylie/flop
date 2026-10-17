@@ -10,13 +10,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- Fall back to reading a join or custom field's cursor value by field name if a
-  plain map does not have the first key of the field's path, as in
-  `%{id: p.id, owner_name: o.name}`.
+- Fall back to the field name when a cursor or `Flop.Schema.get_field/3` reads
+  a join or custom field from a plain map without the first key of the field's
+  path.
 - Raise an `ArgumentError` when a module without a struct uses `Flop.Schema`
   with the Ecto adapter.
-- Apply `max_cursor_size` from function options and backend modules in
-  `Flop.paginate/3`.
+- Apply `max_cursor_size` from function options and backend modules to the
+  cursor of a Flop that was not validated.
 
 ### Security
 

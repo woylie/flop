@@ -17,8 +17,8 @@ defmodule Flop.Cursor do
 
       Flop.Cursor.decode("g3QAAAABZAACaWRiAAACDg==", max_cursor_size: 16_384)
 
-  The option can also be passed to any of the `validate` functions, or to
-  `use Flop`.
+  The option can also be passed to any of the `validate` functions, to the
+  query functions, or to `use Flop`.
   """
 
   @default_max_cursor_size 8_192

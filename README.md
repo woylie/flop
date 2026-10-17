@@ -41,7 +41,7 @@ def deps do
 end
 ```
 
-Enable debug checks in `config/dev.exs` and `config/test.exs`:
+Enable diagnostics in `config/dev.exs` and `config/test.exs`:
 
 ```elixir
 config :flop, diagnostics: true
