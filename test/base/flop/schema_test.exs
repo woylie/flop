@@ -154,7 +154,7 @@ defmodule Flop.SchemaTest do
     test "raises with the Ecto adapter" do
       error =
         assert_raise ArgumentError, fn ->
-          defmodule Thyme do
+          defmodule Tarragon do
             use Flop.Schema
 
             @flop_options [filterable: [], sortable: []]
@@ -162,7 +162,7 @@ defmodule Flop.SchemaTest do
         end
 
       assert Exception.message(error) =~ "schema module is not an Ecto schema"
-      assert Exception.message(error) =~ "Thyme"
+      assert Exception.message(error) =~ "Tarragon"
     end
 
     test "an unknown sortable field raises at compile time" do
