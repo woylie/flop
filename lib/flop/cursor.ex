@@ -21,8 +21,6 @@ defmodule Flop.Cursor do
   `use Flop`.
   """
 
-  require Logger
-
   @default_max_cursor_size 8_192
 
   @doc """
@@ -175,9 +173,6 @@ defmodule Flop.Cursor do
       iex> Flop.Cursor.get_cursors([], [:id])
       {nil, nil}
 
-  If a tiebreaker value of the first or last record is `nil`, a warning is
-  logged. The tiebreaker fields have to be selected in the query.
-
   The default function to retrieve the cursor value from the query result is
   `Flop.Cursor.get_cursor_from_node/3`, which expects the query result to be a
   map or a 2-tuple. You can set the `cursor_value_func` option to use
@@ -216,33 +211,15 @@ defmodule Flop.Cursor do
         {nil, nil}
 
       [first | _] ->
-        start_value = cursor_value_func.(first, order_by)
-        end_value = results |> List.last() |> cursor_value_func.(order_by)
-        warn_on_nil_tiebreaker([start_value, end_value], opts)
-        {encode(start_value), encode(end_value)}
+        {
+          first |> cursor_value_func.(order_by) |> encode(),
+          results
+          |> List.last()
+          |> cursor_value_func.(order_by)
+          |> encode()
+        }
     end
   end
-
-  defp warn_on_nil_tiebreaker(cursor_values, opts) do
-    fields =
-      for field <- Flop.tiebreaker_fields(opts),
-          Enum.any?(cursor_values, &nil_value?(&1, field)),
-          do: field
-
-    if fields != [] do
-      Logger.warning(
-        "nil tiebreaker value in cursor, select #{inspect(fields)} of " <>
-          "#{inspect(opts[:for])} to avoid skipping or repeating rows"
-      )
-    end
-
-    :ok
-  end
-
-  defp nil_value?(%{} = cursor_value, field),
-    do: is_map_key(cursor_value, field) and is_nil(cursor_value[field])
-
-  defp nil_value?(_, _), do: false
 
   @doc """
   Takes a tuple with the node and the edge and the cursor field list and
