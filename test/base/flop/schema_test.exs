@@ -198,6 +198,20 @@ defmodule Flop.SchemaTest do
       assert Keyword.has_key?(errors, :order_by)
     end
 
+    test "raises with the Ecto adapter" do
+      error =
+        assert_raise ArgumentError, fn ->
+          defmodule Tarragon do
+            use Flop.Schema
+
+            @flop_options [filterable: [], sortable: []]
+          end
+        end
+
+      assert Exception.message(error) =~ "schema module is not an Ecto schema"
+      assert Exception.message(error) =~ "Tarragon"
+    end
+
     test "an unknown sortable field raises at compile time" do
       error =
         assert_raise Flop.UnknownFieldError, fn ->

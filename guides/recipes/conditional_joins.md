@@ -103,8 +103,8 @@ end
 ```
 
 `Ecto.Query.with_named_binding/3` returns the query unchanged if the binding is
-already there, and `Flop.with_named_bindings/4` goes through it, so a binding
-you added yourself is not added a second time.
+already there, and `Flop.with_named_bindings/4` calls it for each binding, so a
+binding you added yourself is not added a second time.
 
 ## Intermediate joins
 
@@ -151,8 +151,8 @@ them.
 ## Counting
 
 With page or offset pagination, Flop counts with the query you pass it, so the
-count query has the same conditional joins. It counts without the order clause,
-so the joins that only the order needs do nothing for the count.
+count query has the same conditional joins. The count query has no order
+clause, but it still joins the tables that are only needed for the order.
 
 `order: false` gives you the bindings for the filters only. Build a second query
 with it and pass it as `count_query`.

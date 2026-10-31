@@ -50,8 +50,8 @@ count, so it is wrong as well.
 
 ## Filtering with EXISTS
 
-Instead of joining, we can ask whether a matching child exists. This needs no
-join, so nothing is duplicated.
+Instead of joining, we can ask whether a matching child exists, which avoids
+duplication.
 
 ```elixir
 defmodule MyApp.Filters do

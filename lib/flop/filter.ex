@@ -306,7 +306,7 @@ defmodule Flop.Filter do
   For regular Ecto schema fields, the type is derived via schema reflection.
 
   If the given schema module uses `Flop.Schema`, the type of join and
-  custom fields is determined via the `ecto_type` option. Compound files are
+  custom fields is determined via the `ecto_type` option. Compound fields are
   always handled as string fields, minus unsupported operators.
 
   If the type cannot be determined or if the type is not a native Ecto type, a

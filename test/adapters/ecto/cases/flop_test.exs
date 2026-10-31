@@ -2491,6 +2491,27 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       assert cursor
     end
 
+    test "pages by a join field over a flat map select" do
+      for name <- ["a", "b", "c"] do
+        insert(:pet, owner: build(:owner, name: name))
+      end
+
+      q =
+        Pet
+        |> join(:inner, [p], o in assoc(p, :owner), as: :owner)
+        |> select([p, owner: o], %{id: p.id, owner_name: o.name})
+
+      flop = %Flop{first: 2, order_by: [:owner_name]}
+
+      assert {[%{owner_name: "a"}, %{owner_name: "b"}], meta} =
+               Flop.run(q, flop, for: Pet)
+
+      assert meta.has_next_page?
+
+      assert {[%{owner_name: "c"}], _} =
+               Flop.run(q, Flop.to_next_cursor(meta), for: Pet)
+    end
+
     test "pages past an association that is nil rather than unloaded" do
       insert_list(3, :pet, owner: nil)
 

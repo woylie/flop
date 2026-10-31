@@ -143,6 +143,18 @@ defmodule Flop.Adapter.Ecto do
   end
 
   @impl Flop.Adapter
+  def init_schema_opts(_opts, _schema_opts, caller_module, nil) do
+    raise ArgumentError, """
+    schema module is not an Ecto schema
+
+    The Ecto adapter requires `Flop.Schema` to be used in an Ecto schema module.
+
+    Module:
+
+        #{inspect(caller_module)}
+    """
+  end
+
   def init_schema_opts(opts, schema_opts, caller_module, struct) do
     schema_opts =
       NimbleSchemas.validate!(
@@ -265,6 +277,12 @@ defmodule Flop.Adapter.Ecto do
       []
     end
   end
+
+  # the query selected `%{owner_name: o.name}` instead of
+  # `%{owner: %{name: o.name}}`
+  defp walk_path(%{} = item, field, [first | _])
+       when not is_struct(item) and not is_map_key(item, first),
+       do: Map.get(item, field)
 
   defp walk_path(item, field, path) do
     value =

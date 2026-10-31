@@ -20,6 +20,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   them nor adds to the `max_filters` count. Invalid default filters raise an
   `ArgumentError`.
 
+## [0.29.1] - 2026-10-17
+
+### Fixed
+
+- Fall back to the field name when a cursor or `Flop.Schema.get_field/3` reads
+  a join or custom field from a plain map without the first key of the field's
+  path.
+- Raise an `ArgumentError` when a module without a struct uses `Flop.Schema`
+  with the Ecto adapter.
+- Apply `max_cursor_size` from function options and backend modules to the
+  cursor of a Flop that was not validated.
+
+### Security
+
+- Leave the parameter values out of the `Flop.InvalidParamsError` message and
+  the cursor out of the `Flop.InvalidCursorError` message. The `params` and
+  `cursor` fields of the exceptions still hold them.
+
 ## [0.29.0] - 2026-09-03
 
 ### Added
@@ -1269,7 +1287,8 @@ equivalent:
 
 - Initial release.
 
-[unreleased]: https://github.com/woylie/flop/compare/0.29.0...HEAD
+[unreleased]: https://github.com/woylie/flop/compare/0.29.1...HEAD
+[0.29.1]: https://github.com/woylie/flop/compare/0.29.0...0.29.1
 [0.29.0]: https://github.com/woylie/flop/compare/0.28.0...0.29.0
 [0.28.0]: https://github.com/woylie/flop/compare/0.27.2...0.28.0
 [0.27.2]: https://github.com/woylie/flop/compare/0.27.1...0.27.2

@@ -17,8 +17,8 @@ defmodule Flop.Cursor do
 
       Flop.Cursor.decode("g3QAAAABZAACaWRiAAACDg==", max_cursor_size: 16_384)
 
-  The option can also be passed to any of the `validate` functions, or to
-  `use Flop`.
+  The option can also be passed to any of the `validate` functions, to the
+  query functions, or to `use Flop`.
   """
 
   @default_max_cursor_size 8_192
@@ -174,7 +174,7 @@ defmodule Flop.Cursor do
       {nil, nil}
 
   The default function to retrieve the cursor value from the query result is
-  `Flop.Cursor.get_cursor_from_node/2`, which expects the query result to be a
+  `Flop.Cursor.get_cursor_from_node/3`, which expects the query result to be a
   map or a 2-tuple. You can set the `cursor_value_func` option to use
   another function. Flop also comes with `Flop.Cursor.get_cursor_from_edge/2`.
 
@@ -275,8 +275,8 @@ defmodule Flop.Cursor do
   function and resolves the field against the schema given as `:for`, instead of
   against the type of `item`.
 
-  Without a schema, a plain map falls back to reading the field name at the top
-  level, which ignores a configured `:path`.
+  A plain map without the first key of a field's `:path` is read by field name.
+  Without a schema, every plain map is read by field name.
   """
   @doc since: "0.29.0"
   @spec get_cursor_from_edge({map, map} | map, [atom], [Flop.option()]) :: map
@@ -340,8 +340,8 @@ defmodule Flop.Cursor do
   function and resolves the field against the schema given as `:for`, instead of
   against the type of `item`.
 
-  Without a schema, a plain map falls back to reading the field name at the top
-  level, which ignores a configured `:path`.
+  A plain map without the first key of a field's `:path` is read by field name.
+  Without a schema, every plain map is read by field name.
   """
   @doc since: "0.29.0"
   @spec get_cursor_from_node({map, map} | map, [atom], [Flop.option()]) :: map

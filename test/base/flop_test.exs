@@ -31,6 +31,10 @@ defmodule FlopTest do
     end
   end
 
+  defmodule BackendWithSmallCursorSize do
+    use Flop, repo: Flop.Repo, max_cursor_size: 10
+  end
+
   defmodule BackendWithQueryOpts do
     use Flop, repo: FlopTest.StubRepo, query_opts: [prefix: "backend"]
   end
@@ -544,6 +548,39 @@ defmodule FlopTest do
     end
   end
 
+  describe "paginate/3" do
+    test "raises for an after cursor above max_cursor_size" do
+      cursor = Flop.Cursor.encode(%{age: 5, id: 1})
+
+      assert_raise Flop.InvalidCursorError, fn ->
+        Flop.paginate(Pet, %Flop{first: 1, after: cursor, order_by: [:age]},
+          for: Pet,
+          max_cursor_size: 10
+        )
+      end
+    end
+
+    test "raises for a before cursor above max_cursor_size" do
+      cursor = Flop.Cursor.encode(%{age: 5, id: 1})
+
+      assert_raise Flop.InvalidCursorError, fn ->
+        Flop.paginate(Pet, %Flop{last: 1, before: cursor, order_by: [:age]},
+          for: Pet,
+          max_cursor_size: 10
+        )
+      end
+    end
+
+    test "raises for a cursor above the max_cursor_size of a backend module" do
+      cursor = Flop.Cursor.encode(%{age: 5, id: 1})
+      flop = %Flop{first: 1, after: cursor, order_by: [:age]}
+
+      assert_raise Flop.InvalidCursorError, fn ->
+        BackendWithSmallCursorSize.paginate(Pet, flop, for: Pet)
+      end
+    end
+  end
+
   describe "validate!/1" do
     test "returns a flop struct" do
       assert Flop.validate!(%Flop{}) == %Flop{limit: 50}
@@ -573,6 +610,26 @@ defmodule FlopTest do
 
       assert [[], [op: [{"is invalid", _}]]] =
                Keyword.get(error.errors, :filters)
+    end
+
+    test "leaves the parameter values out of the message" do
+      error =
+        assert_raise Flop.InvalidParamsError, fn ->
+          Flop.validate!(
+            %{
+              limit: -1,
+              filters: [%{field: :age, op: :==, value: "secret-value"}]
+            },
+            for: Pet
+          )
+        end
+
+      message = Exception.message(error)
+
+      assert message =~ "must be greater than %{number}"
+      assert message =~ "limit:"
+      assert message =~ "value:"
+      refute message =~ "secret-value"
     end
   end
 

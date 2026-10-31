@@ -4,8 +4,8 @@ defmodule Flop do
 
   ## Usage
 
-  The simplest way of using this library is just to use
-  `Flop.validate_and_run/3` and `Flop.validate_and_run!/3`. Both functions
+  The simplest way to use this library is `Flop.validate_and_run/3` or
+  `Flop.validate_and_run!/3`. Both functions
   take a queryable and a parameter map, validate the parameters, run the query
   and return the query results and the meta information.
 
@@ -30,9 +30,10 @@ defmodule Flop do
       iex> meta.has_next_page?
       true
 
-  Under the hood, these functions just call `Flop.validate/2` and `Flop.run/3`,
-  which in turn calls `Flop.all/3` and `Flop.meta/3`. If you need finer control
-  about if and when to execute each step, you can call those functions directly.
+  Under the hood, these functions just call `Flop.validate/2` and `Flop.run/3`.
+  `Flop.run/3` in turn calls `Flop.all/3` and `Flop.meta/3`. If you need finer
+  control about if and when to execute each step, you can call those functions
+  directly.
 
   See `Flop.Meta` for descriptions of the meta fields.
 
@@ -89,8 +90,10 @@ defmodule Flop do
   The module also defines a `__flop_options__/0` function that returns the
   options passed to `use Flop`.
 
-  If you have both a config module and a global application config, Flop will
-  fall back to the application config if an option is not set.
+  A config module sets defaults for `:default_limit`, `:max_limit`,
+  `:max_filters`, `:default_pagination_type`, `:pagination_types`, `:filtering`,
+  `:ordering` and `:pagination`. Options without a default fall back to the
+  application environment.
 
   See `t:Flop.option/0` for a description of all available options.
 
@@ -276,13 +279,14 @@ defmodule Flop do
 
   - a join field needs the association preloaded
   - a custom field needs its expression selected under its `path`
+  - a query that selects a plain map can put a join or custom field under its
+    field name instead of its `path`
   - a `select` that lists specific fields, such as
     `select: struct(p, [:id, :name])`, has to list the cursor fields too
 
-  Flop cannot verify that all necessary fields are selected. An association that
-  was not loaded is the one case it can recognise via the
-  `Ecto.Association.NotLoaded` struct. Everything else arrives as `nil` and is
-  thereby indistinguishable from genuine `nil` values. See the
+  Flop cannot verify that all necessary fields are selected. It recognises an
+  association that was not loaded by the `Ecto.Association.NotLoaded` struct.
+  Any other missing field arrives as `nil`, like a genuine `nil` value. See the
   [cursor pagination recipe](cursor_pagination.md) for details.
 
   ## GraphQL and Relay
@@ -423,11 +427,9 @@ defmodule Flop do
   - `:cursor_value_func` - A function used to extract the cursor value from a
     record. It takes the record and the list of fields used in the `ORDER BY`
     clause as arguments, and returns a map with the order fields as keys and the
-    corresponding record values as values. A 3-arity function is also passed the
-    options given to the Flop function, so that it can read `:for` to resolve a
-    field with a `:path` when the record is a plain map rather than a struct,
-    and `:extra_opts` for runtime context. Default is
-    `Flop.Cursor.get_cursor_from_node/3`.
+    corresponding record values as values. A 3-arity function also receives the
+    options given to the Flop function, such as `:for` and `:extra_opts`.
+    Default is `Flop.Cursor.get_cursor_from_node/3`.
   - `:replace_invalid_params` - If set to `true`, invalid parameters are
     replaced with default values or removed instead of causing errors. Default
     is `false`.
@@ -522,7 +524,7 @@ defmodule Flop do
   | `:default_filter`          | yes      | yes    | no      | no      |
   | `:default_pagination_type` | yes      | yes    | yes     | yes     |
   | `:pagination_types`        | yes      | yes    | yes     | yes     |
-  | `:tiebreaker`              | yes      | yes    | yes     | yes²    |
+  | `:tiebreaker`              | yes      | yes    | yes²    | yes²    |
   | `:filtering`               | yes      | no     | yes     | yes     |
   | `:ordering`                | yes      | no     | yes     | yes     |
   | `:pagination`              | yes      | no     | yes     | yes     |
@@ -534,24 +536,30 @@ defmodule Flop do
   1. A list passed to a query function **narrows** the schema's list instead of
      replacing it, so a call site can restrict an endpoint to fewer fields, but
      never use a field the schema excludes.
-  2. A tiebreaker that names fields cannot be set in the application
-     environment, since the field names would apply to every schema. Set
-     `:primary_key`, `{:primary_key, direction}` or `false` there, and name
-     fields on a schema or in a function call. Anything else raises.
-  3. `:adapter_opts` on a schema holds the field definitions — `join_fields`,
-     `compound_fields`, `custom_fields` and `alias_fields`. The other levels
+  2. A tiebreaker given as a list of fields cannot be set on a backend module
+     or in the application environment, since the field names would apply to
+     every schema. Set `:primary_key`, `{:primary_key, direction}` or `false`
+     there, and name fields on a schema or in a function call. Anything else
+     raises.
+  3. `:adapter_opts` on a schema holds the field definitions (`join_fields`,
+     `compound_fields`, `custom_fields` and `alias_fields`). The other levels
      hold `:repo` and `:query_opts`. See "Adapter option look-up" below.
 
   `:default_order` and `:default_filter` follow the same rule as the tiebreaker:
-  they name fields, so the application environment ignores them.
+  they contain field names, so the application environment ignores them.
+
+  `:filterable`, `:sortable`, `:max_limit` and `:max_filters` limit what a
+  request can do, so pass them from your code, never from request parameters.
+  If neither a schema nor a function call sets `:filterable` and `:sortable`, a
+  request can filter and sort by any field.
 
   The application environment accepts the same options as a backend module, plus
   `:diagnostics`, which is read at compile time and cannot be set anywhere else.
   Anything else set under the `:flop` key is ignored.
 
-  The field definitions — `join_fields`, `compound_fields`, `custom_fields` and
-  `alias_fields` — are documented in `Flop.Schema` and are read when the schema
-  is derived rather than through the look-up order above.
+  The field definitions (`join_fields`, `compound_fields`, `custom_fields` and
+  `alias_fields`) are documented in `Flop.Schema` and are read when the schema
+  module is compiled rather than through the look-up order above.
 
   ## Adapter option look-up
 
@@ -566,10 +574,9 @@ defmodule Flop do
       # queries MyApp.ReplicaRepo with prefix: "public"
       MyApp.Flop.all(MyApp.Pet, flop, repo: MyApp.ReplicaRepo)
 
-  `:query_opts` is itself a keyword list and is merged key by key, so the
-  example above keeps the prefix set on the backend module. Every other adapter
-  option is replaced by the more specific level. Within one level, an option set
-  at the root wins over the same option nested under `:adapter_opts`.
+  `:query_opts` is merged key by key, so the call above still uses the prefix
+  from the backend module. Any other adapter option replaces the one set at a
+  less specific level.
   """
   @type option ::
           {:cursor_value_func,
@@ -820,7 +827,7 @@ defmodule Flop do
   end
 
   @doc """
-  Applies the given Flop to the given queryable and returns all matchings
+  Applies the given Flop to the given queryable and returns all matching
   entries.
 
       iex> Flop.all(MyApp.Pet, %Flop{}, repo: Flop.Repo)
@@ -1233,7 +1240,7 @@ defmodule Flop do
   Applies the `order_by` and `order_directions` parameters of a `t:Flop.t/0`
   to an `t:Ecto.Queryable.t/0`.
 
-  Used by `Flop.query/2`.
+  Used by `Flop.query/3`.
 
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
@@ -1271,8 +1278,8 @@ defmodule Flop do
   @doc """
   Returns the order that is applied to a query, including the tiebreaker.
 
-  The tiebreaker is not part of the `t:Flop.t/0`. The full order can therefore
-  only be seen by calling this function.
+  The tiebreaker is not part of the `t:Flop.t/0`, so this function is the only
+  way to see the full order.
 
   Used for query building, cursor encoding, and cursor validation.
 
@@ -1402,13 +1409,13 @@ defmodule Flop do
   The function supports both `offset`/`limit` based pagination and
   `page`/`page_size` based pagination.
 
-  If you validated the `t:Flop.t/0` with `Flop.validate/1` before, you can be
+  If you validated the `t:Flop.t/0` with `Flop.validate/2` before, you can be
   sure that the given `t:Flop.t/0` only has pagination parameters set for one
   pagination method. If you pass an unvalidated `t:Flop.t/0` that has
   pagination parameters set for multiple pagination methods, this function
   will arbitrarily only apply one of the pagination methods.
 
-  Used by `Flop.query/2`.
+  Used by `Flop.query/3`.
 
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
@@ -1468,7 +1475,7 @@ defmodule Flop do
     adapter = Keyword.get(opts, :adapter, Adapter.Ecto)
     module = opts[:for]
     orderings = ordering(flop, opts)
-    decoded_cursor = decoded_cursor || Cursor.decode!(after_)
+    decoded_cursor = decoded_cursor || Cursor.decode!(after_, opts)
     cursor_fields = prepare_cursor_fields(module, decoded_cursor, orderings)
 
     q
@@ -1509,7 +1516,7 @@ defmodule Flop do
     module = opts[:for]
     orderings = flop |> ordering(opts) |> reverse_ordering()
 
-    decoded_cursor = decoded_cursor || Cursor.decode!(before)
+    decoded_cursor = decoded_cursor || Cursor.decode!(before, opts)
     cursor_fields = prepare_cursor_fields(module, decoded_cursor, orderings)
 
     q
@@ -1581,7 +1588,7 @@ defmodule Flop do
   @doc """
   Applies the `filter` parameter of a `t:Flop.t/0` to an `t:Ecto.Queryable.t/0`.
 
-  Used by `Flop.query/2`.
+  Used by `Flop.query/3`.
 
   This function does _not_ validate or apply default parameters to the given
   Flop struct. Be sure to validate any user-generated parameters with
@@ -2640,11 +2647,13 @@ defmodule Flop do
         raise ArgumentError, """
         invalid tiebreaker in the application environment
 
-        A tiebreaker that names fields applies those field names to every
-        schema, so it can only be set on a schema or passed to a query
-        function: #{inspect(tiebreaker)}
+        A tiebreaker given as a list of fields applies those field names to
+        every schema, so it can only be set on a schema or passed to a query
+        function. Set :primary_key, {:primary_key, direction} or false instead.
 
-        Set :primary_key, {:primary_key, direction} or false instead.
+        Got:
+
+            #{inspect(tiebreaker)}
         """
 
       tiebreaker ->
@@ -2975,7 +2984,7 @@ defmodule Flop do
       [%{"field" => "doesnotexist", "op" => :==, "value" => 8}]
 
   See also `Flop.Filter.new/2`, which builds `Flop.Filter` structs instead of
-  parameters, and which drops unknown field names for that reason.
+  parameters and drops unknown field names.
   """
   @doc since: "0.14.0"
   @doc group: :parameters
@@ -3188,11 +3197,11 @@ defmodule Flop do
       end
 
       defp join_pet_assocs(query, :owner) do
-        join(query, [p], o in assoc(p, :owner), as: :owner)
+        join(query, :left, [p], o in assoc(p, :owner), as: :owner)
       end
 
       defp join_pet_assocs(query, :toys) do
-        join(query, [p], t in assoc(p, :toys), as: :toys)
+        join(query, :left, [p], t in assoc(p, :toys), as: :toys)
       end
 
   Since the callback function has the same arguments and return value as the one
@@ -3208,20 +3217,20 @@ defmodule Flop do
         opts = [for: Owner]
 
         with {:ok, flop} <- Flop.validate(params, opts) do
-          Pet
+          Owner
           |> Flop.with_named_bindings(flop, &join_owner_assocs/2, opts)
           |> Flop.run(flop, opts)
         end
       end
 
       defp join_owner_assocs(query, :pets) do
-        join(query, [o], p in assoc(o, :pets), as: :pets)
+        join(query, :left, [o], p in assoc(o, :pets), as: :pets)
       end
 
       defp join_owner_assocs(query, :toys) do
         query
         |> Ecto.Query.with_named_binding(:pets, &join_owner_assocs/2)
-        |> join(query, [pets: p], t in assoc(p, :toys), as: :toys)
+        |> join(:left, [pets: p], t in assoc(p, :toys), as: :toys)
       end
   """
   @doc since: "0.19.0"

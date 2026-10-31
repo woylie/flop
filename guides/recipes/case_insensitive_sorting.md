@@ -43,7 +43,7 @@ described in the [computed fields recipe](computed_and_embedded_fields.md).
 
 ## A case-insensitive column
 
-In PostgreSQL, you can use a `citext` column to sort, compares and match
+In PostgreSQL, you can use a `citext` column to sort, compare and match
 `LIKE` case-insensitively. Flop needs no configuration for it.
 
 ```sql
