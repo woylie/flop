@@ -782,7 +782,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a%c")
 
-      for op <- [:ilike, :ilike_and, :ilike_or] do
+      for op <- [:ilike, :ilike_and, :ilike_or, :=~] do
         flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a%c"}]}
         assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
       end
@@ -846,7 +846,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a_c")
 
-      for op <- [:ilike, :ilike_and, :ilike_or] do
+      for op <- [:ilike, :ilike_and, :ilike_or, :=~] do
         flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a_c"}]}
         assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
       end
@@ -866,9 +866,45 @@ defmodule Flop.Adapters.Ecto.FlopTest do
       %{id: _id1} = insert(:pet, name: "abc")
       %{id: id2} = insert(:pet, name: "a\\c")
 
-      for op <- [:ilike, :ilike_and, :ilike_or] do
+      for op <- [:ilike, :ilike_and, :ilike_or, :=~] do
         flop = %Flop{filters: [%Filter{field: :name, op: op, value: "a\\c"}]}
         assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+      end
+    end
+
+    test "escapes \\ in starts_with queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a\\c")
+
+      flop = %Flop{
+        filters: [%Filter{field: :name, op: :starts_with, value: "a\\"}]
+      }
+
+      assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+    end
+
+    test "escapes \\ in ends_with queries" do
+      %{id: _id1} = insert(:pet, name: "abc")
+      %{id: id2} = insert(:pet, name: "a\\c")
+
+      flop = %Flop{
+        filters: [%Filter{field: :name, op: :ends_with, value: "\\c"}]
+      }
+
+      assert [%Pet{id: ^id2}] = Flop.all(Pet, flop)
+    end
+
+    test "escapes %, _ and \\ in not_like and not_ilike queries" do
+      %{id: id1} = insert(:pet, name: "abc")
+
+      for char <- ["%", "_", "\\"] do
+        name = "a#{char}c"
+        insert(:pet, name: name)
+
+        for op <- [:not_like, :not_ilike] do
+          flop = %Flop{filters: [%Filter{field: :name, op: op, value: name}]}
+          assert id1 in Enum.map(Flop.all(Pet, flop), & &1.id)
+        end
       end
     end
 
