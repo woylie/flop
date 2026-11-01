@@ -14,6 +14,7 @@ defmodule Flop.OptionLevelsTest do
       Application.delete_env(:flop, :replace_invalid_params)
       Application.delete_env(:flop, :max_cursor_size)
       Application.delete_env(:flop, :default_order)
+      Application.delete_env(:flop, :default_filter)
       Application.delete_env(:flop, :tiebreaker)
       Application.put_env(:flop, :repo, Flop.Repo)
     end)
@@ -74,12 +75,23 @@ defmodule Flop.OptionLevelsTest do
     end
   end
 
+  describe "default_filter" do
+    test "is not read from the application environment" do
+      Application.put_env(:flop, :default_filter, [
+        %Flop.Filter{field: :name, value: "George"}
+      ])
+
+      assert {:ok, %Flop{filters: []}} = Flop.validate(%{}, for: Pet)
+    end
+  end
+
   describe "schema and call-site options" do
     test "are not read from the application environment" do
       for key <- [
             :sortable,
             :filterable,
             :default_order,
+            :default_filter,
             :for,
             :count,
             :count_query,
@@ -141,6 +153,7 @@ defmodule Flop.OptionLevelsTest do
                :filterable,
                :sortable,
                :default_order,
+               :default_filter,
                :default_limit,
                :max_limit,
                :max_filters,
