@@ -69,7 +69,7 @@ defmodule Flop.MixProject do
   defp deps do
     [
       {:credo, "== 1.7.19", only: [:dev, :test], runtime: false},
-      {:dialyxir, "1.4.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "== 1.4.8", only: [:dev, :test], runtime: false},
       {:ecto, "~> 3.11"},
       {:ecto_sql, "== 3.14.0", only: :test},
       {:ex_doc, "0.40.3", only: :dev, runtime: false},
