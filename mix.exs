@@ -2,7 +2,7 @@ defmodule Flop.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/woylie/flop"
-  @version "0.27.2"
+  @version "0.27.3"
   @adapters ~w(postgres sqlite mysql)
   @supported_adapters ~w(postgres)
 
