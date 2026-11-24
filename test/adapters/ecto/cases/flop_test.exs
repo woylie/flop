@@ -17,6 +17,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
   alias Flop.Meta
   alias Flop.Repo
   alias MyApp.CustomFieldPet
+  alias MyApp.Event
   alias MyApp.Fruit
   alias MyApp.Owner
   alias MyApp.Pet
@@ -35,6 +36,26 @@ defmodule Flop.Adapters.Ecto.FlopTest do
 
   defp insert_custom_field_pets(ages) do
     Enum.map(ages, &Repo.insert!(%CustomFieldPet{age: &1}))
+  end
+
+  defp insert_events do
+    Repo.insert!(%Event{
+      occurred_on: ~D[2020-01-02],
+      occurred_at: ~N[2020-01-01 00:00:00.000002],
+      amount: Decimal.new("10.00")
+    })
+
+    Repo.insert!(%Event{
+      occurred_on: ~D[2020-02-01],
+      occurred_at: ~N[2020-01-01 00:00:00.000001],
+      amount: Decimal.new("2.25")
+    })
+
+    Repo.insert!(%Event{
+      occurred_on: ~D[2020-01-01],
+      occurred_at: ~N[2020-01-01 00:00:01.000000],
+      amount: Decimal.new("1.50")
+    })
   end
 
   defp page_cursor_by_cursor(q, module, order_by, direction, travel \\ :forward) do
@@ -2505,7 +2526,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
     end
 
     test "raises if a custom field without field_dynamic is used" do
-      cursor = Flop.Cursor.encode(%{custom: 1})
+      cursor = Flop.Cursor.encode(%{custom: "a"})
 
       error =
         assert_raise ArgumentError, fn ->
@@ -2518,6 +2539,97 @@ defmodule Flop.Adapters.Ecto.FlopTest do
 
       assert error.message =~
                "cursor pagination by a custom field requires a field_dynamic"
+    end
+
+    test "pages by date, datetime and decimal fields" do
+      insert_events()
+
+      for field <- [:occurred_on, :occurred_at, :amount],
+          direction <- [:asc, :desc] do
+        flop = %Flop{order_by: [field], order_directions: [direction]}
+        expected = Event |> Flop.all(flop, for: Event) |> Enum.map(& &1.id)
+
+        forward = page_cursor_by_cursor(Event, Event, [field], direction)
+        assert Enum.map(forward, & &1.id) == expected
+
+        backward =
+          page_cursor_by_cursor(Event, Event, [field], direction, :backward)
+
+        assert Enum.map(backward, & &1.id) == Enum.reverse(expected)
+      end
+    end
+
+    test "pages by a custom field if the Flop is not validated" do
+      insert_events()
+      q = select_merge(Event, [e], %{occurred_at_custom: e.occurred_at})
+      flop = %Flop{first: 1, order_by: [:occurred_at_custom]}
+
+      assert {[first], meta} = Flop.run(q, flop, for: Event)
+
+      assert {[second], meta} =
+               Flop.run(q, Flop.to_next_cursor(meta), for: Event)
+
+      assert NaiveDateTime.compare(second.occurred_at, first.occurred_at) == :gt
+
+      assert {[^first], _} =
+               Flop.run(q, Flop.to_previous_cursor(meta), for: Event)
+    end
+
+    test "rejects a cursor that contains a struct" do
+      cursor =
+        %{occurred_at: %{DateTime.utc_now() | year: %URI{}}}
+        |> :erlang.term_to_binary()
+        |> Base.url_encode64()
+
+      params = %{first: 1, after: cursor, order_by: [:occurred_at]}
+
+      assert {:error, %Meta{}} =
+               Flop.validate_and_run(Event, params, for: Event)
+
+      assert_raise Flop.InvalidCursorError, fn ->
+        Flop.run(
+          Event,
+          %Flop{first: 1, after: cursor, order_by: [:occurred_at]},
+          for: Event
+        )
+      end
+    end
+
+    test "pages by a custom field if the Flop is validated without :for" do
+      insert_events()
+      q = select_merge(Event, [e], %{occurred_at_custom: e.occurred_at})
+      params = %{first: 1, order_by: [:occurred_at_custom]}
+
+      assert {[first], _} = Flop.run(q, Flop.validate!(params), for: Event)
+
+      cursor =
+        Flop.Cursor.encode(%{occurred_at_custom: first.occurred_at_custom})
+
+      flop = Flop.validate!(Map.put(params, :after, cursor))
+      assert {[second], _} = Flop.run(q, flop, for: Event)
+
+      assert NaiveDateTime.compare(second.occurred_at, first.occurred_at) ==
+               :gt
+    end
+
+    test "raises if a cursor value of an unvalidated Flop does not cast" do
+      cursor = Flop.Cursor.encode(%{occurred_at: "not a datetime"})
+
+      assert_raise Flop.InvalidCursorError, fn ->
+        Flop.run(
+          Event,
+          %Flop{first: 1, after: cursor, order_by: [:occurred_at]},
+          for: Event
+        )
+      end
+
+      assert_raise Flop.InvalidCursorError, fn ->
+        Flop.run(
+          Event,
+          %Flop{last: 1, before: cursor, order_by: [:occurred_at]},
+          for: Event
+        )
+      end
     end
   end
 

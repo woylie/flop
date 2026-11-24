@@ -47,7 +47,8 @@ end
 
 defmodule Flop.InvalidCursorError do
   @moduledoc """
-  Raised when an invalid cursor is passed to the decode function.
+  Raised when a pagination cursor cannot be decoded, or when a query function
+  cannot cast a cursor value to the type of its order field.
 
   A cursor might be invalid if it is malformed, not in the expected format, or
   contains unexpected data types.
@@ -59,7 +60,9 @@ defmodule Flop.InvalidCursorError do
     """
     invalid cursor
 
-    The pagination cursor could not be decoded.
+    The pagination cursor could not be decoded, or a cursor value could not be
+    cast to the type of its order field. Pass a cursor from the `Flop.Meta` of
+    a query with the same order fields.
 
     The cursor is left out of this message. It is in the `cursor` field of the
     exception.
