@@ -2,6 +2,45 @@
 
 ## Unreleased
 
+## [0.26.7] - 2026-11-24
+
+### Changed
+
+- Encode `Date`, `DateTime`, `Duration`, `NaiveDateTime` and `Time` cursor
+  values as ISO 8601 strings, `Decimal` cursor values as strings, and other
+  structs in cursor values as maps.
+- Cast cursor values with the Ecto types of the order fields when a query
+  function is called with `:for`, also if the Flop was not validated. Raise a
+  `Flop.InvalidCursorError` if a value cannot be cast.
+
+### Fixed
+
+- Reject cursors that contain an improper list.
+
+### Security
+
+- Reject cursors that contain a struct. A crafted cursor could execute code on
+  the server.
+- Remove the debug log on validation errors. It logged the changeset, which
+  contains the user-supplied filter values. The errors are returned to the
+  caller in the `Flop.Meta` struct, so nothing is lost.
+- Leave the parameter values out of the `Flop.InvalidParamsError` message and
+  the cursor out of the `Flop.InvalidCursorError` message. The `params` and
+  `cursor` fields of the exceptions still hold them.
+
+### How to upgrade
+
+- If you paginate by cursor on a field whose Ecto type has a struct value,
+  make the type's `cast/1` accept a map of the struct's fields. Dates, times,
+  durations and decimals nested in the struct arrive as strings, and nested
+  structs as maps. If you cannot change the type, pass a `cursor_value_func`
+  that returns values the type can cast.
+- If you paginate by cursor on a `:duration` or `{:array, :duration}` field,
+  pass `:for` to the query function.
+- If you paginate by cursor on a join field, make sure its `ecto_type` matches
+  the column, including its precision.
+- Cursors created by an earlier version that contain a struct are rejected.
+
 ## [0.26.6] - 2026-08-07
 
 ### Fixed
