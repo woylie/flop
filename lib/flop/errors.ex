@@ -55,13 +55,14 @@ defmodule Flop.InvalidCursorError do
 
   defexception [:cursor]
 
-  def message(%{cursor: cursor}) do
+  def message(_) do
     """
     invalid cursor
 
-    Attempted to decode an invalid pagination cursor:
+    The pagination cursor could not be decoded.
 
-        #{inspect(cursor)}
+    The cursor is left out of this message. It is in the `cursor` field of the
+    exception.
     """
   end
 end
@@ -88,15 +89,14 @@ defmodule Flop.InvalidParamsError do
 
   defexception [:errors, :params]
 
-  def message(%{errors: errors, params: params}) do
+  def message(%{errors: errors}) do
     """
     invalid Flop parameters
 
-    The parameters provided to Flop:
+    The parameter values are left out of this message. They are in the `params`
+    field of the exception.
 
-    #{Flop.Misc.indent(params)}
-
-    Resulted in the following validation errors:
+    Validation errors:
 
     #{Flop.Misc.indent(errors)}
     """
