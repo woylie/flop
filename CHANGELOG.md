@@ -8,6 +8,37 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Encode `Date`, `DateTime`, `Duration`, `NaiveDateTime` and `Time` cursor
+  values as ISO 8601 strings, `Decimal` cursor values as strings, and other
+  structs in cursor values as maps.
+- Cast cursor values with the Ecto types of the order fields when a query
+  function is called with `:for`, also if the Flop was not validated. Raise a
+  `Flop.InvalidCursorError` if a value cannot be cast.
+
+### Fixed
+
+- Reject cursors that contain an improper list.
+
+### Security
+
+- Reject cursors that contain a struct. A crafted cursor could execute code on
+  the server.
+
+### How to upgrade
+
+- If you paginate by cursor on a field whose Ecto type has a struct value,
+  make the type's `cast/1` accept a map of the struct's fields. Dates, times,
+  durations and decimals nested in the struct arrive as strings, and nested
+  structs as maps. If you cannot change the type, pass a `cursor_value_func`
+  that returns values the type can cast.
+- If you paginate by cursor on a `:duration` or `{:array, :duration}` field,
+  pass `:for` to the query function.
+- If you paginate by cursor on a custom or join field, make sure its
+  `ecto_type` matches the column, including its precision.
+- Cursors created by an earlier version that contain a struct are rejected.
+
 ## [0.29.1] - 2026-10-17
 
 ### Fixed
