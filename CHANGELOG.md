@@ -8,6 +8,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Bound cursor fields outside the `OR` again where nulls sort first, so that
+  an index on the field can start the scan at the cursor.
+
 ## [0.29.1] - 2026-10-17
 
 ### Fixed

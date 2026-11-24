@@ -670,7 +670,17 @@ defmodule Flop.Adapter.Ecto do
     strictly_after(direction, placement, cursor_value, source)
   end
 
-  # cursor value, more cursor fields to come
+  # cursor value, nulls first, more cursor fields to come; the redundant bound
+  # outside the OR lets an index on the field start the scan at the cursor
+  defp seek(direction, :first, cursor_value, source, tail) do
+    dynamic(
+      ^at_or_after(direction, cursor_value, source) and
+        (^strictly_after(direction, :first, cursor_value, source) or
+           (^compare(:==, source, cursor_value) and ^tail))
+    )
+  end
+
+  # cursor value, nulls last, more cursor fields to come
   defp seek(direction, placement, cursor_value, source, tail) do
     dynamic(
       ^strictly_after(direction, placement, cursor_value, source) or
@@ -700,6 +710,17 @@ defmodule Flop.Adapter.Ecto do
     compare(:<, source, cursor_value)
   end
 
+  # ascending, nulls first, so no null row follows the cursor row
+  defp at_or_after(direction, cursor_value, source)
+       when direction in @asc_directions do
+    compare(:>=, source, cursor_value)
+  end
+
+  # descending, nulls first, so no null row follows the cursor row
+  defp at_or_after(_direction, cursor_value, source) do
+    compare(:<=, source, cursor_value)
+  end
+
   defp compare(op, {:join, binding, field}, value) do
     case op do
       :> ->
@@ -708,10 +729,22 @@ defmodule Flop.Adapter.Ecto do
           field(r, ^field) > type(^value, field(r, ^field))
         )
 
+      :>= ->
+        dynamic(
+          [{^binding, r}],
+          field(r, ^field) >= type(^value, field(r, ^field))
+        )
+
       :< ->
         dynamic(
           [{^binding, r}],
           field(r, ^field) < type(^value, field(r, ^field))
+        )
+
+      :<= ->
+        dynamic(
+          [{^binding, r}],
+          field(r, ^field) <= type(^value, field(r, ^field))
         )
 
       :== ->
@@ -725,7 +758,9 @@ defmodule Flop.Adapter.Ecto do
   defp compare(op, {:dynamic, field_dynamic}, value) do
     case op do
       :> -> dynamic(^field_dynamic > ^value)
+      :>= -> dynamic(^field_dynamic >= ^value)
       :< -> dynamic(^field_dynamic < ^value)
+      :<= -> dynamic(^field_dynamic <= ^value)
       :== -> dynamic(^field_dynamic == ^value)
     end
   end
@@ -733,7 +768,9 @@ defmodule Flop.Adapter.Ecto do
   defp compare(op, {:column, field}, value) do
     case op do
       :> -> dynamic([r], field(r, ^field) > type(^value, field(r, ^field)))
+      :>= -> dynamic([r], field(r, ^field) >= type(^value, field(r, ^field)))
       :< -> dynamic([r], field(r, ^field) < type(^value, field(r, ^field)))
+      :<= -> dynamic([r], field(r, ^field) <= type(^value, field(r, ^field)))
       :== -> dynamic([r], field(r, ^field) == type(^value, field(r, ^field)))
     end
   end

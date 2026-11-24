@@ -1,6 +1,8 @@
 defmodule Flop.Adapter.Ecto.DialectTest do
   use ExUnit.Case, async: true
 
+  import Ecto.Query, only: [join: 5]
+
   alias Flop.Adapter.Ecto.Dialect
 
   @order_directions [
@@ -136,6 +138,45 @@ defmodule Flop.Adapter.Ecto.DialectTest do
 
       assert cursor_clause(SQLite3Repo, :desc, "abc") =~ "is_nil(p0.name)"
       refute cursor_clause(PostgresRepo, :desc, "abc") =~ "is_nil"
+    end
+  end
+
+  describe "the bound on a cursor field with more cursor fields to come" do
+    test "is a separate conjunct where the null rows sort first" do
+      assert name_age_clause(PostgresRepo, :desc, "abc") =~
+               ~r/^p0.name <= type\(\^"abc", p0.name\) and\s+\(p0.name < /
+
+      assert name_age_clause(SQLite3Repo, :asc, "abc") =~
+               ~r/^p0.name >= type\(\^"abc", p0.name\) and\s+\(p0.name > /
+
+      assert name_age_clause(MyXQLRepo, :desc_nulls_first, "abc") =~
+               ~r/^p0.name <= /
+    end
+
+    test "is left out where the null rows sort last or without a cursor value" do
+      refute name_age_clause(PostgresRepo, :asc, "abc") =~ " >= "
+      refute name_age_clause(SQLite3Repo, :desc, "abc") =~ " <= "
+      refute name_age_clause(PostgresRepo, :desc, nil) =~ " <= "
+    end
+
+    test "compares join and custom fields" do
+      query = join(MyApp.Pet, :left, [p], o in assoc(p, :owner), as: :owner)
+      cursor = [owner_name: "abc", name: "def"]
+
+      assert seek_clause(query, MyApp.Pet, PostgresRepo, :desc, cursor) =~
+               ~r/^o1.name <= /
+
+      assert seek_clause(query, MyApp.Pet, SQLite3Repo, :asc, cursor) =~
+               ~r/^o1.name >= /
+
+      query = MyApp.CustomFieldPet
+      cursor = [age_score: 4, id: 5]
+
+      assert seek_clause(query, query, PostgresRepo, :desc, cursor) =~
+               ~r/^fragment\(.+\) <= \^4 and/
+
+      assert seek_clause(query, query, SQLite3Repo, :asc, cursor) =~
+               ~r/^fragment\(.+\) >= \^4 and/
     end
   end
 
@@ -286,6 +327,27 @@ defmodule Flop.Adapter.Ecto.DialectTest do
     |> String.split(", order_by:")
     |> List.first()
     |> String.trim_trailing(">")
+  end
+
+  defp name_age_clause(repo, direction, name) do
+    seek_clause(MyApp.Pet, MyApp.Pet, repo, direction, name: name, age: 3)
+  end
+
+  defp seek_clause(query, schema, repo, direction, cursor) do
+    flop = %Flop{
+      first: 2,
+      after: Flop.Cursor.encode(Map.new(cursor)),
+      order_by: Keyword.keys(cursor),
+      order_directions: [direction, direction]
+    }
+
+    query
+    |> Flop.query(flop, for: schema, repo: repo, tiebreaker: false)
+    |> inspect()
+    |> String.split("where: ")
+    |> List.last()
+    |> String.split(", order_by:")
+    |> List.first()
   end
 
   defp order_by_clause(repo, direction) do
