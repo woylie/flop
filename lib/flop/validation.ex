@@ -391,15 +391,40 @@ defmodule Flop.Validation do
   defp cast_cursor_value(struct, field, value, sortable_fields) do
     if field in sortable_fields do
       %FieldInfo{ecto_type: ecto_type} = Flop.Schema.field_info(struct, field)
-      cast_cursor_value(expand_type(ecto_type), value)
+      cast_cursor_value(ecto_type, value)
     else
       {:ok, value}
     end
   end
 
-  defp cast_cursor_value(nil, value), do: {:ok, value}
+  @spec cast_cursor_value(Flop.Schema.ecto_type() | nil, any) ::
+          {:ok, any} | :error
+  def cast_cursor_value(ecto_type, value) do
+    ecto_type |> expand_type() |> cast_expanded_cursor_value(value)
+  end
 
-  defp cast_cursor_value(type, value) do
+  defp cast_expanded_cursor_value(nil, value), do: {:ok, value}
+
+  if Code.ensure_loaded?(Duration) do
+    defp cast_expanded_cursor_value(:duration, value) when is_binary(value) do
+      case Duration.from_iso8601(value) do
+        {:ok, duration} -> {:ok, duration}
+        {:error, _} -> :error
+      end
+    end
+
+    defp cast_expanded_cursor_value({:array, :duration}, values)
+         when is_list(values) do
+      Enum.reduce_while(Enum.reverse(values), {:ok, []}, fn value, {:ok, acc} ->
+        case cast_expanded_cursor_value(:duration, value) do
+          {:ok, duration} -> {:cont, {:ok, [duration | acc]}}
+          :error -> {:halt, :error}
+        end
+      end)
+    end
+  end
+
+  defp cast_expanded_cursor_value(type, value) do
     case Ecto.Type.cast(type, value) do
       {:ok, cast_value} -> {:ok, cast_value}
       _ -> :error

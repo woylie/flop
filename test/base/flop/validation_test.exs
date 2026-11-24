@@ -26,6 +26,17 @@ defmodule Flop.ValidationTest do
     |> apply_action(:insert)
   end
 
+  defmodule Lap do
+    use Ecto.Schema
+
+    @derive {Flop.Schema, filterable: [], sortable: [:duration, :splits]}
+
+    schema "laps" do
+      field :duration, :duration
+      field :splits, {:array, :duration}
+    end
+  end
+
   defp validate!(params, opts) do
     params
     |> Validation.changeset(opts)
@@ -537,6 +548,40 @@ defmodule Flop.ValidationTest do
       cursor = Cursor.encode(%{age: "not-an-int"})
       params = %{first: 2, after: cursor, order_by: [:age]}
       assert {:ok, _} = validate(params)
+    end
+
+    if Code.ensure_loaded?(Duration) do
+      test "casts duration cursor value" do
+        duration = Duration.new!(hour: 1, microsecond: {5, 6})
+        cursor = Cursor.encode(%{duration: duration})
+        params = %{first: 2, after: cursor, order_by: [:duration]}
+
+        assert {:ok, %Flop{decoded_cursor: %{duration: ^duration}}} =
+                 validate(params, for: Lap)
+      end
+
+      test "casts duration array cursor value" do
+        splits = [Duration.new!(minute: 1), nil, Duration.new!(second: 30)]
+        cursor = Cursor.encode(%{splits: splits})
+        params = %{first: 2, after: cursor, order_by: [:splits]}
+
+        assert {:ok, %Flop{decoded_cursor: %{splits: ^splits}}} =
+                 validate(params, for: Lap)
+      end
+
+      test "returns error for invalid duration array cursor value" do
+        cursor = Cursor.encode(%{splits: ["PT1M", "1 hour"]})
+        params = %{first: 2, after: cursor, order_by: [:splits]}
+        assert {:error, changeset} = validate(params, for: Lap)
+        assert errors_on(changeset)[:after] == ["is invalid"]
+      end
+
+      test "returns error for invalid duration cursor value" do
+        cursor = Cursor.encode(%{duration: "1 hour"})
+        params = %{first: 2, after: cursor, order_by: [:duration]}
+        assert {:error, changeset} = validate(params, for: Lap)
+        assert errors_on(changeset)[:after] == ["is invalid"]
+      end
     end
 
     test "replaces after cursor with invalid value types with replace_invalid_params" do
