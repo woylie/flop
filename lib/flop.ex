@@ -1213,7 +1213,9 @@ defmodule Flop do
     struct = if module = opts[:for], do: struct(module)
     orderings = prepare_order_fields_and_directions(order_by, order_directions)
     decoded_cursor = decoded_cursor || Cursor.decode!(after_)
-    cursor_fields = prepare_cursor_fields(struct, decoded_cursor, orderings)
+
+    cursor_fields =
+      prepare_cursor_fields(struct, after_, decoded_cursor, orderings)
 
     q
     |> adapter.apply_cursor(cursor_fields, opts)
@@ -1260,7 +1262,9 @@ defmodule Flop do
       |> reverse_ordering()
 
     decoded_cursor = decoded_cursor || Cursor.decode!(before)
-    cursor_fields = prepare_cursor_fields(struct, decoded_cursor, orderings)
+
+    cursor_fields =
+      prepare_cursor_fields(struct, before, decoded_cursor, orderings)
 
     q
     |> adapter.apply_cursor(cursor_fields, opts)
@@ -1270,15 +1274,26 @@ defmodule Flop do
 
   def paginate(q, _, _), do: q
 
-  @spec prepare_cursor_fields(struct | nil, map, [{atom, atom}]) :: [
+  @spec prepare_cursor_fields(struct | nil, binary, map, [{atom, atom}]) :: [
           {order_direction(), atom, any, Flop.FieldInfo.t()}
         ]
-  defp prepare_cursor_fields(struct, decoded_cursor, ordering) do
+  defp prepare_cursor_fields(struct, cursor, decoded_cursor, ordering) do
     Enum.map(ordering, fn {direction, field} ->
       field_info = struct && Flop.Schema.field_info(struct, field)
-      cursor_value = Map.get(decoded_cursor, field)
-      {direction, field, cursor_value, field_info}
+      value = Map.get(decoded_cursor, field)
+
+      {direction, field, cast_cursor_value!(field_info, value, cursor),
+       field_info}
     end)
+  end
+
+  defp cast_cursor_value!(nil, value, _cursor), do: value
+
+  defp cast_cursor_value!(%Flop.FieldInfo{ecto_type: ecto_type}, value, cursor) do
+    case Flop.Validation.cast_cursor_value(ecto_type, value) do
+      {:ok, cast_value} -> cast_value
+      :error -> raise Flop.InvalidCursorError, cursor: cursor
+    end
   end
 
   @spec reverse_ordering([order_direction()]) :: [order_direction()]

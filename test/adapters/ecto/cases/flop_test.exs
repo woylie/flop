@@ -17,6 +17,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
   alias Flop.Filter
   alias Flop.Meta
   alias Flop.Repo
+  alias MyApp.Event
   alias MyApp.Fruit
   alias MyApp.Owner
   alias MyApp.Pet
@@ -1419,6 +1420,60 @@ defmodule Flop.Adapters.Ecto.FlopTest do
     end
   end
 
+  defp insert_events do
+    Repo.insert!(%Event{
+      occurred_on: ~D[2020-01-02],
+      occurred_at: ~N[2020-01-01 00:00:00.000002],
+      amount: Decimal.new("10.00")
+    })
+
+    Repo.insert!(%Event{
+      occurred_on: ~D[2020-02-01],
+      occurred_at: ~N[2020-01-01 00:00:00.000001],
+      amount: Decimal.new("2.25")
+    })
+
+    Repo.insert!(%Event{
+      occurred_on: ~D[2020-01-01],
+      occurred_at: ~N[2020-01-01 00:00:01.000000],
+      amount: Decimal.new("1.50")
+    })
+  end
+
+  defp page_events(field, direction, :forward) do
+    flop = %Flop{first: 1, order_by: [field], order_directions: [direction]}
+
+    page_events(flop, fn
+      %Meta{has_next_page?: true} = meta -> %{flop | after: meta.end_cursor}
+      %Meta{} -> nil
+    end)
+  end
+
+  defp page_events(field, direction, :backward) do
+    flop = %Flop{last: 1, order_by: [field], order_directions: [direction]}
+
+    page_events(flop, fn
+      %Meta{has_previous_page?: true} = meta ->
+        %{flop | before: meta.start_cursor}
+
+      %Meta{} ->
+        nil
+    end)
+  end
+
+  defp page_events(flop, next_flop) do
+    flop
+    |> Stream.unfold(fn
+      nil ->
+        nil
+
+      flop ->
+        {:ok, {[item], meta}} = Flop.validate_and_run(Event, flop, for: Event)
+        {item, next_flop.(meta)}
+    end)
+    |> Enum.to_list()
+  end
+
   describe "cursor pagination" do
     property "querying cursor by cursor forward includes all items in order" do
       check all pets <- uniq_list_of_pets(length: 1..25),
@@ -2040,6 +2095,62 @@ defmodule Flop.Adapters.Ecto.FlopTest do
                  %Flop{first: 1, after: end_cursor, order_by: [:trip]},
                  for: MyApp.WalkingDistances
                )
+    end
+
+    test "pages by date, datetime and decimal fields" do
+      insert_events()
+
+      for field <- [:occurred_on, :occurred_at, :amount],
+          direction <- [:asc, :desc] do
+        flop = %Flop{order_by: [field], order_directions: [direction]}
+        expected = Event |> Flop.all(flop, for: Event) |> Enum.map(& &1.id)
+
+        forward = page_events(field, direction, :forward)
+        assert Enum.map(forward, & &1.id) == expected
+
+        backward = page_events(field, direction, :backward)
+        assert Enum.map(backward, & &1.id) == Enum.reverse(expected)
+      end
+    end
+
+    test "rejects a cursor that contains a struct" do
+      cursor =
+        %{occurred_at: %{DateTime.utc_now() | year: %URI{}}}
+        |> :erlang.term_to_binary()
+        |> Base.url_encode64()
+
+      params = %{first: 1, after: cursor, order_by: [:occurred_at]}
+
+      assert {:error, %Meta{}} =
+               Flop.validate_and_run(Event, params, for: Event)
+
+      assert_raise Flop.InvalidCursorError, fn ->
+        Flop.run(
+          Event,
+          %Flop{first: 1, after: cursor, order_by: [:occurred_at]},
+          for: Event
+        )
+      end
+    end
+
+    test "raises if a cursor value of an unvalidated Flop does not cast" do
+      cursor = Flop.Cursor.encode(%{occurred_at: "not a datetime"})
+
+      assert_raise Flop.InvalidCursorError, fn ->
+        Flop.run(
+          Event,
+          %Flop{first: 1, after: cursor, order_by: [:occurred_at]},
+          for: Event
+        )
+      end
+
+      assert_raise Flop.InvalidCursorError, fn ->
+        Flop.run(
+          Event,
+          %Flop{last: 1, before: cursor, order_by: [:occurred_at]},
+          for: Event
+        )
+      end
     end
   end
 
