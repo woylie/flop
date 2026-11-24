@@ -287,8 +287,6 @@ defmodule Flop do
   alias Flop.Meta
   alias Flop.NimbleSchemas
 
-  require Logger
-
   @default_opts [default_limit: 50, max_limit: 1000]
 
   defmacro __using__(opts) do
@@ -1387,7 +1385,6 @@ defmodule Flop do
         r
 
       {:error, %Changeset{} = changeset} ->
-        Logger.debug("Invalid Flop: #{inspect(changeset)}")
         {:error, Meta.with_errors(params, convert_errors(changeset), opts)}
     end
   end
