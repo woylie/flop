@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.29.2] - 2026-11-24
+
 ### Changed
 
 - Encode `Date`, `DateTime`, `Duration`, `NaiveDateTime` and `Time` cursor
@@ -1306,7 +1308,8 @@ equivalent:
 
 - Initial release.
 
-[unreleased]: https://github.com/woylie/flop/compare/0.29.1...HEAD
+[unreleased]: https://github.com/woylie/flop/compare/0.29.2...HEAD
+[0.29.2]: https://github.com/woylie/flop/compare/0.29.1...0.29.2
 [0.29.1]: https://github.com/woylie/flop/compare/0.29.0...0.29.1
 [0.29.0]: https://github.com/woylie/flop/compare/0.28.0...0.29.0
 [0.28.0]: https://github.com/woylie/flop/compare/0.27.2...0.28.0
