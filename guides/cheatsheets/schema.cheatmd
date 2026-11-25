@@ -55,7 +55,8 @@ use Flop.Schema
 
 #### Default filters
 
-Applied when the parameters contain no filter with a value for the field.
+Applied when the parameters contain no filter with a value for the field. See
+`t:Flop.default_filters/0`.
 
 ```elixir
 use Flop.Schema
@@ -63,7 +64,7 @@ use Flop.Schema
 @flop_options [
   filterable: [:name, :species],
   sortable: [:name, :age],
-  default_filter: [%Flop.Filter{field: :species, value: "cat"}]
+  default_filters: [%Flop.Filter{field: :species, value: "cat"}]
 ]
 ```
 
@@ -71,7 +72,7 @@ You can use `Flop.Filter.new/1` to build the list from a map, applying the
 default `:==` operator.
 
 ```elixir
-default_filter: Flop.Filter.new(%{species: "cat"})
+default_filters: Flop.Filter.new(%{species: "cat"})
 ```
 
 #### Tiebreaker

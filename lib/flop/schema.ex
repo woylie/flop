@@ -108,32 +108,23 @@ defmodule Flop.Schema do
 
   ## Default filters
 
-  Specify default filters by setting the `default_filter` option in
-  `@flop_options`. It takes a list of `Flop.Filter` structs, which `Flop.validate/1`
+  Specify default filters by setting the `default_filters` option in
+  `@flop_options`. It takes a list of `Flop.Filter` structs, which `Flop.validate/2`
   applies when the parameters contain no filter with a value for the respective
-  field. If the parameters contain a filter for the field, the default for that
-  field is not applied, regardless of the operator used by the client filter.
-  Filters with an empty value don't suppress the default, and filters that are
-  identical to a default filter are applied as default filters again.
+  field. See `t:Flop.default_filters/0` for the details.
 
       use Flop.Schema
 
       @flop_options [
         filterable: [:name, :age],
         sortable: [:name, :age],
-        default_filter: [%Flop.Filter{field: :age, op: :>=, value: 8}]
+        default_filters: [%Flop.Filter{field: :age, op: :>=, value: 8}]
       ]
 
   You can use `Flop.Filter.new/1` to build a list of filters from a map of
   field names to values, applying the default `:==` operator:
 
-      default_filter: Flop.Filter.new(%{species: "cat"})
-
-  The filter values are cast to the field type like filter parameters. Default
-  filters are applied after invalid client filters have been removed, and they
-  do not count towards the `max_filters` limit. An invalid default filter
-  raises an `ArgumentError`, since default filters are configured by the
-  application rather than derived from client input.
+      default_filters: Flop.Filter.new(%{species: "cat"})
 
   ## Tiebreaker
 
@@ -693,9 +684,9 @@ defmodule Flop.Schema do
     `false` to not set any maximum limit.
   - `:default_order` - The default order applied when no order parameters are
     set.
-  - `:default_filter` - A list of `Flop.Filter` structs that `Flop.validate/1`
+  - `:default_filters` - A list of `Flop.Filter` structs that `Flop.validate/2`
     applies as default filters when the parameters contain no filter with a
-    value for the respective field. See `t:Flop.default_filter/0`.
+    value for the respective field. See `t:Flop.default_filters/0`.
   - `:tiebreaker` - The order fields appended to every query to make the order
     unambiguous. Defaults to the primary key, ascending. See
     `t:Flop.tiebreaker/0`.
@@ -711,7 +702,7 @@ defmodule Flop.Schema do
           | {:max_filters, pos_integer | false}
           | {:max_limit, integer}
           | {:default_order, Flop.default_order()}
-          | {:default_filter, Flop.default_filter()}
+          | {:default_filters, Flop.default_filters()}
           | {:tiebreaker, Flop.tiebreaker()}
           | {:pagination_types, [Flop.pagination_type()]}
           | {:default_pagination_type, Flop.pagination_type()}
@@ -1016,6 +1007,8 @@ defmodule Flop.Schema do
     fields = adapter.fields(struct, adapter_opts)
     config = schema_config(options, fields)
 
+    config = cast_default_filters!(config, module)
+
     quote do
       def __flop_schema__ do
         unquote(Macro.escape(config))
@@ -1024,7 +1017,7 @@ defmodule Flop.Schema do
   end
 
   @options [
-    :default_filter,
+    :default_filters,
     :default_limit,
     :default_order,
     :default_pagination_type,
@@ -1044,8 +1037,10 @@ defmodule Flop.Schema do
   end
 
   # Build Ecto.Enum once at compile time. {:from_schema, _, _} is not resolved
-  # at compile time, as it would introduce a compile dependency;
-  # Flop.field_info/2 resolves it at runtime instead.
+  # here, as it would introduce a compile dependency on other schema modules;
+  # Flop.field_info/2 resolves it at runtime instead. The default filters of
+  # the schema itself are cast with the types of its own fields, see
+  # cast_default_filters!/2.
   defp resolve_at_compile_time(
          {name, %{ecto_type: {:ecto_enum, values}} = info}
        ) do
@@ -1054,6 +1049,104 @@ defmodule Flop.Schema do
   end
 
   defp resolve_at_compile_time({name, info}), do: {name, info}
+
+  # Casts the schema default filters once, so that `Flop.validate/2` can use
+  # them as they are.
+  # Casts the schema default filters once, so that `Flop.validate/2` can use
+  # them as they are. Default filters on fields that need information that is
+  # only available at runtime are cast by `Flop.validate/2` instead, and their
+  # fields are stored under `:runtime_cast_default_filter_fields`.
+  defp cast_default_filters!(%{default_filters: nil} = config, _module),
+    do: config
+
+  defp cast_default_filters!(%{default_filters: filters} = config, module) do
+    field_info =
+      filters
+      |> Enum.map(& &1.field)
+      |> Enum.uniq()
+      |> Map.new(fn field ->
+        {field, compile_time_field_info(config.fields[field], module)}
+      end)
+
+    runtime_fields =
+      for {field, info} <- field_info, cast_at_runtime?(info), do: field
+
+    opts = [filterable: config.filterable, field_info: field_info]
+
+    cast_filters =
+      Enum.map(filters, fn filter ->
+        if filter.field in runtime_fields do
+          filter
+        else
+          cast_default_filter!(filter, filters, opts, module)
+        end
+      end)
+
+    config
+    |> Map.put(:default_filters, cast_filters)
+    |> Map.put(:runtime_cast_default_filter_fields, runtime_fields)
+  end
+
+  defp cast_default_filter!(filter, filters, opts, module) do
+    case Flop.Validation.cast_default_filter(filter, opts) do
+      {:ok, cast_filter} ->
+        cast_filter
+
+      :error ->
+        raise Flop.InvalidConfigError,
+          caller: module,
+          key: :default_filters,
+          keys_path: [],
+          module: Flop.Schema,
+          value: filters,
+          message: """
+          invalid default filter
+
+          A default filter needs a value, and the operator and the value need
+          to match the type of the field:
+
+              #{inspect(filter)}
+          """
+    end
+  end
+
+  # - The type of a field taken from another schema module would add a
+  #   compile-time dependency on that module.
+  # - `:binary_id` values are cast with a type that depends on the repo.
+  defp cast_at_runtime?(%Flop.FieldInfo{ecto_type: {:from_schema, _, _}}),
+    do: true
+
+  defp cast_at_runtime?(%Flop.FieldInfo{ecto_type: type})
+       when type in [:binary_id, {:array, :binary_id}],
+       do: true
+
+  defp cast_at_runtime?(_), do: false
+
+  # `module.__schema__/1` is not defined yet while the schema module is
+  # compiled, so the types of the regular fields are read from the attribute
+  # that `Ecto.Schema` accumulates them in. Ecto < 3.12 stores the type, later
+  # versions store `{type, writable}`. Types from other modules are left
+  # unresolved.
+  defp compile_time_field_info(
+         %Flop.FieldInfo{ecto_type: {:from_schema, module, field}} = info,
+         module
+       ) do
+    type =
+      module
+      |> Module.get_attribute(:ecto_fields)
+      |> List.wrap()
+      |> Keyword.get(field)
+
+    %{info | ecto_type: strip_writable(type)}
+  end
+
+  defp compile_time_field_info(info, _module), do: info
+
+  defp strip_writable({type, writable})
+       when writable in [:always, :insert, :never],
+       do: type
+
+  defp strip_writable(type), do: type
 
   # Macro.struct!/2 is soft-deprecated in favor of Macro.struct_info!/2, which
   # was introduced in Elixir 1.18. Change when Elixir < 1.18 is not supported
@@ -1107,7 +1200,7 @@ defmodule Flop.Schema do
     validate_no_unknown_field!(opts[:filterable], fields, "filterable")
     validate_no_unknown_field!(opts[:sortable], fields, "sortable")
     validate_default_order!(opts[:default_order], opts[:sortable])
-    validate_default_filter!(opts[:default_filter], opts[:filterable])
+    validate_default_filters!(opts[:default_filters], opts[:filterable])
 
     validate_tiebreaker!(
       opts[:tiebreaker],
@@ -1198,14 +1291,12 @@ defmodule Flop.Schema do
     end
   end
 
-  defp validate_default_filter!(nil, _), do: :ok
+  defp validate_default_filters!(nil, _), do: :ok
 
-  defp validate_default_filter!(default_filter, filterable)
-       when is_list(default_filter) do
-    validate_no_unknown_field!(
-      Enum.map(default_filter, & &1.field),
-      filterable,
-      "default_filter"
-    )
+  defp validate_default_filters!(default_filters, filterable)
+       when is_list(default_filters) do
+    default_filters
+    |> Enum.map(& &1.field)
+    |> then(&validate_no_unknown_field!(&1, filterable, "default_filters"))
   end
 end

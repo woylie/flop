@@ -133,12 +133,12 @@ options, read the `Flop.Schema` documentation.
 
 ### Default filters
 
-You can define default filters with the `default_filter` option. It takes a
+You can define default filters with the `default_filters` option. It takes a
 list of `Flop.Filter` structs. Each default is applied when the parameters
 contain no filter for that field. Each filter must have a value; defaults
-without one are rejected. This is useful for filters that are
-controlled by the server rather than the client, for example to exclude
-soft-deleted records from a listing unless the client explicitly opts in.
+without one are rejected. This is useful for filters that apply until the
+client overrides them, e.g. to hide soft-deleted records unless the client's
+filters explicitly request them.
 
 ```elixir
 defmodule MyApp.Pet do
@@ -148,7 +148,7 @@ defmodule MyApp.Pet do
   @flop_options [
     filterable: [:name, :age, :deleted],
     sortable: [:name, :age],
-    default_filter: [%Flop.Filter{field: :deleted, value: false}]
+    default_filters: [%Flop.Filter{field: :deleted, value: false}]
   ]
 
   schema "pets" do
@@ -166,7 +166,7 @@ set it explicitly:
 @flop_options [
   filterable: [:name, :age],
   sortable: [:name, :age],
-  default_filter: [%Flop.Filter{field: :age, op: :>=, value: 8}]
+  default_filters: [%Flop.Filter{field: :age, op: :>=, value: 8}]
 ]
 ```
 
@@ -178,34 +178,13 @@ operator:
 @flop_options [
   filterable: [:name, :age, :deleted],
   sortable: [:name, :age],
-  default_filter: Flop.Filter.new(%{deleted: false})
+  default_filters: Flop.Filter.new(%{deleted: false})
 ]
 ```
 
-A default filter is only applied for a field if the parameters contain no
-filter with a value for that field. If the client filters the same field, the
-default for that field is not applied, regardless of the operator the client
-used. Filters with an empty value are treated like a missing filter, since
-they are skipped when the query is built anyway. Filters for other fields are
-combined with the default filters as usual.
-
-The filter values are cast to the field type like filter parameters, so a
-default filter value of `"8"` for an integer field results in a filter value
-of `8`. If a default filter cannot be cast, `Flop.validate/2` raises an
-`ArgumentError`, since default filters are configured by the application
-rather than derived from client input.
-
-Default filters are applied by `Flop.validate/2` and the functions that validate
-for you, like `Flop.validate_and_run/3`. They are applied after invalid client
-filters have been removed, and they do not count towards the `max_filters`
-limit. Since the applied filters are part of the validated `Flop` struct, they
-also show up in `Flop.Meta.flop`. If the client submits the filters of a
-validated `Flop` struct back, filters that are identical to a default filter
-are applied as default filters again, so they are not duplicated and don't
-count towards the `max_filters` limit.
-
-To disable the default filters for a single query, pass `default_filter: false`
-to the function.
+See `t:Flop.default_filters/0` in the `Flop` documentation for the details:
+when a default is applied, how the values are cast, how the defaults interact
+with `max_filters`, and how to disable them for a single query.
 
 ### Query data
 

@@ -52,9 +52,9 @@ defmodule FlopTest do
     use Flop.Schema
 
     @flop_options [
-      filterable: [:name, :age, :species],
+      filterable: [:name, :age, :species, :weight],
       sortable: [:name],
-      default_filter: [%Flop.Filter{field: :species, value: "cat"}]
+      default_filters: [%Flop.Filter{field: :species, value: "cat"}]
     ]
 
     @primary_key {:id, :id, autogenerate: true}
@@ -62,37 +62,63 @@ defmodule FlopTest do
       field :name, :string
       field :age, :integer
       field :species, :string
+      field :weight, :decimal
     end
   end
 
-  defmodule DefaultFilterComplexPet do
+  defmodule DefaultFilterRangePet do
     use Ecto.Schema
     use Flop.Schema
 
     @flop_options [
-      filterable: [:name, :owner_name, :name_or_species, :inserted_at],
+      filterable: [:name, :age],
       sortable: [:name],
-      join_fields: [
-        owner_name: [binding: :owner, field: :name, ecto_type: :string]
-      ],
-      compound_fields: [name_or_species: [:name, :species]],
-      custom_fields: [
-        inserted_at: [
-          filter: {__MODULE__, :date_filter, []},
-          ecto_type: :date
-        ]
-      ],
-      default_filter: [
-        %Flop.Filter{field: :owner_name, value: "Jane"},
-        %Flop.Filter{field: :name_or_species, op: :=~, value: "cat"},
-        %Flop.Filter{field: :inserted_at, value: ~D[2024-01-01]}
+      default_filters: [
+        %Flop.Filter{field: :age, op: :>=, value: 1},
+        %Flop.Filter{field: :age, op: :<=, value: 10}
       ]
     ]
 
     @primary_key {:id, :id, autogenerate: true}
     schema "pets" do
       field :name, :string
-      field :species, :string
+      field :age, :integer
+    end
+  end
+
+  defmodule UUIDAdapter do
+    def loaders(:binary_id, type), do: [Ecto.UUID, type]
+  end
+
+  defmodule UUIDRepo do
+    def __adapter__, do: UUIDAdapter
+  end
+
+  defmodule RuntimeCastDefaultFilterPet do
+    use Ecto.Schema
+    use Flop.Schema
+
+    @flop_options [
+      filterable: [:owner_id, :owner_age],
+      sortable: [],
+      default_filters: [
+        %Flop.Filter{
+          field: :owner_id,
+          value: "A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11"
+        },
+        %Flop.Filter{field: :owner_age, op: :>=, value: "3"}
+      ],
+      join_fields: [
+        owner_age: [
+          binding: :owner,
+          field: :age,
+          ecto_type: {:from_schema, DefaultFilterPet, :age}
+        ]
+      ]
+    ]
+
+    schema "pets" do
+      field :owner_id, :binary_id
     end
   end
 
@@ -238,62 +264,76 @@ defmodule FlopTest do
     end
   end
 
-  describe "default_filter" do
-    test "applies default filter if no filters are set" do
-      assert {:ok,
-              %Flop{
-                filters: [%Flop.Filter{field: :species, op: :==, value: "cat"}]
-              }} = Flop.validate(%{}, for: DefaultFilterPet)
+  describe "default_filters" do
+    test "applies default filters if no filters are set" do
+      assert %Flop{
+               filters: [%Flop.Filter{field: :species, op: :==, value: "cat"}]
+             } = Flop.validate!(%{}, for: DefaultFilterPet)
     end
 
-    test "does not apply default filter if a filter for the field is set" do
+    test "does not apply a default filter if a filter for the field is set" do
       for op <- [:==, :!=] do
-        assert {:ok,
-                %Flop{
-                  filters: [
-                    %Flop.Filter{field: :species, op: ^op, value: "dog"}
-                  ]
-                }} =
-                 Flop.validate(
+        assert %Flop{
+                 filters: [%Flop.Filter{field: :species, op: ^op, value: "dog"}]
+               } =
+                 Flop.validate!(
                    %{filters: [%{field: :species, op: op, value: "dog"}]},
                    for: DefaultFilterPet
                  )
       end
     end
 
-    test "applies default filter alongside filters for other fields" do
-      assert {:ok, %Flop{filters: filters}} =
-               Flop.validate(
+    test "applies default filters alongside filters for other fields" do
+      assert %Flop{filters: filters} =
+               Flop.validate!(
                  %{filters: [%{field: :age, op: :>, value: 3}]},
                  for: DefaultFilterPet
                )
 
       assert filters == [
-               %Flop.Filter{field: :species, op: :==, value: "cat"},
-               %Flop.Filter{field: :age, op: :>, value: 3}
+               %Flop.Filter{field: :age, op: :>, value: 3},
+               %Flop.Filter{field: :species, op: :==, value: "cat"}
+             ]
+    end
+
+    test "applies default filters for multiple filters on the same field" do
+      assert %Flop{filters: filters} =
+               Flop.validate!(
+                 %{
+                   filters: [
+                     %{field: :age, op: :>=, value: 5},
+                     %{field: :age, op: :<=, value: 10}
+                   ]
+                 },
+                 for: DefaultFilterRangePet
+               )
+
+      assert filters == [
+               %Flop.Filter{field: :age, op: :>=, value: 5},
+               %Flop.Filter{field: :age, op: :<=, value: 10}
              ]
     end
 
     test "casts the value to the field type" do
-      assert {:ok, %Flop{filters: [%Flop.Filter{field: :age, value: 8}]}} =
-               Flop.validate(%{},
+      assert %Flop{filters: [%Flop.Filter{field: :age, value: 8}]} =
+               Flop.validate!(%{},
                  for: DefaultFilterPet,
-                 default_filter: [%Flop.Filter{field: :age, value: "8"}]
+                 default_filters: [%Flop.Filter{field: :age, value: "8"}]
                )
     end
 
     test "does not duplicate default filters when revalidating a Flop struct" do
-      {:ok, flop} = Flop.validate(%{}, for: DefaultFilterPet)
+      flop = Flop.validate!(%{}, for: DefaultFilterPet)
 
-      assert {:ok, %Flop{filters: [filter]}} =
-               Flop.validate(flop, for: DefaultFilterPet)
+      assert %Flop{filters: [filter]} =
+               Flop.validate!(flop, for: DefaultFilterPet)
 
       assert filter == %Flop.Filter{field: :species, op: :==, value: "cat"}
     end
 
     test "does not count default filters towards max_filters" do
-      assert {:ok, %Flop{filters: filters}} =
-               Flop.validate(
+      assert %Flop{filters: filters} =
+               Flop.validate!(
                  %{filters: [%{field: :name, value: "George"}]},
                  for: DefaultFilterPet,
                  max_filters: 1
@@ -302,43 +342,139 @@ defmodule FlopTest do
       assert length(filters) == 2
     end
 
+    test "does not count resubmitted defaults for the same field towards max_filters" do
+      opts = [for: DefaultFilterRangePet, max_filters: 1]
+      flop = Flop.validate!(%{}, opts)
+
+      assert %Flop{filters: filters} = Flop.validate!(flop, opts)
+      assert filters == flop.filters
+    end
+
+    test "keeps resubmitted defaults when replacing filters over max_filters" do
+      assert %Flop{filters: filters} =
+               Flop.validate!(
+                 %{
+                   filters: [
+                     %{field: :age, op: :>=, value: 5},
+                     %{field: :age, op: :<=, value: 10},
+                     %{field: :name, value: "George"}
+                   ]
+                 },
+                 for: DefaultFilterRangePet,
+                 max_filters: 1,
+                 replace_invalid_params: true
+               )
+
+      assert filters == [
+               %Flop.Filter{field: :age, op: :>=, value: 5},
+               %Flop.Filter{field: :age, op: :<=, value: 10}
+             ]
+    end
+
+    test "leaves schema defaults with a runtime-dependent type uncast" do
+      filters =
+        Flop.schema_option(RuntimeCastDefaultFilterPet, :default_filters)
+
+      assert filters ==
+               [
+                 %Flop.Filter{
+                   field: :owner_id,
+                   value: "A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11"
+                 },
+                 %Flop.Filter{field: :owner_age, op: :>=, value: "3"}
+               ]
+    end
+
+    test "casts schema defaults with a runtime-dependent type at runtime" do
+      opts = [for: RuntimeCastDefaultFilterPet, repo: UUIDRepo, max_filters: 1]
+      flop = Flop.validate!(%{}, opts)
+
+      assert flop.filters == [
+               %Flop.Filter{
+                 field: :owner_id,
+                 op: :==,
+                 value: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+               },
+               %Flop.Filter{field: :owner_age, op: :>=, value: 3}
+             ]
+
+      # resubmitted defaults match the cast defaults
+      assert Flop.validate!(flop_params(flop), opts) == flop
+    end
+
+    test "raises if the default filter value is empty after casting" do
+      for value <- ["", "  "] do
+        assert_raise ArgumentError, ~r/invalid default filter/, fn ->
+          Flop.validate(%{},
+            for: DefaultFilterPet,
+            default_filters: [%Flop.Filter{field: :name, value: value}]
+          )
+        end
+      end
+    end
+
+    test "matches resubmitted decimal defaults regardless of precision" do
+      assert %Flop{filters: filters} =
+               Flop.validate!(
+                 %{
+                   filters: [
+                     %{field: :weight, value: "1.0"},
+                     %{field: :name, value: "George"}
+                   ]
+                 },
+                 for: DefaultFilterPet,
+                 default_filters: [%Flop.Filter{field: :weight, value: "1.00"}],
+                 max_filters: 1
+               )
+
+      assert [%Flop.Filter{field: :weight}, %Flop.Filter{field: :name}] =
+               filters
+    end
+
     test "applies default filter if an invalid filter is removed" do
-      assert {:ok, %Flop{filters: filters}} =
-               Flop.validate(
+      assert %Flop{
+               filters: [%Flop.Filter{field: :species, op: :==, value: "cat"}]
+             } =
+               Flop.validate!(
                  %{filters: [%{field: :species, value: 5}]},
                  for: DefaultFilterPet,
                  replace_invalid_params: true
                )
-
-      assert filters == [%Flop.Filter{field: :species, op: :==, value: "cat"}]
     end
 
     test "does not apply default filters if the parameters are invalid" do
-      assert {:error, %Meta{flop: %Flop{filters: []}}} =
-               Flop.validate(%{limit: -1}, for: DefaultFilterPet)
+      assert {:error, %Meta{errors: errors}} =
+               Flop.validate(
+                 %{filters: [%{field: :age, value: "x"}]},
+                 for: DefaultFilterPet
+               )
+
+      assert [filters: [[value: [{"is invalid", _}]]]] = errors
     end
 
     test "can be overridden at the call site" do
-      assert {:ok,
-              %Flop{
-                filters: [%Flop.Filter{field: :name, op: :==, value: "George"}]
-              }} =
-               Flop.validate(%{},
+      assert %Flop{
+               filters: [%Flop.Filter{field: :name, op: :==, value: "George"}]
+             } =
+               Flop.validate!(%{},
                  for: DefaultFilterPet,
-                 default_filter: [%Flop.Filter{field: :name, value: "George"}]
+                 default_filters: [%Flop.Filter{field: :name, value: "George"}]
                )
     end
 
     test "can be disabled at the call site" do
-      assert {:ok, %Flop{filters: []}} =
-               Flop.validate(%{}, for: DefaultFilterPet, default_filter: false)
+      assert %Flop{filters: []} =
+               Flop.validate!(%{},
+                 for: DefaultFilterPet,
+                 default_filters: false
+               )
     end
 
     test "raises if the default filter value is invalid" do
-      assert_raise ArgumentError, ~r/invalid default filter.*:age/, fn ->
+      assert_raise ArgumentError, ~r/invalid default filter/, fn ->
         Flop.validate(%{},
           for: DefaultFilterPet,
-          default_filter: [%Flop.Filter{field: :age, value: "eight"}]
+          default_filters: [%Flop.Filter{field: :age, value: "eight"}]
         )
       end
     end
@@ -347,69 +483,24 @@ defmodule FlopTest do
       assert_raise ArgumentError, ~r/invalid default filter/, fn ->
         Flop.validate(%{},
           for: DefaultFilterPet,
-          default_filter: [%Flop.Filter{field: :species, op: :empty}]
+          default_filters: [%Flop.Filter{field: :species, op: :empty}]
         )
       end
     end
 
-    test "supports cursor pagination" do
-      cursor = Flop.Cursor.encode(%{name: "George"})
-
-      assert {:ok,
-              %Flop{
-                filters: [%Flop.Filter{field: :species, op: :==, value: "cat"}]
-              }} =
-               Flop.validate(
-                 %{first: 2, after: cursor, order_by: [:name]},
-                 for: DefaultFilterPet
-               )
+    test "raises if a default filter field is not filterable" do
+      assert_raise ArgumentError, ~r/invalid default filter/, fn ->
+        Flop.validate(%{}, for: DefaultFilterPet, filterable: [:name])
+      end
     end
 
     test "supports custom operators" do
-      assert {:ok,
-              %Flop{
-                filters: [%Flop.Filter{field: :age, op: :>=, value: 8}]
-              }} =
-               Flop.validate(%{},
+      assert %Flop{
+               filters: [%Flop.Filter{field: :age, op: :>=, value: 8}]
+             } =
+               Flop.validate!(%{},
                  for: DefaultFilterPet,
-                 default_filter: [%Flop.Filter{field: :age, op: :>=, value: 8}]
-               )
-    end
-
-    test "does not apply a default with a custom operator if a filter for the field is set" do
-      assert {:ok,
-              %Flop{
-                filters: [%Flop.Filter{field: :age, op: :<, value: 3}]
-              }} =
-               Flop.validate(
-                 %{filters: [%{field: :age, op: :<, value: 3}]},
-                 for: DefaultFilterPet,
-                 default_filter: [%Flop.Filter{field: :age, op: :>=, value: 8}]
-               )
-    end
-
-    test "applies a default with a custom operator alongside filters for other fields" do
-      assert {:ok, %Flop{filters: filters}} =
-               Flop.validate(
-                 %{filters: [%{field: :name, value: "George"}]},
-                 for: DefaultFilterPet,
-                 default_filter: [%Flop.Filter{field: :age, op: :>=, value: 8}]
-               )
-
-      assert filters == [
-               %Flop.Filter{field: :age, op: :>=, value: 8},
-               %Flop.Filter{field: :name, op: :==, value: "George"}
-             ]
-    end
-
-    test "accepts a filter list built with Flop.Filter.new/1" do
-      assert {:ok,
-              %Flop{
-                filters: [%Flop.Filter{field: :age, op: :==, value: 8}]
-              }} =
-               Flop.validate(%{},
-                 for: DefaultFilterPet,
-                 default_filter: Flop.Filter.new(%{age: 8})
+                 default_filters: [%Flop.Filter{field: :age, op: :>=, value: 8}]
                )
     end
 
@@ -417,7 +508,7 @@ defmodule FlopTest do
       assert_raise ArgumentError, ~r/invalid default filter/, fn ->
         Flop.validate(%{},
           for: DefaultFilterPet,
-          default_filter: [
+          default_filters: [
             %Flop.Filter{field: :age, op: :=~, value: "8"}
           ]
         )
@@ -428,67 +519,60 @@ defmodule FlopTest do
       assert_raise ArgumentError, ~r/invalid default filter/, fn ->
         Flop.validate(%{},
           for: DefaultFilterPet,
-          default_filter: [%{field: :age}]
+          default_filters: [%{field: :age}]
+        )
+      end
+    end
+
+    test "raises if the call-site option is not a list" do
+      assert_raise ArgumentError, ~r/invalid default filters/, fn ->
+        Flop.validate(%{},
+          for: DefaultFilterPet,
+          default_filters: %{species: "cat"}
         )
       end
     end
 
     test "applies default filter if the client submits an empty value for the field" do
       for value <- ["", nil, " "] do
-        assert {:ok, %Flop{filters: filters}} =
-                 Flop.validate(
+        assert %Flop{filters: filters} =
+                 Flop.validate!(
                    %{filters: [%{field: :species, value: value}]},
                    for: DefaultFilterPet
                  )
 
-        assert %Flop.Filter{field: :species, op: :==, value: "cat"} in filters
+        assert filters == [
+                 %Flop.Filter{field: :species, op: :==, value: nil},
+                 %Flop.Filter{field: :species, op: :==, value: "cat"}
+               ]
       end
     end
 
     test "does not fail max_filters validation when the default filter is submitted back" do
-      {:ok, flop} =
-        Flop.validate(
-          %{filters: [%{field: :name, value: "George"}]},
-          for: DefaultFilterPet,
-          max_filters: 1
-        )
+      opts = [for: DefaultFilterPet, max_filters: 1]
 
-      params = %{
-        filters:
-          Enum.map(
-            flop.filters,
-            &%{field: &1.field, op: &1.op, value: &1.value}
-          )
-      }
+      flop =
+        Flop.validate!(%{filters: [%{field: :name, value: "George"}]}, opts)
 
-      assert {:ok, %Flop{}} =
-               Flop.validate(params, for: DefaultFilterPet, max_filters: 1)
+      assert {:ok, %Flop{}} = Flop.validate(flop_params(flop), opts)
     end
 
     test "does not fail max_filters validation when the default filter is submitted back with a cast value" do
       opts = [
         for: DefaultFilterPet,
-        default_filter: [%Flop.Filter{field: :age, value: "8"}],
+        default_filters: [%Flop.Filter{field: :age, value: "8"}],
         max_filters: 1
       ]
 
-      {:ok, flop} =
-        Flop.validate(%{filters: [%{field: :name, value: "George"}]}, opts)
+      flop =
+        Flop.validate!(%{filters: [%{field: :name, value: "George"}]}, opts)
 
-      params = %{
-        filters:
-          Enum.map(
-            flop.filters,
-            &%{field: &1.field, op: &1.op, value: &1.value}
-          )
-      }
-
-      assert {:ok, ^flop} = Flop.validate(params, opts)
+      assert {:ok, ^flop} = Flop.validate(flop_params(flop), opts)
     end
 
     test "does not count a default filter submitted without an operator towards max_filters" do
-      assert {:ok, %Flop{filters: filters}} =
-               Flop.validate(
+      assert %Flop{filters: filters} =
+               Flop.validate!(
                  %{
                    filters: [
                      %{field: :species, value: "cat"},
@@ -502,45 +586,23 @@ defmodule FlopTest do
       assert length(filters) == 2
     end
 
-    test "applies default filters on join, compound and custom fields" do
-      assert {:ok, %Flop{filters: filters}} =
-               Flop.validate(%{}, for: DefaultFilterComplexPet)
-
-      assert filters == [
-               %Flop.Filter{field: :owner_name, op: :==, value: "Jane"},
-               %Flop.Filter{field: :name_or_species, op: :=~, value: "cat"},
-               %Flop.Filter{field: :inserted_at, op: :==, value: ~D[2024-01-01]}
-             ]
-    end
-
     test "applies default filters when filtering is disabled" do
-      assert {:ok, %Flop{filters: filters}} =
-               Flop.validate(%{}, for: DefaultFilterPet, filtering: false)
-
-      assert filters == [%Flop.Filter{field: :species, op: :==, value: "cat"}]
+      assert %Flop{
+               filters: [%Flop.Filter{field: :species, op: :==, value: "cat"}]
+             } =
+               Flop.validate!(%{}, for: DefaultFilterPet, filtering: false)
     end
 
     test "counts a resubmitted default filter towards max_filters when defaults are disabled" do
-      {:ok, flop} =
-        Flop.validate(
-          %{filters: [%{field: :name, value: "George"}]},
-          for: DefaultFilterPet,
-          max_filters: 1
-        )
+      opts = [for: DefaultFilterPet, max_filters: 1]
 
-      params = %{
-        filters:
-          Enum.map(
-            flop.filters,
-            &%{field: &1.field, op: &1.op, value: &1.value}
-          )
-      }
+      flop =
+        Flop.validate!(%{filters: [%{field: :name, value: "George"}]}, opts)
 
       assert {:error, %Meta{errors: errors}} =
-               Flop.validate(params,
-                 for: DefaultFilterPet,
-                 default_filter: false,
-                 max_filters: 1
+               Flop.validate(
+                 flop_params(flop),
+                 [default_filters: false] ++ opts
                )
 
       assert [{message, _}] = Keyword.get(errors, :filters)
@@ -1308,5 +1370,14 @@ defmodule FlopTest do
         end
       end
     end
+  end
+
+  # The filters of a validated Flop struct as they would be submitted with the
+  # next request.
+  defp flop_params(%Flop{filters: filters}) do
+    %{
+      filters:
+        Enum.map(filters, &%{field: &1.field, op: &1.op, value: &1.value})
+    }
   end
 end

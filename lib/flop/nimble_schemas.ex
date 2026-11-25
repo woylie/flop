@@ -69,8 +69,8 @@ defmodule Flop.NimbleSchemas do
         ]
       ]
     ],
-    default_filter: [
-      type: {:custom, __MODULE__, :validate_default_filter, []}
+    default_filters: [
+      type: {:custom, __MODULE__, :validate_default_filters, []}
     ],
     default_limit: [type: {:or, [:pos_integer, {:in, [false]}]}],
     max_limit: [type: {:or, [:pos_integer, {:in, [false]}]}],
@@ -174,21 +174,22 @@ defmodule Flop.NimbleSchemas do
   def validate_ecto_type(ecto_type), do: {:ok, ecto_type}
 
   @doc false
-  def validate_default_filter(default_filter) when is_list(default_filter) do
-    if Enum.all?(default_filter, &valid_default_filter?/1) do
-      {:ok, default_filter}
+  def validate_default_filters(default_filters) when is_list(default_filters) do
+    if Enum.all?(default_filters, &valid_default_filter?/1) do
+      {:ok, default_filters}
     else
-      {:error, default_filter_error(default_filter)}
+      {:error, default_filters_error(default_filters)}
     end
   end
 
-  def validate_default_filter(value), do: {:error, default_filter_error(value)}
+  def validate_default_filters(value),
+    do: {:error, default_filters_error(value)}
 
   # A filter without a value would be skipped when the query is built.
   defp valid_default_filter?(%Flop.Filter{value: value}), do: value != nil
   defp valid_default_filter?(_), do: false
 
-  defp default_filter_error(value) do
+  defp default_filters_error(value) do
     "expected a list of %Flop.Filter{} structs with values, got: " <>
       inspect(value)
   end
