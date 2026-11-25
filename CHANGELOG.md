@@ -13,6 +13,39 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add the `:default_filters` option to set filters that are applied when the
   parameters have no filter for the same field.
 
+## [0.29.2] - 2026-11-24
+
+### Changed
+
+- Encode `Date`, `DateTime`, `Duration`, `NaiveDateTime` and `Time` cursor
+  values as ISO 8601 strings, `Decimal` cursor values as strings, and other
+  structs in cursor values as maps.
+- Cast cursor values with the Ecto types of the order fields when a query
+  function is called with `:for`, also if the Flop was not validated. Raise a
+  `Flop.InvalidCursorError` if a value cannot be cast.
+
+### Fixed
+
+- Reject cursors that contain an improper list.
+
+### Security
+
+- Reject cursors that contain a struct. A crafted cursor could execute code on
+  the server.
+
+### How to upgrade
+
+- If you paginate by cursor on a field whose Ecto type has a struct value,
+  make the type's `cast/1` accept a map of the struct's fields. Dates, times,
+  durations and decimals nested in the struct arrive as strings, and nested
+  structs as maps. If you cannot change the type, pass a `cursor_value_func`
+  that returns values the type can cast.
+- If you paginate by cursor on a `:duration` or `{:array, :duration}` field,
+  pass `:for` to the query function.
+- If you paginate by cursor on a custom or join field, make sure its
+  `ecto_type` matches the column, including its precision.
+- Cursors created by an earlier version that contain a struct are rejected.
+
 ## [0.29.1] - 2026-10-17
 
 ### Fixed
@@ -1280,7 +1313,8 @@ equivalent:
 
 - Initial release.
 
-[unreleased]: https://github.com/woylie/flop/compare/0.29.1...HEAD
+[unreleased]: https://github.com/woylie/flop/compare/0.29.2...HEAD
+[0.29.2]: https://github.com/woylie/flop/compare/0.29.1...0.29.2
 [0.29.1]: https://github.com/woylie/flop/compare/0.29.0...0.29.1
 [0.29.0]: https://github.com/woylie/flop/compare/0.28.0...0.29.0
 [0.28.0]: https://github.com/woylie/flop/compare/0.27.2...0.28.0

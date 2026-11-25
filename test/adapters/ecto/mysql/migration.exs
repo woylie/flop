@@ -35,6 +35,12 @@ defmodule Flop.Repo.Mysql.Migration do
 
     execute("CREATE SCHEMA other_schema;", "DROP SCHEMA other_schema;")
 
+    create table(:events) do
+      add(:occurred_on, :date)
+      add(:occurred_at, :naive_datetime_usec)
+      add(:amount, :decimal, precision: 10, scale: 2)
+    end
+
     create table(:pets, prefix: "other_schema") do
       add(:age, :integer)
       add(:family_name, :string)

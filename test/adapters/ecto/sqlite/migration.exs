@@ -32,5 +32,11 @@ defmodule Flop.Repo.SQLite.Migration do
       add(:image, :binary)
       add(:owner_id, references(:owners))
     end
+
+    create table(:events) do
+      add(:occurred_on, :date)
+      add(:occurred_at, :naive_datetime_usec)
+      add(:amount, :decimal)
+    end
   end
 end

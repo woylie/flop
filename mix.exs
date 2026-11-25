@@ -2,7 +2,7 @@ defmodule Flop.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/woylie/flop"
-  @version "0.29.1"
+  @version "0.29.2"
   @adapters ~w(postgres sqlite mysql)
   @supported_adapters ~w(postgres sqlite mysql)
 
@@ -69,10 +69,10 @@ defmodule Flop.MixProject do
   defp deps do
     [
       {:credo, "== 1.7.19", only: [:dev, :test], runtime: false},
-      {:dialyxir, "1.4.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "== 1.4.8", only: [:dev, :test], runtime: false},
       {:ecto, "~> 3.11"},
       {:ecto_sql, "== 3.14.0", only: :test},
-      {:ex_doc, "0.40.3", only: :dev, runtime: false},
+      {:ex_doc, "== 0.40.4", only: :dev, runtime: false},
       {:ex_machina, "2.8.2", only: :test},
       {:makeup_diff, "0.1.1", only: :dev, runtime: false},
       {:excoveralls, "0.18.5", only: :test},

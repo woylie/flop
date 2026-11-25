@@ -28,18 +28,46 @@ defmodule Flop.Cursor do
 
       Flop.Cursor.encode(%{email: "peter@mail", name: "Peter"})
       "g3QAAAACdwRuYW1lbQAAAAVQZXRlcncFZW1haWxtAAAACnBldGVyQG1haWw="
+
+  Dates, times and durations are encoded as ISO 8601 strings, decimals as
+  strings, and other structs as maps. If `:for` is passed to validation or a
+  query function, Flop casts the values back with the Ecto types of the order
+  fields.
   """
   @doc since: "0.8.0"
   @spec encode(map()) :: binary()
   def encode(key) do
-    Base.url_encode64(:erlang.term_to_binary(key, minor_version: 2))
+    key
+    |> to_plain()
+    |> :erlang.term_to_binary(minor_version: 2)
+    |> Base.url_encode64()
   end
+
+  defp to_plain(%module{} = value)
+       when module in [Date, DateTime, Duration, NaiveDateTime, Time] do
+    module.to_iso8601(value)
+  end
+
+  defp to_plain(%Decimal{} = value), do: Decimal.to_string(value)
+  defp to_plain(%_{} = value), do: value |> Map.from_struct() |> to_plain()
+
+  defp to_plain(%{} = value) do
+    Map.new(value, fn {key, value} -> {to_plain(key), to_plain(value)} end)
+  end
+
+  defp to_plain(value) when is_list(value), do: Enum.map(value, &to_plain/1)
+
+  defp to_plain(value) when is_tuple(value) do
+    value |> Tuple.to_list() |> to_plain() |> List.to_tuple()
+  end
+
+  defp to_plain(value), do: value
 
   @doc """
   Decodes a cursor value.
 
-  Returns `:error` if the cursor cannot be decoded or the decoded term is not a
-  map with atom keys.
+  Returns `:error` if the cursor cannot be decoded, the decoded term is not a
+  map with atom keys, or the term contains a struct.
 
       iex> Flop.Cursor.decode("g3QAAAABZAACaWRiAAACDg==")
       {:ok, %{id: 526}}
@@ -81,7 +109,8 @@ defmodule Flop.Cursor do
          {:ok, binary} <- Base.url_decode64(cursor),
          :ok <- validate_uncompressed(binary),
          {:ok, term} <- safe_binary_to_term(binary) do
-      # raises if the term contains a function or a pid, rescued below
+      # raises if the term contains a function, a pid, a struct or an improper
+      # list, rescued below
       sanitize(term)
 
       if is_map(term) && term |> Map.keys() |> Enum.all?(&is_atom/1),
@@ -129,7 +158,11 @@ defmodule Flop.Cursor do
   end
 
   defp sanitize([]), do: []
-  defp sanitize([h | t]), do: [sanitize(h) | sanitize(t)]
+  defp sanitize([h | t]) when is_list(t), do: [sanitize(h) | sanitize(t)]
+
+  defp sanitize(term) when is_map_key(term, :__struct__) do
+    raise "invalid cursor value"
+  end
 
   defp sanitize(%{} = term) do
     :maps.fold(

@@ -195,23 +195,41 @@ Flop.validate_and_run(query, params,
 
 ## Cursor values and types
 
-A cursor is `:erlang.term_to_binary/1` with Base64 on top, so the values inside
-it keep their type. A `DateTime` in an order field survives the round trip and
-needs nothing from you, and the cursor itself is a plain string.
+A cursor is `:erlang.term_to_binary/1` with Base64 on top. Before encoding,
+Flop turns struct values into plain values: dates, times and durations become
+ISO 8601 strings, decimals become strings, and any other struct becomes a map
+of its fields. The cursor itself is a plain string.
 
 A cursor is not encrypted. Anyone who has it can decode it and read the order
 values of the row it came from, including the primary key.
 
-On the way back in, Flop casts every cursor value with the Ecto type of its
-order field, and rejects the cursor if a value does not cast.
+On the way back in, if you pass `:for`, Flop casts every cursor value with the
+Ecto type of its order field and rejects the cursor if a value does not cast.
+Validation then returns this error:
 
 ```elixir
 [after: [{"is invalid", []}]]
 ```
 
-Cursors are also rejected if their size exceeds `max_cursor_size`, which
-defaults to 8192 bytes, or if the Erlang term is compressed or contains unsafe
-data.
+The query functions raise a `Flop.InvalidCursorError` instead. Without `:for`,
+Ecto casts the values of schema fields in the query.
+
+- If you paginate by a `:duration` field, pass `:for`. Ecto cannot cast a string
+  to a duration, so Flop does it, and only when it knows the field type.
+- If an order field has a custom Ecto type whose values are structs, its
+  `cast/1` receives a map of the struct's fields, with dates, times, durations
+  and decimals as strings. If you cannot change the type, pass a
+  `cursor_value_func` that returns values the type can cast.
+- The `ecto_type` of a custom or join field decides how its cursor value is
+  cast. If it is coarser than the column, e.g. `:naive_datetime` over a column
+  with microseconds, the cursor loses precision, and pages can repeat rows.
+
+Cursors are also rejected if:
+
+- their size exceeds `max_cursor_size`, which defaults to 8192 bytes;
+- the Erlang term is compressed;
+- the term contains a function, a pid, a port or a reference;
+- the term contains a struct or an improper list.
 
 ## Stale and invalid cursors
 

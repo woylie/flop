@@ -1500,7 +1500,9 @@ defmodule Flop do
     module = opts[:for]
     orderings = ordering(flop, opts)
     decoded_cursor = decoded_cursor || Cursor.decode!(after_, opts)
-    cursor_fields = prepare_cursor_fields(module, decoded_cursor, orderings)
+
+    cursor_fields =
+      prepare_cursor_fields(module, after_, decoded_cursor, orderings)
 
     q
     |> adapter.apply_cursor(cursor_fields, opts)
@@ -1541,7 +1543,9 @@ defmodule Flop do
     orderings = flop |> ordering(opts) |> reverse_ordering()
 
     decoded_cursor = decoded_cursor || Cursor.decode!(before, opts)
-    cursor_fields = prepare_cursor_fields(module, decoded_cursor, orderings)
+
+    cursor_fields =
+      prepare_cursor_fields(module, before, decoded_cursor, orderings)
 
     q
     |> adapter.apply_cursor(cursor_fields, opts)
@@ -1551,10 +1555,10 @@ defmodule Flop do
 
   def paginate(q, _, _), do: q
 
-  @spec prepare_cursor_fields(module | nil, map, [{atom, atom}]) :: [
+  @spec prepare_cursor_fields(module | nil, binary, map, [{atom, atom}]) :: [
           {order_direction(), atom, any, FieldInfo.t()}
         ]
-  defp prepare_cursor_fields(module, decoded_cursor, ordering) do
+  defp prepare_cursor_fields(module, cursor, decoded_cursor, ordering) do
     ordering
     # Only take order fields until a key is not found in the cursor. This
     # ensures that cursors that were generated without a tiebreaker will not
@@ -1565,8 +1569,20 @@ defmodule Flop do
     end)
     |> Enum.map(fn {direction, field} ->
       field_info = module && Schema.field_info(module, field)
-      {direction, field, Map.fetch!(decoded_cursor, field), field_info}
+      value = Map.fetch!(decoded_cursor, field)
+
+      {direction, field, cast_cursor_value!(field_info, value, cursor),
+       field_info}
     end)
+  end
+
+  defp cast_cursor_value!(nil, value, _cursor), do: value
+
+  defp cast_cursor_value!(%FieldInfo{ecto_type: ecto_type}, value, cursor) do
+    case Flop.Validation.cast_cursor_value(ecto_type, value) do
+      {:ok, cast_value} -> cast_value
+      :error -> raise Flop.InvalidCursorError, cursor: cursor
+    end
   end
 
   @spec reverse_ordering([order_direction()]) :: [order_direction()]
