@@ -679,9 +679,10 @@ defmodule Flop do
   a validation error: schema default filters with an operator or value that
   does not match the field type raise a configuration error when the schema is
   compiled, and invalid default filters that are cast at runtime raise an
-  `ArgumentError` in `Flop.validate/2`. `Flop.validate/2` also raises an `ArgumentError` if a
-  default filter refers to a field that is not filterable, for example because
-  the filterable fields were narrowed with the `:filterable` option.
+  `ArgumentError` in `Flop.validate/2`. `Flop.validate/2` also raises an
+  `ArgumentError` if a default filter refers to a field that is not filterable,
+  for example because the filterable fields were narrowed with the
+  `:filterable` option.
   """
   @type default_filters :: [Flop.Filter.t()]
 
