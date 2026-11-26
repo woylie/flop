@@ -131,6 +131,61 @@ of join fields, compound fields, custom fields, and alias fields. You can also
 set maximum or default limits, and more. For a comprehensive list of available
 options, read the `Flop.Schema` documentation.
 
+### Default filters
+
+You can define default filters with the `default_filters` option. It takes a
+list of `Flop.Filter` structs. Each default is applied when the parameters
+contain no filter for that field. Each filter must have a value; defaults
+without one are rejected. This is useful for filters that apply until the
+client overrides them, e.g. to hide soft-deleted records unless the client's
+filters explicitly request them.
+
+```elixir
+defmodule MyApp.Pet do
+  use Ecto.Schema
+  use Flop.Schema
+
+  @flop_options [
+    filterable: [:name, :age, :deleted],
+    sortable: [:name, :age],
+    default_filters: [%Flop.Filter{field: :deleted, value: false}]
+  ]
+
+  schema "pets" do
+    field :name, :string
+    field :age, :integer
+    field :deleted, :boolean
+  end
+end
+```
+
+The `op` field of the filter defaults to `:==`. To use a different operator,
+set it explicitly:
+
+```elixir
+@flop_options [
+  filterable: [:name, :age],
+  sortable: [:name, :age],
+  default_filters: [%Flop.Filter{field: :age, op: :>=, value: 8}]
+]
+```
+
+If you prefer the map style, you can use `Flop.Filter.new/1` to build the list
+from a map of field names to values, which applies the default `:==`
+operator:
+
+```elixir
+@flop_options [
+  filterable: [:name, :age, :deleted],
+  sortable: [:name, :age],
+  default_filters: Flop.Filter.new(%{deleted: false})
+]
+```
+
+See `t:Flop.default_filters/0` in the `Flop` documentation for the details:
+when a default is applied, how the values are cast, how the defaults interact
+with `max_filters`, and how to disable them for a single query.
+
 ### Query data
 
 Use the `Flop.validate_and_run/3` or `Flop.validate_and_run!/3` function to both

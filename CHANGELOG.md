@@ -8,6 +8,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Add the `:default_filters` option to set filters that are applied when the
+  parameters have no filter for the same field.
+
 ## [0.29.2] - 2026-11-24
 
 ### Changed

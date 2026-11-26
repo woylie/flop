@@ -193,13 +193,23 @@ defmodule Flop.Filter do
       repo = get_repo(opts)
       field = Changeset.fetch_field!(changeset, :field)
       op = Changeset.fetch_field!(changeset, :op)
-      field_info = module && get_field_info(module, field)
+      field_info = changeset_field_info(opts, module, field)
 
       changeset
       |> validate_op(field_info, op)
       |> cast_value(field_info, op, repo)
     else
       changeset
+    end
+  end
+
+  # `Flop.Schema` passes the field info in `:field_info` to cast the default
+  # filters while the schema module is compiled, since `__flop_schema__/0` is
+  # not defined at that point.
+  defp changeset_field_info(opts, module, field) do
+    case Keyword.fetch(opts, :field_info) do
+      {:ok, %{} = field_info} -> Map.get(field_info, field)
+      :error -> module && get_field_info(module, field)
     end
   end
 

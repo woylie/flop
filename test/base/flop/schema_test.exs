@@ -20,6 +20,7 @@ defmodule Flop.SchemaTest do
         order_by: [:name, :age],
         order_directions: [:desc, :asc]
       },
+      default_filters: [%Flop.Filter{field: :name, value: "George"}],
       compound_fields: [name_or_email: [:name, :email]],
       join_fields: [
         topping_name: [
@@ -65,6 +66,153 @@ defmodule Flop.SchemaTest do
              order_by: [:name, :age],
              order_directions: [:desc, :asc]
            }
+  end
+
+  test "schema_option/2 returns the default filters passed as an option" do
+    assert Flop.schema_option(Panini, :default_filters) == [
+             %Flop.Filter{field: :name, value: "George"}
+           ]
+  end
+
+  test "raises if the default filters have an invalid format" do
+    error =
+      assert_raise Flop.InvalidConfigError, fn ->
+        defmodule Ziti do
+          use Flop.Schema
+
+          @flop_options [
+            filterable: [:name],
+            sortable: [:name],
+            default_filters: [%{field: :name}]
+          ]
+
+          defstruct [:name]
+        end
+      end
+
+    assert Exception.message(error) =~
+             "expected a list of %Flop.Filter{} structs"
+  end
+
+  test "raises if a default filter has no value" do
+    error =
+      assert_raise Flop.InvalidConfigError, fn ->
+        defmodule Fettuccine do
+          use Flop.Schema
+
+          @flop_options [
+            filterable: [:name],
+            sortable: [:name],
+            default_filters: [%Flop.Filter{field: :name, op: :empty}]
+          ]
+
+          defstruct [:name]
+        end
+      end
+
+    assert Exception.message(error) =~
+             "expected a list of %Flop.Filter{} structs"
+  end
+
+  test "casts the default filters when the schema is compiled" do
+    defmodule Piadina do
+      use Ecto.Schema
+      use Flop.Schema
+
+      @flop_options [
+        filterable: [:age, :mood, :topping_count],
+        sortable: [:age],
+        default_filters: [
+          %Flop.Filter{field: :age, op: :>=, value: "8"},
+          %Flop.Filter{field: :mood, value: "happy"},
+          %Flop.Filter{field: :topping_count, op: :>, value: "2"}
+        ],
+        join_fields: [
+          topping_count: [
+            binding: :toppings,
+            field: :count,
+            ecto_type: :integer
+          ]
+        ]
+      ]
+
+      schema "piadinas" do
+        field :age, :integer
+        field :mood, Ecto.Enum, values: [:happy, :grumpy]
+      end
+    end
+
+    assert Flop.schema_option(Piadina, :default_filters) == [
+             %Flop.Filter{field: :age, op: :>=, value: 8},
+             %Flop.Filter{field: :mood, op: :==, value: :happy},
+             %Flop.Filter{field: :topping_count, op: :>, value: 2}
+           ]
+  end
+
+  test "raises if the default filter operator does not match the field type" do
+    error =
+      assert_raise Flop.InvalidConfigError, fn ->
+        defmodule Tramezzino do
+          use Ecto.Schema
+          use Flop.Schema
+
+          @flop_options [
+            filterable: [:age],
+            sortable: [:age],
+            default_filters: [%Flop.Filter{field: :age, op: :=~, value: 8}]
+          ]
+
+          schema "tramezzini" do
+            field :age, :integer
+          end
+        end
+      end
+
+    assert Exception.message(error) =~ "invalid default filter"
+  end
+
+  test "raises if the default filter value cannot be cast" do
+    error =
+      assert_raise Flop.InvalidConfigError, fn ->
+        defmodule Focaccia do
+          use Ecto.Schema
+          use Flop.Schema
+
+          @flop_options [
+            filterable: [:age],
+            sortable: [:age],
+            default_filters: [%Flop.Filter{field: :age, value: "eight"}]
+          ]
+
+          schema "focaccias" do
+            field :age, :integer
+          end
+        end
+      end
+
+    assert Exception.message(error) =~ "invalid default filter"
+  end
+
+  test "raises if the default filter value is empty after casting" do
+    error =
+      assert_raise Flop.InvalidConfigError, fn ->
+        defmodule Bruschetta do
+          use Ecto.Schema
+          use Flop.Schema
+
+          @flop_options [
+            filterable: [:name],
+            sortable: [:name],
+            default_filters: [%Flop.Filter{field: :name, value: "  "}]
+          ]
+
+          schema "bruschettas" do
+            field :name, :string
+          end
+        end
+      end
+
+    assert Exception.message(error) =~ "invalid default filter"
   end
 
   test "schema_option/2 returns the default limit passed as option" do
@@ -310,6 +458,25 @@ defmodule Flop.SchemaTest do
           defstruct [:name, :age]
         end
       end
+    end
+
+    test "raises if a default filter refers to a field that is not filterable" do
+      error =
+        assert_raise Flop.UnknownFieldError, fn ->
+          defmodule Rake do
+            use Flop.Schema
+
+            @flop_options [
+              filterable: [:name],
+              sortable: [:name],
+              default_filters: [%Flop.Filter{field: :age, value: 8}]
+            ]
+            defstruct [:name, :age]
+          end
+        end
+
+      assert Exception.message(error) =~ "unknown default_filters field(s)"
+      assert Exception.message(error) =~ ":age"
     end
 
     test "raises if compound field references unknown field" do
