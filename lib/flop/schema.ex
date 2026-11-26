@@ -109,9 +109,9 @@ defmodule Flop.Schema do
   ## Default filters
 
   Specify default filters by setting the `default_filters` option in
-  `@flop_options`. It takes a list of `Flop.Filter` structs, which `Flop.validate/2`
-  applies when the parameters contain no filter with a value for the respective
-  field. See `t:Flop.default_filters/0` for the details.
+  `@flop_options`. It takes a list of `Flop.Filter` structs, which
+  `Flop.validate/2` applies when the parameters contain no filter with a value
+  for the respective field. See `t:Flop.default_filters/0` for the details.
 
       use Flop.Schema
 
@@ -274,17 +274,16 @@ defmodule Flop.Schema do
 
   ### Filter operator rules
 
-  - `:=~` `:like` `:not_like` `:like_and` `:like_or` `:ilike` `:not_ilike` `:ilike_and` `:ilike_or`
-    If a string value is passed it will be split at whitespace
-    characters and each segment will be checked separately. If a list of strings is
-    passed the individual strings are not split. The filter matches for a value
-    if it matches for any of the fields.
-  - `:empty`
-    Matches if all fields of the compound field are `nil`.
-  - `:not_empty`
-    Matches if any field of the compound field is not `nil`.
-  - `:==` `:!=` `:<=` `:<` `:>=` `:>` `:in` `:not_in` `:contains` `:not_contains`  
-    These filter operators are not supported for compound fields.
+  - `:=~` `:like` `:not_like` `:like_and` `:like_or` `:ilike` `:not_ilike`
+    `:ilike_and` `:ilike_or` - If a string value is passed it will be split at
+    whitespace characters and each segment will be checked separately. If a
+    list of strings is passed the individual strings are not split. The filter
+    matches for a value if it matches for any of the fields.
+  - `:empty` - Matches if all fields of the compound field are `nil`.
+  - `:not_empty` - Matches if any field of the compound field is not `nil`.
+  - `:==` `:!=` `:<=` `:<` `:>=` `:>` `:in` `:not_in` `:contains`
+    `:not_contains` - These filter operators are not supported for compound
+    fields.
 
   ### Sorting
 
@@ -1051,8 +1050,6 @@ defmodule Flop.Schema do
   defp resolve_at_compile_time({name, info}), do: {name, info}
 
   # Casts the schema default filters once, so that `Flop.validate/2` can use
-  # them as they are.
-  # Casts the schema default filters once, so that `Flop.validate/2` can use
   # them as they are. Default filters on fields that need information that is
   # only available at runtime are cast by `Flop.validate/2` instead, and their
   # fields are stored under `:runtime_cast_default_filter_fields`.
@@ -1102,8 +1099,10 @@ defmodule Flop.Schema do
           message: """
           invalid default filter
 
-          A default filter needs a value, and the operator and the value need
-          to match the type of the field:
+          The filter has no value, or its operator or value does not fit the
+          field type. Correct the filter in the `:default_filters` option.
+
+          Got:
 
               #{inspect(filter)}
           """

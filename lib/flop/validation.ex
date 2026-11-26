@@ -714,23 +714,21 @@ defmodule Flop.Validation do
     raise ArgumentError, """
     invalid default filter
 
-    Default filters are configured by the application rather than derived from
-    the client parameters, so they are rejected with an error instead of a
-    validation error.
+    The filter has no value, its field is not filterable, or its operator or
+    value does not fit the field type. Correct the filter in the
+    `:default_filters` option.
 
-    A default filter needs a value, needs to refer to a filterable field, and
-    needs an operator and a value that fit the field type:
+    #{filterable_fields(filterable)}Got:
 
         #{inspect(filter)}
-
-    #{filterable_hint(filterable)}
     """
   end
 
-  defp filterable_hint(nil), do: "The schema does not restrict the fields."
+  defp filterable_fields(nil), do: ""
 
-  defp filterable_hint(filterable) do
-    "The filterable fields are: #{inspect(filterable)}"
+  defp filterable_fields(filterable) do
+    fields = Enum.map_join(filterable, "\n", &"    #{inspect(&1)}")
+    "Filterable fields:\n\n#{fields}\n\n"
   end
 
   # Clients may submit the filters of a validated Flop struct back, which
