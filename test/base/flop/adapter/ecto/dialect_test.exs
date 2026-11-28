@@ -1,6 +1,8 @@
 defmodule Flop.Adapter.Ecto.DialectTest do
   use ExUnit.Case, async: true
 
+  import Ecto.Query, only: [join: 5]
+
   alias Flop.Adapter.Ecto.Dialect
 
   @order_directions [
@@ -26,6 +28,35 @@ defmodule Flop.Adapter.Ecto.DialectTest do
 
   defmodule UnknownRepo do
     def __adapter__, do: SomeApp.Adapters.Unknown
+  end
+
+  defmodule CompositeKeyPet do
+    use Ecto.Schema
+    use Flop.Schema
+
+    @flop_options [filterable: [], sortable: [:name, :age]]
+
+    @primary_key false
+    schema "pets" do
+      field :name, :string, primary_key: true
+      field :age, :integer, primary_key: true
+    end
+  end
+
+  defmodule IdJoinFieldPet do
+    use Ecto.Schema
+    use Flop.Schema
+
+    @flop_options [
+      filterable: [],
+      sortable: [:id, :name],
+      join_fields: [id: [binding: :owner, field: :id, ecto_type: :id]]
+    ]
+
+    schema "pets" do
+      field :name, :string
+      belongs_to :owner, MyApp.Owner
+    end
   end
 
   describe "new/1" do
@@ -136,6 +167,92 @@ defmodule Flop.Adapter.Ecto.DialectTest do
 
       assert cursor_clause(SQLite3Repo, :desc, "abc") =~ "is_nil(p0.name)"
       refute cursor_clause(PostgresRepo, :desc, "abc") =~ "is_nil"
+    end
+
+    test "bounds field followed by others if null rows sort first" do
+      cursor = [name: "abc", age: 3]
+
+      assert cursor_clause(MyApp.Pet, MyApp.Pet, PostgresRepo, :desc, cursor) =~
+               ~r/^p0.name <= type\(\^"abc", p0.name\) and\s+\(p0.name < /
+
+      assert cursor_clause(MyApp.Pet, MyApp.Pet, SQLite3Repo, :asc, cursor) =~
+               ~r/^p0.name >= type\(\^"abc", p0.name\) and\s+\(p0.name > /
+
+      for repo <- [PostgresRepo, MyXQLRepo, SQLite3Repo] do
+        assert cursor_clause(
+                 MyApp.Pet,
+                 MyApp.Pet,
+                 repo,
+                 :asc_nulls_first,
+                 cursor
+               ) =~
+                 ~r/^p0.name >= /
+
+        assert cursor_clause(
+                 MyApp.Pet,
+                 MyApp.Pet,
+                 repo,
+                 :desc_nulls_first,
+                 cursor
+               ) =~
+                 ~r/^p0.name <= /
+      end
+    end
+
+    test "bounds join field followed by others if null rows sort first" do
+      query = join(MyApp.Pet, :left, [p], o in assoc(p, :owner), as: :owner)
+
+      cursor = [owner_name: "abc", name: "def"]
+
+      assert cursor_clause(query, MyApp.Pet, PostgresRepo, :desc, cursor) =~
+               ~r/^o1.name <= /
+
+      assert cursor_clause(query, MyApp.Pet, SQLite3Repo, :asc, cursor) =~
+               ~r/^o1.name >= /
+
+      query = MyApp.CustomFieldPet
+      cursor = [age_score: 4, id: 5]
+
+      assert cursor_clause(query, query, PostgresRepo, :desc, cursor) =~
+               ~r/^fragment\(.+\) <= \^4 and/
+
+      assert cursor_clause(query, query, SQLite3Repo, :asc, cursor) =~
+               ~r/^fragment\(.+\) >= \^4 and/
+    end
+
+    test "does not treat primary key as not null without cursor value" do
+      clause = cursor_clause(MyApp.Pet, MyApp.Pet, PostgresRepo, :asc, id: nil)
+      assert clause == "false"
+    end
+
+    test "treats every field of composite primary key as not null" do
+      cursor = [name: "abc", age: 3]
+
+      clause =
+        cursor_clause(
+          CompositeKeyPet,
+          CompositeKeyPet,
+          PostgresRepo,
+          :asc,
+          cursor
+        )
+
+      assert clause =~ ~r/^c0.name >= type\(\^"abc", c0.name\) and/
+      assert clause =~ ~r/c0.age > type\(\^3, c0.age\)\)+$/
+      refute clause =~ "is_nil"
+    end
+
+    test "does not treat join field with same name as PK as not null" do
+      query =
+        join(IdJoinFieldPet, :left, [p], o in assoc(p, :owner), as: :owner)
+
+      cursor = [id: 5, name: "abc"]
+
+      clause =
+        cursor_clause(query, IdJoinFieldPet, PostgresRepo, :asc, cursor)
+
+      assert clause =~ "is_nil(o1.id)"
+      refute clause =~ " >= "
     end
   end
 
@@ -271,15 +388,23 @@ defmodule Flop.Adapter.Ecto.DialectTest do
   end
 
   defp cursor_clause(repo, direction, cursor_value) do
+    cursor_clause(MyApp.Pet, MyApp.Pet, repo, direction, name: cursor_value)
+  end
+
+  defp cursor_clause(query, schema, repo, direction, cursor) do
     flop = %Flop{
       first: 2,
-      after: Flop.Cursor.encode(%{name: cursor_value}),
-      order_by: [:name],
-      order_directions: [direction]
+      after: Flop.Cursor.encode(Map.new(cursor)),
+      order_by: Keyword.keys(cursor),
+      order_directions:
+        if(is_list(direction),
+          do: direction,
+          else: Enum.map(cursor, fn _ -> direction end)
+        )
     }
 
-    MyApp.Pet
-    |> Flop.query(flop, for: MyApp.Pet, repo: repo, tiebreaker: false)
+    query
+    |> Flop.query(flop, for: schema, repo: repo, tiebreaker: false)
     |> inspect()
     |> String.split("where: ")
     |> List.last()

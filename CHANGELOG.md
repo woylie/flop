@@ -13,6 +13,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add the `:default_filters` option to set filters that are applied when the
   parameters have no filter for the same field.
 
+### Fixed
+
+- Allow the database to use an index on the first cursor field again when the
+  order puts its null values first or when it is the primary key of the queried
+  schema.
+
 ## [0.29.2] - 2026-11-24
 
 ### Changed

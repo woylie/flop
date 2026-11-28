@@ -561,14 +561,35 @@ defmodule Flop.Adapter.Ecto do
 
   @impl Flop.Adapter
   def apply_cursor(q, cursor_fields, opts) do
-    where_dynamic = cursor_dynamic(cursor_fields, dialect(opts), opts)
+    not_null_fields = not_null_fields(q, opts[:for])
+
+    where_dynamic =
+      cursor_dynamic(cursor_fields, dialect(opts), not_null_fields, opts)
+
     Query.where(q, ^where_dynamic)
   end
 
-  defp cursor_dynamic([], _dialect, _opts), do: true
+  defp not_null_fields(_q, nil), do: []
+
+  defp not_null_fields(q, schema) do
+    case Ecto.Queryable.to_query(q) do
+      # Only regard primary keys in the source schema as nullable, because
+      # sub queries and joins can select any field under the primary key's field
+      # name.
+      %Query{from: %{source: {_, ^schema}}} -> primary_key(schema)
+      _ -> []
+    end
+  end
+
+  defp cursor_dynamic([], _dialect, _not_null_fields, _opts), do: true
 
   # only reachable with an unvalidated Flop struct
-  defp cursor_dynamic([{_, _, _, %FieldInfo{extra: %{type: type}}} | _], _, _)
+  defp cursor_dynamic(
+         [{_, _, _, %FieldInfo{extra: %{type: type}}} | _],
+         _,
+         _,
+         _
+       )
        when type in [:compound, :alias] do
     raise ArgumentError, """
     cursor pagination is not supported for #{type} fields
@@ -581,7 +602,7 @@ defmodule Flop.Adapter.Ecto do
     """
   end
 
-  defp cursor_dynamic([{direction, _, _, _} | _], %Dialect{adapter: nil}, _)
+  defp cursor_dynamic([{direction, _, _, _} | _], %Dialect{adapter: nil}, _, _)
        when direction in [:asc, :desc] do
     raise ArgumentError, """
     cursor pagination with :asc or :desc requires the repo
@@ -603,19 +624,35 @@ defmodule Flop.Adapter.Ecto do
   defp cursor_dynamic(
          [{direction, field, cursor_value, field_info} | tail],
          dialect,
+         not_null_fields,
          opts
        ) do
     tail_dynamic =
-      if tail == [], do: nil, else: cursor_dynamic(tail, dialect, opts)
+      if tail == [],
+        do: nil,
+        else: cursor_dynamic(tail, dialect, not_null_fields, opts)
+
+    # For fields that are not nullable the condition is build as if nulls sorted
+    # first, so that the condition has a bound on the field and no `IS NULL`.
+    placement =
+      if cursor_value != nil and not_null?(field, field_info, not_null_fields),
+        do: :first,
+        else: Dialect.null_placement(dialect, direction)
 
     seek(
       direction,
-      Dialect.null_placement(dialect, direction),
+      placement,
       cursor_value,
       field_source(field, field_info, opts),
       tail_dynamic
     )
   end
+
+  defp not_null?(field, %FieldInfo{extra: %{type: :normal}}, not_null_fields) do
+    field in not_null_fields
+  end
+
+  defp not_null?(_field, _field_info, _not_null_fields), do: false
 
   defp field_source(
          _field,
@@ -670,7 +707,18 @@ defmodule Flop.Adapter.Ecto do
     strictly_after(direction, placement, cursor_value, source)
   end
 
-  # cursor value, more cursor fields to come
+  # cursor value, nulls first, more cursor fields to come
+  # the first condition is redundant, but lets the database use an index on the
+  # field to start the scan at the cursor
+  defp seek(direction, :first, cursor_value, source, tail) do
+    dynamic(
+      ^at_or_after(direction, cursor_value, source) and
+        (^strictly_after(direction, :first, cursor_value, source) or
+           (^compare(:==, source, cursor_value) and ^tail))
+    )
+  end
+
+  # cursor value, nulls last, more cursor fields to come
   defp seek(direction, placement, cursor_value, source, tail) do
     dynamic(
       ^strictly_after(direction, placement, cursor_value, source) or
@@ -700,6 +748,15 @@ defmodule Flop.Adapter.Ecto do
     compare(:<, source, cursor_value)
   end
 
+  defp at_or_after(direction, cursor_value, source)
+       when direction in @asc_directions do
+    compare(:>=, source, cursor_value)
+  end
+
+  defp at_or_after(_direction, cursor_value, source) do
+    compare(:<=, source, cursor_value)
+  end
+
   defp compare(op, {:join, binding, field}, value) do
     case op do
       :> ->
@@ -708,10 +765,22 @@ defmodule Flop.Adapter.Ecto do
           field(r, ^field) > type(^value, field(r, ^field))
         )
 
+      :>= ->
+        dynamic(
+          [{^binding, r}],
+          field(r, ^field) >= type(^value, field(r, ^field))
+        )
+
       :< ->
         dynamic(
           [{^binding, r}],
           field(r, ^field) < type(^value, field(r, ^field))
+        )
+
+      :<= ->
+        dynamic(
+          [{^binding, r}],
+          field(r, ^field) <= type(^value, field(r, ^field))
         )
 
       :== ->
@@ -725,7 +794,9 @@ defmodule Flop.Adapter.Ecto do
   defp compare(op, {:dynamic, field_dynamic}, value) do
     case op do
       :> -> dynamic(^field_dynamic > ^value)
+      :>= -> dynamic(^field_dynamic >= ^value)
       :< -> dynamic(^field_dynamic < ^value)
+      :<= -> dynamic(^field_dynamic <= ^value)
       :== -> dynamic(^field_dynamic == ^value)
     end
   end
@@ -733,7 +804,9 @@ defmodule Flop.Adapter.Ecto do
   defp compare(op, {:column, field}, value) do
     case op do
       :> -> dynamic([r], field(r, ^field) > type(^value, field(r, ^field)))
+      :>= -> dynamic([r], field(r, ^field) >= type(^value, field(r, ^field)))
       :< -> dynamic([r], field(r, ^field) < type(^value, field(r, ^field)))
+      :<= -> dynamic([r], field(r, ^field) <= type(^value, field(r, ^field)))
       :== -> dynamic([r], field(r, ^field) == type(^value, field(r, ^field)))
     end
   end
