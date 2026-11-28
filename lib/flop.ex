@@ -634,55 +634,36 @@ defmodule Flop do
           }
 
   @typedoc """
-  A list of `Flop.Filter` structs that `Flop.validate/2` applies as default
-  filters when the parameters contain no filter with a value for the respective
-  field.
+  A list of `Flop.Filter` structs that are applied when the parameters don't
+  contain filters on the same fields.
 
   The option can be set in the schema or in the options passed to the query
   functions. Pass `false` at the call site to disable the default filters of
   the schema for a single query.
 
-  A default filter for a field is only applied if the parameters contain no
-  filter with a value for that field. Filters for the same field that the
-  client submits with an empty value don't count, because they are skipped
-  when the query is built anyway. Filters for other fields are combined with
-  the default filters as usual.
+  A default filter can be replaced by clients by sending a filter for the same
+  field. Parameters with empty filter values do not replace the defaults. Filter
+  parameters for fields not among the default filters are combined with the
+  defaults.
 
-  The filter values are cast to the field type like filter parameters, so a
-  default filter value of `"8"` for an integer field results in a filter value
-  of `8`. Schema default filters are cast once when the schema is compiled.
-  Default filters passed to the query functions are cast on each call, and so
-  are schema default filters on `:binary_id` fields and on fields that take
-  their type from another schema module, since their type depends on the repo
-  or on another module.
+  If you need to add conditions that cannot be overridden, add them to
+  the base query instead.
 
-  Default filters are applied after invalid client filters have been removed
-  with the `:replace_invalid_params` option, and only if the rest of the
-  parameters are valid. They do not count towards the `:max_filters` limit.
-  Since the applied filters are part of the validated `Flop` struct, they also
-  show up in `Flop.Meta.flop`.
+  Default filters passed to the query functions are cast on each call. Default
+  filters set on the schema are cast once when the schema is compiled, except
+  for fields that require information not available at compile time (e.g.
+  `:binary_id` fields or fields that use a type from another schema module).
 
-  Because the applied default filters are part of the `Flop` struct, a client
-  may submit them back with the next request. Such a filter covers its field
-  like any other client filter, so the default is not added a second time, and
-  a filter that is identical to a default filter does not count towards the
-  `:max_filters` limit. The comparison is made per filter rather than per
-  field, so a schema can define multiple default filters for the same field,
-  for example to express a range, and a client that changes one of them keeps
-  the others.
+  If the `:replace_invalid_params` option is used, default filters are applied
+  after removing invalid filters from the parameters.
 
-  You can use `Flop.Filter.new/1` to build a list of filters from a map of
-  field names to values, applying the default `:==` operator.
+  The validated `Flop` struct contains the applied default filters. The client
+  might send them back in the next request. Default filters do not count towards
+  the `:max_filters` limit, even on resend.
 
-  Default filters are configured by the application rather than derived from
-  the client parameters, so invalid default filters raise instead of returning
-  a validation error: schema default filters with an operator or value that
-  does not match the field type raise a configuration error when the schema is
-  compiled, and invalid default filters that are cast at runtime raise an
-  `ArgumentError` in `Flop.validate/2`. `Flop.validate/2` also raises an
-  `ArgumentError` if a default filter refers to a field that is not filterable,
-  for example because the filterable fields were narrowed with the
-  `:filterable` option.
+  You can define multiple default filters with different operators on the same
+  field, for example to set a default range. Any filter parameter on the same
+  field replaces all defaults for it.
   """
   @type default_filters :: [Flop.Filter.t()]
 

@@ -128,63 +128,8 @@ end
 
 Besides sortable and filterable fields, `Flop.Schema` also allows the definition
 of join fields, compound fields, custom fields, and alias fields. You can also
-set maximum or default limits, and more. For a comprehensive list of available
-options, read the `Flop.Schema` documentation.
-
-### Default filters
-
-You can define default filters with the `default_filters` option. It takes a
-list of `Flop.Filter` structs. Each default is applied when the parameters
-contain no filter for that field. Each filter must have a value; defaults
-without one are rejected. This is useful for filters that apply until the
-client overrides them, e.g. to hide soft-deleted records unless the client's
-filters explicitly request them.
-
-```elixir
-defmodule MyApp.Pet do
-  use Ecto.Schema
-  use Flop.Schema
-
-  @flop_options [
-    filterable: [:name, :age, :deleted],
-    sortable: [:name, :age],
-    default_filters: [%Flop.Filter{field: :deleted, value: false}]
-  ]
-
-  schema "pets" do
-    field :name, :string
-    field :age, :integer
-    field :deleted, :boolean
-  end
-end
-```
-
-The `op` field of the filter defaults to `:==`. To use a different operator,
-set it explicitly:
-
-```elixir
-@flop_options [
-  filterable: [:name, :age],
-  sortable: [:name, :age],
-  default_filters: [%Flop.Filter{field: :age, op: :>=, value: 8}]
-]
-```
-
-If you prefer the map style, you can use `Flop.Filter.new/1` to build the list
-from a map of field names to values, which applies the default `:==`
-operator:
-
-```elixir
-@flop_options [
-  filterable: [:name, :age, :deleted],
-  sortable: [:name, :age],
-  default_filters: Flop.Filter.new(%{deleted: false})
-]
-```
-
-See `t:Flop.default_filters/0` in the `Flop` documentation for the details:
-when a default is applied, how the values are cast, how the defaults interact
-with `max_filters`, and how to disable them for a single query.
+set maximum or default limits, default filters, and more. For a comprehensive
+list of available options, read the `Flop.Schema` documentation.
 
 ### Query data
 
@@ -347,9 +292,9 @@ more details on using filters.
 
 ## Internal parameters
 
-Flop is designed to manage parameters that come from the user side. While it is
+Flop is designed to handle parameters that come from the user side. While it is
 possible to alter those parameters and append extra filters upon receiving them,
-it is advisable to clearly differentiate parameters coming from outside and the
+it is recommended to cleanly separate parameters coming from outside from the
 parameters that your application adds internally.
 
 Consider the scenario where you need to scope a query based on the current user.
@@ -401,9 +346,7 @@ defp apply_filters(q, opts) do
 end
 ```
 
-With this approach, you maintain a clean separation between user-driven
-parameters and system-driven parameters, leading to more maintainable and less
-error-prone code.
+This approach leads to more maintainable and less error-prone code.
 
 ## Relay and Absinthe
 
