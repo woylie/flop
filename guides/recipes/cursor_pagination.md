@@ -138,6 +138,12 @@ the database sorts before it can build a cursor query with a plain direction.
 It determines this from the repo, which means cursor pagination with `:asc` or
 `:desc` raises when no repo can be resolved.
 
+Flop assumes that the primary key of the schema has no null values when a query
+selects from the schema's table and compares it without a null check. If your
+schema declares a primary key over columns that can be null, cursor pagination
+skips the rows in which the key is null. SQLite accepts null values in a
+non-integer primary key column unless the table is `STRICT` or `WITHOUT ROWID`.
+
 ## Reading the cursor value
 
 A cursor field can be a schema field, a join field, or a custom field with a

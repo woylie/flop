@@ -60,7 +60,7 @@ defmodule Flop.Adapters.Ecto.FlopTest do
   end
 
   defp page_cursor_by_cursor(q, module, order_by, direction, travel \\ :forward) do
-    flop = %Flop{order_by: order_by, order_directions: [direction]}
+    flop = %Flop{order_by: order_by, order_directions: List.wrap(direction)}
 
     flop =
       case travel do
@@ -2421,6 +2421,61 @@ defmodule Flop.Adapters.Ecto.FlopTest do
 
       assert length(pets) == 10
       assert pets |> Enum.map(& &1.id) |> Enum.uniq() |> length() == 10
+    end
+
+    test "returns rows of Flop.all for primary key in each position" do
+      for name <- ["a", "a", "b", nil, nil], do: insert(:fruit, name: name)
+
+      directions = [
+        :asc,
+        :asc_nulls_first,
+        :asc_nulls_last,
+        :desc,
+        :desc_nulls_first,
+        :desc_nulls_last
+      ]
+
+      for order_by <- [[:id, :name], [:name, :id]],
+          first <- directions,
+          second <- directions do
+        flop = %Flop{order_by: order_by, order_directions: [first, second]}
+        expected = Fruit |> Flop.all(flop, for: Fruit) |> Enum.map(& &1.id)
+
+        forward =
+          page_cursor_by_cursor(Fruit, Fruit, order_by, [first, second])
+
+        assert Enum.map(forward, & &1.id) == expected
+
+        backward =
+          page_cursor_by_cursor(
+            Fruit,
+            Fruit,
+            order_by,
+            [first, second],
+            :backward
+          )
+
+        assert Enum.map(backward, & &1.id) == Enum.reverse(expected)
+      end
+    end
+
+    test "returns rows with null primary key from subquery" do
+      insert(:pet, name: "a")
+      insert_list(2, :pet_with_owner, name: "a")
+
+      q =
+        from(
+          s in subquery(
+            from p in Pet,
+              left_join: o in assoc(p, :owner),
+              select: %{id: o.id, name: p.name}
+          )
+        )
+
+      for direction <- [:asc, :desc], travel <- [:forward, :backward] do
+        pets = page_cursor_by_cursor(q, Pet, [:name], direction, travel)
+        assert length(pets) == 3
+      end
     end
 
     test "loses rows of a tied sort without a tiebreaker" do
